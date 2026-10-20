@@ -369,10 +369,12 @@ That's the whole backend loop without leaving the session.
 
 ### Potential integration pain points (and mitigations)
 
-1. **Washer data source (biggest unknown).**
+1. **Washer data source: now identified as Diamond Chemical's Accu-Flow / CloudView on Milnor washers (see the viability analysis, §6).**
+   - The data comes from the **chemical supplier's dispensing system**, not from Milnor. Diamond controls access.
+   - No public API or export documentation was found.
    - Isolate it behind one `washer_cycles` table and one import function, with `source` and `raw` columns.
-   - Whether data arrives by API, CSV or a manual form, the rest of the app doesn't change.
-   - **Build manual entry first**; automate once you know the vendor.
+   - Whether data arrives by API, a scheduled CSV or emailed report, or a manual form, the rest of the app doesn't change.
+   - **Build manual entry first.** Automate once Diamond confirms what it can export.
 2. **Realtime on TVs over flaky Wi-Fi.**
    - Websockets drop silently.
    - On reconnect, `online`, or `visibilitychange`: refetch everything and show the age of the data.

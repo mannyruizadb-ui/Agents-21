@@ -194,3 +194,61 @@ Also decide in week one:
 4. What output do you track today, and in what unit (pieces, lbs, carts)?
 5. Is per-operator tracking a goal, or is per-station/per-shift enough? (Per-station is simpler and less sensitive.)
 6. Who would maintain this after it's built?
+
+---
+
+## 6. Update (2026-10-20): washer system identified
+
+**ADB's setup:**
+- **Washers:** Milnor
+- **Reporting:** "Accu-Flow CloudView"
+
+### What Accu-Flow actually is [C]
+
+- **Accu-Flow is a chemical-dispensing system made by Diamond Chemical Company** (East Rutherford, NJ). It is not a Milnor product.
+- Diamond's site lists several versions:
+  - Accu-Flow, Accu-Flow Lite and Accu-Flow II for conventional washers
+  - Accu-Flow Tunnel for tunnel washers
+- Diamond says the systems offer "accurate and reliable reporting of all aspects of your laundry process."
+  ([DiamondChem – Commercial Laundry](https://www.diamondchem.com/solution/commercial-laundry/))
+- When Accu-Flow launched in 2015, it came with "Diamond Web-View Reporting Software… complete web-based reporting of all washroom operations… review all past and current production information anytime."
+  ([Laundry Ledger, 2015](https://laundryledger.com/diamond-chemical-alis-accu-flow-dispensing-system/))
+- "CloudView" appears to be the current name of that reporting portal. [I]
+- **I found no public API, CSV export or developer documentation for it.** [NF]
+
+### What this changes
+
+1. **The data gatekeeper is your chemical supplier, not your washer maker.**
+   - Access to the data depends on your contract with Diamond.
+   - Dispensing and reporting systems like this are commonly bundled with the chemical supply contract. [I]
+   - **If you ever switch chemical vendors, this data feed likely goes with them.** Treat that as a lock-in risk, and keep your own copy of the data in your app's database.
+2. **The data is probably a good fit.** Dispensers usually log per-load events: machine, formula number, time, and often load weight and chemical usage ([Hydro Systems whitepaper](https://www.hydrosystemsco.com/solutions-center/whitepapers/the-perfect-cycle.html)). [I]
+   - **Wash formulas usually map to item types:** a mat formula, a white-linen formula, a kitchen-towel formula.
+   - So "washes of each thing per night" may come almost for free if each item type has its own formula.
+   - **Confirm that mapping with your washroom lead.**
+3. **Real-time isn't required.** Output reporting works fine on a **nightly or per-shift import**. Live washer status on the screens would be a nice phase-3 extra, not an MVP need.
+4. **There may be a second source.** Milnor washer controllers may log formula and cycle data on their own (Milnor also sells the networked **Mildata** system: [Milnor](https://www.milnor.com/cbw-batch-washers-pulseflow-technology/mildata-computer-systems/)).
+   - Ask your Milnor dealer what your specific controller model can export.
+   - Treat this as a backup if Diamond can't give you data. [?]
+
+### Questions for your Diamond Chemical rep
+
+1. Can CloudView **export reports to CSV or Excel**? Can it **email a scheduled daily report** automatically?
+2. Is there an **API** or data feed for third-party software? Is there a cost, or does it need approval?
+3. **What fields are logged per load?** Machine ID, formula number and name, start and end time, load weight, chemical usage, alarms.
+4. How far back does the history go? Can you get a bulk export of the past 90 days?
+5. **Who owns the data under your contract,** and what happens to it if the contract ends?
+6. Can formulas be renamed to match ADB's item types? For example, "Formula 3 = 3×5 mats."
+
+### Integration plan, depending on the answer
+
+| Diamond's answer | How we integrate | Effort |
+|---|---|---|
+| API available | Scheduled Supabase Edge Function pulls new loads every 15–60 min | 1–3 weeks once access is granted |
+| Scheduled emailed CSV/Excel | Dedicated inbound address → Edge Function parses the attachment | ~1 week |
+| Manual CSV export only | Upload button in the app; manager uploads it each morning (~1 min) | 2–4 days |
+| No export (screen only) | Manual nightly entry of load counts per formula, or current sensors on each washer | 2–3 days (manual) / 3–6 weeks (sensors) |
+
+**The verdict doesn't change. It's still a conditional GO.**
+- The one blocking unknown is now a **single phone call to Diamond Chemical.**
+- **Do not scrape the CloudView portal.** It would break whenever they change the site and may violate your agreement with Diamond.
