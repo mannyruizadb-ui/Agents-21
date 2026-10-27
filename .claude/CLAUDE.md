@@ -19,6 +19,7 @@ Full context lives in these docs. Read the relevant one before non-trivial work;
 - `research/PRD.md` — **source of truth.** Features with IDs (A1…H5), schema DDL (§4), API (§5), non-functional requirements (§6), scope (§7), metrics (§8).
 - `research/tech-stack.md` — stack choices, costs, MCP servers, integration pain points.
 - `research/viability-analysis.md` — build vs. buy, risks, the washer-data findings (§6).
+- `research/agents.md`: subagent architecture (meta protocol, 12 subagents, escalation and handoff rules). **Designed, not yet created** in `.claude/agents/`.
 - `research/americas-dust-busters-dossier.md` — company research. **Contains legal history; never quote it in code, commits or public places.**
 
 ## Current state (update this section as work progresses)
