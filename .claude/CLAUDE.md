@@ -32,7 +32,7 @@ Full context lives in these docs. Read the relevant one before non-trivial work;
   - device pairing
 - **Waiting on the owner (do not invent values):**
   1. Diamond Chemical's answer on Accu-Flow CloudView export: API, scheduled CSV/email, or none.
-  2. Item setup values (editable in the app, so they don't block the build): counting unit (unit or pack), pack size, baskets per load, approximate pieces per load.
+  2. Item list **received** (`research/item-catalog.md`, 26 items). Still TBD there: tablecloth, towel and wipe pack sizes; how sheets are counted; colors; baskets per load; pieces per load.
   3. Shift schedule, including whether any shift crosses midnight.
   4. Which languages to enable beyond EN/ES. Creole can be added later as data plus a translation file. Also: voice-input test results on the real phones (iOS installed-app support and Creole recognition are unconfirmed).
   5. Screen locations: Wi-Fi strength and heat at each spot.
