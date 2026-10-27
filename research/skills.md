@@ -2,7 +2,7 @@
 
 *Prepared 2026-10-27 from [`PRD.md`](./PRD.md) **v1.1** (no scale; wash loads as the unit; manager-only finished-goods entry), [`tech-stack.md`](./tech-stack.md) and [`.claude/CLAUDE.md`](../.claude/CLAUDE.md), after reviewing the [Claude Code skills docs](https://code.claude.com/docs/en/skills).*
 
-This lists **every distinct capability** needed to build the PRD (56 entries) and says how each should be packaged. **Most of them should not become Claude Code skills.** Read §1 before building any.
+This lists **every distinct capability** needed to build the PRD (56 entries). Every entry documents all eight requested fields: name, description, input, output, dependencies (libraries, external APIs, other skills), docs, complexity and example invocation, and says how each should be packaged. **Most of them should not become Claude Code skills.** Read §1 before building any.
 
 ---
 
@@ -104,7 +104,7 @@ These points come from the official docs and should drive what we build:
 | TEST-04 | `performance-budget` | Testing | ONE-TIME (CI) | Simple | §6.1 |
 | TEST-05 | `security-review` | Testing | EXISTING (`/security-review` + Supabase advisors) | Moderate | §6.2 |
 | TEST-06 | `verify` | Testing | **BUILD** | Moderate | every commit |
-| TEST-07 | `code-review` | Testing | EXISTING (`/code-review`) | — | every PR |
+| TEST-07 | `code-review` | Testing | EXISTING (`/code-review`) | Simple | every PR |
 | OPS-01 | `ci-pipeline` | Deployment | ONE-TIME | Moderate | §4 tech-stack CI/CD |
 | OPS-02 | `release` | Deployment | **BUILD** (manual-only) | Moderate | every release |
 | OPS-03 | `cloud-session-setup` | Deployment | EXISTING (`session-start-hook`) | Simple | dev environment |
@@ -262,7 +262,6 @@ The last row bundles four lower-urgency skills. Ship skills **as the phase needs
   - https://supabase.com/docs/guides/database/functions
   - https://docs.postgrest.org/en/stable/references/api/functions.html
   - https://www.postgresql.org/docs/current/plpgsql.html
-  - https://www.postgresql.org/docs/current/pgcrypto.html
 - **Example:**
   - `/rpc-function move_queue_item`
   - `/rpc-function record_finished_goods`
@@ -417,12 +416,12 @@ The last row bundles four lower-urgency skills. Ship skills **as the phase needs
 **Covered by EDGE-01 · Moderate**
 
 - **Description:** The `invite-user` and `revoke-user` Edge Functions, plus the owner UI for roles.
-- **Rule:** the last owner can't be removed.
 - **Input:** PRD A4, §5.4.
 - **Output:** two functions, membership writes, UI screen, tests.
 - **Dependencies:** `supabase-js` admin API (`inviteUserByEmail`, `signOut`). Skills: EDGE-01, FE-01.
 - **Docs:** https://supabase.com/docs/reference/javascript/auth-admin-inviteuserbyemail
 - **Example:** `/edge-function invite-user`
+- **Rule:** the last owner can't be removed.
 
 #### AUTH-03 · `device-pairing`
 
@@ -458,6 +457,10 @@ The last row bundles four lower-urgency skills. Ship skills **as the phase needs
 - **Input:** PRD A2, G3, §4.4 `item_types`; the owner's item list.
 - **Output:** setup UI + RPC + tests (a pack item needs a pack size; baskets need baskets per load).
 - **Dependencies:** Skills: FE-01, DB-04, DB-06, DOM-01.
+- **Docs:**
+  - https://supabase.com/docs/guides/database/functions
+  - https://react-hook-form.com/
+  - https://zod.dev/
 - **Example:** `/feature-slice A2`
 
 #### AUTH-05 · `owner-mfa`
@@ -465,6 +468,9 @@ The last row bundles four lower-urgency skills. Ship skills **as the phase needs
 **DEFER (P1) · Simple**
 
 - **Description:** TOTP MFA enrollment and challenge for owners; RLS checks `aal2` for owner-only writes.
+- **Input:** PRD §5.6 and §6.2 #5; the list of owner accounts.
+- **Output:** MFA enrollment and challenge screens; RLS checks of `aal2` for owner-only writes; pgTAP tests proving an `aal1` session is denied.
+- **Dependencies:** Supabase Auth MFA (TOTP), `supabase-js` `auth.mfa.*`; an authenticator app on the owner's phone. Skills: FE-01, DB-02.
 - **Docs:** https://supabase.com/docs/guides/auth/auth-mfa/totp
 - **Example:** "Require MFA for owners" (P1 ticket).
 
@@ -534,6 +540,8 @@ The last row bundles four lower-urgency skills. Ship skills **as the phase needs
 **Covered by EDGE-01 · Moderate**
 
 - **Description:** `dispatch-alerts` evaluates stale-estimate, device-offline and import-failed rules, dedupes through `alert_events` (1 per subject per shift), and sends via Resend in the recipient's language.
+- **Input:** PRD B3, D4, H3; alert rules and thresholds from `plants`; recipients from `profiles.notify_email`; each recipient's language.
+- **Output:** the `dispatch-alerts` function, a pg_cron schedule, `alert_events` rows, and translated email templates; tests for dedupe (one alert per subject per shift).
 - **Dependencies:** Resend API. Skills: EDGE-01, DB-09.
 - **Docs:**
   - https://resend.com/docs/api-reference/emails/send-email
@@ -545,6 +553,8 @@ The last row bundles four lower-urgency skills. Ship skills **as the phase needs
 **DEFER (P2) · Moderate**
 
 - **Description:** If Diamond can only email a scheduled report: an inbound address receives the attachment and triggers the EDGE-02 pipeline.
+- **Input:** Diamond's confirmation that reports can be emailed on a schedule, plus a sample email with its attachment.
+- **Output:** an inbound address and webhook handler that stores the attachment and calls the EDGE-02 preview/commit pipeline.
 - **Dependencies:** a Resend inbound webhook (or Cloudflare Email Workers / Postmark inbound).
 - **Docs:**
   - https://resend.com/docs/dashboard/receiving/introduction
@@ -583,6 +593,8 @@ The last row bundles four lower-urgency skills. Ship skills **as the phase needs
 - **Description:**
   - Fractional `position` (midpoint of neighbors, renumber when the gap is < 1e-6) and optimistic concurrency via `version`.
   - Client: dnd-kit with keyboard and up/down alternatives; optimistic reorder with rollback; a conflict toast.
+- **Input:** PRD C2–C3, §5.3 `move_queue_item`, `set_queue_rush`; the `queue_items` schema.
+- **Output:** RPCs with midpoint positioning, renumbering and version checks; a sortable list with keyboard and up/down alternatives; tests for concurrent reorders (conflict) and rush ordering.
 - **Dependencies:** `@dnd-kit/core`, `@dnd-kit/sortable`.
 - **Docs:**
   - https://docs.dndkit.com/presets/sortable
@@ -656,6 +668,8 @@ The last row bundles four lower-urgency skills. Ship skills **as the phase needs
   - running shift totals;
   - pending-sync counter;
   - ≤ 5 taps and ≤ 10 s per entry.
+- **Input:** PRD E1–E4, F1; the item's `count_mode`, `pack_size`; the `record_finished_goods` RPC.
+- **Output:** the entry screen (pack + loose keypads or a unit count, live total, Undo, running totals), the washer-load entry screen, Vitest and Playwright tests.
 - **Dependencies:** React, Tailwind. Skills: FE-01, FE-05.
 - **Docs:** https://www.w3.org/WAI/WCAG22/Understanding/target-size-enhanced.html
 - **Example:** `/feature-slice E1`. frontend.md loads automatically.
@@ -671,6 +685,9 @@ The last row bundles four lower-urgency skills. Ship skills **as the phase needs
   - accessible drag-and-drop;
   - freshness chips;
   - a "+1 call" tally button (PRD §8.5).
+- **Input:** PRD B1–B2, C1–C4, G1, §6.4; the control routes.
+- **Output:** the phone shell (bottom tabs, language switcher, accessibility settings), estimate and queue screens, the "+1 call" tally.
+- **Dependencies:** React, React Router, Tailwind, shadcn/ui, dnd-kit. Skills: FE-01, FE-06, RT-01.
 - **Docs:** https://web.dev/learn/design/
 - **Example:** `/feature-slice C2`
 
@@ -706,7 +723,8 @@ The last row bundles four lower-urgency skills. Ship skills **as the phase needs
   - Adds or updates translation keys in **every enabled locale file** together.
   - Also handles **adding a new language** (e.g., Creole) end to end: the `languages` row, a new `src/locales/<code>.json` with every key, `name_i18n` / `body_i18n` gaps listed for the item setup screen, and enabling it for the plant. **No code or schema change.**
   - A bundled script reports missing or extra keys per locale, hard-coded JSX strings, and hard-coded language lists.
-  - **Machine-drafted translations are marked `needs_review`** for a native speaker. `languages.ui_ready` stays false until they're reviewed.
+  - **Review (owner decision, 2026-10-27):** translations are checked by a separate AI review pass, not a human. Drafts are marked `needs_review` until that pass clears them, and `languages.ui_ready` stays false until then.
+  - **Recommended:** a crew member also reads the short display and keypad strings once per language. This matters most for Creole, which AI handles less reliably.
 - **Input:** new keys or English source strings; the target files.
 - **Output:** updated locale JSON; a script report.
 - **Dependencies:** react-i18next, i18next; a Node script (`${CLAUDE_SKILL_DIR}/scripts/check-keys.mjs`).
@@ -721,6 +739,9 @@ The last row bundles four lower-urgency skills. Ship skills **as the phase needs
 **ONE-TIME · Moderate**
 
 - **Description:** vite-plugin-pwa config: manifest, icons, offline shell, update prompt (displays auto-apply at the nightly reload), version string for heartbeats.
+- **Input:** PRD H4; app name, icons and theme colors.
+- **Output:** `vite.config.ts` PWA config, `manifest.webmanifest`, icon set, update prompt component, version string exposed for heartbeats.
+- **Dependencies:** `vite-plugin-pwa` (Workbox). Skills: FE-01.
 - **Docs:**
   - https://vite-pwa-org.netlify.app/guide/
   - https://developer.chrome.com/docs/workbox
@@ -731,6 +752,9 @@ The last row bundles four lower-urgency skills. Ship skills **as the phase needs
 **RULE · Simple**
 
 - **Description:** React Hook Form + Zod schemas that mirror the PRD §4.9 rules. The DB stays the final validator, and server error codes map to field errors.
+- **Input:** PRD §4.9 validation rules; generated DB types; the PRD §5.1 error codes.
+- **Output:** Zod schemas per form, mirroring the DB checks; server-error-to-field mapping; translated messages.
+- **Dependencies:** `react-hook-form`, `@hookform/resolvers`, `zod`. Skills: FE-01, FE-06, ERR-01.
 - **Docs:**
   - https://react-hook-form.com/docs/useform
   - https://zod.dev/
@@ -741,6 +765,9 @@ The last row bundles four lower-urgency skills. Ship skills **as the phase needs
 **EXISTING (`dataviz` skill) · Moderate**
 
 - **Description:** Charts for the shift report and productivity trends (Recharts), using the installed `dataviz` skill's palette and form guidance.
+- **Input:** PRD G1–G2, G5; report RPC payloads (`get_shift_report`, `shift_productivity`).
+- **Output:** chart components (loads vs. finished per item, trends) that are accessible (data table alternative, not color-only) and translated.
+- **Dependencies:** `recharts`; the installed `dataviz` skill for palette and form. Skills: FE-01, DB-06.
 - **Docs:** https://recharts.org/en-US/api
 - **Example:** `/feature-slice G2`, with `dataviz` loaded when charting.
 
@@ -752,6 +779,9 @@ The last row bundles four lower-urgency skills. Ship skills **as the phase needs
   - a display palette verified at ≥ 7:1 contrast;
   - status colors that always come with icons;
   - a type scale.
+- **Input:** PRD §6.3 (contrast, sizes, high-contrast mode); brand colors if any.
+- **Output:** Tailwind theme tokens, a shadcn theme, a high-contrast variant, a type scale per surface, and a contrast check report (≥ 4.5:1 control, ≥ 7:1 display).
+- **Dependencies:** Tailwind CSS, shadcn/ui; optionally `design:design-system`. Skills: TEST-03.
 - **Docs:**
   - https://tailwindcss.com/docs/theme
   - https://ui.shadcn.com/docs/theming
@@ -786,6 +816,9 @@ The last row bundles four lower-urgency skills. Ship skills **as the phase needs
 **RULE · Simple**
 
 - **Description:** Vitest for pure logic: conversions, ordering math, freshness, shift boundaries including DST, offline queue. Lives beside the code as `*.test.ts`.
+- **Input:** the module under test; PRD acceptance criteria; edge cases (DST, pack overflow, offline replay).
+- **Output:** `*.test.ts` files next to the code; passing `npm test`.
+- **Dependencies:** Vitest, `@testing-library/react`, `jsdom`. Skills: FE-01.
 - **Docs:** https://vitest.dev/guide/
 - **Example:** part of `/feature-slice`. The bundled `engineering:testing-strategy` skill helps with planning.
 
@@ -819,6 +852,9 @@ The last row bundles four lower-urgency skills. Ship skills **as the phase needs
   - Automated: axe in Playwright on every route, plus a 200% text-scale run.
   - Manual-criteria review with the installed `design:accessibility-review` skill (WCAG 2.2 AA; display at ≥ 7:1).
   - **Before each UI release:** a manual pass on real devices with VoiceOver, TalkBack, iOS Voice Control and Android Voice Access (PRD H6).
+- **Input:** routes to check; PRD H6 and §6.3; the real test devices for the manual pass.
+- **Output:** axe results in CI (0 serious/critical violations), a 200%-text-scale run, and a manual checklist record per release.
+- **Dependencies:** `@axe-core/playwright`, Playwright; VoiceOver, TalkBack, iOS Voice Control, Android Voice Access on devices; the `design:accessibility-review` skill. Skills: TEST-02.
 - **Docs:**
   - https://github.com/dequelabs/axe-core
   - https://www.w3.org/TR/WCAG22/
@@ -831,6 +867,9 @@ The last row bundles four lower-urgency skills. Ship skills **as the phase needs
 - **Description:** CI fails if:
   - initial-route JS is > 250 KB gzipped (size-limit); or
   - Lighthouse misses targets on the display and control routes.
+- **Input:** the PRD §6.1 budgets (≤ 250 KB gz initial JS; load-time targets).
+- **Output:** `size-limit` and Lighthouse CI configs and a CI step that fails over budget.
+- **Dependencies:** `size-limit`, `@lhci/cli`, GitHub Actions. Skills: OPS-01.
 - **Docs:**
   - https://github.com/ai/size-limit
   - https://github.com/GoogleChrome/lighthouse-ci
@@ -843,6 +882,9 @@ The last row bundles four lower-urgency skills. Ship skills **as the phase needs
 - **Description:**
   - The bundled `/security-review` on diffs.
   - Supabase security and performance advisors via MCP (`get_advisors`) **before every release and in CI**: missing RLS, mutable `search_path`, unindexed FKs.
+- **Input:** the current diff; the dev Supabase project.
+- **Output:** a findings list from `/security-review` plus the Supabase advisor report (missing RLS, mutable `search_path`, unindexed FKs); fixes or tracked issues.
+- **Dependencies:** the bundled `/security-review` skill; Supabase MCP `get_advisors`. Skills: DB-02, DB-03.
 - **Docs:**
   - https://supabase.com/docs/guides/database/database-advisors
   - https://code.claude.com/docs/en/commands
@@ -870,9 +912,13 @@ The last row bundles four lower-urgency skills. Ship skills **as the phase needs
 
 #### TEST-07 · `code-review`
 
-**EXISTING · —**
+**EXISTING · Simple**
 
 - **Description:** The bundled `/code-review` (and `/simplify`) on PRs.
+- **Input:** a PR number, branch or the working diff.
+- **Output:** review findings (optionally posted as PR comments, or applied with `--fix`).
+- **Dependencies:** the bundled `/code-review` and `/simplify` skills; GitHub MCP for PR comments.
+- **Docs:** https://code.claude.com/docs/en/commands
 - **Example:** `/code-review high`
 
 ### 4.6 Deployment & infrastructure
@@ -885,6 +931,8 @@ The last row bundles four lower-urgency skills. Ship skills **as the phase needs
   - `ci.yml`: typecheck, lint, Vitest, local Supabase + pgTAP, Playwright, size-limit, advisors.
   - `deploy.yml`: on `main`, `supabase db push`, regenerate types, Netlify deploy.
   - `backup.yml`: see DB-11.
+- **Input:** tech-stack.md CI/CD section; repo secrets (names in CLAUDE.md).
+- **Output:** `.github/workflows/ci.yml` and `deploy.yml`; a green first run.
 - **Dependencies:** GitHub Actions, `supabase/setup-cli`, Netlify CLI, `actions/setup-node`.
 - **Docs:**
   - https://docs.github.com/en/actions
@@ -924,6 +972,9 @@ The last row bundles four lower-urgency skills. Ship skills **as the phase needs
 
 - **Description:** A SessionStart hook so cloud sessions install dependencies and can run lint and tests.
 - **⚠️ Cloud sessions may not run Docker,** so the local Supabase stack can fail there. Plan pgTAP and e2e runs for CI or a local machine, and note it in CLAUDE.md once verified.
+- **Input:** the project's install and test commands (`package.json`).
+- **Output:** a SessionStart hook in `.claude/settings.json` that installs dependencies; a note in CLAUDE.md on what can and can't run in cloud sessions (e.g., Docker).
+- **Dependencies:** Claude Code hooks; the installed `session-start-hook` skill; npm.
 - **Docs:**
   - https://code.claude.com/docs/en/hooks
   - https://code.claude.com/docs/en/claude-code-on-the-web
@@ -937,6 +988,9 @@ The last row bundles four lower-urgency skills. Ship skills **as the phase needs
   - Rule: the variable names in CLAUDE.md; `.env.example` with names only.
   - **Hook:** `PreToolUse` blocks writes of anything that looks like a key into tracked files, and blocks reading `.env*` values into output.
   - GitHub secret scanning stays on.
+- **Input:** the environment variable names in CLAUDE.md.
+- **Output:** `.env.example` (names only), `.gitignore` entries, a `PreToolUse` secret-guard hook, and GitHub secret scanning enabled.
+- **Dependencies:** Claude Code hooks; GitHub secret scanning; Netlify/Supabase/GitHub secret stores.
 - **Docs:**
   - https://code.claude.com/docs/en/hooks
   - https://docs.github.com/en/code-security/secret-scanning
@@ -947,6 +1001,9 @@ The last row bundles four lower-urgency skills. Ship skills **as the phase needs
 **ONE-TIME · Simple**
 
 - **Description:** Sentry React SDK with release and version tags; source maps uploaded in CI; heartbeat RPC wiring; uptime check on the app URL.
+- **Input:** the Sentry DSN and auth token (names only in repo); PRD D4 and §6.1.
+- **Output:** Sentry initialized with release, plant and device tags; source maps uploaded in CI; an uptime check; heartbeat wiring verified.
+- **Dependencies:** `@sentry/react`, `@sentry/vite-plugin`; an uptime monitor (e.g., UptimeRobot). Skills: OPS-01, ERR-01.
 - **Docs:**
   - https://docs.sentry.io/platforms/javascript/guides/react/
   - https://docs.sentry.io/platforms/javascript/guides/react/sourcemaps/
@@ -964,7 +1021,9 @@ The last row bundles four lower-urgency skills. Ship skills **as the phase needs
   - remote admin;
   - Wi-Fi.
   - Plus a pairing walkthrough in Spanish.
+- **Input:** the chosen TV boxes and kiosk browser; plant Wi-Fi details; the pairing flow (A7).
 - **Output:** `docs/runbooks/display-setup.md`.
+- **Dependencies:** Fully Kiosk Browser (or ChromeOS kiosk); Android TV boxes. Skills: AUTH-03, the `engineering:documentation` skill.
 - **Docs:** https://www.fully-kiosk.com/en/#manual
 - **Example:** "Write the display setup runbook." The existing `engineering:documentation` skill can help.
 
@@ -990,7 +1049,10 @@ The last row bundles four lower-urgency skills. Ship skills **as the phase needs
 **EXISTING (`engineering:architecture`) · Simple**
 
 - **Description:** An ADR whenever an architecture decision changes. Examples: a numeric vs. text fractional index; adding a Python worker for Accu-Flow.
+- **Input:** the decision, options considered, and their trade-offs.
 - **Output:** `docs/adr/NNN-title.md`.
+- **Dependencies:** the installed `engineering:architecture` skill.
+- **Docs:** https://adr.github.io/
 - **Example:** `/engineering:architecture Accu-Flow ingestion via email vs API`
 
 #### DOC-03 · `crew-communications`
@@ -998,7 +1060,10 @@ The last row bundles four lower-urgency skills. Ship skills **as the phase needs
 **DEFER (needs HR/legal) · Moderate**
 
 - **Description:** A plain-language notice in EN/ES/HT explaining what the wall screens are for and that **no individual output is recorded**. PRD §6.2 #11 requires it before launch.
+- **Input:** PRD §6.2 #11; what the screens show and what is (not) recorded; the enabled languages.
 - **Output:** a draft only. **HR/legal approves the final.**
+- **Dependencies:** HR/legal approval (required); the `legal:compliance-check` skill can help scope it. Skills: FE-06 for translations.
+- **Docs:** https://www.dol.gov/agencies/whd/flsa (context for why payroll use is excluded)
 - **Example:** "Draft the crew data notice."
 
 #### DOC-04 · `api-reference`
@@ -1008,6 +1073,9 @@ The last row bundles four lower-urgency skills. Ship skills **as the phase needs
 - **Description:**
   - Every RPC and Edge Function carries a `comment on function` or header doc with signature, roles and error codes.
   - The PRD §5 remains the spec. Generating separate API docs isn't worth it for an internal app.
+- **Input:** each RPC's and Edge Function's signature, roles and error codes (PRD §5).
+- **Output:** `comment on function` text and Edge Function header docs; visible via generated types and the Supabase dashboard.
+- **Dependencies:** Postgres `COMMENT`. Skills: DB-04, EDGE-01.
 - **Docs:** https://www.postgresql.org/docs/current/sql-comment.html
 - **Example:** enforced through DB-04 and EDGE-01.
 
@@ -1023,6 +1091,9 @@ The last row bundles four lower-urgency skills. Ship skills **as the phase needs
   - the client maps each code to an i18n message and an action (refetch on `QUEUE_VERSION_CONFLICT`, highlight the pack/loose fields on `COUNT_MODE_MISMATCH`);
   - unexpected errors go to Sentry with user, device and plant tags (no PII beyond IDs);
   - React error boundaries per surface, so a display never shows a blank screen.
+- **Input:** PRD §5.1 error codes; the i18n message catalog; Sentry setup.
+- **Output:** a shared `errors.ts` mapping codes to messages and actions; error boundaries per surface; tests that each code renders a translated, actionable message.
+- **Dependencies:** React error boundaries, `@sentry/react`, react-i18next. Skills: FE-06, OPS-05.
 - **Docs:**
   - https://react.dev/reference/react/Component#catching-rendering-errors-with-an-error-boundary
   - https://docs.sentry.io/platforms/javascript/guides/react/features/error-boundary/
@@ -1037,6 +1108,10 @@ The last row bundles four lower-urgency skills. Ship skills **as the phase needs
   - The `weekly_success_metrics` view.
   - The "+1 call" tally.
   - These are the only reliable way to prove the north-star metric.
+- **Input:** the PRD §8.5 event list and §8.3 targets.
+- **Output:** a typed `track(event, props)` helper writing to `app_events`; the `weekly_success_metrics` view; the "+1 call" tally button.
+- **Dependencies:** `supabase-js`; Postgres views. Skills: FE-01, DB-06.
+- **Docs:** https://supabase.com/docs/guides/database/tables
 - **Example:** part of `/feature-slice` and `/reporting-views weekly_success_metrics`.
 
 #### ERR-03 · `edge-logging`
@@ -1044,7 +1119,11 @@ The last row bundles four lower-urgency skills. Ship skills **as the phase needs
 **RULE (edge-functions.md, already present) · Simple**
 
 - **Description:** Structured `console.log` JSON; never secrets, tokens or bodies. Read through the Supabase logs (MCP `get_logs`).
+- **Input:** the Edge Function being written.
+- **Output:** structured JSON log lines (`level`, `fn`, `plant_id`, `code`, `duration_ms`) with no secrets or bodies.
+- **Dependencies:** Supabase Edge Functions logging; Supabase MCP `get_logs`. Skills: EDGE-01.
 - **Docs:** https://supabase.com/docs/guides/functions/logging
+- **Example:** applied automatically through `edge-functions.md` whenever `/edge-function` runs.
 
 ### 4.9 Domain knowledge
 
@@ -1093,5 +1172,6 @@ The docs say rules that must hold every time belong in hooks. These four go in `
 
 1. Are you OK with **17 project skills** rather than one per capability? The docs' context limits are why.
 2. Should `release` require **you** to type `/release` every time (my recommendation), or can Claude propose it?
-3. Who reviews Spanish and Haitian Creole translations? `i18n-strings` will flag machine drafts, but someone has to clear them.
+3. ~~Who reviews translations?~~ **Decided:** an AI review pass, with a recommended native-speaker spot check of display strings.
 4. Can CI run Docker (GitHub-hosted runners can)? Then local-Supabase tests run there even if cloud sessions can't run Docker.
+

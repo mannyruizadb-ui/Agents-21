@@ -603,7 +603,7 @@ Export any report, or the raw entries (finished goods, washer loads, estimates),
 - **Tech notes:**
   - react-i18next with lazy-loaded locale files.
   - The `languages` table plus `jsonb` translation maps (§4.4) replace per-language columns.
-  - **Machine-drafted translations are marked for review by a native speaker** before launch.
+  - **Translation review (owner decision):** every machine-drafted translation gets a separate AI review pass before it's marked ready. Recommended: a crew member spot-checks the display and keypad strings per language, especially Creole.
 
 #### H2. Audit log (P0)
 
