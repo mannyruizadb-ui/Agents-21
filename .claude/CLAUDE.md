@@ -1,10 +1,11 @@
 # PlantBoard — project memory
 
 Real-time operations board for **America's Dust Busters (ADB) / Star Linen Service**, a family-owned commercial floor-mat and linen rental laundry. It is at 222 NE 68th St, Miami FL, and has been operating since 1988.
-- Managers estimate the dirty work waiting.
+- Managers estimate the dirty work waiting, in wash loads (or baskets converted to loads).
 - The owner orders the work queue from their phone.
 - Wall screens in the washroom and finishing room show Now / Next / Later.
-- Station tablets log what was produced.
+- The washroom records loads run per item. The finishing manager records finished goods by unit or by pack + loose.
+- The app reconciles loads washed with finished goods per item and shift.
 - Every shift ends with an automatic output report.
 
 **Mission:** stop running the plant by phone calls.
@@ -31,13 +32,13 @@ Full context lives in these docs. Read the relevant one before non-trivial work;
   - device pairing
 - **Waiting on the owner (do not invent values):**
   1. Diamond Chemical's answer on Accu-Flow CloudView export: API, scheduled CSV/email, or none.
-  2. Unit conversions per item: lbs per basket, lbs per load, pieces per lb.
+  2. Item setup values (editable in the app, so they don't block the build): counting unit (unit or pack), pack size, baskets per load, approximate pieces per load.
   3. Shift schedule, including whether any shift crosses midnight.
-  4. Crew languages. EN + ES are assumed; Haitian Creole is pending.
+  4. Which languages to enable beyond EN/ES. Creole can be added later as data plus a translation file. Also: voice-input test results on the real phones (iOS installed-app support and Creole recognition are unconfirmed).
   5. Screen locations: Wi-Fi strength and heat at each spot.
   6. Baseline tally of phone calls per shift.
 - **Known debt and caveats:**
-  - The PRD DDL was test-loaded in Postgres 16 (24 tables; tenant FKs and the shift-overlap exclusion verified). The RLS policies, triggers and views in PRD §4.5–4.7 exist only as specs.
+  - **PRD is v1.2** (2026-10-27). v1.2 adds accessibility (H6), voice-to-text (H7) and extensible per-user languages (H1). v1.1 revised the measurement model: no scale, wash loads as the unit, manager-only finished-goods entry, no operators/PINs/stations. The DDL was test-loaded in Postgres 16 (23 tables; tenant FKs, shift-overlap exclusion and pack/unit rules verified). RLS policies, triggers and views (§4.5–4.7) exist only as specs.
   - Supabase and Netlify prices in tech-stack.md came partly from third-party write-ups. Re-verify before buying.
   - The Accu-Flow CSV format is unknown. **Do not build the parser (F3) without a real sample file.**
 
@@ -67,15 +68,21 @@ Full context lives in these docs. Read the relevant one before non-trivial work;
   - Every operational row has `org_id` + `plant_id`.
   - Composite FKs (`(plant_id, org_id)`, `(area_id, plant_id)`, …) make cross-tenant references impossible.
   - **RLS is enabled on every table, deny-by-default.**
-- **Roles:** `owner`, `manager`, `lead`, `viewer`, plus device roles `display` (read-only, own area) and `station` (insert-only, own station). Operators are **not** auth users; they check in at a station with a PIN, and the PIN is for attribution only.
+- **Roles:** `owner`, `manager`, `lead`, `viewer`, plus the device role `display` (read-only, own area). **There are no operator accounts, PINs or station devices** (removed in PRD v1.1). A shared area tablet signs in as a normal `lead` or `manager`.
 - **History is append-only. No hard deletes.**
   - `soil_estimates` are never updated.
-  - Logs are voided, not deleted.
+  - Finished-goods entries are voided, not deleted.
   - Queue items are cancelled, not deleted.
-- **Idempotency:** every device-originated insert carries a client-generated `client_id` UUID.
+- **Idempotency:** every client-originated insert carries a client-generated `client_id` UUID.
 - **Displays never trust Realtime alone.** They refetch the full feed on connect, reconnect, `online`, `visibilitychange` and every 5 min, and always show the data's age.
 - **Time:** store UTC (`timestamptz`). Report by `shift_instance_id` and business date, never calendar date. Plant timezone is `America/New_York`.
-- **Quantities** are `numeric`, never float. All unit conversion goes through the one SQL function `app.to_lbs()`. A missing conversion factor gives `null` + `partial_conversion`, never a guess.
+- **Measurement model (no scale, so never weights or lbs):**
+  - **Wash loads** are the common unit.
+  - Estimates are in loads or baskets (`baskets_per_load`, per item).
+  - Finished goods are integers: `packs × pack_size_used + loose_pieces` = `pieces`, computed by the DB. Unit items use `loose_pieces` only.
+  - Pack size is editable per item and can be overridden per entry. Past entries keep their `pack_size_used`.
+  - Reconciliation uses the approximate `pieces_per_load`.
+  - All conversion goes through the one SQL function `app.to_loads()`. A missing factor gives `null`, never a guess. Approximate values are flagged and shown with "≈".
 - **Washer data:** the source is Diamond Chemical's Accu-Flow / CloudView, the chemical supplier's system on the Milnor washers.
   - Everything goes into one `washer_cycles` table, with `source` and `raw` columns.
   - Manual entry is the MVP path.
@@ -91,7 +98,7 @@ Full context lives in these docs. Read the relevant one before non-trivial work;
   - Routes and Edge Function folders: `kebab-case`.
   - SQL: `snake_case`, plural table names, enums and helpers in schema `app`.
   - Migrations: `supabase migration new <verb_noun>`.
-- **All user-facing text goes through react-i18next** (`src/locales/{en,es,ht}.json`). No hard-coded UI strings.
+- **All user-facing text goes through react-i18next** (`src/locales/<code>.json`, lazy-loaded). **Languages are data**: the `languages` table plus `*_i18n` jsonb maps. Never hard-code a language list or add per-language columns.
 - Zod schemas mirror the DB CHECK constraints. **The database is the final validator; never trust the client.**
 - `src/types/database.ts` is **generated. Never hand-edit it.** Regenerate after every migration.
 - Commits: short imperative sentence ("Add queue reorder RPC"), matching the existing history. One logical change per commit.
@@ -112,7 +119,7 @@ supabase gen types typescript --local > src/types/database.ts
 ```
 .claude/CLAUDE.md, .claude/rules/   memory + path-scoped rules
 research/                           planning docs (PRD, stack, viability, dossier)
-src/app/{control,display,station,pair}/   the 4 surfaces (routes)
+src/app/{control,display,pair}/        the 3 surfaces (routes)
 src/features/<epic>/                 estimates, queue, production, washroom, reports, admin
 src/lib/                             supabase client, i18n, query client, utils
 src/locales/{en,es,ht}.json          translations
@@ -120,8 +127,8 @@ src/types/database.ts                GENERATED types
 supabase/migrations/                 SQL migrations (timestamped)
 supabase/functions/<name>/index.ts   Edge Functions (invite-user, pair-device, …)
 supabase/tests/                      pgTAP tests, one file per table/role area
-supabase/seed.sql                    ADB org, plant, areas, stations, item types
-tests/e2e/                           Playwright specs (display at 1920×1080, station at 1024×600)
+supabase/seed.sql                    ADB org, plant, areas, lines, machines, item types
+tests/e2e/                           Playwright specs (display at 1920×1080, control at 390×844)
 .github/workflows/                   ci.yml, deploy.yml, backup.yml
 ```
 
@@ -149,19 +156,20 @@ tests/e2e/                           Playwright specs (display at 1920×1080, st
 - **Owner-Operator Dispatcher (primary):**
   - On the phone all day; wants to set priorities in seconds from anywhere.
   - Fears missed rush orders, unproductive overtime, and software that needs babysitting.
-- **Plant manager:** updates estimates. Tired of relaying messages between the owner and the floor.
-- **Washroom lead and finishing operators:**
+- **Plant / finishing manager:** updates estimates and **is the only person who enters finished goods**, so entry speed is critical (≤ 5 taps, ≤ 10 s). Tired of relaying messages between the owner and the floor.
+- **Washroom lead and finishing crew:**
   - Gloves on, hot and noisy room, Spanish or Haitian Creole first.
-  - Fear being "tracked" unfairly.
+  - The crew only **reads** the wall displays. The lead may record washer loads until Accu-Flow data arrives.
 
 **UX principles:**
-- ≤ 3 taps for any common action.
+- **Accessible to people with disabilities:** WCAG 2.2 AA; works with VoiceOver/TalkBack, iOS Voice Control/Android Voice Access (visible label = accessible name) and OS dictation in every field; per-user settings (text size, contrast, motion, confirm-before-save). **Voice entries are never saved without confirmation.**
+- Each user sees their chosen language (switchable from any screen). ≤ 3 taps for any common action.
 - Wall displays readable at 6 m: NOW text ≥ 96 px, nothing below 32 px, contrast ≥ 7:1.
-- Station touch targets ≥ 64 px; numbers and icons over text.
+- Entry keypads (finished goods, washer loads) have targets ≥ 56 px; numbers and icons over text.
 - Never use color alone; always add an icon and text.
 - Show data freshness everywhere.
 - Offline must never lose an entry.
-- **Team totals only on wall screens. Per-operator numbers are visible to owner and manager only.**
+- **No per-person data is collected.** Screens and reports show shift and area totals only.
 
 ## How to work in this repo
 
@@ -172,9 +180,9 @@ tests/e2e/                           Playwright specs (display at 1920×1080, st
 - **Ask first when:**
   - a change touches tenancy, RLS, roles or the schema of existing tables;
   - you'd add a dependency or a paid service;
-  - it affects what operator or productivity data is shown, or to whom;
+  - it would collect any per-person data, or change what productivity data is shown;
   - a value from the "waiting on the owner" list is needed.
-- **Prove before pushing:** typecheck, lint, unit tests, `supabase test db` for any SQL change, and Playwright for display or station UI.
+- **Prove before pushing:** typecheck, lint, unit tests, `supabase test db` for any SQL change, and Playwright for display or entry UI.
 - **Update the "Current state" section** at the end of any session that changes it.
 
 **Never do without explicit approval:**
@@ -183,7 +191,7 @@ tests/e2e/                           Playwright specs (display at 1920×1080, st
 - Hard-delete operational data.
 - Push to `main`, force-push, or rewrite history. Work on the session's feature branch.
 - Add paid services or change hosting plans.
-- Show per-operator metrics on wall displays, or use app data for payroll, pay or discipline.
+- Add per-person tracking of any kind, or use app data for payroll, pay or discipline.
   - Productivity data is operational, not timekeeping.
   - ADB has a 2013 DOL wage-and-hour finding on record, so this needs HR/legal review.
 - Scrape vendor portals, contact vendors, or send email or messages on the owner's behalf.

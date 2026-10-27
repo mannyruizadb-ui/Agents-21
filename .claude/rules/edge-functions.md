@@ -23,5 +23,5 @@ Specs are in `research/PRD.md` §5.4: `invite-user`, `revoke-user`, `pair-device
   - Unknown machines or formulas are flagged, never dropped.
   - **Don't write the Accu-Flow parser without a real sample export from Diamond Chemical.**
 - Scheduled functions (`dispatch-alerts`) are invoked by pg_cron. Dedupe alerts through `alert_events` (one per subject per shift).
-- Never log secrets, PINs, tokens or full request bodies.
+- Never log secrets, tokens or full request bodies.
 - Read secrets from `Deno.env` only. Variable names are listed in `.claude/CLAUDE.md`.
