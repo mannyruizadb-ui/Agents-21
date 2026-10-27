@@ -4,6 +4,14 @@
 
 ---
 
+> **Superseded in part (2026-10-27).** [`PRD.md`](./PRD.md) v1.2 is the source of truth. Since this doc was written:
+> - **No scale:** wash loads are the unit; there are no lbs or PPOH.
+> - **Finished goods are entered by the manager only:** no station tablets, operators or PINs.
+> - **Languages are data-driven:** a `languages` table plus `*_i18n` maps.
+> - **Accessibility and voice input are requirements.**
+>
+> The stack choices below still stand. The schema sketch, station surface and auth table here are outdated.
+
 ## TL;DR
 
 | Layer | Pick | One-line reason |

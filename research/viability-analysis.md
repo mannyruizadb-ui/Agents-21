@@ -4,6 +4,8 @@
 
 ---
 
+> **Update (2026-10-27):** ADB has **no scale**, so the unit model is wash loads, not pounds. The finishing manager enters output by unit or by pack + loose pieces. Per-person productivity is out of scope. See [`PRD.md`](./PRD.md) v1.2. The weight and PPOH references below are historical.
+
 ## 0. Verdict up front
 
 **Conditional GO — as an internal tool for ADB. NO-GO (for now) as a product to sell to other laundries.**
