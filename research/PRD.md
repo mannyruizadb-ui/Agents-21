@@ -27,7 +27,7 @@
 | **Pieces per load** | Average number of finished pieces that one wash load of an item yields. Set by counting a few loads, or suggested by the app from history. **Used only to reconcile washroom loads with finished goods**, and always shown as approximate. |
 | **Baskets per load** | How many soil baskets of an item make one wash load. Needed only for items whose estimates are entered in baskets. |
 | **Finished-goods entry** | A record, made by the finishing manager, of what was processed: item, packs + loose pieces (or units), and optionally which line, at what time. |
-| **Reconciliation** | Comparing loads washed with finished goods (converted through pieces per load) per item and shift, to see what's done, what's clean but not yet finished, and what's still dirty. |
+| **Reconciliation** | Comparing loads washed with finished goods (converted through pieces per load) per item and **business day** (v1.3; area shifts don't line up), to see what's done, what's clean but not yet finished, and what's still dirty. |
 | **Station / line** | Optional finishing position ("Ironer 1", "Folding table 2") that an entry can be tagged with. |
 | **Queue** | The ordered list of work an area should do next. Shown on that area's wall display. |
 | **Queue item** | One line in the queue. Example: "Napkins, white: 4 loads, RUSH". |
@@ -92,7 +92,7 @@ PlantBoard is a real-time operations board for an industrial laundry.
 - **Wall-mounted screens** in the washroom and finishing room show each crew exactly what to do **now, next and later**.
 - The **washroom** records loads run per item: manual at first, later from Diamond's Accu-Flow CloudView.
 - The **finishing manager** records what was processed, in each item's own counting unit: units for mats and butcher coats, packs + loose pieces for napkins, tablecloths and towels.
-- The app **reconciles** loads washed with finished goods per item and shift. Together that produces a per-shift **job output sheet** without anyone collecting paper.
+- The app **reconciles** loads washed with finished goods per item and business day, and produces a **shift report per area** plus a **day report**, without anyone collecting paper.
 
 It is built first for America's Dust Busters / Star Linen Service in Miami, on a multi-tenant foundation so more plants or organizations can be added later.
 
@@ -336,7 +336,7 @@ Feature IDs are referenced throughout. Each epic opens with what it covers.
 
 - **Story:** As an owner, I want to be notified when estimates go stale during a shift so that the board doesn't silently drift from reality.
 - **Acceptance criteria:**
-  - If any active item with a non-zero estimate is older than the red threshold during an active shift instance, send one email to the configured recipients.
+  - If any active item with a non-zero estimate is older than the red threshold during an active shift instance of **any area**, send one email to the configured recipients.
   - Maximum 1 alert per item per shift.
 - **Tech notes:** pg_cron every 15 min → Edge Function `dispatch-alerts` → Resend.
 
@@ -408,7 +408,7 @@ Save and reuse a typical day's order.
     - **NEXT:** the next 3 items.
     - **LATER:** a count of remaining items + total loads queued.
     - **Side panel:** dirty work remaining (in loads) for the top 6 items, with freshness.
-    - **Footer:** shift name, clock, connection status, "updated Xs ago".
+    - **Footer:** the current shift **of this display's area**, clock, connection status, "updated Xs ago".
   - **Readability:** NOW item text ≥ 96 px; NEXT ≥ 56 px; nothing below 32 px. Readable at 6 m.
   - **Language:** each display shows one or two of the plant's enabled languages (two are stacked), chosen per display.
   - **No interaction required.** Runs unattended for 72 h without a manual reload.
@@ -442,7 +442,7 @@ Save and reuse a typical day's order.
 
 - **Acceptance criteria:**
   - Each device calls `device_heartbeat()` every 60 s.
-  - If a paired display has no heartbeat for 10 minutes during an active shift, the owner and managers get an email. Max 1 per device per shift.
+  - If a paired display has no heartbeat for 10 minutes during an active shift **of its area**, the owner and managers get an email. Max 1 per device per shift.
   - A device list shows last seen, app version and status.
 
 #### D5. Shift scoreboard on display (P1)
@@ -568,7 +568,7 @@ Log stoppages (machine down, waiting on washroom, no work) with start and end ti
 
 - **Story:** As an owner, I want loads washed and pieces finished per shift, and per labor hour when crew hours are entered, so that I can compare shifts and plan staffing.
 - **Acceptance criteria:**
-  - Per shift and area: loads washed, pieces finished, crew count, labor hours, loads per labor hour, and pieces per labor hour by item.
+  - Per shift (each shift belongs to one area): **washroom shifts** show loads washed and loads per labor hour; **finishing shifts** show pieces finished and pieces per labor hour, by item; both show crew count and labor hours.
   - A 4-week trend.
   - **Per-shift and per-area only. No per-person metrics exist.**
 
@@ -719,12 +719,12 @@ If one tenant ever needs isolation, the `org_id` on every row allows extracting 
 
 ```
 organizations ─┬─< plants ─┬─< areas ─┬─< stations (optional lines) ─< finished_goods_entries
+               │           │          ├─< shifts ─< shift_instances (v1.3: per area)
                │           │          ├─< machines ──< washer_cycles >── wash_formulas >── item_types
                │           │          ├─< queue_items >── item_types
                │           │          ├─< devices (displays)
                │           │          └─< shift_crew_hours (P1)
                │           ├─< item_types ─< (soil_estimates, finished_goods_entries, washer_cycles)
-               │           ├─< shifts ─< shift_instances ─< (finished_goods_entries, washer_cycles, shift_crew_hours)
                │           ├─< display_messages
                │           ├─< import_batches ─< washer_cycles
                │           ├─< pairing_codes
@@ -949,6 +949,7 @@ create table shift_instances (
   foreign key (shift_id, area_id) references shifts(id, area_id),  -- instance area = shift area
   skipped_at    timestamptz,                              -- (P1) "didn't run" (holiday)
   unique (id, plant_id),
+  unique (id, area_id),                                     -- target for area-consistent FKs
   unique (shift_id, business_date),
   exclude using gist (area_id with =, tstzrange(starts_at, ends_at) with &&)
 );
@@ -1052,7 +1053,7 @@ create table finished_goods_entries (
   foreign key (plant_id, org_id) references plants(id, org_id),
   foreign key (area_id, plant_id) references areas(id, plant_id),
   foreign key (station_id, plant_id) references stations(id, plant_id),
-  foreign key (shift_instance_id, plant_id) references shift_instances(id, plant_id),
+  foreign key (shift_instance_id, area_id) references shift_instances(id, area_id),  -- v1.3: same area
   foreign key (item_type_id, plant_id) references item_types(id, plant_id),
   check (packs = 0 or pack_size_used is not null),
   check (packs + loose_pieces > 0),
@@ -1071,9 +1072,9 @@ create table shift_crew_hours (
   entered_by        uuid not null references auth.users(id),
   entered_at        timestamptz not null default now(),
   foreign key (plant_id, org_id) references plants(id, org_id),
-  foreign key (shift_instance_id, plant_id) references shift_instances(id, plant_id),
+  foreign key (shift_instance_id, area_id) references shift_instances(id, area_id),  -- v1.3: same area
   foreign key (area_id, plant_id) references areas(id, plant_id),
-  unique (shift_instance_id, area_id)
+  unique (shift_instance_id)                                -- the instance already fixes the area
 );
 
 -- ── Washroom ────────────────────────────────────────────────────────────
@@ -1120,7 +1121,7 @@ create table washer_cycles (
   foreign key (machine_id, plant_id) references machines(id, plant_id),
   foreign key (wash_formula_id, plant_id) references wash_formulas(id, plant_id),
   foreign key (item_type_id, plant_id) references item_types(id, plant_id),
-  foreign key (shift_instance_id, plant_id) references shift_instances(id, plant_id),
+  foreign key (shift_instance_id, area_id) references shift_instances(id, area_id),  -- v1.3: same area
   check (ended_at is null or ended_at >= started_at),
   check (item_type_id is not null or wash_formula_id is not null),
   unique nulls distinct (plant_id, source, external_id)
@@ -1190,7 +1191,7 @@ create table app_events (
 | Name | Type | Behavior |
 |---|---|---|
 | `app.touch_updated_at()` | BEFORE UPDATE trigger | Sets `updated_at = now()`. |
-| `app.set_shift_instance()` | BEFORE INSERT on `finished_goods_entries` (by `occurred_at`), `washer_cycles` (by `started_at`) | If `shift_instance_id` is null, sets it to the instance **of the row's area** whose range contains the timestamp (skipped instances excluded). Leaves it null if there is none (off-shift work). |
+| `app.set_shift_instance()` | BEFORE INSERT on `finished_goods_entries` (by `occurred_at`), `washer_cycles` (by `started_at`) | If `shift_instance_id` is null, sets it to the instance **of the row's area** whose range contains the timestamp (skipped instances excluded). Leaves it null if there is none (off-shift work). **Off-shift rows still count:** reports assign them the plant-local calendar date of their timestamp as business date, and show them in an "off-shift" line. |
 | `app.apply_count_mode()` | BEFORE INSERT/UPDATE on `finished_goods_entries` | Reads the item's `count_mode`. For `unit` items: requires `packs = 0` and `pack_size_used is null`. For `pack` items: if `pack_size_used` is null and `packs > 0`, copies the item's current `pack_size`. **Past entries keep the pack size they were recorded with.** |
 | `app.check_languages()` | BEFORE INSERT/UPDATE on `profiles`, `devices`, `plants`, `item_types`, `display_messages` | Language codes (`language`, `display_languages`, `enabled_languages`, keys of `*_i18n` maps) must exist in `languages`; user, display and translation languages must be enabled for the plant. Each translation value is 1–60 characters (140 for messages). |
 | `app.check_estimate_unit()` | BEFORE INSERT on `soil_estimates` | Rejects `basket` when the item doesn't allow basket estimates (`VALIDATION_FAILED`). |
@@ -1259,7 +1260,7 @@ $$;
 | organizations, plants | R U | R | R | R | R (own plant) |
 | memberships | R C U | R | — | — | — |
 | areas, stations, machines, item_types, wash_formulas, shifts | R C U | R C U | R | R | R |
-| shift_instances | R | R | R | R | R |
+| shift_instances (P1 "didn't run" via `set_shift_skipped` RPC, owner/manager) | R | R | R | R | R |
 | languages (global) | R | R | R | R | R |
 | profiles (own row: language, `a11y_prefs`) | R U own | R U own | R U own | R U own | — |
 | devices, pairing_codes | R C U | R C U | R | — | own row R |
@@ -1405,7 +1406,7 @@ Request:
 
 ```json
 {
-  "org_id": "…", "plant_id": "…", "machine_id": null, "item_type_id": "…",
+  "org_id": "…", "plant_id": "…", "area_id": "<washroom area>", "machine_id": null, "item_type_id": "…",
   "load_count": 3,
   "started_at": "2026-11-03T23:41:10Z",
   "source": "manual",
@@ -1438,8 +1439,9 @@ All functions are `security definer` with `set search_path = ''`. Each checks th
 | `get_display_feed(p_area_id uuid)` | Full display snapshot | D (own area), O,M,L,V |
 | `get_shift_report(p_shift_instance_id uuid)` | One area's shift report | O,M,L,V |
 | `get_day_report(p_plant_id uuid, p_business_date date)` | Day report with washroom ↔ finishing reconciliation | O,M,L,V |
+| `set_shift_skipped(p_shift_instance_id uuid, p_skipped bool)` (P1) | Mark a generated shift "didn't run" (holiday); audited | O,M |
 | `suggest_queue(p_area_id uuid)` (P1) | Draft queue from estimates | O,M |
-| `upsert_washer_quick_totals(p_shift_instance_id, p_rows jsonb)` | End-of-shift loads per item | O,M,L |
+| `upsert_washer_quick_totals(p_shift_instance_id, p_rows jsonb)` | End-of-shift loads per item; `area_id` is taken from the shift instance | O,M,L |
 
 **Selected signatures, payloads and errors:**
 

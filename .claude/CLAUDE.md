@@ -5,7 +5,7 @@ Real-time operations board for **America's Dust Busters (ADB) / Star Linen Servi
 - The owner orders the work queue from their phone.
 - Wall screens in the washroom and finishing room show Now / Next / Later.
 - The washroom records loads run per item. The finishing manager records finished goods by unit or by pack + loose.
-- The app reconciles loads washed with finished goods per item and shift.
+- Each area gets a shift report; washroom ↔ finishing reconciliation is per business day.
 - Every shift ends with an automatic output report.
 
 **Mission:** stop running the plant by phone calls.
@@ -28,7 +28,7 @@ Full context lives in these docs. Read the relevant one before non-trivial work;
   - App scaffold: React 19, React Router 8, Vite 8, TS strict, lint, Vitest; magic-link sign-in and auth guard; EN/ES locales (ES pending AI review).
   - `supabase/` init (invite-only auth), init migration, RLS guard pgTAP test, CI workflow.
   - Foundation agents in `.claude/agents/` (loaded), meta protocol, guard hooks in `.claude/settings.json`.
-  - **Not yet run:** migrations and pgTAP. Local Supabase image pulls failed here, so CI runs them first.
+  - **CI is green** (PR mannyruizadb-ui/Agents-21#2): migrations + pgTAP guard tests, hook tests, app checks. Local Supabase image pulls fail in cloud sessions, so CI is where SQL gets proven.
 - **Supabase project: "Plant Ops Board"** (ref `ypurifebjiivvltbcufx`, us-east-1, ADB Pro org; created 2026-10-30, empty).
   - It is the **only** cloud project: dev runs on the local stack and CI. Until the pilot it's staging; after that it's production.
   - Nothing is applied yet. The first `db push` needs owner OK.
@@ -47,7 +47,7 @@ Full context lives in these docs. Read the relevant one before non-trivial work;
   5. Screen locations: Wi-Fi strength and heat at each spot.
   6. Baseline tally of phone calls per shift.
 - **Known debt and caveats:**
-  - **PRD is v1.3** (2026-10-30): shifts are per area; washroom↔finishing reconciliation is per business day (`daily_reconciliation`, `get_day_report`). v1.2 adds accessibility (H6), voice-to-text (H7) and extensible per-user languages (H1). v1.1 revised the measurement model: no scale, wash loads as the unit, manager-only finished-goods entry, no operators/PINs/stations. The DDL was test-loaded in Postgres 16 (23 tables; tenant FKs, shift-overlap exclusion and pack/unit rules verified). RLS policies, triggers and views (§4.5–4.7) exist only as specs.
+  - **PRD is v1.3** (2026-10-30): shifts are per area; washroom↔finishing reconciliation is per business day (`daily_reconciliation`, `get_day_report`). v1.2 adds accessibility (H6), voice-to-text (H7) and extensible per-user languages (H1). v1.1 revised the measurement model: no scale, wash loads as the unit, manager-only finished-goods entry, no operators/PINs/stations. The v1.3 DDL was test-loaded in Postgres 16 (24 tables; tenant FKs, per-area shift overlap, area-consistent shift FKs, pack/unit rules verified); Supabase runs PG 17. RLS policies, triggers and views (§4.5–4.7) exist only as specs.
   - Supabase and Netlify prices in tech-stack.md came partly from third-party write-ups. Re-verify before buying.
   - The Accu-Flow CSV format is unknown. **Do not build the parser (F3) without a real sample file.**
 
@@ -112,7 +112,7 @@ Full context lives in these docs. Read the relevant one before non-trivial work;
 
 ```
 npm run dev | build | typecheck | lint | test        # Vitest; Playwright arrives in M2
-npm run db:start | db:reset | db:test | db:types     # Supabase CLI via npx (needs Docker)
+npm run db:start | db:reset | db:test | db:types     # Supabase CLI devDependency (needs Docker)
 npx supabase migration new <verb_noun> </dev/null    # stdin must be closed or it waits
 ```
 
@@ -123,7 +123,7 @@ npx supabase migration new <verb_noun> </dev/null    # stdin must be closed or i
 research/                           planning docs (PRD, stack, viability, dossier)
 src/app/{control,display,pair,auth}/   the 3 surfaces + sign-in (routes in src/router.tsx)
 src/features/<epic>/                 estimates, queue, production, washroom, reports, admin
-src/lib/                             supabase client, i18n, query client, utils
+src/lib/                             supabase client, env, i18n, localize (query client lives in src/main.tsx)
 src/locales/{en,es,ht}.json          translations
 src/types/database.ts                GENERATED types
 supabase/migrations/                 SQL migrations (timestamped)
