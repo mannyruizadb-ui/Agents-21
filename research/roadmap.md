@@ -323,18 +323,21 @@ owner approvals (dev project, hosting) ─► M0 ─► M1 ─► M2 ─► M3 p
 
 ### Repository setup
 
+**Sprint Zero status (2026-10-30):** done except the owner actions marked 👤, plus merging PR mannyruizadb-ui/Agents-21#2. The 🔲 items belong to later milestones.
+
+
 - ✅ Research and planning docs; project memory; path-scoped rules
 - ✅ App scaffold: Vite + React + TypeScript (strict), folder layout per CLAUDE.md file map
 - ✅ ESLint + Prettier + EditorConfig; `npm run lint | typecheck | test | build`
 - ✅ Vitest configured with a first passing test (`localize()` fallback, the language-data helper)
 - ✅ `.gitignore`, `.env.example` (names only), `.nvmrc`
-- ✅ Foundation agents in `.claude/agents/`: orchestrator, architect, db-engineer, security-reviewer, qa-engineer, docs-keeper. Meta protocol in `.claude/rules/agent-protocol.md`
-- ✅ Hooks: production guard, read-only SQL guard, docs-only paths, generated-types protection
+- ✅ Foundation agents in `.claude/agents/`: orchestrator, architect, db-engineer, security-reviewer, qa-engineer, docs-keeper (loaded). **First reviews done:** architect + security-reviewer, PASS WITH NOTES; fixes merged into the PR.
+- ✅ Hooks: production guard (asks the owner; covers Supabase MCP writes), read-only SQL guard, docs-only paths, generated-types protection. 37 hook tests run in CI.
 - 👤 GitHub branch protection on `main` (require CI) *(repo settings; owner)*
 
 ### CI/CD pipeline
 
-- 🟡 `.github/workflows/ci.yml` written: install → lint → typecheck → unit tests → build → local Postgres → `db reset` → `test db`. **First run happens on the first PR.**
+- ✅ `.github/workflows/ci.yml`: lint → typecheck → unit tests → **hook tests** → build; local Postgres → `db reset` → pgTAP. **Green on PR mannyruizadb-ui/Agents-21#2** (3 runs).
 - 🔲 `deploy.yml` (M3, after hosting approval)
 - 🔲 `backup.yml` (M3, needs R2 credentials)
 - 🔲 Cloud-session SessionStart hook (installs dependencies)
@@ -342,7 +345,7 @@ owner approvals (dev project, hosting) ─► M0 ─► M1 ─► M2 ─► M3 p
 ### Development environment
 
 - ✅ Node 22 (`.nvmrc`), Supabase CLI via `npx supabase`
-- 🟡 Local Supabase stack: Docker starts here (manually), but pulling Supabase images failed with **"Data limit exceeded"** from the registry (2026-10-30). Migrations and pgTAP are therefore **not yet run here**; CI (GitHub runners) is the first real run. See R4.
+- 🟡 Local Supabase stack: Docker starts in cloud sessions, but Supabase image pulls hit the registry's "Data limit exceeded". **CI is where SQL is proven** (works). See R4.
 - 🔲 Playwright configured (M2, with the first UI)
 
 ### Database provisioning
@@ -350,8 +353,8 @@ owner approvals (dev project, hosting) ─► M0 ─► M1 ─► M2 ─► M3 p
 - ✅ `supabase init`; `config.toml` committed
 - ✅ Init migration: `app` schema, `pgcrypto`, `btree_gist`
 - ✅ **RLS guard test** (pgTAP): fails if any table in `public` lacks RLS. It protects every future migration.
-- 👤 **Supabase project: none connected yet.** The owner's org "America's Dust Busters" is on **Pro** and has two projects in use ("ADB Project": live inventory data; "Fleet Repair Log"). Both already have a `profiles` table that would collide. **Recommendation:** a new dedicated `plantboard-dev` project in the same org. On Pro, each extra project adds compute cost (≈ $10/mo Micro; confirm in the dashboard), so it needs owner approval. Then set `SUPABASE_PROJECT_REF` / `SUPABASE_ACCESS_TOKEN` as GitHub secrets.
-- 👤 Production project on **Supabase Pro** (paid, ~$25/mo). **Approval needed before M3**, not now.
+- ✅ Supabase project **"Plant Ops Board"** created (ref `ypurifebjiivvltbcufx`, us-east-1, ADB Pro org, ≈ $10/mo approved). Empty; first `db push` needs owner OK. Advisors: 0 findings.
+- 👤 **Owner:** in the Supabase dashboard, turn **off** "Allow new users to sign up" (local `config.toml` doesn't apply to the cloud project).
 
 ### Authentication scaffolding
 
