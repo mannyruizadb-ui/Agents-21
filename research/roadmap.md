@@ -250,7 +250,7 @@ That's about **$250–350 per screen**. Start with **2 screens** (washroom + fin
      - offline queue with zero loss and zero duplicates;
      - void/correct.
   3. **Washer load entry (F1)** and formula → item mapping (F2).
-  4. **Shift report (G1):** washroom loads, finished goods, reconciliation with "≈" and "no conversion yet", queue and soil start/end.
+  4. **Reports (G1):** per-area shift report (washroom loads; finishing packs + loose); **day report** with washroom ↔ finishing reconciliation ("≈", "no conversion yet") and soil start/end. Per-area shifts seeded from `research/shift-schedule.md`.
   5. "Shift complete" confirmation event.
 - **Agent assignments:**
 

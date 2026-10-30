@@ -3,7 +3,7 @@
 | | |
 |---|---|
 | **Working title** | PlantBoard (rename freely) |
-| **Version** | 1.2 (draft for review; v1.1 measurement model and v1.2 accessibility, voice and languages added 2026-10-27) |
+| **Version** | 1.3 (draft for review; v1.1 measurement model, v1.2 accessibility/voice/languages (2026-10-27), v1.3 per-area shifts and day-level reconciliation (2026-10-30)) |
 | **Date** | 2026-10-27 |
 | **Owner** | ADB operations leadership |
 | **Source documents** | [`viability-analysis.md`](./viability-analysis.md) · [`tech-stack.md`](./tech-stack.md) |
@@ -278,17 +278,21 @@ Feature IDs are referenced throughout. Each epic opens with what it covers.
 
 #### A6. Shift definitions & instances (P0)
 
-- **Story:** As an owner, I want to define our shifts (including overnight shifts) so that output is attributed to the right shift even when it crosses midnight.
+- **Story:** As an owner, I want to define each area's shifts (washroom and finishing run on different times, and some days differ) so that output is attributed to the right shift even when it crosses midnight.
 - **Acceptance criteria:**
-  - Define a shift with name, local start time, local end time and days of week. End time earlier than start time means it crosses midnight.
-  - The system generates `shift_instances` 7 days ahead (pg_cron, daily).
-  - Every finished-goods entry and washer load record is linked to the shift instance that contains its timestamp.
-  - **Daylight saving time:** instances are computed in the plant's timezone, so a night shift spanning a DST change correctly lasts 7 or 9 hours.
+  - **Shifts belong to an area** (v1.3: ADB's washroom evening is 14:00–24:00 while finishing's is 16:00–24:00).
+  - Define a shift with area, name, local start, local end and the days of week it **starts** on. End earlier than start means it crosses midnight; `24:00` is written as end `00:00`.
+  - **Day-specific variants are separate rows with the same name**, e.g. "Evening" 16:00–24:00 Mon–Wed/Fri–Sat, plus "Evening" 17:00–24:00 Thu.
+  - The system generates `shift_instances` 7 days ahead per area (pg_cron, daily).
+  - Every finished-goods entry and washer load record is linked to the shift instance **of its area** that contains its timestamp.
+  - **Daylight saving time:** instances are computed in the plant's timezone, so a shift spanning a DST change lasts 7 or 9 hours. ADB is closed on Sundays, when DST changes happen, but the logic stays DST-safe for other plants.
   - Reports group by shift instance and its **business date** (the date the shift started).
+  - (P1) A manager can mark a generated shift instance "didn't run" (holiday), which hides it from reports.
 - **Tech notes:**
+  - Seed data: `research/shift-schedule.md`.
   - Generation function `app.generate_shift_instances(plant_id, days)`.
-  - Lookup function `app.shift_instance_at(plant_id, ts)`.
-  - Overlapping shifts are rejected by an exclusion constraint.
+  - Lookup function `app.shift_instance_at(area_id, ts)`.
+  - Overlapping shifts **within an area** are rejected by an exclusion constraint.
 
 #### A7. Device pairing for wall displays (P0)
 
@@ -539,13 +543,16 @@ Log stoppages (machine down, waiting on washroom, no work) with start and end ti
 
 ### Epic G — Reporting
 
-#### G1. Shift output report (P0)
+#### G1. Shift report and day report (P0)
 
-- **Story:** As an owner, I want a report for each shift showing loads washed and finished goods by item, reconciled against each other and against estimates, so that I know how the shift went without calling anyone.
-- **Acceptance criteria:**
-  - Choose a shift instance (default: the most recently ended one).
-  - **Washroom:** loads washed per item.
-  - **Finishing:** finished goods per item, as packs + loose (or units) and total pieces; optionally broken down by line.
+- **Story:** As an owner, I want a report for each area's shift, and a day report that reconciles the washroom against finishing, so that I know how the plant did without calling anyone.
+- **Why two reports (v1.3):** washroom and finishing shifts don't line up (washroom evening 14–24, finishing evening 16–24). Comparing washed vs. finished per shift would be misleading, so **reconciliation is per business day**.
+- **Acceptance criteria, shift report** (one area's shift instance; default: the most recently ended one):
+  - **Washroom shift:** loads washed per item.
+  - **Finishing shift:** finished goods per item, as packs + loose (or units) and total pieces; optionally broken down by line.
+  - **Queue:** completed vs. remaining for that area at shift end.
+- **Acceptance criteria, day report** (one business date, all areas; default: yesterday):
+  - Loads washed and finished goods per item for the day.
   - **Reconciliation per item:**
 
     | Loads washed | Finished pieces | ≈ Loads finished (pieces ÷ pieces per load) | ≈ Clean, not yet finished |
@@ -553,10 +560,9 @@ Log stoppages (machine down, waiting on washroom, no work) with start and end ti
 
     - Items without pieces per load show "no conversion yet" instead of a guess.
     - Approximate figures carry a "≈" marker.
-  - **Queue:** completed vs. remaining at shift end.
-  - **Soil:** estimated loads waiting at shift start vs. at shift end.
-  - Mobile-first layout, readable on a phone without horizontal scroll.
-- **Tech notes:** RPC `get_shift_report(shift_instance_id)` over the views in §4.6.
+  - **Soil:** estimated loads waiting at the start vs. the end of the day.
+  - Both reports: mobile-first layout, readable on a phone without horizontal scroll.
+- **Tech notes:** RPCs `get_shift_report(shift_instance_id)` and `get_day_report(plant_id, business_date)` over the views in §4.6.
 
 #### G2. Shift productivity (P1)
 
@@ -914,6 +920,7 @@ create table shifts (
   id            uuid primary key default gen_random_uuid(),
   org_id        uuid not null,
   plant_id      uuid not null,
+  area_id       uuid not null,                            -- v1.3: shifts are per area
   name          text not null check (char_length(name) between 1 and 40),
   start_local   time not null,
   end_local     time not null,                            -- end < start ⇒ crosses midnight
@@ -922,7 +929,9 @@ create table shifts (
   active        boolean not null default true,
   created_at    timestamptz not null default now(),
   foreign key (plant_id, org_id) references plants(id, org_id),
+  foreign key (area_id, plant_id) references areas(id, plant_id),
   unique (id, plant_id),
+  unique (id, area_id),
   check (start_local <> end_local)
 );
 
@@ -930,15 +939,18 @@ create table shift_instances (
   id            uuid primary key default gen_random_uuid(),
   org_id        uuid not null,
   plant_id      uuid not null,
+  area_id       uuid not null,
   shift_id      uuid not null,
   business_date date not null,                            -- local date the shift starts
   starts_at     timestamptz not null,                     -- computed with AT TIME ZONE (DST-safe)
   ends_at       timestamptz not null check (ends_at > starts_at),
   foreign key (plant_id, org_id) references plants(id, org_id),
   foreign key (shift_id, plant_id) references shifts(id, plant_id),
+  foreign key (shift_id, area_id) references shifts(id, area_id),  -- instance area = shift area
+  skipped_at    timestamptz,                              -- (P1) "didn't run" (holiday)
   unique (id, plant_id),
   unique (shift_id, business_date),
-  exclude using gist (plant_id with =, tstzrange(starts_at, ends_at) with &&)
+  exclude using gist (area_id with =, tstzrange(starts_at, ends_at) with &&)
 );
 
 -- ── Devices (wall displays) ─────────────────────────────────────────────
@@ -1088,6 +1100,7 @@ create table washer_cycles (
   id                uuid primary key default gen_random_uuid(),
   org_id            uuid not null,
   plant_id          uuid not null,
+  area_id           uuid not null,                        -- washroom area (v1.3: shift lookup is per area)
   machine_id        uuid,                                 -- optional for manual quick totals
   wash_formula_id   uuid,
   item_type_id      uuid,                                 -- resolved from formula or chosen manually
@@ -1103,6 +1116,7 @@ create table washer_cycles (
   client_id         uuid unique,
   created_at        timestamptz not null default now(),
   foreign key (plant_id, org_id) references plants(id, org_id),
+  foreign key (area_id, plant_id) references areas(id, plant_id),
   foreign key (machine_id, plant_id) references machines(id, plant_id),
   foreign key (wash_formula_id, plant_id) references wash_formulas(id, plant_id),
   foreign key (item_type_id, plant_id) references item_types(id, plant_id),
@@ -1176,7 +1190,7 @@ create table app_events (
 | Name | Type | Behavior |
 |---|---|---|
 | `app.touch_updated_at()` | BEFORE UPDATE trigger | Sets `updated_at = now()`. |
-| `app.set_shift_instance()` | BEFORE INSERT on `finished_goods_entries` (by `occurred_at`), `washer_cycles` (by `started_at`) | If `shift_instance_id` is null, sets it to the instance whose range contains the timestamp. Leaves it null if there is none (off-shift work). |
+| `app.set_shift_instance()` | BEFORE INSERT on `finished_goods_entries` (by `occurred_at`), `washer_cycles` (by `started_at`) | If `shift_instance_id` is null, sets it to the instance **of the row's area** whose range contains the timestamp (skipped instances excluded). Leaves it null if there is none (off-shift work). |
 | `app.apply_count_mode()` | BEFORE INSERT/UPDATE on `finished_goods_entries` | Reads the item's `count_mode`. For `unit` items: requires `packs = 0` and `pack_size_used is null`. For `pack` items: if `pack_size_used` is null and `packs > 0`, copies the item's current `pack_size`. **Past entries keep the pack size they were recorded with.** |
 | `app.check_languages()` | BEFORE INSERT/UPDATE on `profiles`, `devices`, `plants`, `item_types`, `display_messages` | Language codes (`language`, `display_languages`, `enabled_languages`, keys of `*_i18n` maps) must exist in `languages`; user, display and translation languages must be enabled for the plant. Each translation value is 1–60 characters (140 for messages). |
 | `app.check_estimate_unit()` | BEFORE INSERT on `soil_estimates` | Rejects `basket` when the item doesn't allow basket estimates (`VALIDATION_FAILED`). |
@@ -1209,8 +1223,7 @@ Results from `piece` and `pack` are **approximate** (`pieces_per_load` is an ave
 | `queue_board` | Ordered queue per area (excludes done/cancelled), with item names in all languages | `area_id, id, position, is_rush, status, qty, unit, item name + name_i18n, note` |
 | `washroom_by_shift` | Loads washed per item per shift (sum of `load_count`) | `shift_instance_id, item_type_id, loads` |
 | `finished_by_shift` | Non-voided finished goods per item (and line) per shift | `shift_instance_id, item_type_id, station_id, packs, loose_pieces, pieces` |
-| `shift_reconciliation` | Washroom vs. finishing per item per shift | `shift_instance_id, item_type_id, loads_washed, pieces_finished, pieces_per_load, loads_finished_approx (= pieces_finished / pieces_per_load), clean_backlog_loads_approx (= loads_washed − loads_finished_approx), has_conversion bool` |
-| `daily_reconciliation` | Estimate vs. washed vs. finished per business date | `business_date, item_type_id, est_loads_start, loads_washed, loads_finished_approx, est_loads_end, estimate_error_pct` |
+| `daily_reconciliation` | **Washroom vs. finishing per item per business date** (v1.3: replaces the per-shift view, because area shifts don't line up) | `plant_id, business_date, item_type_id, est_loads_start, loads_washed, pieces_finished, pieces_per_load, loads_finished_approx (= pieces_finished / pieces_per_load), clean_backlog_loads_approx (= loads_washed − loads_finished_approx), est_loads_end, estimate_error_pct, has_conversion bool` |
 | `suggested_pieces_per_load` | Calibration from history (trailing 28 days) | `item_type_id, loads_washed, pieces_finished, suggested_pieces_per_load, sample_ok (loads ≥ 20)` |
 | `shift_productivity` (P1) | Per shift and area, from crew totals | `shift_instance_id, area_id, loads_washed, pieces_finished, crew_count, labor_hours, loads_per_labor_hour, pieces_per_labor_hour` |
 
@@ -1270,8 +1283,9 @@ Policies use `(select auth.uid())` and `(select app.has_role(...))` so that Post
 | Manager's recent entries | `finished_goods_entries (entered_by, occurred_at desc)` |
 | Calibration window (28 days) | `finished_goods_entries (item_type_id, occurred_at) where voided_at is null` + `washer_cycles (item_type_id, started_at)` |
 | Washer loads per shift | `washer_cycles (shift_instance_id, item_type_id)` |
+| Day report (per area, per business date) | `shift_instances (plant_id, business_date, area_id)` |
 | Import dedupe | unique `(plant_id, source, external_id)` (defined) |
-| Shift instance lookup by time | GiST exclusion index on `(plant_id, tstzrange)` (defined) + `shift_instances (plant_id, starts_at)` |
+| Shift instance lookup by time | GiST exclusion index on `(area_id, tstzrange)` (defined) + `shift_instances (area_id, starts_at)` |
 | RLS membership checks | `memberships (user_id, org_id) where revoked_at is null` |
 | Device lookup by auth user | unique `devices (user_id)` (defined) |
 | Every FK column | B-tree index on every FK column. Supabase advisors flag any that are missing. |
@@ -1383,7 +1397,7 @@ There is **no custom API server.** The API surface is made of four parts:
 | `GET /devices` | Device list & health | O,M,L | |
 | `GET /audit_log?entity=eq.queue_items&entity_id=eq.X` | Audit trail | O,M | |
 | `POST /app_events` | Analytics event | All | Insert-only |
-| `GET` report views (`shift_reconciliation`, `daily_reconciliation`, `suggested_pieces_per_load`, `shift_productivity`, …) | Reports | O,M,L,V | No per-person data exists |
+| `GET` report views (`daily_reconciliation`, `suggested_pieces_per_load`, `shift_productivity`, …) | Reports | O,M,L,V | No per-person data exists |
 
 **Example: `POST /rest/v1/washer_cycles?on_conflict=client_id`** (manual entry of 3 loads)
 
@@ -1422,7 +1436,8 @@ All functions are `security definer` with `set search_path = ''`. Each checks th
 | `create_pairing_code(p_area_id, p_device_name)` | Start display pairing | O,M |
 | `device_heartbeat(p_app_version text)` | Health ping | D |
 | `get_display_feed(p_area_id uuid)` | Full display snapshot | D (own area), O,M,L,V |
-| `get_shift_report(p_shift_instance_id uuid)` | Shift report payload | O,M,L,V |
+| `get_shift_report(p_shift_instance_id uuid)` | One area's shift report | O,M,L,V |
+| `get_day_report(p_plant_id uuid, p_business_date date)` | Day report with washroom ↔ finishing reconciliation | O,M,L,V |
 | `suggest_queue(p_area_id uuid)` (P1) | Draft queue from estimates | O,M |
 | `upsert_washer_quick_totals(p_shift_instance_id, p_rows jsonb)` | End-of-shift loads per item | O,M,L |
 
@@ -1477,7 +1492,10 @@ All functions are `security definer` with `set search_path = ''`. Each checks th
 ```
 
 **`get_shift_report`**
-- Response: `{ shift, washroom: [{item, loads}], finishing: [{item, packs, loose_pieces, pieces, by_line[]}], reconciliation: [{item, loads_washed, pieces_finished, pieces_per_load, loads_finished_approx, clean_backlog_loads_approx, has_conversion}], queue: {completed, remaining}, soil: {start[], end[]} (in loads), crew: [{area, crew_count, labor_hours}] | null }`
+- Response: `{ shift: {area, name, starts_at, ends_at}, washroom: [{item, loads}] | null, finishing: [{item, packs, loose_pieces, pieces, by_line[]}] | null, queue: {completed, remaining}, crew: {crew_count, labor_hours} | null }`
+
+**`get_day_report`**
+- Response: `{ business_date, shifts: [{area, name, starts_at, ends_at}], reconciliation: [{item, loads_washed, pieces_finished, pieces_per_load, loads_finished_approx, clean_backlog_loads_approx, has_conversion}], soil: {start[], end[]} (in loads) }`
 
 ### 5.4 Edge Functions
 

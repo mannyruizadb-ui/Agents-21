@@ -291,7 +291,7 @@ The last row bundles four lower-urgency skills. Ship skills **as the phase needs
 - **Description:**
   - Builds the reporting layer: views from PRD §4.6 (`security_invoker`), `app.to_loads()` conversion, the `get_shift_report` RPC, and the `weekly_success_metrics` view (PRD §8.5).
   - Missing conversion factors produce `null` + `partial_conversion`.
-  - Includes `shift_reconciliation` (loads washed vs. ≈ loads finished via `pieces_per_load`), `daily_reconciliation` and `suggested_pieces_per_load` (trailing 28 days, ≥ 20 loads).
+  - Includes `daily_reconciliation` (per business date: loads washed vs. ≈ loads finished via `pieces_per_load`; per-shift reconciliation was dropped in PRD v1.3 because area shifts differ) and `suggested_pieces_per_load` (trailing 28 days, ≥ 20 loads).
   - Approximate values carry an `approximate` / `has_conversion` flag. There is no per-person data.
 - **Input:** report name; PRD §4.6, §8.3; item conversion factors (from owner); sample data.
 - **Output:**
@@ -303,7 +303,7 @@ The last row bundles four lower-urgency skills. Ship skills **as the phase needs
   - https://www.postgresql.org/docs/current/sql-createview.html
   - https://supabase.com/docs/guides/database/postgres/row-level-security#views
   - https://www.postgresql.org/docs/current/using-explain.html
-- **Example:** `/reporting-views shift_reconciliation`
+- **Example:** `/reporting-views daily_reconciliation`
 
 #### DB-07 · `seed-data`
 

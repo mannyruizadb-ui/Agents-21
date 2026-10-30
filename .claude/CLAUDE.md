@@ -42,12 +42,12 @@ Full context lives in these docs. Read the relevant one before non-trivial work;
 - **Waiting on the owner (do not invent values):**
   1. Diamond Chemical's answer on Accu-Flow CloudView export: API, scheduled CSV/email, or none.
   2. Item list **received** (`research/item-catalog.md`, 26 items). Still TBD there: tablecloth, towel and wipe pack sizes; how sheets are counted; colors; baskets per load; pieces per load.
-  3. Shift schedule, including whether any shift crosses midnight.
+  3. Shift schedule **received** (`research/shift-schedule.md`, per area). Open there: finishing day shift 10:00 vs 12:00; fold washroom midday into night?; holidays.
   4. Which languages to enable beyond EN/ES. Creole can be added later as data plus a translation file. Also: voice-input test results on the real phones (iOS installed-app support and Creole recognition are unconfirmed).
   5. Screen locations: Wi-Fi strength and heat at each spot.
   6. Baseline tally of phone calls per shift.
 - **Known debt and caveats:**
-  - **PRD is v1.2** (2026-10-27). v1.2 adds accessibility (H6), voice-to-text (H7) and extensible per-user languages (H1). v1.1 revised the measurement model: no scale, wash loads as the unit, manager-only finished-goods entry, no operators/PINs/stations. The DDL was test-loaded in Postgres 16 (23 tables; tenant FKs, shift-overlap exclusion and pack/unit rules verified). RLS policies, triggers and views (§4.5–4.7) exist only as specs.
+  - **PRD is v1.3** (2026-10-30): shifts are per area; washroom↔finishing reconciliation is per business day (`daily_reconciliation`, `get_day_report`). v1.2 adds accessibility (H6), voice-to-text (H7) and extensible per-user languages (H1). v1.1 revised the measurement model: no scale, wash loads as the unit, manager-only finished-goods entry, no operators/PINs/stations. The DDL was test-loaded in Postgres 16 (23 tables; tenant FKs, shift-overlap exclusion and pack/unit rules verified). RLS policies, triggers and views (§4.5–4.7) exist only as specs.
   - Supabase and Netlify prices in tech-stack.md came partly from third-party write-ups. Re-verify before buying.
   - The Accu-Flow CSV format is unknown. **Do not build the parser (F3) without a real sample file.**
 
@@ -79,7 +79,7 @@ Full context lives in these docs. Read the relevant one before non-trivial work;
   - Queue items are cancelled, not deleted.
 - **Idempotency:** every client-originated insert carries a client-generated `client_id` UUID.
 - **Displays never trust Realtime alone.** They refetch the full feed on connect, reconnect, `online`, `visibilitychange` and every 5 min, and always show the data's age.
-- **Time:** store UTC (`timestamptz`). Report by `shift_instance_id` and business date, never calendar date. Plant timezone is `America/New_York`.
+- **Time:** store UTC (`timestamptz`). **Shifts are per area.** Report by `shift_instance_id` and business date, never calendar date. Plant timezone is `America/New_York`.
 - **Measurement model (no scale, so never weights or lbs):**
   - **Wash loads** are the common unit.
   - Estimates are in loads or baskets (`baskets_per_load`, per item).
@@ -116,7 +116,7 @@ npm run db:start | db:reset | db:test | db:types     # Supabase CLI via npx (nee
 npx supabase migration new <verb_noun> </dev/null    # stdin must be closed or it waits
 ```
 
-## File map (planned layout; nothing outside research/ exists yet)
+## File map (Sprint Zero created src/, supabase/, .github/; feature folders arrive per milestone)
 
 ```
 .claude/CLAUDE.md, .claude/rules/   memory + path-scoped rules
