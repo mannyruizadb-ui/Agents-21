@@ -1,21 +1,28 @@
 #!/usr/bin/env bash
-# PreToolUse guard for read-only agents: block SQL that writes, whether sent through the
-# Supabase MCP execute_sql tool or a psql/supabase CLI command. Exit 2 = block.
+# PreToolUse guard for read-only agents. Allows exactly one SELECT / WITH / EXPLAIN
+# statement and blocks file-fed SQL. Residual risk: a SELECT can still call a function
+# with side effects, so reviewer prompts forbid calling app.* RPCs.
 input=$(cat)
 tool=$(jq -r '.tool_name // empty' <<<"$input")
+block() { echo "Blocked: read-only agent. $1" >&2; exit 2; }
+
 if [[ "$tool" == mcp__*execute_sql ]]; then
   sql=$(jq -r '.tool_input.query // empty' <<<"$input")
 else
   cmd=$(jq -r '.tool_input.command // empty' <<<"$input")
-  # Only inspect commands that reach a database; plain greps of SQL files stay allowed.
-  if ! grep -qiE '(^|[;&| ])(psql|pg_restore|supabase +(db|migration|seed))' <<<"$cmd"; then exit 0; fi
-  if grep -qiE 'supabase +(db +(reset|push|start)|migration +(up|repair|new))' <<<"$cmd"; then
-    echo "Blocked: read-only agent cannot change database state." >&2; exit 2
-  fi
-  sql=$cmd
+  # Only commands that invoke a database client (as a command word, not inside a path).
+  grep -qiE '(^|[;&|[:space:]])(psql|pg_restore|pg_dump|supabase)([[:space:]]|$)' <<<"$cmd" || exit 0
+  grep -qiE 'supabase +test +db *($|[;&|])' <<<"$cmd" && exit 0
+  grep -qiE '(^|[;&|[:space:]])supabase([[:space:]]|$)' <<<"$cmd" && block "Only 'supabase test db' is allowed."
+  grep -qE '(^|[[:space:]])(-f|--file)([[:space:]=]|$)|\\i|<' <<<"$cmd" && block "No SQL from files or stdin."
+  # Read the SQL passed to psql -c/--command (single or double quoted).
+  sql=$(grep -oE "(-c|--command)[ =]+(\"[^\"]*\"|'[^']*')" <<<"$cmd" | sed -E "s/^(-c|--command)[ =]+//; s/^[\"']//; s/[\"']$//")
+  [[ -z "$sql" ]] && block "Use psql -c with a single SELECT."
 fi
-if grep -qiE '\b(insert|update|delete|drop|alter|create|truncate|grant|revoke|comment|copy|merge|call|do)\b' <<<"$sql"; then
-  echo "Blocked: read-only agent may run SELECT queries only." >&2
-  exit 2
-fi
+
+body=$(printf '%s' "$sql" | sed -E 's/--.*$//' | tr '\n' ' ' | sed -E 's/;[[:space:]]*$//')
+grep -q ';' <<<"$body" && block "One statement only."
+grep -qiE '^[[:space:]]*(select|with|explain)\b' <<<"$body" || block "Only SELECT/WITH/EXPLAIN."
+side_effects='\b(insert|update|delete|drop|alter|create|truncate|grant|revoke|comment|copy|merge|call|do|into|set_config|pg_terminate_backend|pg_cancel_backend|lo_import|lo_export)\b|\b(cron|net|app)\.'
+grep -qiE "$side_effects" <<<"$body" && block "Write or side-effect keyword found."
 exit 0
