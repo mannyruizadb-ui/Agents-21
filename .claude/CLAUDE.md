@@ -19,7 +19,7 @@ Full context lives in these docs. Read the relevant one before non-trivial work;
 - `research/PRD.md` — **source of truth.** Features with IDs (A1…H5), schema DDL (§4), API (§5), non-functional requirements (§6), scope (§7), metrics (§8).
 - `research/tech-stack.md` — stack choices, costs, MCP servers, integration pain points.
 - `research/viability-analysis.md` — build vs. buy, risks, the washer-data findings (§6).
-- `research/agents.md`: subagent architecture (meta protocol, 12 subagents, escalation and handoff rules). **Designed, not yet created** in `.claude/agents/`.
+- `research/agents.md`: subagent architecture. The 6 Foundation agents are live in `.claude/agents/`; others are added per phase. `research/roadmap.md`: milestones, cost guardrails (§1.4).
 - `research/americas-dust-busters-dossier.md` — company research. **Contains legal history; never quote it in code, commits or public places.**
 
 ## Current state (update this section as work progresses)
@@ -27,9 +27,12 @@ Full context lives in these docs. Read the relevant one before non-trivial work;
 - **Built (Sprint Zero, 2026-10-30; see `research/roadmap.md` §3):**
   - App scaffold: React 19, React Router 8, Vite 8, TS strict, lint, Vitest; magic-link sign-in and auth guard; EN/ES locales (ES pending AI review).
   - `supabase/` init (invite-only auth), init migration, RLS guard pgTAP test, CI workflow.
-  - Foundation agents in `.claude/agents/`, meta protocol, guard hooks in `.claude/settings.json`. These load on the next session.
+  - Foundation agents in `.claude/agents/` (loaded), meta protocol, guard hooks in `.claude/settings.json`.
   - **Not yet run:** migrations and pgTAP. Local Supabase image pulls failed here, so CI runs them first.
-- **No Supabase project is connected.** The owner must approve a new dedicated `plantboard-dev` project. Don't use "ADB Project" or "Fleet Repair Log": both are in use and both have a `profiles` table.
+- **Supabase project: "Plant Ops Board"** (ref `ypurifebjiivvltbcufx`, us-east-1, ADB Pro org; created 2026-10-30, empty).
+  - It is the **only** cloud project: dev runs on the local stack and CI. Until the pilot it's staging; after that it's production.
+  - Nothing is applied yet. The first `db push` needs owner OK.
+  - Never touch "ADB Project" or "Fleet Repair Log".
 - **Next:** finish Sprint Zero, then **Foundation (roadmap M1):**
   - Supabase migrations from PRD §4
   - RLS policies and pgTAP tests per role
@@ -56,10 +59,10 @@ Full context lives in these docs. Read the relevant one before non-trivial work;
 | UI libraries | TanStack Query, React Router, Tailwind + shadcn/ui, dnd-kit, react-i18next, React Hook Form + Zod, Recharts, date-fns(-tz) | |
 | Backend | **Supabase**: Postgres, Auth, Realtime, Storage, Edge Functions (TS/Deno), pg_cron. **No custom server.** | The work is CRUD, live push and permissions. |
 | API | PostgREST + Postgres RPC functions + generated TS types. **No tRPC, no GraphQL.** | Type safety without running a server. |
-| Hosting | Netlify (Personal $9) or Cloudflare Pages ($0). **Not Vercel Hobby**: non-commercial use only. | |
+| Hosting | **Free tier**: Cloudflare Pages or Netlify Free. **Not Vercel Hobby**: non-commercial use only. | Owner: "extremely cheap" |
 | CI/CD | GitHub Actions: typecheck, lint, Vitest, Playwright, `supabase db push`, deploy, nightly `pg_dump` to R2 | |
 | Monitoring | Sentry (free) + device heartbeats → Resend email | |
-| Budget | ≈ $35/mo at MVP. **Production must be on Supabase Pro**, because Free pauses after 7 idle days and has no backups. | |
+| Budget | **≈ $10/mo new spend** (the Plant Ops Board project; the org's Supabase Pro is already paid). Everything else on free tiers. Hardware: owner buys the TVs (≈ $250–350/screen). See roadmap §1.4. | Any new cost = owner decision |
 
 **Rejected (see tech-stack.md):** React Native (a PWA covers it), Next.js (no SSR/SEO need), Firebase (NoSQL makes reports painful), MongoDB Atlas (Device Sync/Data API EOL 2025), Python backend (one language).
 

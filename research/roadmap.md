@@ -50,6 +50,35 @@
 
 ---
 
+## 1.4 Cost guardrails (owner decision, 2026-10-30)
+
+> "This has to be extremely cheap… everything based on manager-given information + the Diamond washing app… I'm willing to buy the TVs."
+
+**Monthly software:** the only new spend is the **Plant Ops Board** Supabase project, ≈ **$10/mo** (approved). The org's Pro plan ($25/mo) is already paid.
+
+| Item | Decision | Monthly |
+|---|---|---|
+| Supabase project "Plant Ops Board" (Pro org) | ✅ approved | ≈ $10 |
+| Hosting | **Free tier** (Cloudflare Pages or Netlify Free). No Netlify Personal | $0 |
+| Separate dev cloud project | **Dropped.** Develop on the local stack and CI; one cloud project | $0 |
+| Error monitoring (Sentry), email (Resend) | Free tiers only | $0 |
+| Backups | Supabase Pro daily backups. The extra R2 `pg_dump` copy is optional (free tier) | $0 |
+| Speech-to-text APIs, SMS, sensors, RFID, scales, enclosures | **Not bought** | $0 |
+
+**Hardware (one-time, owner buys):** TVs to tell people what's next. Per screen, roughly:
+- an ordinary 40–50" TV (≈ $150–250);
+- an Android TV box (≈ $40–60);
+- a kiosk-browser licence (≈ $10);
+- a wall mount (≈ $25).
+
+That's about **$250–350 per screen**. Start with **2 screens** (washroom + finishing). Mount them outside the wet zone instead of buying enclosures. Managers use **their own phones**; no tablets are required. *Prices are rough estimates, so check local stores.*
+
+**Data sources (no paid tech):**
+- Manager entries: estimates, queue, finished goods.
+- Diamond Accu-Flow/CloudView for washer loads, **if Diamond allows an export at no cost**. Otherwise the washroom lead types load counts (F1).
+
+**Rule for all agents:** any new recurring cost, paid API or hardware beyond the TVs is an **owner decision**. Propose the free alternative first.
+
 ## 2. Milestones
 
 | # | Milestone | Duration | Weeks | Gate |
