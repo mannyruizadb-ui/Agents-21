@@ -19,7 +19,7 @@
 | Evening (Thu) | 17:00 | 24:00 | Thu | ✅ ("Thursday… 5 p.m. to 12 a.m.") |
 | Night | 00:00 | 10:00 | Tue, Wed, Fri, Sat | ✅ ("12 a.m. to 10 a.m.") |
 | Night (Thu, short) | 00:00 | 05:00 | Thu | 🔸 ("we finish Thursday at like 5 a.m.") |
-| Day | 10:00 | 16:00 | Tue, Wed, Fri, Sat | 🔸 ("around 10 or 12 to around 4"; "really like 10 to 4") |
+| Day | 10:00 | 16:00 | Tue, Wed, Fri, Sat | ✅ nominal. The real handover varies (night crew sometimes stays until 12), which is why entries **follow the person** (below) |
 
 **Week view (finishing):**
 
@@ -36,28 +36,29 @@
 | Evening | 14:00 | 24:00 | Mon, Tue, Wed, Fri, Sat | ✅ ("2 to 12 midnight": carpets, sheets, butcher coats) |
 | Evening (Thu) | 15:00 | 24:00 | Thu | ✅ ("Thursday it starts back up at 3 p.m.") |
 | Night | 00:00 | 12:00 | Tue, Wed, Fri, Sat | ✅ ("midnight to about midday": all other items) |
-| Midday | 12:00 | 14:00 | Tue, Wed, Fri, Sat | ✅ ("12 to 2": some washing, then helps unload drivers) |
 
 **Week view (washroom):**
 
 | | Mon | Tue | Wed | Thu | Fri | Sat | Sun |
 |---|---|---|---|---|---|---|---|
 | 00–12 Night | — | ✔ | ✔ | — | ✔ | ✔ | — |
-| 12–14 Midday | — | ✔ | ✔ | — | ✔ | ✔ | — |
 | 14–24 Evening | ✔ | ✔ | ✔ 🔸 | ✔ (from 15:00) | ✔ | ✔ | — |
 
 🔸 Wednesday washroom "done by around 8 p.m., maybe midnight". It's scheduled to midnight, the later bound. Finishing early is fine; the schedule only decides which shift a record belongs to.
 
-## How this works in the app
+## How this works in the app (owner decisions 2026-10-30, PRD A8)
 
-- **Every washer load and finished-goods entry is tied to the shift running in its area at that moment.** A night-shift entry at 3 a.m. Tuesday belongs to Tuesday's night shift.
-- **Staying late ("sometimes later"):** an entry after the boundary lands in the next shift by default. The manager can assign it to the previous shift when entering (PRD E1 allows the current or previous shift).
+- **Every entry is confirmed with name + 4-digit PIN** (data-entry staff only: owner, managers, leads). This records who entered it, not per-worker production.
+- **Entries follow the person:** each staff member has a **home shift**. An entry counts toward the current or most recent instance of that shift, so a night crew staying until noon still counts as night. The entry screen offers **"My shift" / "Next shift"** for handovers.
+- **Washroom noon–2 p.m. helper:** ✅ no shift and no shift report. Any loads he records are off-shift and count in the **day totals**, so day reconciliation stays complete.
+- The clock-based schedule above is the fallback, used when an entry has no staff home shift.
 - **Reports:**
   - each area gets a **shift report**;
   - **washroom vs. finishing reconciliation is per business day**, because the two areas' shifts don't line up (PRD v1.3, G1).
 
 ## Open questions (don't block the build; the defaults above apply until answered)
 
-1. **Finishing day shift: 10:00 or 12:00 start?** If it's 12:00, nobody covers 10–12 (night ends at 10). The default is **10:00–16:00**.
-2. **Washroom midday (12–2):** keep it as its own shift in reports, or **fold it into the night shift** (00:00–14:00)? A 2-hour shift that also unloads trucks makes a thin report. **Recommendation: fold it in.**
-3. **Holidays and unusual weeks:** for now a manager can mark a shift "didn't run", which hides it from reports (P1). Is there a fixed holiday list?
+1. ~~Finishing day shift start~~ **Answered:** it varies (10 or 12), so attribution follows the person (A8).
+2. ~~Washroom midday~~ **Answered:** no shift, no report; loads count in day totals.
+3. **Production day start** (for day-level reconciliation): pending, with 14:00 proposed (see the architect's ADR question).
+4. **Holidays and unusual weeks:** for now a manager can mark a shift "didn't run", which hides it from reports (P1). Is there a fixed holiday list?

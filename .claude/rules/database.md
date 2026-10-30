@@ -35,7 +35,8 @@ The source of truth is `research/PRD.md` §4: DDL, triggers, views, RLS matrix, 
 - `alter table ... enable row level security;` in the **same migration** that creates the table.
 - Policies call the helpers `app.has_role(plant_id, roles[])` and `app.my_device()`.
 - Wrap helpers as `(select auth.uid())` and `(select app.has_role(...))` so Postgres caches them per statement.
-- The device role `display` gets SELECT only, limited to its area's data. There is no station role and there are no operator records.
+- The device role `display` gets SELECT only, limited to its area's data. There is no station role.
+- `entry_staff.pin_hash` is never selectable: expose `entry_staff_public` instead. Write RPCs require a valid `p_staff_session_id` (PRD A8) and set `staff_id` + `shift_instance_id` via `app.resolve_entry_shift()`.
 - Views use `with (security_invoker = true)`.
 - Add only the needed tables to the `supabase_realtime` publication: `queue_items`, `soil_estimates`, `display_messages`.
 

@@ -3,7 +3,7 @@
 | | |
 |---|---|
 | **Working title** | PlantBoard (rename freely) |
-| **Version** | 1.3 (draft for review; v1.1 measurement model, v1.2 accessibility/voice/languages (2026-10-27), v1.3 per-area shifts and day-level reconciliation (2026-10-30)) |
+| **Version** | 1.4 (draft for review; v1.4 entry staff + PIN and person-based shift attribution (2026-10-30); v1.1 measurement model, v1.2 accessibility/voice/languages (2026-10-27), v1.3 per-area shifts and day-level reconciliation (2026-10-30)) |
 | **Date** | 2026-10-27 |
 | **Owner** | ADB operations leadership |
 | **Source documents** | [`viability-analysis.md`](./viability-analysis.md) · [`tech-stack.md`](./tech-stack.md) |
@@ -73,6 +73,13 @@ These are carried over from the earlier research and are not blockers to *starti
 > - **Wash loads** are the common unit.
 > - **Finished goods are entered by the finishing manager only**, by unit or by pack + loose pieces.
 > - Operator check-in, PINs, station tablets and per-person productivity were removed from the MVP.
+>
+> **Revision note (v1.4, 2026-10-30):** after owner input,
+> - **data-entry staff** (owner, managers, leads) confirm every entry with name + 4-digit PIN, for **who-entered attribution only**, not per-worker output (A8);
+> - **shift attribution follows the person**, with a "next shift" option;
+> - the washroom noon–2 p.m. slot has no shift report, and its loads count in day totals.
+>
+> **Revision note (v1.3, 2026-10-30):** shifts are per area; washroom ↔ finishing reconciliation is per business day.
 >
 > **Revision note (v1.2, 2026-10-27):** Accessibility and languages were expanded after owner input.
 > - The app must be **usable by people with disabilities**, with **voice-to-text** input (H6, H7).
@@ -306,6 +313,35 @@ Feature IDs are referenced throughout. Each epic opens with what it covers.
 - **Tech notes:** Edge Function `pair-device` creates an auth user (`device-<uuid>@devices.local`, random password) and a membership and device row, then returns a session. See §5.4.
 - **Shared tablets:** a shared washroom or finishing tablet (if wanted) simply signs in as a normal `lead` or `manager` user. No special device role is needed.
 
+#### A8. Entry staff: name + 4-digit PIN on data entry (P0) *(owner decision, 2026-10-30)*
+
+- **Story:** As the owner, I want every new piece of data to record which person entered it (picked from a list, confirmed with their 4-digit PIN) so that I know who to ask about an entry, even on a shared tablet, and so that late entries count toward the right shift.
+- **Scope, and what this is not:**
+  - **Who typed the entry**, for data-entry people only: owner, managers, washroom leads.
+  - **Not** per-worker production tracking. The crew doesn't get PINs, and no report totals or ranks output by person.
+  - Anything per-worker needs owner approval and HR/legal review first (§6.2 #11).
+- **Acceptance criteria:**
+  - Owner/manager screen to add, edit and deactivate entry staff:
+    - display name;
+    - language;
+    - **home shift** (e.g., "Finishing – Night"), optional;
+    - **4-digit PIN**: set or reset, never displayed again.
+  - **Every data-entry action** requires the staff picker (dropdown of active staff for that plant) + PIN. That covers estimates, queue create/reorder/status, finished goods, washer loads and crew hours.
+  - **PIN reuse window:** plant setting `staff_pin_reuse_minutes`.
+    - **Default 0**: a PIN on every entry, as the owner asked.
+    - If entry is too slow in the pilot, set it to e.g. 10 so a person stays confirmed for 10 minutes of activity on that device.
+  - **Lockout:** 5 wrong PINs lock that person for 5 minutes. PINs are bcrypt-hashed.
+  - **Shift attribution follows the person:**
+    - An entry counts toward the **current or most recent instance of the person's home shift**: the one running now, or the latest that ended within the last 6 hours, so staying late still counts.
+    - The entry screen shows a two-way choice, defaulting to the first: **"My shift (Night)"** / **"Next shift (Day)"**. "Next" means the next instance in the same area.
+    - With no home shift, or nothing in range, the area's clock-based shift applies; with no shift at all, the entry is **off-shift**, counted in day totals only.
+  - Each entry shows who entered it in entry lists and the audit view.
+- **Tech notes:**
+  - Tables `entry_staff`, `staff_sessions`.
+  - RPCs `set_staff_pin`, `start_staff_session`.
+  - Every write RPC takes `p_staff_session_id` and resolves the shift with `app.resolve_entry_shift(staff_id, choice, ts, area_id)`.
+  - Staff identity is **attribution, not security**; account roles and RLS still decide what's allowed.
+
 ### Epic B — Soil estimates
 
 #### B1. Enter or update a soil estimate (P0)
@@ -462,7 +498,7 @@ Save and reuse a typical day's order.
     - **Pack items** (napkins, tablecloths, towels): `packs` and `loose` fields, prefilled pack size shown ("× 100"), live total ("7 packs + 34 = 734 napkins").
     - Pack size can be overridden for this one entry (e.g., a short pack), which is recorded on the entry.
   - Optional fields: line/station (Ironer 1, Folding 2), note (≤ 140 characters), link to a queue item.
-  - Shift instance and time are set automatically. A manager can backdate within the current or previous shift.
+  - **Who and which shift (A8):** the manager picks their name + PIN. The entry counts toward their home shift ("My shift"), or they tap "Next shift". Time is set automatically; backdating is limited to the current or previous shift.
   - Confirmation shows "✓ 734 napkins saved", with a 10-second **Undo**.
   - Any single entry over 5,000 pieces needs a second confirmation.
   - Entering one item takes ≤ 5 taps with the keypad.
@@ -515,6 +551,7 @@ Log stoppages (machine down, waiting on washroom, no work) with start and end ti
   - **End-of-shift alternative:** a "quick totals" grid to enter loads per item for the shift in one screen.
   - Creates `washer_cycles` rows with `source = 'manual'`.
   - Usable from a phone or a shared washroom tablet signed in as a lead.
+  - **Who and which shift (A8):** name + PIN on every entry; shift follows the person, with a "Next shift" option. The noon–2 p.m. washroom helper has no home shift, so his loads are off-shift and count in **day totals** only.
 
 #### F2. Wash formula → item mapping (P0)
 
@@ -793,6 +830,7 @@ create table plants (
   estimate_amber_minutes int not null default 120 check (estimate_amber_minutes > 0),
   estimate_red_minutes   int not null default 240 check (estimate_red_minutes > estimate_amber_minutes),
   display_reload_local_time time not null default '04:00',
+  staff_pin_reuse_minutes int not null default 0 check (staff_pin_reuse_minutes between 0 and 480),  -- A8; 0 = PIN every entry
   created_at  timestamptz not null default now(),
   unique (id, org_id)                                   -- target for composite FKs
 );
@@ -954,6 +992,36 @@ create table shift_instances (
   exclude using gist (area_id with =, tstzrange(starts_at, ends_at) with &&)
 );
 
+-- ── Entry staff (A8: who entered data; attribution only, not per-worker output) ──
+create table entry_staff (
+  id            uuid primary key default gen_random_uuid(),
+  org_id        uuid not null,
+  plant_id      uuid not null,
+  display_name  text not null check (char_length(display_name) between 1 and 60),
+  language      text not null default 'es' references languages(code),
+  home_shift_id uuid,                                     -- their shift; entries follow it
+  pin_hash      text not null,                            -- bcrypt via pgcrypto crypt(); never selectable
+  failed_pin_attempts int not null default 0,
+  locked_until  timestamptz,
+  active        boolean not null default true,
+  created_at    timestamptz not null default now(),
+  updated_at    timestamptz not null default now(),
+  foreign key (plant_id, org_id) references plants(id, org_id),
+  foreign key (home_shift_id, plant_id) references shifts(id, plant_id),
+  unique (id, plant_id),
+  unique (plant_id, display_name)
+);
+
+create table staff_sessions (                             -- a confirmed PIN, valid per plant setting
+  id            uuid primary key default gen_random_uuid(),
+  plant_id      uuid not null,
+  staff_id      uuid not null,
+  auth_user_id  uuid not null references auth.users(id),  -- the device/account it was confirmed on
+  confirmed_at  timestamptz not null default now(),
+  expires_at    timestamptz not null,                     -- confirmed_at + reuse window (+ 2 min for 0)
+  foreign key (staff_id, plant_id) references entry_staff(id, plant_id)
+);
+
 -- ── Devices (wall displays) ─────────────────────────────────────────────
 create table devices (
   id            uuid primary key default gen_random_uuid(),
@@ -994,9 +1062,11 @@ create table soil_estimates (
   unit          app.qty_unit not null check (unit in ('load','basket')),
   note          text check (char_length(note) <= 280),
   entered_by    uuid not null references auth.users(id),
+  staff_id      uuid,                                     -- A8: who entered (name + PIN)
   entered_at    timestamptz not null default now(),
   client_id     uuid not null unique,                     -- idempotency
   foreign key (plant_id, org_id) references plants(id, org_id),
+  foreign key (staff_id, plant_id) references entry_staff(id, plant_id),
   foreign key (item_type_id, plant_id) references item_types(id, plant_id)
 );
 
@@ -1018,9 +1088,11 @@ create table queue_items (
   created_at    timestamptz not null default now(),
   updated_at    timestamptz not null default now(),
   updated_by    uuid references auth.users(id),
+  updated_by_staff_id uuid,                               -- A8
   started_at    timestamptz,
   completed_at  timestamptz,
   foreign key (plant_id, org_id) references plants(id, org_id),
+  foreign key (updated_by_staff_id, plant_id) references entry_staff(id, plant_id),
   foreign key (area_id, plant_id) references areas(id, plant_id),
   foreign key (item_type_id, plant_id) references item_types(id, plant_id),
   check (completed_at is null or started_at is null or completed_at >= started_at),
@@ -1045,12 +1117,14 @@ create table finished_goods_entries (
   note              text check (char_length(note) <= 140),
   source            app.entry_source not null default 'manual',
   entered_by        uuid not null references auth.users(id),
+  staff_id          uuid,                                 -- A8: who entered (name + PIN)
   client_id         uuid not null unique,
   voided_at         timestamptz,
   voided_by         uuid references auth.users(id),
   void_reason       text check (char_length(void_reason) <= 200),
   created_at        timestamptz not null default now(),
   foreign key (plant_id, org_id) references plants(id, org_id),
+  foreign key (staff_id, plant_id) references entry_staff(id, plant_id),
   foreign key (area_id, plant_id) references areas(id, plant_id),
   foreign key (station_id, plant_id) references stations(id, plant_id),
   foreign key (shift_instance_id, area_id) references shift_instances(id, area_id),  -- v1.3: same area
@@ -1070,8 +1144,10 @@ create table shift_crew_hours (
   crew_count        int not null check (crew_count between 0 and 200),
   labor_hours       numeric(8,2) not null check (labor_hours between 0 and 2000),
   entered_by        uuid not null references auth.users(id),
+  staff_id          uuid,                                 -- A8
   entered_at        timestamptz not null default now(),
   foreign key (plant_id, org_id) references plants(id, org_id),
+  foreign key (staff_id, plant_id) references entry_staff(id, plant_id),
   foreign key (shift_instance_id, area_id) references shift_instances(id, area_id),  -- v1.3: same area
   foreign key (area_id, plant_id) references areas(id, plant_id),
   unique (shift_instance_id)                                -- the instance already fixes the area
@@ -1114,9 +1190,11 @@ create table washer_cycles (
   import_batch_id   uuid references import_batches(id),
   raw               jsonb,                                -- original vendor row (may include weight; unused)
   entered_by        uuid references auth.users(id),
+  staff_id          uuid,                                 -- A8; null for Accu-Flow imports
   client_id         uuid unique,
   created_at        timestamptz not null default now(),
   foreign key (plant_id, org_id) references plants(id, org_id),
+  foreign key (staff_id, plant_id) references entry_staff(id, plant_id),
   foreign key (area_id, plant_id) references areas(id, plant_id),
   foreign key (machine_id, plant_id) references machines(id, plant_id),
   foreign key (wash_formula_id, plant_id) references wash_formulas(id, plant_id),
@@ -1191,7 +1269,7 @@ create table app_events (
 | Name | Type | Behavior |
 |---|---|---|
 | `app.touch_updated_at()` | BEFORE UPDATE trigger | Sets `updated_at = now()`. |
-| `app.set_shift_instance()` | BEFORE INSERT on `finished_goods_entries` (by `occurred_at`), `washer_cycles` (by `started_at`) | If `shift_instance_id` is null, sets it to the instance **of the row's area** whose range contains the timestamp (skipped instances excluded). Leaves it null if there is none (off-shift work). **Off-shift rows still count:** reports assign them the plant-local calendar date of their timestamp as business date, and show them in an "off-shift" line. |
+| `app.set_shift_instance()` | BEFORE INSERT on `finished_goods_entries` (by `occurred_at`), `washer_cycles` (by `started_at`). Fallback only: write RPCs normally set it via `app.resolve_entry_shift()` (A8, person-based) | If `shift_instance_id` is null, sets it to the instance **of the row's area** whose range contains the timestamp (skipped instances excluded). Leaves it null if there is none (off-shift work). **Off-shift rows still count:** reports assign them the plant-local calendar date of their timestamp as business date, and show them in an "off-shift" line. |
 | `app.apply_count_mode()` | BEFORE INSERT/UPDATE on `finished_goods_entries` | Reads the item's `count_mode`. For `unit` items: requires `packs = 0` and `pack_size_used is null`. For `pack` items: if `pack_size_used` is null and `packs > 0`, copies the item's current `pack_size`. **Past entries keep the pack size they were recorded with.** |
 | `app.check_languages()` | BEFORE INSERT/UPDATE on `profiles`, `devices`, `plants`, `item_types`, `display_messages` | Language codes (`language`, `display_languages`, `enabled_languages`, keys of `*_i18n` maps) must exist in `languages`; user, display and translation languages must be enabled for the plant. Each translation value is 1–60 characters (140 for messages). |
 | `app.check_estimate_unit()` | BEFORE INSERT on `soil_estimates` | Rejects `basket` when the item doesn't allow basket estimates (`VALIDATION_FAILED`). |
@@ -1264,6 +1342,8 @@ $$;
 | languages (global) | R | R | R | R | R |
 | profiles (own row: language, `a11y_prefs`) | R U own | R U own | R U own | R U own | — |
 | devices, pairing_codes | R C U | R C U | R | — | own row R |
+| entry_staff (`pin_hash` never exposed; use `entry_staff_public` view) | R C U | R C U | R (public view) | — | — |
+| staff_sessions (via RPCs only) | — | — | — | — | — |
 | soil_estimates | R C | R C | R C | R | R |
 | queue_items | R C U | R C U | R U (status only, via RPC) | R | R (own area) |
 | finished_goods_entries | R C U (void via RPC) | R C U (void via RPC) | R | R | — (totals via feed) |
@@ -1318,6 +1398,7 @@ Policies use `(select auth.uid())` and `(select app.has_role(...))` so that Post
 | Text | Names 1–60 characters. Notes ≤ 140 (queue/entries) / 280 (estimates). Trimmed. Control characters are rejected. |
 | Pairing code | 6 characters from an unambiguous alphabet; expires in 15 min; single use. |
 | Color | `#RRGGBB`. |
+| Staff PIN (A8) | Exactly 4 digits; not `0000`, `1234` or one repeated digit; unique among a plant's active staff (checked in RPC by comparing hashes); bcrypt-hashed; 5 failures → 5-minute lock. |
 | Languages | Codes are BCP-47 and must exist in `languages`. A user's, display's or translation's language must be enabled for the plant. A display shows 1–2 languages. Translation maps are JSON objects keyed by language code. |
 | Accessibility prefs | `a11y_prefs.undo_seconds` 10–60; `text_scale` 1.0–2.0; booleans otherwise. |
 | Timezone | Must exist in `pg_timezone_names` (trigger). |
@@ -1364,6 +1445,7 @@ There is **no custom API server.** The API surface is made of four parts:
 | `NOT_AUTHORIZED` | Caller lacks the required role |
 | `VALIDATION_FAILED` | Input failed validation; `details` holds the field and rule |
 | `OUT_OF_RANGE_TIMESTAMP` | Timestamp outside the allowed window |
+| `PIN_INVALID` / `STAFF_LOCKED` / `STAFF_SESSION_REQUIRED` | Wrong PIN; 5 failures lock that person 5 min; write without a confirmed staff session (A8) |
 | `CONVERSION_MISSING` | A required factor (baskets per load, pack size) is not set for the item |
 | `COUNT_MODE_MISMATCH` | Packs were sent for a unit-counted item, or vice versa |
 
@@ -1439,6 +1521,9 @@ All functions are `security definer` with `set search_path = ''`. Each checks th
 | `get_display_feed(p_area_id uuid)` | Full display snapshot | D (own area), O,M,L,V |
 | `get_shift_report(p_shift_instance_id uuid)` | One area's shift report | O,M,L,V |
 | `get_day_report(p_plant_id uuid, p_business_date date)` | Day report with washroom ↔ finishing reconciliation | O,M,L,V |
+| `set_staff_pin(p_staff_id uuid, p_pin text)` | Set or reset a 4-digit PIN (A8) | O,M |
+| `start_staff_session(p_staff_id uuid, p_pin text)` | Confirm name + PIN; returns `staff_session_id` valid per `staff_pin_reuse_minutes`. Errors `PIN_INVALID`, `STAFF_LOCKED` | O,M,L |
+| *All write RPCs* | Take `p_staff_session_id` and `p_shift_choice` ('own' default, 'next'); reject an expired or foreign session (`STAFF_SESSION_REQUIRED`) | — |
 | `set_shift_skipped(p_shift_instance_id uuid, p_skipped bool)` (P1) | Mark a generated shift "didn't run" (holiday); audited | O,M |
 | `suggest_queue(p_area_id uuid)` (P1) | Draft queue from estimates | O,M |
 | `upsert_washer_quick_totals(p_shift_instance_id, p_rows jsonb)` | End-of-shift loads per item; `area_id` is taken from the shift instance | O,M,L |
@@ -1579,7 +1664,7 @@ There is **no general per-IP API rate limiting at the PostgREST layer** at this 
    - The service role key exists only in the Edge Functions environment.
    - Only the publishable (anon) key is in the client.
    - No secrets in the repo; GitHub secret scanning is on.
-4. **No individual worker data is collected** (v1.1). There are no operator records or PINs; crew hours are area totals only.
+4. **No per-worker production data** (v1.1). v1.4 adds name + PIN for **data-entry staff only** (owner, managers, leads), to record who typed each entry. PINs are bcrypt-hashed, never returned by any API, and locked after 5 failures. Crew hours are area totals.
 5. **Owner accounts require MFA (TOTP)** from P1. Magic links expire in 1 hour.
 6. **Transport:** HTTPS only (HSTS via host). Realtime over WSS.
 7. **Audit:** all configuration, queue, estimate and void actions are written to `audit_log`, retained ≥ 2 years.
@@ -1588,7 +1673,7 @@ There is **no general per-IP API rate limiting at the PostgREST layer** at this 
 10. **Dependencies:** Dependabot / `npm audit` in CI; pinned versions.
 11. **Workforce data & fairness (policy requirement):**
     - Productivity data is **operational, not payroll.** Crew hours (P1) are area totals entered by a manager. The app must not be used as a timekeeping system of record.
-    - The app records **no per-person output**. Adding it later requires owner approval and HR/legal review first. This matters given the prior wage-and-hour matter noted in the company dossier.
+    - The app records **no per-worker output**. It records *who entered* each row (A8), for accountability, and **no report totals, ranks or compares output by staff**. Adding per-worker tracking later requires owner approval and HR/legal review first. This matters given the prior wage-and-hour matter noted in the company dossier.
     - The crew is told in writing, in their languages, what the screens are for and that individuals are not tracked.
 12. **Data retention:**
     - Production, washer and estimate data: kept indefinitely (it is operational history).
@@ -1636,7 +1721,7 @@ Supported browsers:
 | Not building | Why / instead |
 |---|---|
 | Payroll, timekeeping, or attendance | Legal risk and existing systems. Crew hours (P1) are area totals only. |
-| Operator check-in, PINs, per-person output or productivity | Removed in v1.1: the finishing manager enters output. Revisit only with HR/legal review. |
+| Per-worker output or productivity; crew PINs | Not built. Only data-entry staff have PINs (A8, entry attribution). Per-worker tracking needs HR/legal review. |
 | Weighing goods / scale integration | ADB has no scale. Wash loads are the unit of measure. |
 | Route, delivery or driver management | A separate problem. The soil estimate stays manual. |
 | Customer accounts, invoicing, contracts, pricing | Belongs in the business/billing system. |

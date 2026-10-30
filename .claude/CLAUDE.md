@@ -42,12 +42,12 @@ Full context lives in these docs. Read the relevant one before non-trivial work;
 - **Waiting on the owner (do not invent values):**
   1. Diamond Chemical's answer on Accu-Flow CloudView export: API, scheduled CSV/email, or none.
   2. Item list **received** (`research/item-catalog.md`, 26 items). Still TBD there: tablecloth, towel and wipe pack sizes; how sheets are counted; colors; baskets per load; pieces per load.
-  3. Shift schedule **received** (`research/shift-schedule.md`, per area). Open there: finishing day shift 10:00 vs 12:00; fold washroom midday into night?; holidays.
+  3. Shift schedule **received** (`research/shift-schedule.md`). Still open: production-day start for day reconciliation (14:00 proposed); holidays. Also owner to do: Supabase dashboard sign-ups OFF; GitHub ruleset on `main`.
   4. Which languages to enable beyond EN/ES. Creole can be added later as data plus a translation file. Also: voice-input test results on the real phones (iOS installed-app support and Creole recognition are unconfirmed).
   5. Screen locations: Wi-Fi strength and heat at each spot.
   6. Baseline tally of phone calls per shift.
 - **Known debt and caveats:**
-  - **PRD is v1.3** (2026-10-30): shifts are per area; washroom↔finishing reconciliation is per business day (`daily_reconciliation`, `get_day_report`). v1.2 adds accessibility (H6), voice-to-text (H7) and extensible per-user languages (H1). v1.1 revised the measurement model: no scale, wash loads as the unit, manager-only finished-goods entry, no operators/PINs/stations. The v1.3 DDL was test-loaded in Postgres 16 (24 tables; tenant FKs, per-area shift overlap, area-consistent shift FKs, pack/unit rules verified); Supabase runs PG 17. RLS policies, triggers and views (§4.5–4.7) exist only as specs.
+  - **PRD is v1.4** (2026-10-30): entry staff + PIN, person-based shift attribution (A8). v1.3: shifts are per area; washroom↔finishing reconciliation is per business day (`daily_reconciliation`, `get_day_report`). v1.2 adds accessibility (H6), voice-to-text (H7) and extensible per-user languages (H1). v1.1 revised the measurement model: no scale, wash loads as the unit, manager-only finished-goods entry, no operators/PINs/stations. The v1.3 DDL was test-loaded in Postgres 16 (24 tables; tenant FKs, per-area shift overlap, area-consistent shift FKs, pack/unit rules verified); Supabase runs PG 17. RLS policies, triggers and views (§4.5–4.7) exist only as specs.
   - Supabase and Netlify prices in tech-stack.md came partly from third-party write-ups. Re-verify before buying.
   - The Accu-Flow CSV format is unknown. **Do not build the parser (F3) without a real sample file.**
 
@@ -72,7 +72,7 @@ Full context lives in these docs. Read the relevant one before non-trivial work;
   - Every operational row has `org_id` + `plant_id`.
   - Composite FKs (`(plant_id, org_id)`, `(area_id, plant_id)`, …) make cross-tenant references impossible.
   - **RLS is enabled on every table, deny-by-default.**
-- **Roles:** `owner`, `manager`, `lead`, `viewer`, plus the device role `display` (read-only, own area). **There are no operator accounts, PINs or station devices** (removed in PRD v1.1). A shared area tablet signs in as a normal `lead` or `manager`.
+- **Roles:** `owner`, `manager`, `lead`, `viewer`, plus the device role `display` (read-only, own area). A shared area tablet signs in as a normal `lead` or `manager`. **Entry staff (PRD A8):** every data entry is confirmed with name + 4-digit PIN (data-entry people only). It's attribution, not security. Shift attribution follows the person's home shift, with a "next shift" option.
 - **History is append-only. No hard deletes.**
   - `soil_estimates` are never updated.
   - Finished-goods entries are voided, not deleted.
@@ -171,7 +171,7 @@ tests/e2e/                           Playwright specs (display at 1920×1080, co
 - Never use color alone; always add an icon and text.
 - Show data freshness everywhere.
 - Offline must never lose an entry.
-- **No per-person data is collected.** Screens and reports show shift and area totals only.
+- **No per-worker output data.** Only *who entered* each row is recorded (A8). Reports never total or rank by person; screens show shift and area totals.
 
 ## How to work in this repo
 
