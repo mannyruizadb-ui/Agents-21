@@ -14,8 +14,8 @@ jobs:
     name: App (lint, typecheck, unit tests, build)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
         with:
           node-version-file: .nvmrc
           cache: npm
@@ -23,6 +23,8 @@ jobs:
       - run: npm run lint
       - run: npm run typecheck
       - run: npm test
+      - name: Guard hook tests (production and read-only guards)
+        run: bash .claude/hooks/test-hooks.sh .
       - name: Build
         run: npm run build
         env:
@@ -34,8 +36,8 @@ jobs:
     name: Database (migrations + pgTAP)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
         with:
           node-version-file: .nvmrc
           cache: npm
