@@ -24,8 +24,13 @@ Full context lives in these docs. Read the relevant one before non-trivial work;
 
 ## Current state (update this section as work progresses)
 
-- **Built:** research and planning docs only. **No application code exists yet.**
-- **In progress:** nothing. The next phase is **Foundation (PRD §9, weeks 1–2):**
+- **Built (Sprint Zero, 2026-10-30; see `research/roadmap.md` §3):**
+  - App scaffold: React 19, React Router 8, Vite 8, TS strict, lint, Vitest; magic-link sign-in and auth guard; EN/ES locales (ES pending AI review).
+  - `supabase/` init (invite-only auth), init migration, RLS guard pgTAP test, CI workflow.
+  - Foundation agents in `.claude/agents/`, meta protocol, guard hooks in `.claude/settings.json`. These load on the next session.
+  - **Not yet run:** migrations and pgTAP. Local Supabase image pulls failed here, so CI runs them first.
+- **No Supabase project is connected.** The owner must approve a new dedicated `plantboard-dev` project. Don't use "ADB Project" or "Fleet Repair Log": both are in use and both have a `profiles` table.
+- **Next:** finish Sprint Zero, then **Foundation (roadmap M1):**
   - Supabase migrations from PRD §4
   - RLS policies and pgTAP tests per role
   - seed ADB data
@@ -56,12 +61,7 @@ Full context lives in these docs. Read the relevant one before non-trivial work;
 | Monitoring | Sentry (free) + device heartbeats → Resend email | |
 | Budget | ≈ $35/mo at MVP. **Production must be on Supabase Pro**, because Free pauses after 7 idle days and has no backups. | |
 
-**Rejected options and why:**
-- React Native: no benefit over a PWA here.
-- Next.js: no SEO or server rendering needed.
-- Firebase: NoSQL makes the shift reports painful.
-- MongoDB Atlas: Device Sync and the Data API reached end of life in Sept 2025.
-- Python backend: one language (TypeScript) end to end instead.
+**Rejected (see tech-stack.md):** React Native (a PWA covers it), Next.js (no SSR/SEO need), Firebase (NoSQL makes reports painful), MongoDB Atlas (Device Sync/Data API EOL 2025), Python backend (one language).
 
 ## Architecture rules (always apply)
 
@@ -105,14 +105,12 @@ Full context lives in these docs. Read the relevant one before non-trivial work;
 - Commits: short imperative sentence ("Add queue reorder RPC"), matching the existing history. One logical change per commit.
 - Detailed rules load automatically from `.claude/rules/` when you touch matching files: database, frontend, edge functions.
 
-## Commands (planned; confirm against package.json once it exists, then fix this list)
+## Commands (real, from package.json)
 
 ```
-npm run dev | build | typecheck | lint | test (Vitest) | test:e2e (Playwright)
-supabase start                     # local stack (Docker)
-supabase db reset                  # re-apply migrations + seed.sql locally
-supabase test db                   # pgTAP RLS/permission tests
-supabase gen types typescript --local > src/types/database.ts
+npm run dev | build | typecheck | lint | test        # Vitest; Playwright arrives in M2
+npm run db:start | db:reset | db:test | db:types     # Supabase CLI via npx (needs Docker)
+npx supabase migration new <verb_noun> </dev/null    # stdin must be closed or it waits
 ```
 
 ## File map (planned layout; nothing outside research/ exists yet)
@@ -120,7 +118,7 @@ supabase gen types typescript --local > src/types/database.ts
 ```
 .claude/CLAUDE.md, .claude/rules/   memory + path-scoped rules
 research/                           planning docs (PRD, stack, viability, dossier)
-src/app/{control,display,pair}/        the 3 surfaces (routes)
+src/app/{control,display,pair,auth}/   the 3 surfaces + sign-in (routes in src/router.tsx)
 src/features/<epic>/                 estimates, queue, production, washroom, reports, admin
 src/lib/                             supabase client, i18n, query client, utils
 src/locales/{en,es,ht}.json          translations

@@ -1,0 +1,8 @@
+node_modules
+dist
+research
+.claude
+supabase/.temp
+src/types/database.ts
+package-lock.json
+*.md

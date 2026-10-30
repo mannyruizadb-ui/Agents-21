@@ -1,0 +1,14 @@
+node_modules/
+dist/
+*.tsbuildinfo
+.env
+.env.*
+!.env.example
+CLAUDE.local.md
+.claude/agent-memory-local/
+.claude/state/
+supabase/.temp/
+supabase/.branches/
+coverage/
+playwright-report/
+test-results/
