@@ -5,7 +5,7 @@ Real-time operations board for **America's Dust Busters (ADB) / Star Linen Servi
 - The owner orders the work queue from their phone.
 - Wall screens in the washroom and finishing room show Now / Next / Later.
 - The washroom records loads run per item. The finishing manager records finished goods by unit or by pack + loose.
-- The app reconciles loads washed with finished goods per item and shift.
+- Each area gets a shift report; washroom ↔ finishing reconciliation is per business day.
 - Every shift ends with an automatic output report.
 
 **Mission:** stop running the plant by phone calls.
@@ -19,13 +19,21 @@ Full context lives in these docs. Read the relevant one before non-trivial work;
 - `research/PRD.md` — **source of truth.** Features with IDs (A1…H5), schema DDL (§4), API (§5), non-functional requirements (§6), scope (§7), metrics (§8).
 - `research/tech-stack.md` — stack choices, costs, MCP servers, integration pain points.
 - `research/viability-analysis.md` — build vs. buy, risks, the washer-data findings (§6).
-- `research/agents.md`: subagent architecture (meta protocol, 12 subagents, escalation and handoff rules). **Designed, not yet created** in `.claude/agents/`.
+- `research/agents.md`: subagent architecture. The 6 Foundation agents are live in `.claude/agents/`; others are added per phase. `research/roadmap.md`: milestones, cost guardrails (§1.4).
 - `research/americas-dust-busters-dossier.md` — company research. **Contains legal history; never quote it in code, commits or public places.**
 
 ## Current state (update this section as work progresses)
 
-- **Built:** research and planning docs only. **No application code exists yet.**
-- **In progress:** nothing. The next phase is **Foundation (PRD §9, weeks 1–2):**
+- **Built (Sprint Zero, 2026-10-30; see `research/roadmap.md` §3):**
+  - App scaffold: React 19, React Router 8, Vite 8, TS strict, lint, Vitest; magic-link sign-in and auth guard; EN/ES locales (ES pending AI review).
+  - `supabase/` init (invite-only auth), init migration, RLS guard pgTAP test, CI workflow.
+  - Foundation agents in `.claude/agents/` (loaded), meta protocol, guard hooks in `.claude/settings.json`.
+  - **CI is green** (PR mannyruizadb-ui/Agents-21#2): migrations + pgTAP guard tests, hook tests, app checks. Local Supabase image pulls fail in cloud sessions, so CI is where SQL gets proven.
+- **Supabase project: "Plant Ops Board"** (ref `ypurifebjiivvltbcufx`, us-east-1, ADB Pro org; created 2026-10-30, empty).
+  - It is the **only** cloud project: dev runs on the local stack and CI. Until the pilot it's staging; after that it's production.
+  - Nothing is applied yet. The first `db push` needs owner OK.
+  - Never touch "ADB Project" or "Fleet Repair Log".
+- **Next:** finish Sprint Zero, then **Foundation (roadmap M1):**
   - Supabase migrations from PRD §4
   - RLS policies and pgTAP tests per role
   - seed ADB data
@@ -34,12 +42,12 @@ Full context lives in these docs. Read the relevant one before non-trivial work;
 - **Waiting on the owner (do not invent values):**
   1. Diamond Chemical's answer on Accu-Flow CloudView export: API, scheduled CSV/email, or none.
   2. Item list **received** (`research/item-catalog.md`, 26 items). Still TBD there: tablecloth, towel and wipe pack sizes; how sheets are counted; colors; baskets per load; pieces per load.
-  3. Shift schedule, including whether any shift crosses midnight.
+  3. Shift schedule **received** (`research/shift-schedule.md`). Still open: production-day start for day reconciliation (14:00 proposed); holidays. Also owner to do: Supabase dashboard sign-ups OFF; GitHub ruleset on `main`.
   4. Which languages to enable beyond EN/ES. Creole can be added later as data plus a translation file. Also: voice-input test results on the real phones (iOS installed-app support and Creole recognition are unconfirmed).
   5. Screen locations: Wi-Fi strength and heat at each spot.
   6. Baseline tally of phone calls per shift.
 - **Known debt and caveats:**
-  - **PRD is v1.2** (2026-10-27). v1.2 adds accessibility (H6), voice-to-text (H7) and extensible per-user languages (H1). v1.1 revised the measurement model: no scale, wash loads as the unit, manager-only finished-goods entry, no operators/PINs/stations. The DDL was test-loaded in Postgres 16 (23 tables; tenant FKs, shift-overlap exclusion and pack/unit rules verified). RLS policies, triggers and views (§4.5–4.7) exist only as specs.
+  - **PRD is v1.4** (2026-10-30): entry staff + PIN, person-based shift attribution (A8). v1.3: shifts are per area; washroom↔finishing reconciliation is per business day (`daily_reconciliation`, `get_day_report`). v1.2 adds accessibility (H6), voice-to-text (H7) and extensible per-user languages (H1). v1.1 revised the measurement model: no scale, wash loads as the unit, manager-only finished-goods entry, no operators/PINs/stations. The v1.3 DDL was test-loaded in Postgres 16 (24 tables; tenant FKs, per-area shift overlap, area-consistent shift FKs, pack/unit rules verified); Supabase runs PG 17. RLS policies, triggers and views (§4.5–4.7) exist only as specs.
   - Supabase and Netlify prices in tech-stack.md came partly from third-party write-ups. Re-verify before buying.
   - The Accu-Flow CSV format is unknown. **Do not build the parser (F3) without a real sample file.**
 
@@ -51,17 +59,12 @@ Full context lives in these docs. Read the relevant one before non-trivial work;
 | UI libraries | TanStack Query, React Router, Tailwind + shadcn/ui, dnd-kit, react-i18next, React Hook Form + Zod, Recharts, date-fns(-tz) | |
 | Backend | **Supabase**: Postgres, Auth, Realtime, Storage, Edge Functions (TS/Deno), pg_cron. **No custom server.** | The work is CRUD, live push and permissions. |
 | API | PostgREST + Postgres RPC functions + generated TS types. **No tRPC, no GraphQL.** | Type safety without running a server. |
-| Hosting | Netlify (Personal $9) or Cloudflare Pages ($0). **Not Vercel Hobby**: non-commercial use only. | |
+| Hosting | **Free tier**: Cloudflare Pages or Netlify Free. **Not Vercel Hobby**: non-commercial use only. | Owner: "extremely cheap" |
 | CI/CD | GitHub Actions: typecheck, lint, Vitest, Playwright, `supabase db push`, deploy, nightly `pg_dump` to R2 | |
 | Monitoring | Sentry (free) + device heartbeats → Resend email | |
-| Budget | ≈ $35/mo at MVP. **Production must be on Supabase Pro**, because Free pauses after 7 idle days and has no backups. | |
+| Budget | **≈ $10/mo new spend** (the Plant Ops Board project; the org's Supabase Pro is already paid). Everything else on free tiers. Hardware: owner buys the TVs (≈ $250–350/screen). See roadmap §1.4. | Any new cost = owner decision |
 
-**Rejected options and why:**
-- React Native: no benefit over a PWA here.
-- Next.js: no SEO or server rendering needed.
-- Firebase: NoSQL makes the shift reports painful.
-- MongoDB Atlas: Device Sync and the Data API reached end of life in Sept 2025.
-- Python backend: one language (TypeScript) end to end instead.
+**Rejected (see tech-stack.md):** React Native (a PWA covers it), Next.js (no SSR/SEO need), Firebase (NoSQL makes reports painful), MongoDB Atlas (Device Sync/Data API EOL 2025), Python backend (one language).
 
 ## Architecture rules (always apply)
 
@@ -69,14 +72,14 @@ Full context lives in these docs. Read the relevant one before non-trivial work;
   - Every operational row has `org_id` + `plant_id`.
   - Composite FKs (`(plant_id, org_id)`, `(area_id, plant_id)`, …) make cross-tenant references impossible.
   - **RLS is enabled on every table, deny-by-default.**
-- **Roles:** `owner`, `manager`, `lead`, `viewer`, plus the device role `display` (read-only, own area). **There are no operator accounts, PINs or station devices** (removed in PRD v1.1). A shared area tablet signs in as a normal `lead` or `manager`.
+- **Roles:** `owner`, `manager`, `lead`, `viewer`, plus the device role `display` (read-only, own area). A shared area tablet signs in as a normal `lead` or `manager`. **Entry staff (PRD A8):** every data entry is confirmed with name + 4-digit PIN (data-entry people only). It's attribution, not security. Shift attribution follows the person's home shift, with a "next shift" option.
 - **History is append-only. No hard deletes.**
   - `soil_estimates` are never updated.
   - Finished-goods entries are voided, not deleted.
   - Queue items are cancelled, not deleted.
 - **Idempotency:** every client-originated insert carries a client-generated `client_id` UUID.
 - **Displays never trust Realtime alone.** They refetch the full feed on connect, reconnect, `online`, `visibilitychange` and every 5 min, and always show the data's age.
-- **Time:** store UTC (`timestamptz`). Report by `shift_instance_id` and business date, never calendar date. Plant timezone is `America/New_York`.
+- **Time:** store UTC (`timestamptz`). **Shifts are per area.** Report by `shift_instance_id` and business date, never calendar date. Plant timezone is `America/New_York`.
 - **Measurement model (no scale, so never weights or lbs):**
   - **Wash loads** are the common unit.
   - Estimates are in loads or baskets (`baskets_per_load`, per item).
@@ -105,24 +108,22 @@ Full context lives in these docs. Read the relevant one before non-trivial work;
 - Commits: short imperative sentence ("Add queue reorder RPC"), matching the existing history. One logical change per commit.
 - Detailed rules load automatically from `.claude/rules/` when you touch matching files: database, frontend, edge functions.
 
-## Commands (planned; confirm against package.json once it exists, then fix this list)
+## Commands (real, from package.json)
 
 ```
-npm run dev | build | typecheck | lint | test (Vitest) | test:e2e (Playwright)
-supabase start                     # local stack (Docker)
-supabase db reset                  # re-apply migrations + seed.sql locally
-supabase test db                   # pgTAP RLS/permission tests
-supabase gen types typescript --local > src/types/database.ts
+npm run dev | build | typecheck | lint | test        # Vitest; Playwright arrives in M2
+npm run db:start | db:reset | db:test | db:types     # Supabase CLI devDependency (needs Docker)
+npx supabase migration new <verb_noun> </dev/null    # stdin must be closed or it waits
 ```
 
-## File map (planned layout; nothing outside research/ exists yet)
+## File map (Sprint Zero created src/, supabase/, .github/; feature folders arrive per milestone)
 
 ```
 .claude/CLAUDE.md, .claude/rules/   memory + path-scoped rules
 research/                           planning docs (PRD, stack, viability, dossier)
-src/app/{control,display,pair}/        the 3 surfaces (routes)
+src/app/{control,display,pair,auth}/   the 3 surfaces + sign-in (routes in src/router.tsx)
 src/features/<epic>/                 estimates, queue, production, washroom, reports, admin
-src/lib/                             supabase client, i18n, query client, utils
+src/lib/                             supabase client, env, i18n, localize (query client lives in src/main.tsx)
 src/locales/{en,es,ht}.json          translations
 src/types/database.ts                GENERATED types
 supabase/migrations/                 SQL migrations (timestamped)
@@ -170,7 +171,7 @@ tests/e2e/                           Playwright specs (display at 1920×1080, co
 - Never use color alone; always add an icon and text.
 - Show data freshness everywhere.
 - Offline must never lose an entry.
-- **No per-person data is collected.** Screens and reports show shift and area totals only.
+- **No per-worker output data.** Only *who entered* each row is recorded (A8). Reports never total or rank by person; screens show shift and area totals.
 
 ## How to work in this repo
 
