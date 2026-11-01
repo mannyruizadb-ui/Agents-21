@@ -1,4 +1,5 @@
 # Item Catalog: ADB (seed source for `item_types`)
+> **Status 2026-11-01:** superseded in part. The seeded catalog (`supabase/seed.sql`: 31 wash groups, 57 items) is current. Owner's LinenTrack app lists more items (Scraper, City, Brito mats; red, blue and bone tablecloths; charcoal napkin; mechanic towels; butcher coat sizes). Reconcile before the pilot.
 
 *Received from the owner 2026-10-27. This file is the source for `supabase/seed.sql`. Every value is editable later in the app (PRD A2). Nothing here is invented: unknown values are marked **TBD**, and defaults are marked **assumed**.*
 

@@ -37,7 +37,17 @@ Full context lives in these docs. Read the relevant one before non-trivial work;
   - Production day runs **12:00 → 12:00** (`plants.production_day_start`, `shift_instances.production_date`). Report views now use `production_date`, `loads_run` and `standard_loads`.
   - Washer 6 (160 lb) has `machines.load_factor` 1.19; washers 1–5 (135 lb) are 1.00.
   - Seed: 48 items (tablecloths per size+color, 14 napkin colors, towels and wipes in packs of 50, sheets in packs of 10) and 10 machines. Sign-ups are OFF.
-  - **Next design step: wash groups.** The washroom (estimates, queue, washer loads, TVs) works by wash group: tablecloths by color, each napkin color, mats by color family, Presidente logos, black- or colored-background logos, charcoal, and old/regular/new sheets. Finishing counts items. Waiting on the owner: mat size rule, how finishing counts mats and logos, elevator and 2×3 mats, other mixes, and PIN once per shift for the washroom tablet.
+  - **Wash groups BUILT** (`20261101214357_create_wash_groups.sql`):
+    - The washroom works by wash group: estimates, queue, washer cycles and the TVs. Finishing counts items. Reconciliation is per production day per group.
+    - 31 groups, 57 items in the seed. Mat pieces per standard load: 16 (3×5), 12 (4×6), 9 (3×10), ≈3.5 (5×7), ≈35 (2×3).
+    - History is snapshotted: `finished_goods_entries.wash_group_id`, `washer_cycles.load_factor_used`.
+    - **480 pgTAP tests pass.** security-reviewer: BLOCK (cross-tenant error-code oracle) → fixed → PASS WITH NOTES. architect: PASS WITH NOTES.
+    - PRD v1.6 rewrite still owed: A2, B, C1/C4, D1/D2, F, G1–G3, §4.4–4.9, §5.3.
+  - **Owner's existing inventory app "LinenTrack"** (separate Netlify + Supabase app, labeled "Test DB"):
+    - Nightly mat and linen counts, par levels, damage and repair, route-count variance. Don't rebuild inventory in PlantBoard; integrate later.
+    - Its item list differs from the seed (Scraper, City, Brito mats; red, blue and bone tablecloths; mechanic towels; …). Waiting on the owner.
+    - Its login has security issues (PIN is the account password, lockout only in the browser, user list shown before sign-in). Reported to the owner; its repo isn't in this session.
+  - Washroom tapping: a night-shift supervisor will tap each washer start. **Evening shift has no tapper yet (owner's biggest open issue).** PIN once per shift for washroom taps needs an A8 policy change plus security review before it's built.
   - **Display redesign:** washroom gets 3 TVs (washers 1–3, washers 4–6, dryers 1–4), NOW + NEXT per machine, no LATER; finishing keeps a TV. Revise PRD D1/D2 (v1.6) before M2 display UI.
   - Security notes to carry forward:
     - snapshot `load_factor` per washer cycle;

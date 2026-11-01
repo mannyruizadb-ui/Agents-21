@@ -48,20 +48,20 @@ select is((select count(*)::int from public.shift_instances where plant_id = pg_
   5, 'Monday''s production day has exactly the 5 instances above');
 
 -- ── Off-shift rows: 11:59 vs 12:01 (Sunday: plant closed) ────────────────
-insert into public.washer_cycles (org_id, plant_id, area_id, item_type_id, started_at, load_count, source, entered_by, client_id) values
-  (pg_temp.id('orgA'), pg_temp.id('plantA'), pg_temp.id('wash'), pg_temp.id('napkin'), pg_temp.ny('2026-11-08 11:59'), 1, 'manual', pg_temp.id('lead'), gen_random_uuid()),
-  (pg_temp.id('orgA'), pg_temp.id('plantA'), pg_temp.id('wash'), pg_temp.id('mat'),    pg_temp.ny('2026-11-08 12:01'), 1, 'manual', pg_temp.id('lead'), gen_random_uuid());
+insert into public.washer_cycles (org_id, plant_id, area_id, wash_group_id, started_at, load_count, source, entered_by, client_id) values
+  (pg_temp.id('orgA'), pg_temp.id('plantA'), pg_temp.id('wash'), pg_temp.id('gNapkin'), pg_temp.ny('2026-11-08 11:59'), 1, 'manual', pg_temp.id('lead'), gen_random_uuid()),
+  (pg_temp.id('orgA'), pg_temp.id('plantA'), pg_temp.id('wash'), pg_temp.id('gMat'),    pg_temp.ny('2026-11-08 12:01'), 1, 'manual', pg_temp.id('lead'), gen_random_uuid());
 insert into public.finished_goods_entries (org_id, plant_id, area_id, item_type_id, loose_pieces, occurred_at, entered_by, client_id) values
   (pg_temp.id('orgA'), pg_temp.id('plantA'), pg_temp.id('fin'), pg_temp.id('napkin'), 10, pg_temp.ny('2026-11-08 11:59'), pg_temp.id('manager'), gen_random_uuid()),
   (pg_temp.id('orgA'), pg_temp.id('plantA'), pg_temp.id('fin'), pg_temp.id('mat'),    10, pg_temp.ny('2026-11-08 12:01'), pg_temp.id('manager'), gen_random_uuid());
-select is(array[(select production_date from public.washroom_by_shift where shift_instance_id is null and item_type_id = pg_temp.id('napkin')),
-                (select production_date from public.washroom_by_shift where shift_instance_id is null and item_type_id = pg_temp.id('mat'))],
+select is(array[(select production_date from public.washroom_by_shift where shift_instance_id is null and wash_group_id = pg_temp.id('gNapkin')),
+                (select production_date from public.washroom_by_shift where shift_instance_id is null and wash_group_id = pg_temp.id('gMat'))],
   array['2026-11-07', '2026-11-08']::date[], 'off-shift wash at 11:59 → previous production day, 12:01 → same day');
 select is(array[(select production_date from public.finished_by_shift where shift_instance_id is null and item_type_id = pg_temp.id('napkin')),
                 (select production_date from public.finished_by_shift where shift_instance_id is null and item_type_id = pg_temp.id('mat'))],
   array['2026-11-07', '2026-11-08']::date[], 'off-shift finished goods at 11:59 / 12:01 likewise');
 select is((select array[loads_run, pieces_finished] from public.daily_reconciliation
-            where production_date = '2026-11-07' and item_type_id = pg_temp.id('napkin')),
+            where production_date = '2026-11-07' and wash_group_id = pg_temp.id('gNapkin')),
   array[1, 10]::numeric[], 'daily_reconciliation puts both 11:59 rows on Saturday''s production day');
 
 -- ── DST (plant B): noon is local wall time on both transition days ──────

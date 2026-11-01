@@ -6,8 +6,10 @@
 --          (washroom device) · a..06 owner B · a..07 no membership · a..08 display membership, no device
 --   areas  c..a1 washroom A · c..a2 finishing A · c..a3 spare A (kind other) · c..b1 washroom B
 --          c..c1 washroom A2
---   items  d..a1 Napkin (pack 100, 500 pcs/load) · d..a2 Mat (unit, no pcs/load)
---          d..a3 Towel (unit, baskets 2/load, 200 pcs/load) · d..b1 item B · d..c1 item A2
+--   wash groups (owner 2026-11-01: washroom data is per group) g..a1 Napkins · g..a2 Mats
+--          g..a3 Towels (baskets allowed, 2/load) · g..b1 group B · g..c1 group A2
+--   items  d..a1 Napkin (pack 100, 500 pcs/load; Napkins) · d..a2 Mat (unit, no pcs/load; Mats)
+--          d..a3 Towel (unit, 200 pcs/load; Towels) · d..b1 item B · d..c1 item A2
 
 insert into public.languages (code, name_native, ui_ready) values
   ('en', 'English', true), ('es', 'Español', true), ('ht', 'Kreyòl ayisyen', false)
@@ -68,22 +70,34 @@ insert into public.machines (id, org_id, plant_id, area_id, name, kind, external
   ('60000000-0000-0000-0000-0000000000a1', '10000000-0000-0000-0000-00000000000a', '20000000-0000-0000-0000-00000000000a',
    '30000000-0000-0000-0000-0000000000a1', 'Washer 1', 'washer', 'W1');
 
-insert into public.item_types (id, org_id, plant_id, name, name_i18n, category, count_mode, pack_size,
-                               allow_basket_estimates, baskets_per_load, pieces_per_load, pieces_per_load_source) values
-  ('70000000-0000-0000-0000-0000000000a1', '10000000-0000-0000-0000-00000000000a', '20000000-0000-0000-0000-00000000000a',
-   'Napkin', '{"es":"Servilleta"}', 'linen', 'pack', 100, false, null, 500, 'counted'),
-  ('70000000-0000-0000-0000-0000000000a2', '10000000-0000-0000-0000-00000000000a', '20000000-0000-0000-0000-00000000000a',
-   'Mat', '{}', 'mat', 'unit', null, false, null, null, null),
-  ('70000000-0000-0000-0000-0000000000a3', '10000000-0000-0000-0000-00000000000a', '20000000-0000-0000-0000-00000000000a',
-   'Towel', '{}', 'towel', 'unit', null, true, 2, 200, 'counted'),
-  ('70000000-0000-0000-0000-0000000000b1', '10000000-0000-0000-0000-00000000000b', '20000000-0000-0000-0000-00000000000b',
-   'Item B', '{}', 'mat', 'unit', null, false, null, null, null),
-  ('70000000-0000-0000-0000-0000000000c1', '10000000-0000-0000-0000-00000000000a', '20000000-0000-0000-0000-00000000000c',
-   'Item A2', '{}', 'mat', 'unit', null, false, null, null, null);
+insert into public.wash_groups (id, org_id, plant_id, name, name_i18n, allow_basket_estimates, baskets_per_load) values
+  ('71000000-0000-0000-0000-0000000000a1', '10000000-0000-0000-0000-00000000000a', '20000000-0000-0000-0000-00000000000a',
+   'Napkins', '{"es":"Servilletas"}', false, null),
+  ('71000000-0000-0000-0000-0000000000a2', '10000000-0000-0000-0000-00000000000a', '20000000-0000-0000-0000-00000000000a',
+   'Mats', '{}', false, null),
+  ('71000000-0000-0000-0000-0000000000a3', '10000000-0000-0000-0000-00000000000a', '20000000-0000-0000-0000-00000000000a',
+   'Towels', '{}', true, 2),
+  ('71000000-0000-0000-0000-0000000000b1', '10000000-0000-0000-0000-00000000000b', '20000000-0000-0000-0000-00000000000b',
+   'Group B', '{}', false, null),
+  ('71000000-0000-0000-0000-0000000000c1', '10000000-0000-0000-0000-00000000000a', '20000000-0000-0000-0000-00000000000c',
+   'Group A2', '{}', false, null);
 
-insert into public.wash_formulas (id, org_id, plant_id, external_no, name, item_type_id) values
+insert into public.item_types (id, org_id, plant_id, wash_group_id, name, name_i18n, category, count_mode, pack_size,
+                               pieces_per_load, pieces_per_load_source) values
+  ('70000000-0000-0000-0000-0000000000a1', '10000000-0000-0000-0000-00000000000a', '20000000-0000-0000-0000-00000000000a',
+   '71000000-0000-0000-0000-0000000000a1', 'Napkin', '{"es":"Servilleta"}', 'linen', 'pack', 100, 500, 'counted'),
+  ('70000000-0000-0000-0000-0000000000a2', '10000000-0000-0000-0000-00000000000a', '20000000-0000-0000-0000-00000000000a',
+   '71000000-0000-0000-0000-0000000000a2', 'Mat', '{}', 'mat', 'unit', null, null, null),
+  ('70000000-0000-0000-0000-0000000000a3', '10000000-0000-0000-0000-00000000000a', '20000000-0000-0000-0000-00000000000a',
+   '71000000-0000-0000-0000-0000000000a3', 'Towel', '{}', 'towel', 'unit', null, 200, 'counted'),
+  ('70000000-0000-0000-0000-0000000000b1', '10000000-0000-0000-0000-00000000000b', '20000000-0000-0000-0000-00000000000b',
+   '71000000-0000-0000-0000-0000000000b1', 'Item B', '{}', 'mat', 'unit', null, null, null),
+  ('70000000-0000-0000-0000-0000000000c1', '10000000-0000-0000-0000-00000000000a', '20000000-0000-0000-0000-00000000000c',
+   '71000000-0000-0000-0000-0000000000c1', 'Item A2', '{}', 'mat', 'unit', null, null, null);
+
+insert into public.wash_formulas (id, org_id, plant_id, external_no, name, wash_group_id) values
   ('80000000-0000-0000-0000-0000000000a1', '10000000-0000-0000-0000-00000000000a', '20000000-0000-0000-0000-00000000000a',
-   '12', 'Napkins', '70000000-0000-0000-0000-0000000000a1');
+   '12', 'Napkins', '71000000-0000-0000-0000-0000000000a1');
 
 -- Shifts (f* finishing, e* washroom) as in research/shift-schedule.md (days = start day, 0 = Sun).
 insert into public.shifts (id, org_id, plant_id, area_id, name, start_local, end_local, days_of_week) values
@@ -131,6 +145,11 @@ create function pg_temp.id(p text) returns uuid language sql immutable as $$
     when 'mat'           then '70000000-0000-0000-0000-0000000000a2'
     when 'towel'         then '70000000-0000-0000-0000-0000000000a3'
     when 'itemB'         then '70000000-0000-0000-0000-0000000000b1'
+    when 'gNapkin'       then '71000000-0000-0000-0000-0000000000a1'
+    when 'gMat'          then '71000000-0000-0000-0000-0000000000a2'
+    when 'gTowel'        then '71000000-0000-0000-0000-0000000000a3'
+    when 'groupB'        then '71000000-0000-0000-0000-0000000000b1'
+    when 'groupA2'       then '71000000-0000-0000-0000-0000000000c1'
     when 'formula'       then '80000000-0000-0000-0000-0000000000a1'
     when 'finEvening'    then '90000000-0000-0000-0000-0000000000f1'
     when 'finNight'      then '90000000-0000-0000-0000-0000000000f3'

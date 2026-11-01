@@ -22,3 +22,8 @@
 - Global `alter default privileges for role postgres revoke execute on functions from public` is in place: every new function (incl. auth hooks for supabase_auth_admin) needs explicit grants.
 - Devices/users are revoked (revoked_at, ban), never deleted: audit_log.actor_device_id FK has no cascade.
 - Reference data (languages) must ship as an idempotent migration; seed.sql is local-only and never reaches the cloud.
+- 2026-11-01 wash_groups review (20261101214357, uncommitted): PASS WITH NOTES; washroom data per group, finished goods per item; to_loads(group, item, qty, unit) is still the single converter.
+- Report-time vs write-time attributes: washer_cycles snapshot wash_group_id but finished goods read item->group at report time (asymmetric); recommended snapshot fge.wash_group_id (+ load_factor per cycle) before first cloud push, as an ADR for meta.
+- Per-machine NOW/NEXT: no schema now; later additive queue_items.machine_id FK (machine_id, area_id) + device->machine scope; decide in D1/D2 v1.6 first.
+- G3 suggested pieces_per_load is derivable only for single-item wash groups; multi-item groups need a counted value or a group calibration ratio.
+- "PIN once per shift" for washer taps contradicts A8 staff_pin_reuse_minutes (default 0); needs owner + security-reviewer before build.
