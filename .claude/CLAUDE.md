@@ -24,21 +24,19 @@ Full context lives in these docs. Read the relevant one before non-trivial work;
 
 ## Current state (update this section as work progresses)
 
-- **Built (Sprint Zero, 2026-10-30; see `research/roadmap.md` §3):**
-  - App scaffold: React 19, React Router 8, Vite 8, TS strict, lint, Vitest; magic-link sign-in and auth guard; EN/ES locales (ES pending AI review).
-  - `supabase/` init (invite-only auth), init migration, RLS guard pgTAP test, CI workflow.
-  - Foundation agents in `.claude/agents/` (loaded), meta protocol, guard hooks in `.claude/settings.json`.
-  - **CI is green** (PR mannyruizadb-ui/Agents-21#2): migrations + pgTAP guard tests, hook tests, app checks. Local Supabase image pulls fail in cloud sessions, so CI is where SQL gets proven.
-- **Supabase project: "Plant Ops Board"** (ref `ypurifebjiivvltbcufx`, us-east-1, ADB Pro org; created 2026-10-30, empty).
-  - It is the **only** cloud project: dev runs on the local stack and CI. Until the pilot it's staging; after that it's production.
-  - Nothing is applied yet. The first `db push` needs owner OK.
-  - Never touch "ADB Project" or "Fleet Repair Log".
-- **Next:** finish Sprint Zero, then **Foundation (roadmap M1):**
-  - Supabase migrations from PRD §4
-  - RLS policies and pgTAP tests per role
-  - seed ADB data
-  - auth and invites
-  - device pairing
+- **Sprint Zero DONE (2026-10-30, `research/roadmap.md` §3):** React 19/Router 8/Vite 8 PWA scaffold, magic-link sign-in, EN/ES locales (ES pending AI review), Supabase init, CI (app + migrations/pgTAP + hook tests), Foundation agents and guard hooks. Local Supabase works when Docker is started; CI always proves SQL.
+- **Supabase: "Plant Ops Board"** (ref `ypurifebjiivvltbcufx`, us-east-1). The only cloud project (staging until the pilot), still empty; the first `db push` needs owner OK. Never touch "ADB Project" or "Fleet Repair Log".
+- **M1 part 1 DONE (2026-11-01): database foundation**
+  - 8 migrations in `supabase/migrations/20261101*`: 26 tables, RLS per role, staff PIN RPCs, pairing codes, DST-safe shift generation, `resolve_entry_shift`, reporting views.
+  - `supabase/seed.sql`: ADB plant, 25 items, per-area shifts. Interim 'unit' items are marked TODO owner.
+  - **359 pgTAP tests pass**, locally and in CI.
+  - Reviews: architect PASS; security-reviewer PASS after a BLOCK (devices and pairing codes are now RPC-only; no trigger oracles). Deviations are recorded in PRD v1.5.
+- **Next, M1 part 2:**
+  - invite-user and pair-device/revoke-device Edge Functions (create the edge-engineer agent first);
+  - Custom Access Token Hook, pg_cron schedule, languages data migration for the cloud;
+  - `suggested_pieces_per_load` and `shift_productivity` views.
+- **Then M2:** staff-session write RPCs, then revoke the direct D8 inserts, then the dispatch-loop UI.
+- **Process note:** the orchestrator subagent can't wait on its children in this harness, so meta runs pipelines directly (db-engineer → security-reviewer → architect).
 - **Waiting on the owner (do not invent values):**
   1. Diamond Chemical's answer on Accu-Flow CloudView export: API, scheduled CSV/email, or none.
   2. Item list **received** (`research/item-catalog.md`, 26 items). Still TBD there: tablecloth, towel and wipe pack sizes; how sheets are counted; colors; baskets per load; pieces per load.
@@ -47,7 +45,7 @@ Full context lives in these docs. Read the relevant one before non-trivial work;
   5. Screen locations: Wi-Fi strength and heat at each spot.
   6. Baseline tally of phone calls per shift.
 - **Known debt and caveats:**
-  - **PRD is v1.4** (2026-10-30): entry staff + PIN, person-based shift attribution (A8). v1.3: shifts are per area; washroom↔finishing reconciliation is per business day (`daily_reconciliation`, `get_day_report`). v1.2 adds accessibility (H6), voice-to-text (H7) and extensible per-user languages (H1). v1.1 revised the measurement model: no scale, wash loads as the unit, manager-only finished-goods entry, no operators/PINs/stations. The v1.3 DDL was test-loaded in Postgres 16 (24 tables; tenant FKs, per-area shift overlap, area-consistent shift FKs, pack/unit rules verified); Supabase runs PG 17. RLS policies, triggers and views (§4.5–4.7) exist only as specs.
+  - **PRD is v1.5**: v1.5 records the M1 implementation decisions; v1.4 entry staff + PIN (A8); v1.3 per-area shifts and day-level reconciliation; v1.2 accessibility/voice/languages; v1.1 the measurement model (wash loads, manager-only entry). See the PRD revision notes.
   - Supabase and Netlify prices in tech-stack.md came partly from third-party write-ups. Re-verify before buying.
   - The Accu-Flow CSV format is unknown. **Do not build the parser (F3) without a real sample file.**
 
