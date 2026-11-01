@@ -16,3 +16,9 @@
 - Org-level rows (memberships plant_id null, audit_log, app_events) need app.has_org_role(org, roles); has_role(null plant) is false.
 - Display RLS must require a non-revoked device (my_device()) as well as display membership; own-area via (select (app.my_device()).area_id).
 - days_of_week uses extract(dow) 0=Sun; generate_shift_instances on conflict refreshes future unreferenced instances.
+- 2026-11-01 M1 part 1 final review (e811dd7): PASS WITH NOTES; all D1–D13 + extras a–c verified; deviations accepted.
+- Shift overlap is only caught by the exclusion constraint at generation time; shift edits/deactivation need define-time validation + skipped instances excluded from the constraint (MUST before pg_cron).
+- Edge Functions can't run multi-statement transactions: invite-user / pair-device must call one service_role-only public RPC each.
+- Global `alter default privileges for role postgres revoke execute on functions from public` is in place: every new function (incl. auth hooks for supabase_auth_admin) needs explicit grants.
+- Devices/users are revoked (revoked_at, ban), never deleted: audit_log.actor_device_id FK has no cascade.
+- Reference data (languages) must ship as an idempotent migration; seed.sql is local-only and never reaches the cloud.
