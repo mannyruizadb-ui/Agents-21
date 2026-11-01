@@ -347,14 +347,14 @@ isOneToOne: false
                   ]
                 },"machines": {
                   Row: {
-                    "active": boolean,"area_id": string,"created_at": string,"external_ref": string | null,"id": string,"kind": "washer"|"dryer"|"ironer"|"folder"|"other","model": string | null,"name": string,"org_id": string,"plant_id": string,"vendor": string | null
+                    "active": boolean,"area_id": string,"created_at": string,"external_ref": string | null,"id": string,"kind": "washer"|"dryer"|"ironer"|"folder"|"other","load_factor": number,"model": string | null,"name": string,"org_id": string,"plant_id": string,"vendor": string | null
                   }
                   ComputedFields: never
                   Insert: {
-                    "active"?: boolean,"area_id": string,"created_at"?: string,"external_ref"?: string | null,"id"?: string,"kind": "washer"|"dryer"|"ironer"|"folder"|"other","model"?: string | null,"name": string,"org_id": string,"plant_id": string,"vendor"?: string | null
+                    "active"?: boolean,"area_id": string,"created_at"?: string,"external_ref"?: string | null,"id"?: string,"kind": "washer"|"dryer"|"ironer"|"folder"|"other","load_factor"?: number,"model"?: string | null,"name": string,"org_id": string,"plant_id": string,"vendor"?: string | null
                   }
                   Update: {
-                    "active"?: boolean,"area_id"?: string,"created_at"?: string,"external_ref"?: string | null,"id"?: string,"kind"?: "washer"|"dryer"|"ironer"|"folder"|"other","model"?: string | null,"name"?: string,"org_id"?: string,"plant_id"?: string,"vendor"?: string | null
+                    "active"?: boolean,"area_id"?: string,"created_at"?: string,"external_ref"?: string | null,"id"?: string,"kind"?: "washer"|"dryer"|"ironer"|"folder"|"other","load_factor"?: number,"model"?: string | null,"name"?: string,"org_id"?: string,"plant_id"?: string,"vendor"?: string | null
                   }
                   Relationships: [
                     {
@@ -373,14 +373,14 @@ isOneToOne: false
                   ]
                 },"memberships": {
                   Row: {
-                    "created_at": string,"id": string,"org_id": string,"plant_id": string | null,"revoked_at": string | null,"role": "owner"|"manager"|"lead"|"viewer"|"display","user_id": string
+                    "can_manage_staff": boolean,"created_at": string,"id": string,"org_id": string,"plant_id": string | null,"revoked_at": string | null,"role": "owner"|"manager"|"lead"|"viewer"|"display","user_id": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "created_at"?: string,"id"?: string,"org_id": string,"plant_id"?: string | null,"revoked_at"?: string | null,"role": "owner"|"manager"|"lead"|"viewer"|"display","user_id": string
+                    "can_manage_staff"?: boolean,"created_at"?: string,"id"?: string,"org_id": string,"plant_id"?: string | null,"revoked_at"?: string | null,"role": "owner"|"manager"|"lead"|"viewer"|"display","user_id": string
                   }
                   Update: {
-                    "created_at"?: string,"id"?: string,"org_id"?: string,"plant_id"?: string | null,"revoked_at"?: string | null,"role"?: "owner"|"manager"|"lead"|"viewer"|"display","user_id"?: string
+                    "can_manage_staff"?: boolean,"created_at"?: string,"id"?: string,"org_id"?: string,"plant_id"?: string | null,"revoked_at"?: string | null,"role"?: "owner"|"manager"|"lead"|"viewer"|"display","user_id"?: string
                   }
                   Relationships: [
                     {
@@ -439,14 +439,14 @@ isOneToOne: false
                   ]
                 },"plants": {
                   Row: {
-                    "created_at": string,"default_language": string,"display_reload_local_time": string,"enabled_languages": (string)[],"estimate_amber_minutes": number,"estimate_red_minutes": number,"id": string,"name": string,"org_id": string,"staff_pin_reuse_minutes": number,"timezone": string
+                    "created_at": string,"default_language": string,"display_reload_local_time": string,"enabled_languages": (string)[],"estimate_amber_minutes": number,"estimate_red_minutes": number,"id": string,"name": string,"org_id": string,"production_day_start": string,"staff_pin_reuse_minutes": number,"timezone": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "created_at"?: string,"default_language"?: string,"display_reload_local_time"?: string,"enabled_languages"?: (string)[],"estimate_amber_minutes"?: number,"estimate_red_minutes"?: number,"id"?: string,"name": string,"org_id": string,"staff_pin_reuse_minutes"?: number,"timezone"?: string
+                    "created_at"?: string,"default_language"?: string,"display_reload_local_time"?: string,"enabled_languages"?: (string)[],"estimate_amber_minutes"?: number,"estimate_red_minutes"?: number,"id"?: string,"name": string,"org_id": string,"production_day_start"?: string,"staff_pin_reuse_minutes"?: number,"timezone"?: string
                   }
                   Update: {
-                    "created_at"?: string,"default_language"?: string,"display_reload_local_time"?: string,"enabled_languages"?: (string)[],"estimate_amber_minutes"?: number,"estimate_red_minutes"?: number,"id"?: string,"name"?: string,"org_id"?: string,"staff_pin_reuse_minutes"?: number,"timezone"?: string
+                    "created_at"?: string,"default_language"?: string,"display_reload_local_time"?: string,"enabled_languages"?: (string)[],"estimate_amber_minutes"?: number,"estimate_red_minutes"?: number,"id"?: string,"name"?: string,"org_id"?: string,"production_day_start"?: string,"staff_pin_reuse_minutes"?: number,"timezone"?: string
                   }
                   Relationships: [
                     {
@@ -573,14 +573,14 @@ isOneToOne: false
                   ]
                 },"shift_instances": {
                   Row: {
-                    "area_id": string,"business_date": string,"ends_at": string,"id": string,"org_id": string,"plant_id": string,"shift_id": string,"skipped_at": string | null,"starts_at": string
+                    "area_id": string,"business_date": string,"ends_at": string,"id": string,"org_id": string,"plant_id": string,"production_date": string,"shift_id": string,"skipped_at": string | null,"starts_at": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "area_id": string,"business_date": string,"ends_at": string,"id"?: string,"org_id": string,"plant_id": string,"shift_id": string,"skipped_at"?: string | null,"starts_at": string
+                    "area_id": string,"business_date": string,"ends_at": string,"id"?: string,"org_id": string,"plant_id": string,"production_date": string,"shift_id": string,"skipped_at"?: string | null,"starts_at": string
                   }
                   Update: {
-                    "area_id"?: string,"business_date"?: string,"ends_at"?: string,"id"?: string,"org_id"?: string,"plant_id"?: string,"shift_id"?: string,"skipped_at"?: string | null,"starts_at"?: string
+                    "area_id"?: string,"business_date"?: string,"ends_at"?: string,"id"?: string,"org_id"?: string,"plant_id"?: string,"production_date"?: string,"shift_id"?: string,"skipped_at"?: string | null,"starts_at"?: string
                   }
                   Relationships: [
                     {
@@ -856,7 +856,7 @@ isOneToOne: false
                   ]
                 },"daily_reconciliation": {
                   Row: {
-                    "approximate": boolean | null,"business_date": string | null,"clean_backlog_loads_approx": number | null,"est_loads_end": number | null,"est_loads_start": number | null,"estimate_error_pct": number | null,"has_conversion": boolean | null,"item_name": string,"item_name_i18n": NonNullable<Json>,"item_type_id": string | null,"loads_finished_approx": number | null,"loads_washed": number | null,"org_id": string | null,"pieces_finished": number | null,"pieces_per_load": number | null,"plant_id": string | null
+                    "approximate": boolean | null,"clean_backlog_loads_approx": number | null,"est_loads_end": number | null,"est_loads_start": number | null,"estimate_error_pct": number | null,"has_conversion": boolean | null,"item_name": string,"item_name_i18n": NonNullable<Json>,"item_type_id": string | null,"loads_finished_approx": number | null,"loads_run": number | null,"org_id": string | null,"pieces_finished": number | null,"pieces_per_load": number | null,"plant_id": string | null,"production_date": string | null,"standard_loads": number | null
                   }
                   ComputedFields: never
                   Relationships: [
@@ -896,7 +896,7 @@ isOneToOne: false
                   ]
                 },"finished_by_shift": {
                   Row: {
-                    "approximate": boolean | null,"area_id": string,"business_date": string | null,"has_conversion": boolean | null,"item_type_id": string,"loads_approx": number | null,"loose_pieces": number | null,"org_id": string,"packs": number | null,"pieces": number | null,"plant_id": string,"shift_instance_id": string | null,"station_id": string | null
+                    "approximate": boolean | null,"area_id": string,"has_conversion": boolean | null,"item_type_id": string,"loads_approx": number | null,"loose_pieces": number | null,"org_id": string,"packs": number | null,"pieces": number | null,"plant_id": string,"production_date": string | null,"shift_instance_id": string | null,"station_id": string | null
                   }
                   ComputedFields: never
                   Relationships: [
@@ -960,7 +960,7 @@ isOneToOne: false
                   ]
                 },"washroom_by_shift": {
                   Row: {
-                    "area_id": string,"business_date": string | null,"item_type_id": string | null,"loads": number | null,"org_id": string,"plant_id": string,"shift_instance_id": string | null
+                    "approximate": boolean | null,"area_id": string,"item_type_id": string | null,"loads_run": number | null,"org_id": string,"plant_id": string,"production_date": string | null,"shift_instance_id": string | null,"standard_loads": number | null
                   }
                   ComputedFields: never
                   Relationships: [
@@ -1009,6 +1009,7 @@ isOneToOne: false
 "id": string,
 "org_id": string,
 "plant_id": string,
+"production_date": string,
 "shift_id": string,
 "skipped_at": string | null,
 "starts_at": string

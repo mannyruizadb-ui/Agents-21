@@ -329,7 +329,7 @@ Feature IDs are referenced throughout. Each epic opens with what it covers.
   - **Not** per-worker production tracking. The crew doesn't get PINs, and no report totals or ranks output by person.
   - Anything per-worker needs owner approval and HR/legal review first (§6.2 #11).
 - **Acceptance criteria:**
-  - **Owner-only** screen to add, edit and deactivate entry staff (v1.6, owner decision 2026-11-01: managers and leads can read the list but not change it or reset PINs):
+  - Screen to add, edit and deactivate entry staff, for the **owner and managers the owner has granted staff admin** (`memberships.can_manage_staff`; v1.6, owner decision 2026-11-01). Other managers and leads can read the list only:
     - display name;
     - language;
     - **home shift** (e.g., "Finishing – Night"), optional;

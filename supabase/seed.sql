@@ -25,7 +25,7 @@ select p.org_id, p.id, a.name, a.kind::app.area_kind, a.sort_order
  cross join (values ('Washroom', 'washroom', 10), ('Finishing', 'finishing', 20)) as a(name, kind, sort_order)
  where p.name = 'Miami';
 
--- ── Item catalog (A2): 35 items; the sanitizer dispenser is excluded (not washed or finished) ──
+-- ── Item catalog (A2): 48 items (napkins: one per color); the sanitizer dispenser is excluded (not washed or finished) ──
 -- Spanish names are AI drafts from research/item-catalog.md, pending the separate AI review (H1).
 -- Estimates: 'load' (catalog 🔸 assumed default); no basket factors yet. pieces_per_load: all TBD (null).
 insert into public.item_types (org_id, plant_id, name, name_i18n, category, count_mode, pack_size, sort_order)
@@ -45,10 +45,24 @@ select p.org_id, p.id, i.name, jsonb_build_object('es', i.name_es), i.category::
   ('Dust mop',           'Mopa de polvo',         'mop',     'unit', null,       70),
   ('Wet mop',            'Trapeador',             'mop',     'unit', null,       80),
   ('Microfiber mop',     'Mopa de microfibra',    'mop',     'unit', null,       90),
-  -- Microfiber towel/wipe: pack of 50 ✅ (owner 2026-11-01)
-  ('Microfiber wipe',    'Paño de microfibra',    'other',   'pack', 50,        100),
-  -- Napkin: pack of 100 ✅
-  ('Napkin',             'Servilleta',            'linen',   'pack', 100,       110),
+  -- Microfiber towel/wipe: pack of 50 ✅ (owner 2026-11-01). sort_order 95 frees 100–113 for napkins.
+  ('Microfiber wipe',    'Paño de microfibra',    'other',   'pack', 50,         95),
+  -- Napkins: each color washes on its own, so one item per color (owner 2026-11-01).
+  -- Pack of 100 is confirmed for napkins; assumed the same for every color — TODO owner confirm per color.
+  ('Napkin – Green',                    'Servilleta – verde',                       'linen', 'pack', 100, 100),
+  ('Napkin – Navy Blue w/ Stripe',      'Servilleta – azul marino con raya',        'linen', 'pack', 100, 101),
+  ('Napkin – Dark Navy Blue w/ Stripe', 'Servilleta – azul marino oscuro con raya', 'linen', 'pack', 100, 102),
+  ('Napkin – Navy Blue',                'Servilleta – azul marino',                 'linen', 'pack', 100, 103),
+  ('Napkin – Bone',                     'Servilleta – hueso',                       'linen', 'pack', 100, 104),
+  ('Napkin – Red',                      'Servilleta – roja',                        'linen', 'pack', 100, 105),
+  ('Napkin – Regular White',            'Servilleta – blanca regular',              'linen', 'pack', 100, 106),
+  ('Napkin – New White',                'Servilleta – blanca nueva',                'linen', 'pack', 100, 107),
+  ('Napkin – Chambray',                 'Servilleta – chambray',                    'linen', 'pack', 100, 108),
+  ('Napkin – Black w/ Stripe',          'Servilleta – negra con raya',              'linen', 'pack', 100, 109),
+  ('Napkin – Black',                    'Servilleta – negra',                       'linen', 'pack', 100, 110),
+  ('Napkin – Pink',                     'Servilleta – rosada',                      'linen', 'pack', 100, 111),
+  ('Napkin – Cotton White',             'Servilleta – blanca de algodón',           'linen', 'pack', 100, 112),
+  ('Napkin – Cotton Black',             'Servilleta – negra de algodón',            'linen', 'pack', 100, 113),
   -- Tablecloths: pack sizes ✅; rounds by unit ✅ (owner 2026-11-01). Whites wash only with whites and
   -- blacks only with blacks, so each color is its own item.
   ('Tablecloth 42×42 white', 'Mantel 42×42 blanco', 'linen', 'pack', 25, 114),
@@ -84,23 +98,25 @@ select p.org_id, p.id, i.name, jsonb_build_object('es', i.name_es), i.category::
 
 -- ── Washroom machines (owner 2026-11-01): 3 TVs = washers 1–3, washers 4–6, dryers 1–4 ──
 -- Rated size is a description only; PlantBoard never measures weight. Dryer models TBD (owner).
-insert into public.machines (org_id, plant_id, area_id, name, kind, vendor, model)
-select a.org_id, a.plant_id, a.id, m.name, m.kind::app.machine_kind, m.vendor, m.model
+-- load_factor (standard loads per load run): Washer 6 = 1.19 = 160/135 rated-size ratio, because it is
+-- filled to its larger size (owner 2026-11-01); PlantBoard never weighs. Every other machine 1.00.
+insert into public.machines (org_id, plant_id, area_id, name, kind, vendor, model, load_factor)
+select a.org_id, a.plant_id, a.id, m.name, m.kind::app.machine_kind, m.vendor, m.model, m.load_factor
   from public.areas a
   join public.plants p on p.id = a.plant_id and p.name = 'Miami'
   join public.organizations o on o.id = p.org_id and o.slug = 'americas-dust-busters'
  cross join (values
-  ('Washer 1', 'washer', 'Milnor', '135 lb hard-mount'),
-  ('Washer 2', 'washer', 'Milnor', '135 lb hard-mount'),
-  ('Washer 3', 'washer', 'Milnor', '135 lb hard-mount'),
-  ('Washer 4', 'washer', 'Milnor', '135 lb hard-mount'),
-  ('Washer 5', 'washer', 'Milnor', '135 lb hard-mount'),
-  ('Washer 6', 'washer', 'Milnor', '160 lb soft-mount'),
-  ('Dryer 1',  'dryer',  null,     null),
-  ('Dryer 2',  'dryer',  null,     null),
-  ('Dryer 3',  'dryer',  null,     null),
-  ('Dryer 4',  'dryer',  null,     null)
- ) as m(name, kind, vendor, model)
+  ('Washer 1', 'washer', 'Milnor', '135 lb hard-mount', 1.00),
+  ('Washer 2', 'washer', 'Milnor', '135 lb hard-mount', 1.00),
+  ('Washer 3', 'washer', 'Milnor', '135 lb hard-mount', 1.00),
+  ('Washer 4', 'washer', 'Milnor', '135 lb hard-mount', 1.00),
+  ('Washer 5', 'washer', 'Milnor', '135 lb hard-mount', 1.00),
+  ('Washer 6', 'washer', 'Milnor', '160 lb soft-mount', 1.19),
+  ('Dryer 1',  'dryer',  null,     null,     1.00),
+  ('Dryer 2',  'dryer',  null,     null,     1.00),
+  ('Dryer 3',  'dryer',  null,     null,     1.00),
+  ('Dryer 4',  'dryer',  null,     null,     1.00)
+ ) as m(name, kind, vendor, model, load_factor)
  where a.kind = 'washroom';
 
 -- ── Shifts (A6), per area; days = the day a shift STARTS (0 = Sun … 6 = Sat) ──

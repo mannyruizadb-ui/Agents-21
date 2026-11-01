@@ -32,13 +32,18 @@ Full context lives in these docs. Read the relevant one before non-trivial work;
   - **359 pgTAP tests pass**, locally and in CI.
   - Reviews: architect PASS; security-reviewer PASS after a BLOCK (devices and pairing codes are now RPC-only; no trigger oracles). Deviations are recorded in PRD v1.5.
 - **PR #2 (M1 part 1) merged to main by the owner (2026-11-01).**
-- **Owner answers 2026-11-01:**
-  - Seed now has 35 items: tablecloths per size **and color** (whites/blacks never wash together), towels and microfiber wipes packs of 50, sheets packs of 10. Napkins: one item per color, color list pending.
-  - Machines seeded: Milnor washers 1–5 (135 lb hard-mount), washer 6 (160 lb soft-mount), dryers 1–4. Washer 6 being bigger means "1 load" isn't one size; how to count it is an open question.
-  - **Only the owner edits entry staff and PINs** (migration `20261101210732_restrict_entry_staff_admin_to_owner`; PRD A8 note).
-  - Sign-ups turned OFF in the dashboard by the owner.
-  - Business day: owner rejected 14:00→14:00; their alternative was cut off. Current rule (shift's local start date) stays until answered.
-  - **Display redesign:** washroom gets 3 TVs (washers 1–3, washers 4–6, dryers 1–4), NOW + NEXT per machine, no LATER; finishing keeps a TV. PRD D1/D2 must be revised (v1.6) before M2 display UI. Open: how NOW/NEXT get set, whether sizes share a wash load, dryer tapping.
+- **Owner answers 2026-11-01 (built, 432 pgTAP tests pass; security-reviewer PASS WITH NOTES):**
+  - Staff admin: owner, plus managers the owner grants (`memberships.can_manage_staff`).
+  - Production day runs **12:00 → 12:00** (`plants.production_day_start`, `shift_instances.production_date`). Report views now use `production_date`, `loads_run` and `standard_loads`.
+  - Washer 6 (160 lb) has `machines.load_factor` 1.19; washers 1–5 (135 lb) are 1.00.
+  - Seed: 48 items (tablecloths per size+color, 14 napkin colors, towels and wipes in packs of 50, sheets in packs of 10) and 10 machines. Sign-ups are OFF.
+  - **Next design step: wash groups.** The washroom (estimates, queue, washer loads, TVs) works by wash group: tablecloths by color, each napkin color, mats by color family, Presidente logos, black- or colored-background logos, charcoal, and old/regular/new sheets. Finishing counts items. Waiting on the owner: mat size rule, how finishing counts mats and logos, elevator and 2×3 mats, other mixes, and PIN once per shift for the washroom tablet.
+  - **Display redesign:** washroom gets 3 TVs (washers 1–3, washers 4–6, dryers 1–4), NOW + NEXT per machine, no LATER; finishing keeps a TV. Revise PRD D1/D2 (v1.6) before M2 display UI.
+  - Security notes to carry forward:
+    - snapshot `load_factor` per washer cycle;
+    - store `production_date` on off-shift rows in the M2 RPCs;
+    - invite-user must gate the `can_manage_staff` and owner role grants;
+    - duplicate-PIN errors reveal which PINs are in use (accepted for now; PINs are attribution only).
 - **Next, M1 part 2:**
   - invite-user and pair-device/revoke-device Edge Functions (create the edge-engineer agent first);
   - Custom Access Token Hook, pg_cron schedule, languages data migration for the cloud;
