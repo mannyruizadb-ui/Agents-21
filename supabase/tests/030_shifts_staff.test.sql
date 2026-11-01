@@ -114,9 +114,9 @@ select is(pg_temp.reads($$select failed_pin_attempts, locked_until from public.e
 select is(pg_temp.run_as('owner', $$select * from public.entry_staff$$, true), '42501', 'select * is denied (includes pin_hash)');
 select is(pg_temp.writes($$insert into public.entry_staff (org_id, plant_id, display_name)
   values (pg_temp.id('orgA'), pg_temp.id('plantA'), 'N-' || substr(md5(random()::text), 1, 8))$$),
-  '{1,1,42501,42501,42501,42501,42501,42501}', 'entry_staff C owner/manager');
+  '{1,42501,42501,42501,42501,42501,42501,42501}', 'entry_staff C owner only (owner decision 2026-11-01)');
 select is(pg_temp.writes($$update public.entry_staff set active = active where plant_id = pg_temp.id('plantA')$$),
-  '{6,6,0,0,0,0,0,42501}', 'entry_staff U owner/manager');
+  '{5,0,0,0,0,0,0,42501}', 'entry_staff U owner only');
 select is(array[pg_temp.run_as('owner', $$insert into public.entry_staff (org_id, plant_id, display_name, pin_hash)
                                            values (pg_temp.id('orgA'), pg_temp.id('plantA'), 'Eve', 'x')$$),
                 pg_temp.run_as('owner', $$update public.entry_staff set pin_hash = 'x'$$),
@@ -124,13 +124,13 @@ select is(array[pg_temp.run_as('owner', $$insert into public.entry_staff (org_id
                 pg_temp.run_as('owner', $$insert into public.entry_staff_public (org_id, plant_id, display_name)
                                            values (pg_temp.id('orgA'), pg_temp.id('plantA'), 'Eve')$$)],
   '{42501,42501,42501,42501}', 'D2: secrets not insertable/updatable; the view is read-only');
-select is(pg_temp.run_as('manager', $$update public.entry_staff set language = 'ht' where display_name = 'Ana'$$),
+select is(pg_temp.run_as('owner', $$update public.entry_staff set language = 'ht' where display_name = 'Ana'$$),
   'VALIDATION_FAILED', 'staff language must be enabled for the plant');
 select is(pg_temp.reads($$select 1 from public.staff_sessions$$),
   '{42501,42501,42501,42501,42501,42501,42501,42501}', 'D3: staff_sessions are RPC-only');
 
 -- ── set_staff_pin ────────────────────────────────────────────────────────
-select is(pg_temp.run_as('manager', $$select public.set_staff_pin('b0000000-0000-0000-0000-0000000000a1', '4821')$$), '1', 'manager sets a PIN');
+select is(pg_temp.run_as('owner', $$select public.set_staff_pin('b0000000-0000-0000-0000-0000000000a1', '4821')$$), '1', 'owner sets a PIN');
 select ok((select pin_hash like '$2_$%' and has_pin from public.entry_staff where display_name = 'Ana'), 'PIN is bcrypt-hashed; has_pin true');
 select is(array[pg_temp.run_as('owner', $$select public.set_staff_pin('b0000000-0000-0000-0000-0000000000a2', '0000')$$),
                 pg_temp.run_as('owner', $$select public.set_staff_pin('b0000000-0000-0000-0000-0000000000a2', '1234')$$),
@@ -144,9 +144,9 @@ select is(pg_temp.run_as('owner', $$select public.set_staff_pin('b0000000-0000-0
   'VALIDATION_FAILED', 'a PIN used by another active person is rejected');
 select is(pg_temp.run_as('owner', $$select public.set_staff_pin('b0000000-0000-0000-0000-0000000000a2', '5930')$$), '1', 'owner sets a PIN');
 select is(pg_temp.writes($$select public.set_staff_pin('b0000000-0000-0000-0000-0000000000a1', '4821')$$),
-  '{1,1,NOT_AUTHORIZED,NOT_AUTHORIZED,NOT_AUTHORIZED,NOT_AUTHORIZED,NOT_AUTHORIZED,42501}', 'set_staff_pin owner/manager only');
+  '{1,NOT_AUTHORIZED,NOT_AUTHORIZED,NOT_AUTHORIZED,NOT_AUTHORIZED,NOT_AUTHORIZED,NOT_AUTHORIZED,42501}', 'set_staff_pin owner only');
 select is((select count(*)::int from public.audit_log where entity = 'entry_staff' and entity_id = 'b0000000-0000-0000-0000-0000000000a1'
-            and action = 'entry_staff.pin_set'), 3, 'PIN changes are audited');
+            and action = 'entry_staff.pin_set'), 2, 'PIN changes are audited (owner only)');
 select is((select count(*)::int from public.audit_log where entity = 'entry_staff' and (before ? 'pin_hash' or after ? 'pin_hash')),
   0, 'D12: audit never stores pin_hash');
 

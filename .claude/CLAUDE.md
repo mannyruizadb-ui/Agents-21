@@ -28,11 +28,17 @@ Full context lives in these docs. Read the relevant one before non-trivial work;
 - **Supabase: "Plant Ops Board"** (ref `ypurifebjiivvltbcufx`, us-east-1). The only cloud project (staging until the pilot), still empty; the first `db push` needs owner OK. Never touch "ADB Project" or "Fleet Repair Log".
 - **M1 part 1 DONE (2026-11-01): database foundation**
   - 8 migrations in `supabase/migrations/20261101*`: 26 tables, RLS per role, staff PIN RPCs, pairing codes, DST-safe shift generation, `resolve_entry_shift`, reporting views.
-  - `supabase/seed.sql`: ADB plant, 25 items, per-area shifts. Interim 'unit' items are marked TODO owner.
+  - `supabase/seed.sql`: ADB plant, items, machines, per-area shifts (updated 2026-11-01, see below).
   - **359 pgTAP tests pass**, locally and in CI.
   - Reviews: architect PASS; security-reviewer PASS after a BLOCK (devices and pairing codes are now RPC-only; no trigger oracles). Deviations are recorded in PRD v1.5.
 - **PR #2 (M1 part 1) merged to main by the owner (2026-11-01).**
-- **Owner answers 2026-11-01:** tablecloth/sheet pack sizes (seeded, 27 items); production starts Mon 14:00 washing / 16:00 finishing (14:00→14:00 business day proposed, not built); **display redesign:** washroom gets 3 TVs (washers 1–3, washers 4–6, dryers 1–4), each machine shows NOW + NEXT only, no LATER. PRD D1/D2 must be revised (v1.6) before M2 display UI. Open: how a machine's NOW/NEXT is set, washer sizes, colors as items, finishing TVs.
+- **Owner answers 2026-11-01:**
+  - Seed now has 35 items: tablecloths per size **and color** (whites/blacks never wash together), towels and microfiber wipes packs of 50, sheets packs of 10. Napkins: one item per color, color list pending.
+  - Machines seeded: Milnor washers 1–5 (135 lb hard-mount), washer 6 (160 lb soft-mount), dryers 1–4. Washer 6 being bigger means "1 load" isn't one size; how to count it is an open question.
+  - **Only the owner edits entry staff and PINs** (migration `20261101210732_restrict_entry_staff_admin_to_owner`; PRD A8 note).
+  - Sign-ups turned OFF in the dashboard by the owner.
+  - Business day: owner rejected 14:00→14:00; their alternative was cut off. Current rule (shift's local start date) stays until answered.
+  - **Display redesign:** washroom gets 3 TVs (washers 1–3, washers 4–6, dryers 1–4), NOW + NEXT per machine, no LATER; finishing keeps a TV. PRD D1/D2 must be revised (v1.6) before M2 display UI. Open: how NOW/NEXT get set, whether sizes share a wash load, dryer tapping.
 - **Next, M1 part 2:**
   - invite-user and pair-device/revoke-device Edge Functions (create the edge-engineer agent first);
   - Custom Access Token Hook, pg_cron schedule, languages data migration for the cloud;
@@ -41,8 +47,8 @@ Full context lives in these docs. Read the relevant one before non-trivial work;
 - **Process note:** the orchestrator subagent can't wait on its children in this harness, so meta runs pipelines directly (db-engineer → security-reviewer → architect).
 - **Waiting on the owner (do not invent values):**
   1. Diamond Chemical's answer on Accu-Flow CloudView export: API, scheduled CSV/email, or none.
-  2. Item list **received** (`research/item-catalog.md`, 26 items). Still TBD there: tablecloth, towel and wipe pack sizes; how sheets are counted; colors; baskets per load; pieces per load.
-  3. Shift schedule **received** (`research/shift-schedule.md`). Production-day start answered (rule awaiting OK); still open: holidays. Also owner to do: Supabase dashboard sign-ups OFF; GitHub ruleset on `main`.
+  2. Item list **received** (`research/item-catalog.md`). Still TBD there: napkin colors; baskets per load; pieces per load.
+  3. Shift schedule **received** (`research/shift-schedule.md`). Business-day rule: owner rejected 14:00→14:00, alternative pending; still open: holidays. Also owner to do: GitHub ruleset on `main`.
   4. Which languages to enable beyond EN/ES. Creole can be added later as data plus a translation file. Also: voice-input test results on the real phones (iOS installed-app support and Creole recognition are unconfirmed).
   5. Screen locations: Wi-Fi strength and heat at each spot.
   6. Baseline tally of phone calls per shift.

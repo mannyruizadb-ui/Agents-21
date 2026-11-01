@@ -61,6 +61,5 @@
 1. ~~Finishing day shift start~~ **Answered:** it varies (10 or 12), so attribution follows the person (A8).
 2. ~~Washroom midday~~ **Answered:** no shift, no report; loads count in day totals.
 3. **Production day start:** **answered 2026-11-01.** Washing starts Monday 14:00; the first finishing (processing) shift starts Monday 16:00.
-   - Proposed rule, awaiting owner OK because it changes `plants` and shift generation: a business day runs **14:00 → 14:00**, assigned by the shift's start time. Washroom Tue 00–12 and finishing Tue 00–10 and 10–16 then count toward Monday's production, matching how the plant actually runs.
-   - Today's code dates each shift by its local start date. That splits one production run across two dates at midnight.
+   - The 14:00 → 14:00 business day was **rejected by the owner** (2026-11-01). Their alternative was cut off mid-message ("each…"); ask again. Until then the built rule stands: each shift is dated by the local day it starts.
 4. **Holidays and unusual weeks:** for now a manager can mark a shift "didn't run", which hides it from reports (P1). Is there a fixed holiday list?

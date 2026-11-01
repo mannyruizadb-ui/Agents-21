@@ -31,22 +31,22 @@ Status of each value: ✅ confirmed by owner · 🔸 assumed default (confirm) �
 | Dust mop | unit 🔸 | — | load 🔸 | ❓ | |
 | Wet mop | unit 🔸 | — | load 🔸 | ❓ | |
 | Microfiber mop | unit 🔸 | — | load 🔸 | ❓ | |
-| Microfiber wipe | pack 🔸 | ❓ | load 🔸 | ❓ | Small items are usually packed. Confirm pack size |
+| Microfiber wipe | pack ✅ | 50 ✅ | load 🔸 | ❓ | Owner: "microfiber towels", packs of 50 |
 
 ## Restaurant linens
 
 | Item | Count | Pack | Est. | Pcs/load | Notes |
 |---|---|---|---|---|---|
-| Napkin | pack ✅ | 100 ✅ | load 🔸 | ❓ | "pack of 100 + leftover". Colors tracked separately? ❓ |
-| Tablecloth 42×42 | pack ✅ | 25 ✅ | load 🔸 | ❓ | White and black in every size ✅. Per-color items? ❓ (Q5) |
-| Tablecloth 52×52 | pack ✅ | 20 ✅ | load 🔸 | ❓ | |
-| Tablecloth 62×62 | pack ✅ | 15 ✅ | load 🔸 | ❓ | |
-| Tablecloth 72×72 | pack ✅ | 10 ✅ | load 🔸 | ❓ | |
-| Tablecloth 90×90 | pack ✅ | 5 ✅ | load 🔸 | ❓ | |
-| Tablecloth 52×114 | pack ✅ | 10 ✅ | load 🔸 | ❓ | New size (2026-11-01) |
-| Tablecloth 120" round | unit ✅ | — | load 🔸 | ❓ | Per unit |
-| Tablecloth 132" round | unit ✅ | — | load 🔸 | ❓ | Per unit (was listed as 130") |
-| Kitchen towel | pack ✅ | ❓ | load 🔸 | ❓ | Owner: "towels by pack" |
+| Napkin | pack ✅ | 100 ✅ | load 🔸 | ❓ | Each napkin color washes on its own ✅, so one item per color. **Color list needed** ❓ |
+| Tablecloth 42×42 — white / black | pack ✅ | 25 ✅ | load 🔸 | ❓ | **Each color is its own item** (whites wash only with whites, blacks only with blacks ✅) |
+| Tablecloth 52×52 — white / black | pack ✅ | 20 ✅ | load 🔸 | ❓ | |
+| Tablecloth 62×62 — white / black | pack ✅ | 15 ✅ | load 🔸 | ❓ | |
+| Tablecloth 72×72 — white / black | pack ✅ | 10 ✅ | load 🔸 | ❓ | |
+| Tablecloth 90×90 — white / black | pack ✅ | 5 ✅ | load 🔸 | ❓ | |
+| Tablecloth 52×114 — white / black | pack ✅ | 10 ✅ | load 🔸 | ❓ | |
+| Tablecloth 120" round — white / black | unit ✅ | — | load 🔸 | ❓ | |
+| Tablecloth 132" round — white / black | unit ✅ | — | load 🔸 | ❓ | Was listed as 130" |
+| Kitchen towel | pack ✅ | 50 ✅ | load 🔸 | ❓ | Owner: "towels by pack" |
 | Apron | unit 🔸 | — | load 🔸 | ❓ | |
 | Chef coat | unit 🔸 | — | load 🔸 | ❓ | |
 | Butcher coat | unit ✅ | — | load 🔸 | ❓ | Owner: "butcher coats by unit" |
@@ -55,9 +55,9 @@ Status of each value: ✅ confirmed by owner · 🔸 assumed default (confirm) �
 
 | Item | Count | Pack | Est. | Pcs/load | Notes |
 |---|---|---|---|---|---|
-| Sheet – new | pack ✅ | 10 ✅ | load 🔸 | ❓ | Owner: "sheets - 10 units per pack". Same 10 for all three grades? 🔸 |
-| Sheet – regular | pack ✅ | 10 🔸 | load 🔸 | ❓ | |
-| Sheet – old | pack ✅ | 10 🔸 | load 🔸 | ❓ | Are new/regular/old separate stock, or sorted at finishing? ❓ |
+| Sheet – new | pack ✅ | 10 ✅ | load 🔸 | ❓ | All three grades in packs of 10 ✅ |
+| Sheet – regular | pack ✅ | 10 ✅ | load 🔸 | ❓ | |
+| Sheet – old | pack ✅ | 10 ✅ | load 🔸 | ❓ | Are new/regular/old separate stock, or sorted at finishing? ❓ |
 
 ## Other services & products
 
@@ -69,10 +69,10 @@ Status of each value: ✅ confirmed by owner · 🔸 assumed default (confirm) �
 ## Open questions (needed before seeding)
 
 1. ~~Tablecloth pack sizes~~ **Answered 2026-11-01** (table above; rounds are per unit).
-2. **Kitchen towel** and **microfiber wipe** pack sizes.
+2. ~~Kitchen towel and microfiber wipe pack sizes~~ **Answered:** 50 each.
 3. **Aprons, chef coats, mops, uniforms:** counted by unit? (assumed yes)
 4. **Sheets:** ~~unit or pack~~ pack of 10 ✅. Are new, regular and old washed together and sorted afterwards, or kept apart from the start?
-5. **Colors:** white and black exist in every tablecloth size (owner 2026-11-01). Still open: are they separate items (needed if they wash in separate loads, so the washer TV can say which), or size only? Per color doubles the tablecloth list (8 → 16).
+5. **Colors:** whites wash only with whites, blacks only with blacks, and each napkin color on its own (owner 2026-11-01). Tablecloths are now one item per size per color (16). **Still needed:** the napkin color list, and whether any other item (towels, aprons, coats) comes in colors that wash apart.
 6. **Sanitizer dispensers:** leave out of PlantBoard?
 7. **Estimates:** do managers count any of these in **baskets** instead of loads? If so, roughly how many baskets per load?
 8. **Optional now:** rough pieces per load for your highest-volume items, e.g. "a load of napkins ≈ 450". Otherwise the app learns it from history (PRD G3).
