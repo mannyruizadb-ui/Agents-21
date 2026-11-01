@@ -11,7 +11,7 @@ The source of truth is `research/PRD.md` §4: DDL, triggers, views, RLS matrix, 
 
 ## Migrations
 - Create with `supabase migration new <verb_noun>`. **Never edit a migration that has been pushed.** Add a new one instead.
-- One concern per migration (tables, then RLS, then functions).
+- One domain per migration (its tables, RLS and functions together).
 - Every migration must be re-runnable from scratch with `supabase db reset`.
 - After any schema change, regenerate `src/types/database.ts` and commit it in the same change.
 
@@ -35,13 +35,15 @@ The source of truth is `research/PRD.md` §4: DDL, triggers, views, RLS matrix, 
 - `alter table ... enable row level security;` in the **same migration** that creates the table.
 - Policies call the helpers `app.has_role(plant_id, roles[])` and `app.my_device()`.
 - Wrap helpers as `(select auth.uid())` and `(select app.has_role(...))` so Postgres caches them per statement.
-- The device role `display` gets SELECT only, limited to its area's data. There is no station role and there are no operator records.
+- The device role `display` gets SELECT only, limited to its area's data. There is no station role.
+- `entry_staff.pin_hash` is never selectable: expose `entry_staff_public` instead. Write RPCs require a valid `p_staff_session_id` (PRD A8) and set `staff_id` + `shift_instance_id` via `app.resolve_entry_shift()`.
 - Views use `with (security_invoker = true)`.
 - Add only the needed tables to the `supabase_realtime` publication: `queue_items`, `soil_estimates`, `display_messages`.
 
 ## RPC functions
 - `security definer`, `set search_path = ''`, schema-qualified names everywhere.
 - Check the caller's role explicitly at the top of every function, and validate every argument.
+  - **Required, not optional:** the BEFORE-trigger validation guards pass rows through for callers with no role on the plant and rely on RLS to reject them. A SECURITY DEFINER RPC bypasses RLS, so it must check the caller's role on the target plant **before** writing; otherwise invalid rows slip through silently (M1 security re-review N1).
 - Raise app errors as `raise exception 'CODE' using detail = '...'`, using the codes in PRD §5.1 (`QUEUE_VERSION_CONFLICT`, `COUNT_MODE_MISMATCH`, …).
 - Optimistic concurrency: queue writes take `p_expected_version` and compare it to `version`.
 - Idempotent inserts: `on conflict (client_id) do nothing`, then return the existing row.

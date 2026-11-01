@@ -1,0 +1,16 @@
+{
+  "app": { "name": "PlantBoard" },
+  "auth": {
+    "signInTitle": "Iniciar sesión",
+    "emailLabel": "Correo electrónico",
+    "sendLink": "Enviar enlace de acceso",
+    "sending": "Enviando…",
+    "linkSent": "Revise su correo: le enviamos un enlace de acceso.",
+    "error": "No se pudo enviar el enlace. Verifique el correo e intente de nuevo.",
+    "signOut": "Cerrar sesión"
+  },
+  "control": { "placeholder": "App de control: las funciones llegan en el Hito 2." },
+  "display": { "placeholder": "Pantalla de pared: llega en el Hito 2." },
+  "pair": { "placeholder": "Vincular pantalla: llega en el Hito 1." },
+  "common": { "loading": "Cargando…" }
+}

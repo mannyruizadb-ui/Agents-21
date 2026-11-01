@@ -1,0 +1,16 @@
+{
+  "app": { "name": "PlantBoard" },
+  "auth": {
+    "signInTitle": "Sign in",
+    "emailLabel": "Email",
+    "sendLink": "Send sign-in link",
+    "sending": "Sending…",
+    "linkSent": "Check your email for a sign-in link.",
+    "error": "Couldn't send the link. Check the email address and try again.",
+    "signOut": "Sign out"
+  },
+  "control": { "placeholder": "Control app: features arrive in Milestone 2." },
+  "display": { "placeholder": "Wall display: arrives in Milestone 2." },
+  "pair": { "placeholder": "Display pairing: arrives in Milestone 1." },
+  "common": { "loading": "Loading…" }
+}
