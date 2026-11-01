@@ -3,8 +3,8 @@
 | | |
 |---|---|
 | **Working title** | PlantBoard (rename freely) |
-| **Version** | 1.4 (draft for review; v1.4 entry staff + PIN and person-based shift attribution (2026-10-30); v1.1 measurement model, v1.2 accessibility/voice/languages (2026-10-27), v1.3 per-area shifts and day-level reconciliation (2026-10-30)) |
-| **Date** | 2026-10-27 |
+| **Version** | 1.5 (draft for review; v1.5 records the M1 implementation decisions, 2026-11-01; v1.4 entry staff + PIN and person-based shift attribution (2026-10-30); v1.1 measurement model, v1.2 accessibility/voice/languages (2026-10-27), v1.3 per-area shifts and day-level reconciliation (2026-10-30)) |
+| **Date** | 2026-11-01 |
 | **Owner** | ADB operations leadership |
 | **Source documents** | [`viability-analysis.md`](./viability-analysis.md) · [`tech-stack.md`](./tech-stack.md) |
 | **Status** | Ready for build planning, subject to the open items in §0.3 |
@@ -73,6 +73,14 @@ These are carried over from the earlier research and are not blockers to *starti
 > - **Wash loads** are the common unit.
 > - **Finished goods are entered by the finishing manager only**, by unit or by pack + loose pieces.
 > - Operator check-in, PINs, station tablets and per-person productivity were removed from the MVP.
+>
+> **Revision note (v1.5, 2026-11-01):** the Milestone 1 database is built (migrations `20261101*`, 359 pgTAP tests passing). No decisions changed; these implementation decisions are now recorded.
+> - **Entry staff (A8, §4.4):** `pin_hash` is nullable; `has_pin` is a generated column. Clients get column grants only, never `pin_hash`, `failed_pin_attempts` or `locked_until`. Staff sessions are single-use when reuse is 0 (a 2-minute session), and carry `org_id` and `consumed_at`.
+> - **Keys and constraints (§4.4):** `client_id` is required and unique on queue items and manual washer cycles; more composite tenant FKs; `app.is_clean_text` CHECKs on text; the shift overlap exclusion ignores skipped instances; `alert_events` gains `shift_generation_failed`.
+> - **Triggers and functions (§4.5):** shift overlap is checked per area when a shift is defined; shift generation is service-role only, with a per-plant error loop for pg_cron; `resolve_entry_shift` uses a 6-hour window with an entry-area fallback; append-only tables block TRUNCATE.
+> - **Views and RLS (§4.6–§4.7):** view columns differ from the spec as listed in §4.6; display access needs a live device in the same plant (own area for area-scoped data); direct writes on finished goods are void-only through RPC.
+> - **RPC contracts (§5):** `start_staff_session` and `create_pairing_code` return result rows instead of raising for expected failures; direct POSTs on finished goods, washer cycles and soil estimates are M1-only; every write RPC checks the caller's role.
+> - **Privileges (§6.2):** functions get no default EXECUTE; every function is granted explicitly; TRUNCATE is revoked from clients.
 >
 > **Revision note (v1.4, 2026-10-30):** after owner input,
 > - **data-entry staff** (owner, managers, leads) confirm every entry with name + 4-digit PIN, for **who-entered attribution only**, not per-worker output (A8);
@@ -989,7 +997,7 @@ create table shift_instances (
   unique (id, plant_id),
   unique (id, area_id),                                     -- target for area-consistent FKs
   unique (shift_id, business_date),
-  exclude using gist (area_id with =, tstzrange(starts_at, ends_at) with &&)
+  exclude using gist (area_id with =, tstzrange(starts_at, ends_at) with &&) where (skipped_at is null)
 );
 
 -- ── Entry staff (A8: who entered data; attribution only, not per-worker output) ──
@@ -1000,8 +1008,9 @@ create table entry_staff (
   display_name  text not null check (char_length(display_name) between 1 and 60),
   language      text not null default 'es' references languages(code),
   home_shift_id uuid,                                     -- their shift; entries follow it
-  pin_hash      text not null,                            -- bcrypt via pgcrypto crypt(); never selectable
-  failed_pin_attempts int not null default 0,
+  pin_hash      text,                                     -- bcrypt via pgcrypto crypt(); null = PIN not set; never selectable
+  has_pin       boolean generated always as (pin_hash is not null) stored,  -- v1.5: safe to select
+  failed_pin_attempts int not null default 0 check (failed_pin_attempts between 0 and 5),
   locked_until  timestamptz,
   active        boolean not null default true,
   created_at    timestamptz not null default now(),
@@ -1011,15 +1020,21 @@ create table entry_staff (
   unique (id, plant_id),
   unique (plant_id, display_name)
 );
+-- v1.5: clients get column grants only (no pin_hash, failed_pin_attempts, locked_until).
+-- entry_staff_public (security_invoker) exposes the non-secret columns, including has_pin.
 
 create table staff_sessions (                             -- a confirmed PIN, valid per plant setting
   id            uuid primary key default gen_random_uuid(),
+  org_id        uuid not null,                            -- v1.5
   plant_id      uuid not null,
   staff_id      uuid not null,
   auth_user_id  uuid not null references auth.users(id),  -- the device/account it was confirmed on
   confirmed_at  timestamptz not null default now(),
-  expires_at    timestamptz not null,                     -- confirmed_at + reuse window (+ 2 min for 0)
-  foreign key (staff_id, plant_id) references entry_staff(id, plant_id)
+  expires_at    timestamptz not null,                     -- confirmed_at + reuse window; reuse 0 = 2 min, single-use
+  consumed_at   timestamptz,                              -- v1.5: set when a single-use session is spent
+  foreign key (plant_id, org_id) references plants(id, org_id),  -- v1.5
+  foreign key (staff_id, plant_id) references entry_staff(id, plant_id),
+  check (expires_at > confirmed_at)                       -- v1.5
 );
 
 -- ── Devices (wall displays) ─────────────────────────────────────────────
@@ -1091,12 +1106,14 @@ create table queue_items (
   updated_by_staff_id uuid,                               -- A8
   started_at    timestamptz,
   completed_at  timestamptz,
+  client_id     uuid not null unique,                     -- v1.5: idempotency (architect N2)
   foreign key (plant_id, org_id) references plants(id, org_id),
   foreign key (updated_by_staff_id, plant_id) references entry_staff(id, plant_id),
   foreign key (area_id, plant_id) references areas(id, plant_id),
   foreign key (item_type_id, plant_id) references item_types(id, plant_id),
   check (completed_at is null or started_at is null or completed_at >= started_at),
-  check ((status = 'done') = (completed_at is not null))
+  check ((status = 'done') = (completed_at is not null)),
+  unique (id, plant_id)                                   -- v1.5: target for finished_goods_entries' composite FK
 );
 
 -- ── Finishing output (entered by the finishing manager) ─────────────────
@@ -1108,7 +1125,7 @@ create table finished_goods_entries (
   station_id        uuid,                                 -- optional line (Ironer 1, Folding 2)
   shift_instance_id uuid,
   item_type_id      uuid not null,
-  queue_item_id     uuid references queue_items(id),
+  queue_item_id     uuid,                               -- v1.5: FK below is composite (queue_item_id, plant_id)
   packs             int not null default 0 check (packs between 0 and 10000),
   pack_size_used    int check (pack_size_used between 1 and 10000),  -- copied from item, or overridden
   loose_pieces      int not null default 0 check (loose_pieces between 0 and 100000),
@@ -1127,6 +1144,7 @@ create table finished_goods_entries (
   foreign key (staff_id, plant_id) references entry_staff(id, plant_id),
   foreign key (area_id, plant_id) references areas(id, plant_id),
   foreign key (station_id, plant_id) references stations(id, plant_id),
+  foreign key (queue_item_id, plant_id) references queue_items(id, plant_id),  -- v1.5
   foreign key (shift_instance_id, area_id) references shift_instances(id, area_id),  -- v1.3: same area
   foreign key (item_type_id, plant_id) references item_types(id, plant_id),
   check (packs = 0 or pack_size_used is not null),
@@ -1170,6 +1188,7 @@ create table import_batches (
   created_by    uuid references auth.users(id),
   created_at    timestamptz not null default now(),
   foreign key (plant_id, org_id) references plants(id, org_id),
+  unique (id, plant_id),                                  -- v1.5: target for washer_cycles' composite FK
   unique (plant_id, file_sha256)
 );
 
@@ -1187,7 +1206,7 @@ create table washer_cycles (
   load_count        int not null default 1 check (load_count between 1 and 200),
   source            app.cycle_source not null,
   external_id       text,                                 -- vendor row id or derived hash
-  import_batch_id   uuid references import_batches(id),
+  import_batch_id   uuid,                               -- v1.5: FK below is composite (import_batch_id, plant_id)
   raw               jsonb,                                -- original vendor row (may include weight; unused)
   entered_by        uuid references auth.users(id),
   staff_id          uuid,                                 -- A8; null for Accu-Flow imports
@@ -1202,6 +1221,8 @@ create table washer_cycles (
   foreign key (shift_instance_id, area_id) references shift_instances(id, area_id),  -- v1.3: same area
   check (ended_at is null or ended_at >= started_at),
   check (item_type_id is not null or wash_formula_id is not null),
+  check (source <> 'manual' or client_id is not null),   -- v1.5: manual entries are idempotent (architect N2)
+  foreign key (import_batch_id, plant_id) references import_batches(id, plant_id),  -- v1.5
   unique nulls distinct (plant_id, source, external_id)
 );
 
@@ -1229,12 +1250,13 @@ create table alert_events (
   id          uuid primary key default gen_random_uuid(),
   org_id      uuid not null,
   plant_id    uuid not null,
-  kind        text not null check (kind in ('estimate_stale','device_offline','import_failed')),
-  subject_id  uuid,                                       -- item_type / device / batch
+  kind        text not null check (kind in ('estimate_stale','device_offline','import_failed','shift_generation_failed')),  -- v1.5 kind
+  subject_id  uuid,                                       -- item_type / device / batch / plant (shift_generation_failed)
   shift_instance_id uuid,
   sent_at     timestamptz not null default now(),
   recipients  text[] not null,
   foreign key (plant_id, org_id) references plants(id, org_id),
+  foreign key (shift_instance_id, plant_id) references shift_instances(id, plant_id),  -- v1.5
   unique nulls not distinct (kind, subject_id, shift_instance_id)   -- dedupe: 1 per shift
 );
 
@@ -1249,7 +1271,8 @@ create table audit_log (
   entity_id   uuid,
   before      jsonb,
   after       jsonb,
-  at          timestamptz not null default now()
+  at          timestamptz not null default now(),
+  foreign key (plant_id, org_id) references plants(id, org_id)  -- v1.5
 );
 
 create table app_events (
@@ -1257,11 +1280,13 @@ create table app_events (
   org_id      uuid not null references organizations(id),
   plant_id    uuid,
   user_id     uuid,
-  device_id   uuid,
-  name        text not null check (char_length(name) <= 60),   -- 'queue_reordered', …
-  props       jsonb not null default '{}'::jsonb,
-  at          timestamptz not null default now()
+  device_id   uuid references devices(id),                  -- v1.5
+  name        text not null check (char_length(name) between 1 and 60 and app.is_clean_text(name)),   -- 'queue_reordered', …
+  props       jsonb not null default '{}'::jsonb check (jsonb_typeof(props) = 'object'),  -- v1.5: ≤ 4 KB by RLS
+  at          timestamptz not null default now(),
+  foreign key (plant_id, org_id) references plants(id, org_id)  -- v1.5
 );
+-- v1.5: text columns with free text also carry CHECK app.is_clean_text(col) (control characters rejected), beyond the length limits shown above.
 ```
 
 ### 4.5 Triggers and key functions (behavior spec)
@@ -1270,16 +1295,23 @@ create table app_events (
 |---|---|---|
 | `app.touch_updated_at()` | BEFORE UPDATE trigger | Sets `updated_at = now()`. |
 | `app.set_shift_instance()` | BEFORE INSERT on `finished_goods_entries` (by `occurred_at`), `washer_cycles` (by `started_at`). Fallback only: write RPCs normally set it via `app.resolve_entry_shift()` (A8, person-based) | If `shift_instance_id` is null, sets it to the instance **of the row's area** whose range contains the timestamp (skipped instances excluded). Leaves it null if there is none (off-shift work). **Off-shift rows still count:** reports assign them the plant-local calendar date of their timestamp as business date, and show them in an "off-shift" line. |
-| `app.apply_count_mode()` | BEFORE INSERT/UPDATE on `finished_goods_entries` | Reads the item's `count_mode`. For `unit` items: requires `packs = 0` and `pack_size_used is null`. For `pack` items: if `pack_size_used` is null and `packs > 0`, copies the item's current `pack_size`. **Past entries keep the pack size they were recorded with.** |
-| `app.check_languages()` | BEFORE INSERT/UPDATE on `profiles`, `devices`, `plants`, `item_types`, `display_messages` | Language codes (`language`, `display_languages`, `enabled_languages`, keys of `*_i18n` maps) must exist in `languages`; user, display and translation languages must be enabled for the plant. Each translation value is 1–60 characters (140 for messages). |
+| `app.apply_count_mode()` | BEFORE INSERT/UPDATE on `finished_goods_entries` (v1.5: fires only when `packs`, `pack_size_used` or `loose_pieces` change) | Reads the item's `count_mode`. For `unit` items: requires `packs = 0` and `pack_size_used is null`. For `pack` items: if `pack_size_used` is null and `packs > 0`, copies the item's current `pack_size`. **Past entries keep the pack size they were recorded with.** |
+| `app.check_languages()` | BEFORE INSERT/UPDATE on `profiles`, `devices`, `plants`, `item_types`, `display_messages`, `entry_staff` (v1.5) | Language codes (`language`, `display_languages`, `enabled_languages`, keys of `*_i18n` maps) must exist in `languages`; user, display and translation languages must be enabled for the plant. Each translation value is 1–60 characters (140 for messages). |
 | `app.check_estimate_unit()` | BEFORE INSERT on `soil_estimates` | Rejects `basket` when the item doesn't allow basket estimates (`VALIDATION_FAILED`). |
 | `app.resolve_item_from_formula()` | BEFORE INSERT/UPDATE on `washer_cycles` | If `item_type_id` is null and `wash_formula_id` is set, copies the formula's `item_type_id`. |
-| `app.audit()` | AFTER INSERT/UPDATE on config tables, `queue_items`, `item_types`, voids on `finished_goods_entries`, `shift_crew_hours` | Writes to `audit_log` with before/after JSON. |
+| `app.audit()` | AFTER INSERT/UPDATE on config tables, `queue_items`, `item_types`, voids on `finished_goods_entries`, `shift_crew_hours` | Writes to `audit_log` with before/after JSON. **v1.5:** strips `pin_hash`, `failed_pin_attempts` and `locked_until` from both sides, and skips `entry_staff` updates that only touch the lockout counters. |
 | `app.bump_queue_version()` | BEFORE UPDATE on `queue_items` | `version = old.version + 1`; sets `started_at` / `completed_at` on status transitions; rejects illegal transitions (e.g., `done → queued`). |
 | `app.prevent_mutation()` | BEFORE UPDATE/DELETE on `soil_estimates` | Raises an exception (append-only). |
 | `app.prevent_delete()` | BEFORE DELETE on `finished_goods_entries`, `washer_cycles`, `queue_items` | Raises an exception. Use void or cancel instead. |
 | `app.throttle_writes()` | BEFORE INSERT on `finished_goods_entries`, `washer_cycles` | More than 120 inserts by the same user in 60 s raises `RATE_LIMITED`. |
 | `app.generate_shift_instances(plant, days)` | function, pg_cron daily 00:05 UTC | Creates instances for the next N days. Idempotent. **DST-safe:** computes `starts_at` / `ends_at` with `(business_date + start_local) AT TIME ZONE plant.timezone`, so a night shift over a DST change is 7 or 9 hours long, not 8. |
+| `app.check_shift_overlap()` (v1.5) | BEFORE INSERT/UPDATE on `shifts` | Rejects (`VALIDATION_FAILED`) an active shift whose weekly hours overlap another active shift **in the same area**. Serialized per area with an advisory lock. |
+| `app.generate_shift_instances(plant, days, p_from)` (v1.5 signature) | service role only (`days` 1–60; `p_from` defaults to plant-local today) | Idempotent. Updates times only of future instances that nothing references yet (entries, washer cycles, crew hours, alerts). Marks unreferenced future instances of inactive shifts or removed weekdays as skipped (never deleted). Same DST-safe timing as above. |
+| `app.generate_all_shift_instances(days, p_from)` (v1.5) | pg_cron entry point, service role only | Loops over every plant. A failing plant is logged as an `alert_events` row (`shift_generation_failed`) and the loop continues. Returns total rows changed. |
+| `app.shift_instance_at(area, ts)` (v1.5) | clock-based lookup, service role only | The area's non-skipped instance containing `ts`, or null (off-shift). |
+| `app.resolve_entry_shift(staff, choice, ts, area)` (v1.5) | service role only; used by write RPCs | Person-based shift attribution (A8): the staff member's home shift, or the 'next' shift. Uses a 6-hour window and falls back to the entry area's shift. |
+| `*_prevent_truncate` triggers (v1.5) | BEFORE TRUNCATE on `soil_estimates`, `queue_items`, `finished_goods_entries`, `washer_cycles` | Raises an exception. Clients also lose TRUNCATE (§6.2). |
+| Validation triggers pass-through (v1.5) | `app.apply_count_mode()`, `app.throttle_writes()` | For callers without a role on the plant, the trigger passes the row through and RLS rejects it, so one error path applies. |
 
 ### 4.6 Views and conversion (reporting layer)
 
@@ -1306,6 +1338,15 @@ Results from `piece` and `pack` are **approximate** (`pieces_per_load` is an ave
 | `suggested_pieces_per_load` | Calibration from history (trailing 28 days) | `item_type_id, loads_washed, pieces_finished, suggested_pieces_per_load, sample_ok (loads ≥ 20)` |
 | `shift_productivity` (P1) | Per shift and area, from crew totals | `shift_instance_id, area_id, loads_washed, pieces_finished, crew_count, labor_hours, loads_per_labor_hour, pieces_per_labor_hour` |
 
+**v1.5 view columns (as built, `20261101115545_create_reporting_views.sql`).** Where the table above differs, the built columns win:
+- `current_soil_estimates`: also `estimate_id`, `staff_id`, `has_conversion`. `entered_by_name` is null unless the caller may read entry staff.
+- `queue_board`: `qty_loads`, `approximate` (true for `piece` and `pack`), `item_name`, `item_name_i18n`, `item_color_hex`, `item_type_id`, `version`, `started_at`, `created_at`. Open items only (`queued`, `in_progress`).
+- `washroom_by_shift`: also `org_id`, `area_id`, `business_date`.
+- `finished_by_shift`: also `business_date`, `area_id`, `packs`, `loose_pieces`, `loads_approx`, `approximate`, `has_conversion`. Finished goods convert via `'piece'`, never `'pack'`.
+- `daily_reconciliation`: also `item_name`, `item_name_i18n`, `pieces_per_load`, `has_conversion`, `approximate`. `estimate_error_pct` is always null until the owner sets the production-day start.
+- Off-shift rows (no shift instance) are dated by the plant-local calendar date of their timestamp (D9).
+- Views are granted to `authenticated` only; `anon` and `TRUNCATE` are revoked.
+
 ### 4.7 Row Level Security (summary matrix)
 
 **Helper functions:**
@@ -1331,6 +1372,16 @@ language sql stable security definer set search_path = '' as $$
 $$;
 ```
 
+**v1.5 helpers and rules (as built):**
+- Helpers: `app.has_role(plant, roles[])`, `app.has_org_role(org, roles[])` (org-wide membership, `plant_id` null), `app.is_display(plant)`, `app.is_my_device(device)`, `app.is_display_account()`, and `app.my_device()`.
+- Display access (D13) needs a display membership **and** a non-revoked `devices` row in the same plant. Area scoping is applied where the table is area-scoped (`queue_items`). Other plant-scoped reads (e.g., `soil_estimates`, `shifts`) are plant-wide **by design** (meta ruling 2026-11-01): the display's soil panel shows plant-wide dirty work, and shift times aren't sensitive. "Own area only" applies to area-scoped data (`queue_items`, `display_messages`).
+- Org-level rows (`plant_id` null) in `audit_log` and `app_events` use `app.has_org_role`.
+- `profiles`: display device accounts are excluded.
+- `app_events`: any plant member (including a paired display) inserts its own events only. `user_id = auth.uid()`, `device_id` must be the caller's own device, `props` ≤ 4 KB.
+- `finished_goods_entries`: insert only (no direct UPDATE); voids go through the RPC.
+- `devices`: insert via the pair-device flow only. Updates are column-limited to `name`, `area_id`, `display_languages`, `revoked_at` (meta security ruling, 2026-11-01).
+- `pairing_codes`: insert via `create_pairing_code` only (meta security ruling, 2026-11-01).
+
 **Policy matrix** (R = select, C = insert, U = update; anything blank is denied):
 
 | Table | owner | manager | lead | viewer | display device |
@@ -1341,12 +1392,13 @@ $$;
 | shift_instances (P1 "didn't run" via `set_shift_skipped` RPC, owner/manager) | R | R | R | R | R |
 | languages (global) | R | R | R | R | R |
 | profiles (own row: language, `a11y_prefs`) | R U own | R U own | R U own | R U own | — |
-| devices, pairing_codes | R C U | R C U | R | — | own row R |
+| devices | R U (name, area, display_languages, revoked_at); C via pair-device only | R U (same columns); C via pair-device only | R | — | own row R |
+| pairing_codes | R C via `create_pairing_code` only | R C via `create_pairing_code` only | R | — | — |
 | entry_staff (`pin_hash` never exposed; use `entry_staff_public` view) | R C U | R C U | R (public view) | — | — |
 | staff_sessions (via RPCs only) | — | — | — | — | — |
 | soil_estimates | R C | R C | R C | R | R |
 | queue_items | R C U | R C U | R U (status only, via RPC) | R | R (own area) |
-| finished_goods_entries | R C U (void via RPC) | R C U (void via RPC) | R | R | — (totals via feed) |
+| finished_goods_entries | R C; void via RPC only (no direct U) | R C; void via RPC only (no direct U) | R | R | — (totals via feed) |
 | shift_crew_hours | R C U | R C U | R | R | — |
 | washer_cycles, import_batches | R C | R C | R C | R | — (totals via feed) |
 | display_messages | R C U | R C U | R | R | R (own area or all) |
@@ -1394,7 +1446,7 @@ Policies use `(select auth.uid())` and `(select app.has_role(...))` so that Post
 | Conversion factors | `baskets_per_load > 0`, required if baskets are allowed. `pieces_per_load > 0`, optional, with its source (`counted`/`derived`). |
 | Loose pieces | **Warning, not an error,** when `loose_pieces ≥ pack_size_used` on a pack item ("that's more than a full pack: did you mean +1 pack?"). |
 | Timestamps | `occurred_at` / `started_at` no more than 5 min in the future, and within the current or previous shift (RPC check). Managers can backfill up to 30 days, which is audited. |
-| Ranges | `ended_at ≥ started_at`. Shifts cannot overlap within a plant. Crew `labor_hours` 0–2,000. |
+| Ranges | `ended_at ≥ started_at`. Shifts cannot overlap within an area (checked when a shift is defined). Crew `labor_hours` 0–2,000. |
 | Text | Names 1–60 characters. Notes ≤ 140 (queue/entries) / 280 (estimates). Trimmed. Control characters are rejected. |
 | Pairing code | 6 characters from an unambiguous alphabet; expires in 15 min; single use. |
 | Color | `#RRGGBB`. |
@@ -1516,17 +1568,21 @@ All functions are `security definer` with `set search_path = ''`. Each checks th
 | `record_finished_goods(...)` | Record finished goods (packs + loose, or units) | O,M |
 | `void_finished_goods(p_id uuid, p_reason text, p_replacement jsonb default null)` | Correct an entry | O,M |
 | `accept_pieces_per_load(p_item_type_id uuid, p_value numeric)` (P1) | Accept a suggested or counted pieces-per-load value | O |
-| `create_pairing_code(p_area_id, p_device_name)` | Start display pairing | O,M |
+| `create_pairing_code(p_area_id, p_device_name)` | Start display pairing. Returns `(code, expires_at)`; can raise `RATE_LIMITED` if no unique code can be allocated (v1.5) | O,M |
 | `device_heartbeat(p_app_version text)` | Health ping | D |
 | `get_display_feed(p_area_id uuid)` | Full display snapshot | D (own area), O,M,L,V |
 | `get_shift_report(p_shift_instance_id uuid)` | One area's shift report | O,M,L,V |
 | `get_day_report(p_plant_id uuid, p_business_date date)` | Day report with washroom ↔ finishing reconciliation | O,M,L,V |
 | `set_staff_pin(p_staff_id uuid, p_pin text)` | Set or reset a 4-digit PIN (A8) | O,M |
-| `start_staff_session(p_staff_id uuid, p_pin text)` | Confirm name + PIN; returns `staff_session_id` valid per `staff_pin_reuse_minutes`. Errors `PIN_INVALID`, `STAFF_LOCKED` | O,M,L |
+| `start_staff_session(p_staff_id uuid, p_pin text)` | Confirm name + PIN. Returns `(staff_session_id, error, locked_until)`, valid per `staff_pin_reuse_minutes` (2 minutes when 0, single-use). `PIN_INVALID` and `STAFF_LOCKED` are returned in `error`, not raised (v1.5) | O,M,L |
 | *All write RPCs* | Take `p_staff_session_id` and `p_shift_choice` ('own' default, 'next'); reject an expired or foreign session (`STAFF_SESSION_REQUIRED`) | — |
 | `set_shift_skipped(p_shift_instance_id uuid, p_skipped bool)` (P1) | Mark a generated shift "didn't run" (holiday); audited | O,M |
 | `suggest_queue(p_area_id uuid)` (P1) | Draft queue from estimates | O,M |
 | `upsert_washer_quick_totals(p_shift_instance_id, p_rows jsonb)` | End-of-shift loads per item; `area_id` is taken from the shift instance | O,M,L |
+
+**v1.5 rules for the M1 write path:**
+- Direct POSTs on `finished_goods_entries`, `washer_cycles` and `soil_estimates` (§5.2) are **M1-only**. They get revoked in M2, once the staff-session write RPCs exist (D8 decision, option B; see `docs/adr/001-direct-writes-until-staff-session-rpcs.md`).
+- Every SECURITY DEFINER write RPC checks the caller's role on the target plant before it writes.
 
 **Selected signatures, payloads and errors:**
 
@@ -1659,7 +1715,8 @@ There is **no general per-IP API rate limiting at the PostgREST layer** at this 
 1. **RLS on every table, deny by default.**
    - CI runs the Supabase security advisor and fails on "RLS disabled" or "policy missing".
    - Automated tests assert each role's access matrix in §4.7.
-2. **Least privilege for devices.** Displays can read only, limited to their own area. Revocation takes effect in ≤ 60 s.
+   - **v1.5 (M1):** functions get no default EXECUTE (none for `anon` or `PUBLIC`). Every function is granted explicitly to the roles that need it. TRUNCATE is revoked from `anon` and `authenticated` on all `public` tables.
+2. **Least privilege for devices.** Displays can read only: area-scoped data for their own area, plus plant-wide reference data (soil estimates, shifts) the display needs. Revocation takes effect in ≤ 60 s.
 3. **Secrets.**
    - The service role key exists only in the Edge Functions environment.
    - Only the publishable (anon) key is in the client.

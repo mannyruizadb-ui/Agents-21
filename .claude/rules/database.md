@@ -11,7 +11,7 @@ The source of truth is `research/PRD.md` §4: DDL, triggers, views, RLS matrix, 
 
 ## Migrations
 - Create with `supabase migration new <verb_noun>`. **Never edit a migration that has been pushed.** Add a new one instead.
-- One concern per migration (tables, then RLS, then functions).
+- One domain per migration (its tables, RLS and functions together).
 - Every migration must be re-runnable from scratch with `supabase db reset`.
 - After any schema change, regenerate `src/types/database.ts` and commit it in the same change.
 
