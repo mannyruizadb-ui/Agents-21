@@ -25,7 +25,7 @@ select p.org_id, p.id, a.name, a.kind::app.area_kind, a.sort_order
  cross join (values ('Washroom', 'washroom', 10), ('Finishing', 'finishing', 20)) as a(name, kind, sort_order)
  where p.name = 'Miami';
 
--- ── Item catalog (A2): 25 items; the sanitizer dispenser is excluded (not washed or finished) ──
+-- ── Item catalog (A2): 27 items; the sanitizer dispenser is excluded (not washed or finished) ──
 -- Spanish names are AI drafts from research/item-catalog.md, pending the separate AI review (H1).
 -- Estimates: 'load' (catalog 🔸 assumed default); no basket factors yet. pieces_per_load: all TBD (null).
 insert into public.item_types (org_id, plant_id, name, name_i18n, category, count_mode, pack_size, sort_order)
@@ -49,23 +49,26 @@ select p.org_id, p.id, i.name, jsonb_build_object('es', i.name_es), i.category::
   ('Microfiber wipe',    'Paño de microfibra',    'other',   'unit', null,      100),
   -- Napkin: pack of 100 ✅
   ('Napkin',             'Servilleta',            'linen',   'pack', 100,       110),
-  -- TODO owner: pack size (confirmed pack item) for each tablecloth: counted by unit until then.
-  ('Tablecloth 52"',     'Mantel 52 pulg.',       'linen',   'unit', null,      120),
-  ('Tablecloth 62"',     'Mantel 62 pulg.',       'linen',   'unit', null,      130),
-  ('Tablecloth 72"',     'Mantel 72 pulg.',       'linen',   'unit', null,      140),
-  ('Tablecloth 90"',     'Mantel 90 pulg.',       'linen',   'unit', null,      150),
-  ('Tablecloth 120"',    'Mantel 120 pulg.',      'linen',   'unit', null,      160),
-  ('Tablecloth 130"',    'Mantel 130 pulg.',      'linen',   'unit', null,      170),
+  -- Tablecloths: pack sizes ✅ (owner 2026-11-01); rounds by unit ✅. White and black exist in every
+  -- size; TODO owner: per-color items or size only (pending decision, item-catalog.md Q5).
+  ('Tablecloth 42×42',   'Mantel 42×42',          'linen',   'pack', 25,        115),
+  ('Tablecloth 52×52',   'Mantel 52×52',          'linen',   'pack', 20,        120),
+  ('Tablecloth 62×62',   'Mantel 62×62',          'linen',   'pack', 15,        130),
+  ('Tablecloth 72×72',   'Mantel 72×72',          'linen',   'pack', 10,        140),
+  ('Tablecloth 90×90',   'Mantel 90×90',          'linen',   'pack', 5,         150),
+  ('Tablecloth 52×114',  'Mantel 52×114',         'linen',   'pack', 10,        155),
+  ('Tablecloth 120" round', 'Mantel redondo 120 pulg.', 'linen', 'unit', null,  160),
+  ('Tablecloth 132" round', 'Mantel redondo 132 pulg.', 'linen', 'unit', null,  170),
   -- TODO owner: pack size (confirmed pack item): counted by unit until then.
   ('Kitchen towel',      'Toalla de cocina',      'towel',   'unit', null,      180),
   -- Apparel: apron, chef coat, uniform by unit (🔸 assumed); butcher coat by unit ✅
   ('Apron',              'Delantal',              'apparel', 'unit', null,      190),
   ('Chef coat',          'Filipina de chef',      'apparel', 'unit', null,      200),
   ('Butcher coat',       'Bata de carnicero',     'apparel', 'unit', null,      210),
-  -- TODO owner: count mode / pack size for sheets (and whether new/regular/old are separate stock).
-  ('Sheet – new',        'Sábana nueva',          'linen',   'unit', null,      220),
-  ('Sheet – regular',    'Sábana regular',        'linen',   'unit', null,      230),
-  ('Sheet – old',        'Sábana vieja',          'linen',   'unit', null,      240),
+  -- Sheets: pack of 10 ✅ (owner 2026-11-01). TODO owner: confirm all three grades use 10.
+  ('Sheet – new',        'Sábana nueva',          'linen',   'pack', 10,        220),
+  ('Sheet – regular',    'Sábana regular',        'linen',   'pack', 10,        230),
+  ('Sheet – old',        'Sábana vieja',          'linen',   'pack', 10,        240),
   -- Uniform: one item (🔸 assumed; shirts/pants split pending)
   ('Uniform',            'Uniforme',              'apparel', 'unit', null,      250)
  ) as i(name, name_es, category, count_mode, pack_size, sort_order)

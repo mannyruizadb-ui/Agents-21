@@ -31,6 +31,8 @@ Full context lives in these docs. Read the relevant one before non-trivial work;
   - `supabase/seed.sql`: ADB plant, 25 items, per-area shifts. Interim 'unit' items are marked TODO owner.
   - **359 pgTAP tests pass**, locally and in CI.
   - Reviews: architect PASS; security-reviewer PASS after a BLOCK (devices and pairing codes are now RPC-only; no trigger oracles). Deviations are recorded in PRD v1.5.
+- **PR #2 (M1 part 1) merged to main by the owner (2026-11-01).**
+- **Owner answers 2026-11-01:** tablecloth/sheet pack sizes (seeded, 27 items); production starts Mon 14:00 washing / 16:00 finishing (14:00→14:00 business day proposed, not built); **display redesign:** washroom gets 3 TVs (washers 1–3, washers 4–6, dryers 1–4), each machine shows NOW + NEXT only, no LATER. PRD D1/D2 must be revised (v1.6) before M2 display UI. Open: how a machine's NOW/NEXT is set, washer sizes, colors as items, finishing TVs.
 - **Next, M1 part 2:**
   - invite-user and pair-device/revoke-device Edge Functions (create the edge-engineer agent first);
   - Custom Access Token Hook, pg_cron schedule, languages data migration for the cloud;
@@ -40,7 +42,7 @@ Full context lives in these docs. Read the relevant one before non-trivial work;
 - **Waiting on the owner (do not invent values):**
   1. Diamond Chemical's answer on Accu-Flow CloudView export: API, scheduled CSV/email, or none.
   2. Item list **received** (`research/item-catalog.md`, 26 items). Still TBD there: tablecloth, towel and wipe pack sizes; how sheets are counted; colors; baskets per load; pieces per load.
-  3. Shift schedule **received** (`research/shift-schedule.md`). Still open: production-day start for day reconciliation (14:00 proposed); holidays. Also owner to do: Supabase dashboard sign-ups OFF; GitHub ruleset on `main`.
+  3. Shift schedule **received** (`research/shift-schedule.md`). Production-day start answered (rule awaiting OK); still open: holidays. Also owner to do: Supabase dashboard sign-ups OFF; GitHub ruleset on `main`.
   4. Which languages to enable beyond EN/ES. Creole can be added later as data plus a translation file. Also: voice-input test results on the real phones (iOS installed-app support and Creole recognition are unconfirmed).
   5. Screen locations: Wi-Fi strength and heat at each spot.
   6. Baseline tally of phone calls per shift.
