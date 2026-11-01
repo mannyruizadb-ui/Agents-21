@@ -43,6 +43,7 @@ The source of truth is `research/PRD.md` §4: DDL, triggers, views, RLS matrix, 
 ## RPC functions
 - `security definer`, `set search_path = ''`, schema-qualified names everywhere.
 - Check the caller's role explicitly at the top of every function, and validate every argument.
+  - **Required, not optional:** the BEFORE-trigger validation guards pass rows through for callers with no role on the plant and rely on RLS to reject them. A SECURITY DEFINER RPC bypasses RLS, so it must check the caller's role on the target plant **before** writing; otherwise invalid rows slip through silently (M1 security re-review N1).
 - Raise app errors as `raise exception 'CODE' using detail = '...'`, using the codes in PRD §5.1 (`QUEUE_VERSION_CONFLICT`, `COUNT_MODE_MISMATCH`, …).
 - Optimistic concurrency: queue writes take `p_expected_version` and compare it to `version`.
 - Idempotent inserts: `on conflict (client_id) do nothing`, then return the existing row.

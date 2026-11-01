@@ -126,6 +126,10 @@ begin
   if not new.active then
     return new;
   end if;
+  -- Serialize shift writes per area so two concurrent edits can't both pass this check
+  -- and later collide in shift_instances (security re-review N2).
+  perform pg_catalog.pg_advisory_xact_lock(
+    pg_catalog.hashtextextended('shifts:' || new.area_id::text, 0));
   if exists (
     with mine as (
       select d * 1440 + extract(epoch from new.start_local)::int / 60 as s,
