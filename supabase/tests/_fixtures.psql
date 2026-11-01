@@ -1,11 +1,13 @@
 -- Shared pgTAP fixtures (included with \ir inside each test's transaction; not a test itself).
 -- Tenant A: org A / plant A (America/New_York) with washroom, finishing and a spare area.
+-- Plant A2: a second plant of org A (plant-scoped roles must not cross plants inside one org).
 -- Tenant B: org B / plant B (cross-tenant checks). Fixed UUIDs keep assertions readable.
 --   users  a..01 owner (org-wide A) · a..02 manager · a..03 lead · a..04 viewer · a..05 display
 --          (washroom device) · a..06 owner B · a..07 no membership · a..08 display membership, no device
 --   areas  c..a1 washroom A · c..a2 finishing A · c..a3 spare A (kind other) · c..b1 washroom B
+--          c..c1 washroom A2
 --   items  d..a1 Napkin (pack 100, 500 pcs/load) · d..a2 Mat (unit, no pcs/load)
---          d..a3 Towel (unit, baskets 2/load, 200 pcs/load) · d..b1 item B
+--          d..a3 Towel (unit, baskets 2/load, 200 pcs/load) · d..b1 item B · d..c1 item A2
 
 insert into public.languages (code, name_native, ui_ready) values
   ('en', 'English', true), ('es', 'Español', true), ('ht', 'Kreyòl ayisyen', false)
@@ -19,7 +21,10 @@ insert into auth.users (id, email) values
   ('aaaaaaaa-0000-0000-0000-000000000005', 'device-1@devices.local'),
   ('aaaaaaaa-0000-0000-0000-000000000006', 'owner@b.test'),
   ('aaaaaaaa-0000-0000-0000-000000000007', 'nobody@a.test'),
-  ('aaaaaaaa-0000-0000-0000-000000000008', 'device-2@devices.local');
+  ('aaaaaaaa-0000-0000-0000-000000000008', 'device-2@devices.local'),
+  ('aaaaaaaa-0000-0000-0000-00000000000a', 'device-split@devices.local'),
+  ('aaaaaaaa-0000-0000-0000-00000000000b', 'viewer@a2.test'),
+  ('aaaaaaaa-0000-0000-0000-00000000000c', 'plant-owner@a.test');
 
 insert into public.organizations (id, name, slug) values
   ('10000000-0000-0000-0000-00000000000a', 'Org A', 'test-org-a'),
@@ -27,7 +32,8 @@ insert into public.organizations (id, name, slug) values
 
 insert into public.plants (id, org_id, name, enabled_languages) values
   ('20000000-0000-0000-0000-00000000000a', '10000000-0000-0000-0000-00000000000a', 'Plant A', '{en,es}'),
-  ('20000000-0000-0000-0000-00000000000b', '10000000-0000-0000-0000-00000000000b', 'Plant B', '{en,es}');
+  ('20000000-0000-0000-0000-00000000000b', '10000000-0000-0000-0000-00000000000b', 'Plant B', '{en,es}'),
+  ('20000000-0000-0000-0000-00000000000c', '10000000-0000-0000-0000-00000000000a', 'Plant A2', '{en,es}');
 
 insert into public.memberships (user_id, org_id, plant_id, role) values
   ('aaaaaaaa-0000-0000-0000-000000000001', '10000000-0000-0000-0000-00000000000a', null, 'owner'),
@@ -47,7 +53,8 @@ insert into public.areas (id, org_id, plant_id, name, kind) values
   ('30000000-0000-0000-0000-0000000000a1', '10000000-0000-0000-0000-00000000000a', '20000000-0000-0000-0000-00000000000a', 'Washroom', 'washroom'),
   ('30000000-0000-0000-0000-0000000000a2', '10000000-0000-0000-0000-00000000000a', '20000000-0000-0000-0000-00000000000a', 'Finishing', 'finishing'),
   ('30000000-0000-0000-0000-0000000000a3', '10000000-0000-0000-0000-00000000000a', '20000000-0000-0000-0000-00000000000a', 'Spare', 'other'),
-  ('30000000-0000-0000-0000-0000000000b1', '10000000-0000-0000-0000-00000000000b', '20000000-0000-0000-0000-00000000000b', 'Washroom', 'washroom');
+  ('30000000-0000-0000-0000-0000000000b1', '10000000-0000-0000-0000-00000000000b', '20000000-0000-0000-0000-00000000000b', 'Washroom', 'washroom'),
+  ('30000000-0000-0000-0000-0000000000c1', '10000000-0000-0000-0000-00000000000a', '20000000-0000-0000-0000-00000000000c', 'Washroom', 'washroom');
 
 insert into public.devices (id, org_id, plant_id, user_id, area_id, name, display_languages) values
   ('40000000-0000-0000-0000-0000000000a1', '10000000-0000-0000-0000-00000000000a', '20000000-0000-0000-0000-00000000000a',
@@ -70,7 +77,9 @@ insert into public.item_types (id, org_id, plant_id, name, name_i18n, category, 
   ('70000000-0000-0000-0000-0000000000a3', '10000000-0000-0000-0000-00000000000a', '20000000-0000-0000-0000-00000000000a',
    'Towel', '{}', 'towel', 'unit', null, true, 2, 200, 'counted'),
   ('70000000-0000-0000-0000-0000000000b1', '10000000-0000-0000-0000-00000000000b', '20000000-0000-0000-0000-00000000000b',
-   'Item B', '{}', 'mat', 'unit', null, false, null, null, null);
+   'Item B', '{}', 'mat', 'unit', null, false, null, null, null),
+  ('70000000-0000-0000-0000-0000000000c1', '10000000-0000-0000-0000-00000000000a', '20000000-0000-0000-0000-00000000000c',
+   'Item A2', '{}', 'mat', 'unit', null, false, null, null, null);
 
 insert into public.wash_formulas (id, org_id, plant_id, external_no, name, item_type_id) values
   ('80000000-0000-0000-0000-0000000000a1', '10000000-0000-0000-0000-00000000000a', '20000000-0000-0000-0000-00000000000a',
@@ -101,10 +110,16 @@ create function pg_temp.id(p text) returns uuid language sql immutable as $$
     when 'ownerB'        then 'aaaaaaaa-0000-0000-0000-000000000006'
     when 'nobody'        then 'aaaaaaaa-0000-0000-0000-000000000007'
     when 'display_nodev' then 'aaaaaaaa-0000-0000-0000-000000000008'
+    when 'display_split' then 'aaaaaaaa-0000-0000-0000-00000000000a'   -- memberships added per test
+    when 'a2viewer'      then 'aaaaaaaa-0000-0000-0000-00000000000b'
+    when 'ownerP'        then 'aaaaaaaa-0000-0000-0000-00000000000c'
     when 'orgA'          then '10000000-0000-0000-0000-00000000000a'
     when 'orgB'          then '10000000-0000-0000-0000-00000000000b'
     when 'plantA'        then '20000000-0000-0000-0000-00000000000a'
     when 'plantB'        then '20000000-0000-0000-0000-00000000000b'
+    when 'plantA2'       then '20000000-0000-0000-0000-00000000000c'
+    when 'washA2'        then '30000000-0000-0000-0000-0000000000c1'
+    when 'itemA2'        then '70000000-0000-0000-0000-0000000000c1'
     when 'wash'          then '30000000-0000-0000-0000-0000000000a1'
     when 'fin'           then '30000000-0000-0000-0000-0000000000a2'
     when 'spare'         then '30000000-0000-0000-0000-0000000000a3'

@@ -1,6 +1,6 @@
 -- Schema-wide guards for the M1 foundation (PRD §4.4 tables, §4.8 indexes, §5.3 RPC hygiene).
 begin;
-select plan(11);
+select plan(14);
 
 select is(
   (select count(*)::int from pg_tables where schemaname = 'public'),
@@ -55,14 +55,37 @@ select is(
 select is(
   array[has_function_privilege('authenticated', 'app.generate_shift_instances(uuid,int,date)', 'execute'),
         has_function_privilege('authenticated', 'app.resolve_entry_shift(uuid,text,timestamptz,uuid)', 'execute'),
-        has_function_privilege('authenticated', 'app.shift_instance_at(uuid,timestamptz)', 'execute')],
-  array[false, false, false], 'shift generation/resolution helpers are not client-callable');
+        has_function_privilege('authenticated', 'app.shift_instance_at(uuid,timestamptz)', 'execute'),
+        has_function_privilege('authenticated', 'app.generate_all_shift_instances(int,date)', 'execute')],
+  array[false, false, false, false], 'shift generation/resolution helpers are not client-callable');
 
 select is(
   (select coalesce(array_agg(p.proname::text order by p.proname), '{}') from pg_proc p
      join pg_namespace n on n.oid = p.pronamespace
     where n.nspname = 'app' and has_function_privilege('public', p.oid, 'execute')),
   '{}'::text[], 'no app function is executable by PUBLIC (grants are per function)');
+
+-- Security L3: exact allow-list of app helpers a signed-in client may execute (RLS helpers,
+-- CHECK helpers, to_loads for the views). Everything else is service-role / trigger only.
+select is(
+  (select array_agg(p.proname::text order by p.proname) from pg_proc p
+     join pg_namespace n on n.oid = p.pronamespace
+    where n.nspname = 'app' and has_function_privilege('authenticated', p.oid, 'execute')),
+  array['has_org_role','has_role','is_clean_text','is_display','is_display_account','is_my_device',
+        'my_device','to_loads','valid_a11y_prefs'],
+  'authenticated executes only the allow-listed app helpers');
+
+select ok(exists (select 1 from pg_default_acl
+                   where defaclrole = 'postgres'::regrole and defaclnamespace = 0 and defaclobjtype = 'f'
+                     and not exists (select 1 from aclexplode(defaclacl) a where a.grantee = 0)),
+  'global default ACL for postgres functions exists without PUBLIC (fixes the Sprint Zero no-op)');
+
+select is(
+  (select coalesce(array_agg(c.relname::text order by c.relname), '{}') from pg_class c
+     join pg_namespace n on n.oid = c.relnamespace
+    where n.nspname = 'public' and c.relkind in ('r', 'v')
+      and (has_table_privilege('authenticated', c.oid, 'truncate') or has_table_privilege('anon', c.oid, 'truncate'))),
+  '{}'::text[], 'security L2: no client TRUNCATE on any public table');
 
 select ok(has_function_privilege('service_role', 'app.generate_shift_instances(uuid,int,date)', 'execute'),
   'service_role may run app.generate_shift_instances (pg_cron / Edge Functions)');

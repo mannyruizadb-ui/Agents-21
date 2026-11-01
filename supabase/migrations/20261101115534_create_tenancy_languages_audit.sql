@@ -8,6 +8,10 @@
 -- public-schema RPCs still get Supabase's per-schema grants (anon, authenticated, service_role),
 -- and every RPC below revokes anon explicitly. app functions are granted per function.
 alter default privileges for role postgres revoke execute on functions from public;
+-- Security L3: anon never executes new public-schema functions by default either.
+alter default privileges for role postgres in schema public revoke execute on functions from anon;
+-- Security L2: clients never TRUNCATE (append-only history; RLS does not cover TRUNCATE).
+alter default privileges for role postgres in schema public revoke truncate on tables from anon, authenticated;
 
 -- ── §4.3 enumerated types ─────────────────────────────────────────────────
 create type app.member_role   as enum ('owner','manager','lead','viewer','display');
@@ -200,7 +204,28 @@ $$;
 comment on function app.is_display(uuid) is
   'D13 RLS helper: caller is a paired, non-revoked display device of the plant (display membership + devices row).';
 
+-- Security L5: a device id in a client-written row must be the caller's own live device.
+create function app.is_my_device(p_device uuid)
+returns boolean language plpgsql stable security definer set search_path = '' as $$
+begin
+  return exists (select 1 from app.my_device() d where d.id is not null and d.id = p_device);
+end;
+$$;
+comment on function app.is_my_device(uuid) is
+  'RLS helper (security L5): p_device is the caller''s non-revoked devices row. Resolves app.my_device() at call time.';
+
+-- Security L7: display device accounts have no profile access (§4.7 profiles: display —).
+create function app.is_display_account()
+returns boolean language sql stable security definer set search_path = '' as $$
+  select exists (select 1 from public.memberships m
+                  where m.user_id = (select auth.uid()) and m.role = 'display' and m.revoked_at is null);
+$$;
+comment on function app.is_display_account() is
+  'RLS helper (security L7): the caller holds an active display membership anywhere.';
+
 grant execute on function app.has_role(uuid, app.member_role[]) to authenticated, service_role;
+grant execute on function app.is_my_device(uuid) to authenticated, service_role;
+grant execute on function app.is_display_account() to authenticated, service_role;
 grant execute on function app.has_org_role(uuid, app.member_role[]) to authenticated, service_role;
 grant execute on function app.is_display(uuid) to authenticated, service_role;
 
@@ -263,6 +288,12 @@ begin
   end if;
 
   -- Plant-scoped tables: devices, item_types, display_messages, entry_staff.
+  -- Security M2: never validate (and so never leak) another tenant's plant settings. A client
+  -- without a role on the row's plant passes through and RLS rejects the row (42501). Service
+  -- role / postgres (auth.uid() null) are always validated.
+  if (select auth.uid()) is not null and not app.has_role(new.plant_id, '{owner,manager,lead,viewer}') then
+    return new;
+  end if;
   select p.enabled_languages into v_enabled from public.plants p where p.id = new.plant_id;
   if v_enabled is null then
     return new;  -- the plant FK reports the missing plant
@@ -320,17 +351,16 @@ declare
   v_device uuid;
 begin
   -- Columns are read through jsonb so this one function works on tables without them.
-  v_after := to_jsonb(new) - 'pin_hash';
+  -- Security L1: pin_hash and the lockout counters are never written to audit_log.
+  v_after := to_jsonb(new) - 'pin_hash' - 'failed_pin_attempts' - 'locked_until';
   if tg_op = 'UPDATE' then
-    v_before := to_jsonb(old) - 'pin_hash';
+    v_before := to_jsonb(old) - 'pin_hash' - 'failed_pin_attempts' - 'locked_until';
     if tg_table_name = 'entry_staff'
        and (to_jsonb(old) ->> 'pin_hash') is distinct from (to_jsonb(new) ->> 'pin_hash') then
       v_action := 'entry_staff.pin_set';
     elsif v_before = v_after then
       return null;  -- no-op update
-    elsif tg_table_name = 'entry_staff'
-          and (v_before - 'failed_pin_attempts' - 'locked_until' - 'updated_at')
-            = (v_after  - 'failed_pin_attempts' - 'locked_until' - 'updated_at') then
+    elsif tg_table_name = 'entry_staff' and (v_before - 'updated_at') = (v_after - 'updated_at') then
       return null;  -- D12: lockout-counter-only update
     end if;
     if tg_table_name = 'finished_goods_entries'
@@ -361,7 +391,7 @@ begin
 end;
 $$;
 comment on function app.audit() is
-  '§4.5/H2 AFTER INSERT/UPDATE: writes audit_log with before/after (pin_hash stripped, lockout-only updates skipped, D12).';
+  '§4.5/H2 AFTER INSERT/UPDATE: writes audit_log with before/after (pin_hash and lockout counters stripped, lockout-only updates skipped; D12, security L1).';
 
 -- ── Triggers on this migration''s tables ───────────────────────────────────
 create trigger plants_check_timezone before insert or update of timezone on public.plants
@@ -397,11 +427,12 @@ create policy plants_update on public.plants for update to authenticated
   with check ((select app.has_role(id, '{owner}')));
 
 -- profiles: own row R U (no client insert; invite-user creates it).
+-- Security L7: display device accounts are excluded (§4.7: display —).
 create policy profiles_select_own on public.profiles for select to authenticated
-  using (user_id = (select auth.uid()));
+  using (user_id = (select auth.uid()) and not (select app.is_display_account()));
 create policy profiles_update_own on public.profiles for update to authenticated
-  using (user_id = (select auth.uid()))
-  with check (user_id = (select auth.uid()));
+  using (user_id = (select auth.uid()) and not (select app.is_display_account()))
+  with check (user_id = (select auth.uid()) and not (select app.is_display_account()));
 
 -- memberships: owner R C U; manager R.
 create policy memberships_select on public.memberships for select to authenticated
@@ -429,4 +460,7 @@ create policy app_events_insert on public.app_events for insert to authenticated
   with check (user_id = (select auth.uid())
               and plant_id is not null
               and ((select app.has_role(plant_id, '{owner,manager,lead,viewer}'))
-                   or (select app.is_display(plant_id))));
+                   or (select app.is_display(plant_id)))
+              -- Security L5: only the caller's own device; bounded payload.
+              and (device_id is null or (select app.is_my_device(device_id)))
+              and pg_column_size(props) <= 4096);

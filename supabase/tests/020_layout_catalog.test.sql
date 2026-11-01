@@ -2,7 +2,7 @@
 -- Matrix arrays: [owner, manager, lead, viewer, display, display-without-device, owner of B, anon].
 begin;
 \ir _fixtures.psql
-select plan(38);
+select plan(40);
 
 -- R: every plant role incl. a paired display; never another tenant or anon.
 select is(pg_temp.reads($$select 1 from public.areas where plant_id = pg_temp.id('plantA')$$), '{3,3,3,3,3,0,0,0}', 'areas R');
@@ -37,6 +37,15 @@ select is(pg_temp.writes($$update public.item_types set sort_order = 1 where pla
 select is(pg_temp.writes($$update public.wash_formulas set name = 'n' where plant_id = pg_temp.id('plantA')$$), '{3,3,0,0,0,0,0,0}', 'wash_formulas U');
 select is(pg_temp.run_as('owner', $$update public.areas set plant_id = pg_temp.id('plantB'), org_id = pg_temp.id('orgB') where id = pg_temp.id('spare')$$),
   '42501', 'cannot move a row into another tenant');
+
+-- Security M2: SECURITY DEFINER BEFORE triggers are not cross-tenant oracles. Owner B probing plant A
+-- with a bad translation gets the RLS denial, not plant A's language validation result.
+select is(pg_temp.run_as('ownerB', $$insert into public.item_types (org_id, plant_id, name, name_i18n, category)
+  values (pg_temp.id('orgA'), pg_temp.id('plantA'), 'Probe', '{"ht":"x"}', 'other')$$), '42501',
+  'trigger oracle closed: other tenant gets 42501, not VALIDATION_FAILED');
+select is(pg_temp.run_as('manager', $$insert into public.item_types (org_id, plant_id, name, name_i18n, category)
+  values (pg_temp.id('orgA'), pg_temp.id('plantA'), 'Probe', '{"ht":"x"}', 'other')$$), 'VALIDATION_FAILED',
+  'members of the plant still get the validation error');
 
 -- Tenant consistency (composite FKs).
 select throws_ok($$insert into public.stations (org_id, plant_id, area_id, name, kind)

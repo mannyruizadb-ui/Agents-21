@@ -3,7 +3,7 @@
 -- Matrix arrays: [owner, manager, lead, viewer, display, display-without-device, owner of B, anon].
 begin;
 \ir _fixtures.psql
-select plan(89);
+select plan(104);
 
 -- ── shifts / shift_instances matrix ──────────────────────────────────────
 select is(pg_temp.reads($$select 1 from public.shifts where plant_id = pg_temp.id('plantA')$$), '{8,8,8,8,8,0,0,0}', 'shifts R');
@@ -60,15 +60,35 @@ select is(pg_temp.run_as('owner', $$select app.generate_shift_instances(pg_temp.
 select throws_ok($$insert into public.shifts (org_id, plant_id, area_id, name, start_local, end_local, days_of_week)
   values (pg_temp.id('orgA'), pg_temp.id('plantA'), pg_temp.id('spare'), 'Bad', '08:00', '09:00', '{7}')$$, '23514', null, 'days_of_week 0–6');
 
--- D7: overlap is rejected per AREA, allowed across areas.
-insert into public.shifts (id, org_id, plant_id, area_id, name, start_local, end_local, days_of_week) values
-  ('90000000-0000-0000-0000-0000000000c1', pg_temp.id('orgA'), pg_temp.id('plantA'), pg_temp.id('fin'), 'Overlap', '09:00', '11:00', '{2}');
-select throws_ok($$select app.generate_shift_instances(pg_temp.id('plantA'), 1, '2026-11-10')$$, '23P01', null,
-  'overlapping shifts within one area are rejected');
-update public.shifts set active = false where id = '90000000-0000-0000-0000-0000000000c1';
+-- D7 / N1a: weekly overlap of ACTIVE shifts is rejected per AREA when the shift is defined.
+select throws_ok($$insert into public.shifts (org_id, plant_id, area_id, name, start_local, end_local, days_of_week)
+  values (pg_temp.id('orgA'), pg_temp.id('plantA'), pg_temp.id('fin'), 'Overlap', '09:00', '11:00', '{2}')$$,
+  'P0001', 'VALIDATION_FAILED', 'an active shift overlapping another in the same area is rejected');
+select lives_ok($$insert into public.shifts (id, org_id, plant_id, area_id, name, start_local, end_local, days_of_week, active)
+  values ('90000000-0000-0000-0000-0000000000c1', pg_temp.id('orgA'), pg_temp.id('plantA'), pg_temp.id('fin'), 'Overlap', '09:00', '11:00', '{2}', false)$$,
+  'an inactive overlapping shift may be stored');
+select throws_ok($$update public.shifts set active = true where id = '90000000-0000-0000-0000-0000000000c1'$$,
+  'P0001', 'VALIDATION_FAILED', 'activating it is rejected');
+select is(pg_temp.run_as('manager', $$insert into public.shifts (org_id, plant_id, area_id, name, start_local, end_local, days_of_week)
+  values (pg_temp.id('orgA'), pg_temp.id('plantA'), pg_temp.id('fin'), 'Overlap', '15:00', '17:00', '{1}')$$),
+  'VALIDATION_FAILED', 'managers get the same check (Mon 15–17 overlaps Mon Evening 16:00)');
 insert into public.shifts (org_id, plant_id, area_id, name, start_local, end_local, days_of_week) values
-  (pg_temp.id('orgA'), pg_temp.id('plantA'), pg_temp.id('spare'), 'Overlap', '09:00', '11:00', '{2}');
-select lives_ok($$select app.generate_shift_instances(pg_temp.id('plantA'), 1, '2026-11-10')$$, 'the same hours in another area are fine');
+  (pg_temp.id('orgA'), pg_temp.id('plantA'), pg_temp.id('spare'), 'Late', '23:00', '02:00', '{6}');
+select throws_ok($$insert into public.shifts (org_id, plant_id, area_id, name, start_local, end_local, days_of_week)
+  values (pg_temp.id('orgA'), pg_temp.id('plantA'), pg_temp.id('spare'), 'Sunday', '01:00', '03:00', '{0}')$$,
+  'P0001', 'VALIDATION_FAILED', 'overlap across the Saturday→Sunday week wrap is rejected');
+select lives_ok($$insert into public.shifts (org_id, plant_id, area_id, name, start_local, end_local, days_of_week)
+  values (pg_temp.id('orgA'), pg_temp.id('plantA'), pg_temp.id('spare'), 'Overlap', '09:00', '11:00', '{2}')$$,
+  'the same hours in another area are fine');
+select lives_ok($$select app.generate_shift_instances(pg_temp.id('plantA'), 1, '2026-11-10')$$, 'generation runs with the per-area shifts');
+-- N1b: the exclusion constraint still guards instances, but skipped instances don't block.
+select throws_ok($$insert into public.shift_instances (org_id, plant_id, area_id, shift_id, business_date, starts_at, ends_at)
+  values (pg_temp.id('orgA'), pg_temp.id('plantA'), pg_temp.id('wash'), pg_temp.id('washEvening'), '2026-11-30',
+          pg_temp.ny('2026-11-07 01:00'), pg_temp.ny('2026-11-07 02:00'))$$, '23P01', null, 'overlapping instances in one area are rejected');
+update public.shift_instances set skipped_at = now() where id = pg_temp.si(pg_temp.id('wash'), 'Night', '2026-11-07');
+select lives_ok($$insert into public.shift_instances (org_id, plant_id, area_id, shift_id, business_date, starts_at, ends_at)
+  values (pg_temp.id('orgA'), pg_temp.id('plantA'), pg_temp.id('wash'), pg_temp.id('washEvening'), '2026-11-30',
+          pg_temp.ny('2026-11-07 01:00'), pg_temp.ny('2026-11-07 02:00'))$$, 'a skipped instance does not block the range');
 
 -- Clock lookup.
 select is(app.shift_instance_at(pg_temp.id('fin'), pg_temp.ny('2026-11-03 11:30')), pg_temp.si(pg_temp.id('fin'), 'Day', '2026-11-03'), 'shift_instance_at finds the containing instance');
@@ -233,6 +253,31 @@ select is(app.generate_shift_instances(pg_temp.id('plantA'), 1, '2030-01-08'), 0
 select ok(app.generate_shift_instances(pg_temp.id('plantA'), 1, '2020-01-07') >= 6, 'past Tuesday generated');
 update public.shifts set start_local = '06:45' where id = '90000000-0000-0000-0000-0000000000c2';
 select is(app.generate_shift_instances(pg_temp.id('plantA'), 1, '2020-01-07'), 0, 'past instances are never changed');
+
+-- N1c: deactivating a shift or dropping a weekday marks unreferenced future instances skipped.
+update public.shifts set active = false where id = '90000000-0000-0000-0000-0000000000c2';
+update public.shifts set days_of_week = '{3}' where area_id = pg_temp.id('spare') and name = 'Overlap';
+select ok(app.generate_shift_instances(pg_temp.id('plantA'), 1, '2030-01-08') >= 2, 'future instances retired (count is date-independent below)');
+select is((select count(*)::int from public.shift_instances si join public.shifts s on s.id = si.shift_id
+            where si.business_date = '2030-01-08' and s.area_id = pg_temp.id('spare') and si.skipped_at is not null),
+  2, 'inactive shift / removed weekday instances are skipped, not deleted');
+select is((select skipped_at from public.shift_instances where id = pg_temp.si(pg_temp.id('fin'), 'Day', '2030-01-08')), null,
+  'referenced instances are left alone');
+
+-- N1d: generate_all_shift_instances isolates a failing plant and records an alert.
+insert into public.shifts (id, org_id, plant_id, area_id, name, start_local, end_local, days_of_week, active) values
+  ('90000000-0000-0000-0000-0000000000b2', pg_temp.id('orgB'), pg_temp.id('plantB'), pg_temp.id('washB'), 'Blocker', '23:00', '23:30', '{6}', false);
+insert into public.shift_instances (org_id, plant_id, area_id, shift_id, business_date, starts_at, ends_at) values
+  (pg_temp.id('orgB'), pg_temp.id('plantB'), pg_temp.id('washB'), '90000000-0000-0000-0000-0000000000b2', '2026-10-24',
+   pg_temp.ny('2026-10-24 23:00'), pg_temp.ny('2026-10-24 23:30'));
+select ok(app.generate_all_shift_instances(1, '2026-10-24') >= 6, 'other plants are generated');
+select ok((select count(*) from public.shift_instances where plant_id = pg_temp.id('plantA') and business_date = '2026-10-24') >= 6,
+  'plant A Saturday instances exist');
+select is((select count(*)::int from public.alert_events where kind = 'shift_generation_failed' and subject_id = pg_temp.id('plantB')),
+  1, 'plant B failure recorded as an alert');
+select is((select count(*)::int from public.shift_instances where plant_id = pg_temp.id('plantB') and business_date = '2026-10-24'),
+  1, 'plant B''s failed run left nothing behind');
+select is(pg_temp.run_as('owner', $$select app.generate_all_shift_instances()$$), '42501', 'clients cannot run generate_all');
 
 select * from finish();
 rollback;

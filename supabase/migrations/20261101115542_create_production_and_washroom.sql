@@ -131,6 +131,7 @@ create table public.washer_cycles (
   foreign key (import_batch_id, plant_id) references public.import_batches(id, plant_id),
   check (ended_at is null or ended_at >= started_at),
   check (item_type_id is not null or wash_formula_id is not null),
+  check (source <> 'manual' or client_id is not null),   -- architect N2: manual entries are idempotent
   unique nulls distinct (plant_id, source, external_id)
 );
 alter table public.washer_cycles enable row level security;
@@ -155,6 +156,10 @@ declare
   v_mode app.count_mode;
   v_size int;
 begin
+  -- Security M2: no cross-tenant oracle; RLS rejects rows on plants the caller has no role on.
+  if (select auth.uid()) is not null and not app.has_role(new.plant_id, '{owner,manager,lead,viewer}') then
+    return new;
+  end if;
   if tg_op = 'UPDATE'
      and (new.packs, new.pack_size_used, new.loose_pieces)
          is not distinct from (old.packs, old.pack_size_used, old.loose_pieces) then
@@ -217,6 +222,10 @@ returns trigger language plpgsql security definer set search_path = '' as $$
 declare
   v_recent int;
 begin
+  -- Security M2: no cross-tenant oracle; RLS rejects rows on plants the caller has no role on.
+  if (select auth.uid()) is not null and not app.has_role(new.plant_id, '{owner,manager,lead,viewer}') then
+    return new;
+  end if;
   if new.entered_by is null then
     return new;   -- system imports (service role) are not throttled
   end if;
@@ -245,6 +254,8 @@ create trigger fge_set_shift_instance before insert on public.finished_goods_ent
   for each row execute function app.set_shift_instance();
 create trigger fge_prevent_delete before delete on public.finished_goods_entries
   for each row execute function app.prevent_delete();
+create trigger fge_prevent_truncate before truncate on public.finished_goods_entries
+  for each statement execute function app.prevent_delete();
 create trigger fge_audit after insert or update on public.finished_goods_entries
   for each row execute function app.audit();
 
@@ -256,6 +267,8 @@ create trigger washer_cycles_set_shift_instance before insert on public.washer_c
   for each row execute function app.set_shift_instance();
 create trigger washer_cycles_prevent_delete before delete on public.washer_cycles
   for each row execute function app.prevent_delete();
+create trigger washer_cycles_prevent_truncate before truncate on public.washer_cycles
+  for each statement execute function app.prevent_delete();
 create trigger washer_cycles_audit after insert or update on public.washer_cycles
   for each row execute function app.audit();
 
@@ -269,7 +282,8 @@ revoke update, delete, truncate on public.finished_goods_entries from anon, auth
 create policy fge_select on public.finished_goods_entries for select to authenticated
   using ((select app.has_role(plant_id, '{owner,manager,lead,viewer}')));
 create policy fge_insert on public.finished_goods_entries for insert to authenticated
-  with check ((select app.has_role(plant_id, '{owner,manager}')) and entered_by = (select auth.uid()));
+  with check ((select app.has_role(plant_id, '{owner,manager}')) and entered_by = (select auth.uid())
+              and voided_at is null and voided_by is null);   -- security L4: no pre-voided rows
 
 -- shift_crew_hours: owner/manager R C U; lead, viewer R.
 create policy shift_crew_hours_select on public.shift_crew_hours for select to authenticated

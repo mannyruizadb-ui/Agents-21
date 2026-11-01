@@ -2,7 +2,7 @@
 -- security_invoker: the caller's RLS applies (cross-tenant, display limits). Conversions via app.to_loads.
 begin;
 \ir _fixtures.psql
-select plan(22);
+select plan(23);
 
 insert into public.entry_staff (id, org_id, plant_id, display_name) values
   ('b0000000-0000-0000-0000-0000000000a1', pg_temp.id('orgA'), pg_temp.id('plantA'), 'Ana');
@@ -30,11 +30,11 @@ insert into public.finished_goods_entries (org_id, plant_id, area_id, item_type_
   (pg_temp.id('orgA'), pg_temp.id('plantA'), pg_temp.id('fin'), pg_temp.id('napkin'), 5, 0,   pg_temp.ny('2026-11-03 20:30'), pg_temp.id('manager'), gen_random_uuid(), now(), 'dup'),
   (pg_temp.id('orgA'), pg_temp.id('plantA'), pg_temp.id('fin'), pg_temp.id('mat'),    0, 25,  pg_temp.ny('2026-11-03 12:00'), pg_temp.id('manager'), gen_random_uuid(), null, null);
 
-insert into public.queue_items (org_id, plant_id, area_id, item_type_id, qty, unit, position, created_by, status, started_at, completed_at) values
-  (pg_temp.id('orgA'), pg_temp.id('plantA'), pg_temp.id('wash'), pg_temp.id('napkin'), 4,  'load',  1, pg_temp.id('manager'), 'queued', null, null),
-  (pg_temp.id('orgA'), pg_temp.id('plantA'), pg_temp.id('fin'),  pg_temp.id('mat'),    10, 'piece', 1, pg_temp.id('manager'), 'in_progress', now(), null),
-  (pg_temp.id('orgA'), pg_temp.id('plantA'), pg_temp.id('wash'), pg_temp.id('towel'),  2,  'load',  2, pg_temp.id('manager'), 'done', now(), now()),
-  (pg_temp.id('orgA'), pg_temp.id('plantA'), pg_temp.id('wash'), pg_temp.id('mat'),    2,  'load',  3, pg_temp.id('manager'), 'cancelled', null, null);
+insert into public.queue_items (org_id, plant_id, area_id, item_type_id, qty, unit, position, created_by, status, started_at, completed_at, client_id) values
+  (pg_temp.id('orgA'), pg_temp.id('plantA'), pg_temp.id('wash'), pg_temp.id('napkin'), 4,  'load',  1, pg_temp.id('manager'), 'queued', null, null, gen_random_uuid()),
+  (pg_temp.id('orgA'), pg_temp.id('plantA'), pg_temp.id('fin'),  pg_temp.id('mat'),    10, 'piece', 1, pg_temp.id('manager'), 'in_progress', now(), null, gen_random_uuid()),
+  (pg_temp.id('orgA'), pg_temp.id('plantA'), pg_temp.id('wash'), pg_temp.id('towel'),  2,  'load',  2, pg_temp.id('manager'), 'done', now(), now(), gen_random_uuid()),
+  (pg_temp.id('orgA'), pg_temp.id('plantA'), pg_temp.id('wash'), pg_temp.id('mat'),    2,  'load',  3, pg_temp.id('manager'), 'cancelled', null, null, gen_random_uuid());
 
 -- current_soil_estimates
 select is(pg_temp.reads($$select 1 from public.current_soil_estimates where plant_id = pg_temp.id('plantA')$$), '{3,3,3,3,3,0,0,42501}',
@@ -48,6 +48,8 @@ select is((select array[freshness, age_minutes::text] from public.current_soil_e
 select is(array[pg_temp.run_as('lead', $$select 1 from public.current_soil_estimates where entered_by_name = 'Ana'$$, true),
                 pg_temp.run_as('viewer', $$select 1 from public.current_soil_estimates where item_type_id = pg_temp.id('mat') and entered_by_name is null$$, true)],
   '{1,1}', 'who entered is visible to entry-staff readers only');
+select is(pg_temp.run_as('display', $$select 1 from public.current_soil_estimates where item_type_id = pg_temp.id('mat') and entered_by_name is null$$, true),
+  '1', 'entered_by_name is null for a display');
 
 -- queue_board
 select is(pg_temp.reads($$select 1 from public.queue_board where plant_id = pg_temp.id('plantA')$$), '{2,2,2,2,1,0,0,42501}',

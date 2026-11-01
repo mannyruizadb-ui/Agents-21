@@ -179,3 +179,6 @@ revoke all on public.current_soil_estimates, public.queue_board, public.washroom
               public.finished_by_shift, public.daily_reconciliation from anon, authenticated;
 grant select on public.current_soil_estimates, public.queue_board, public.washroom_by_shift,
                public.finished_by_shift, public.daily_reconciliation to authenticated;
+
+-- Security L2: no client TRUNCATE anywhere in public (RLS does not apply to TRUNCATE).
+revoke truncate on all tables in schema public from anon, authenticated;

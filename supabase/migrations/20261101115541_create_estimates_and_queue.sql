@@ -43,6 +43,7 @@ create table public.queue_items (
   updated_by_staff_id uuid,                               -- A8
   started_at    timestamptz,
   completed_at  timestamptz,
+  client_id     uuid not null unique,                     -- architect N2 (deviation from §4.4): idempotency
   foreign key (plant_id, org_id) references public.plants(id, org_id),
   foreign key (updated_by_staff_id, plant_id) references public.entry_staff(id, plant_id),
   foreign key (area_id, plant_id) references public.areas(id, plant_id),
@@ -64,6 +65,10 @@ create index queue_items_updated_by_idx on public.queue_items (updated_by);
 create function app.check_estimate_unit()
 returns trigger language plpgsql security definer set search_path = '' as $$
 begin
+  -- Security M2: no cross-tenant oracle; RLS rejects rows on plants the caller has no role on.
+  if (select auth.uid()) is not null and not app.has_role(new.plant_id, '{owner,manager,lead,viewer}') then
+    return new;
+  end if;
   if new.unit = 'basket' and not exists (
        select 1 from public.item_types i
         where i.id = new.item_type_id and i.allow_basket_estimates) then
@@ -89,7 +94,7 @@ begin
   raise exception 'VALIDATION_FAILED' using detail = format('%s rows are never deleted: void or cancel instead', tg_table_name);
 end;
 $$;
-comment on function app.prevent_delete() is '§4.5 BEFORE DELETE on finished_goods_entries, washer_cycles, queue_items: always raises (void/cancel instead).';
+comment on function app.prevent_delete() is '§4.5 BEFORE DELETE (row) / BEFORE TRUNCATE (statement, security L2) on finished_goods_entries, washer_cycles, queue_items (+ TRUNCATE on soil_estimates): always raises (void/cancel instead).';
 
 -- Allowed transitions (§4.9): queued → in_progress → done; queued/in_progress → cancelled.
 create function app.bump_queue_version()
@@ -121,12 +126,16 @@ create trigger soil_estimates_check_unit before insert on public.soil_estimates
   for each row execute function app.check_estimate_unit();
 create trigger soil_estimates_prevent_mutation before update or delete on public.soil_estimates
   for each row execute function app.prevent_mutation();
+create trigger soil_estimates_prevent_truncate before truncate on public.soil_estimates
+  for each statement execute function app.prevent_delete();
 create trigger soil_estimates_audit after insert on public.soil_estimates
   for each row execute function app.audit();
 create trigger queue_items_bump_version before update on public.queue_items
   for each row execute function app.bump_queue_version();
 create trigger queue_items_prevent_delete before delete on public.queue_items
   for each row execute function app.prevent_delete();
+create trigger queue_items_prevent_truncate before truncate on public.queue_items
+  for each statement execute function app.prevent_delete();
 create trigger queue_items_audit after insert or update on public.queue_items
   for each row execute function app.audit();
 

@@ -31,8 +31,9 @@ create table public.alert_events (
   id          uuid primary key default gen_random_uuid(),
   org_id      uuid not null,
   plant_id    uuid not null,
-  kind        text not null check (kind in ('estimate_stale','device_offline','import_failed')),
-  subject_id  uuid,                                       -- item_type / device / batch
+  -- Deviation from §4.4: + 'shift_generation_failed' (architect N1d, app.generate_all_shift_instances).
+  kind        text not null check (kind in ('estimate_stale','device_offline','import_failed','shift_generation_failed')),
+  subject_id  uuid,                                       -- item_type / device / batch / plant
   shift_instance_id uuid,
   sent_at     timestamptz not null default now(),
   recipients  text[] not null,

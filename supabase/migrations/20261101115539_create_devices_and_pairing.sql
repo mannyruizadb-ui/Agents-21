@@ -109,19 +109,21 @@ comment on function public.create_pairing_code(uuid, text) is
 revoke all on function public.create_pairing_code(uuid, text) from public, anon;
 grant execute on function public.create_pairing_code(uuid, text) to authenticated, service_role;
 
--- ── RLS policies (§4.7: devices, pairing_codes → owner/manager R C U; lead R; display own row R) ──
+-- ── RLS + grants (§4.7 as amended by meta ruling, security M1) ─────────────
+-- devices:       owner/manager R + U (name, area, languages, revoke only); lead R; display own row R.
+--                C only via the pair-device Edge Function (service role). Clients can never bind a
+--                device row to an arbitrary auth user (e.g. another tenant's account).
+-- pairing_codes: owner/manager/lead R. C only via create_pairing_code; consumed by pair-device
+--                (service role). No client writes at all.
+revoke insert, update on public.devices from anon, authenticated;
+grant update (name, area_id, display_languages, revoked_at) on public.devices to authenticated;
+revoke insert, update on public.pairing_codes from anon, authenticated;
+
 create policy devices_select on public.devices for select to authenticated
   using ((select app.has_role(plant_id, '{owner,manager,lead}')) or user_id = (select auth.uid()));
-create policy devices_insert on public.devices for insert to authenticated
-  with check ((select app.has_role(plant_id, '{owner,manager}')));
 create policy devices_update on public.devices for update to authenticated
   using ((select app.has_role(plant_id, '{owner,manager}')))
   with check ((select app.has_role(plant_id, '{owner,manager}')));
 
 create policy pairing_codes_select on public.pairing_codes for select to authenticated
   using ((select app.has_role(plant_id, '{owner,manager,lead}')));
-create policy pairing_codes_insert on public.pairing_codes for insert to authenticated
-  with check ((select app.has_role(plant_id, '{owner,manager}')) and created_by = (select auth.uid()));
-create policy pairing_codes_update on public.pairing_codes for update to authenticated
-  using ((select app.has_role(plant_id, '{owner,manager}')))
-  with check ((select app.has_role(plant_id, '{owner,manager}')));

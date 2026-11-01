@@ -40,8 +40,8 @@ create table public.shift_instances (
   unique (id, plant_id),
   unique (id, area_id),                                   -- target for area-consistent FKs
   unique (shift_id, business_date),
-  -- D7: no overlap per AREA (not per plant).
-  exclude using gist (area_id with =, tstzrange(starts_at, ends_at) with &&)
+  -- D7: no overlap per AREA (not per plant). Architect N1b: skipped instances don't block.
+  exclude using gist (area_id with =, tstzrange(starts_at, ends_at) with &&) where (skipped_at is null)
 );
 alter table public.shift_instances enable row level security;
 create index shift_instances_plant_org_idx on public.shift_instances (plant_id, org_id);
@@ -115,6 +115,46 @@ create index staff_sessions_staff_plant_idx on public.staff_sessions (staff_id, 
 create index staff_sessions_auth_user_idx on public.staff_sessions (auth_user_id);
 
 -- ── Triggers ──────────────────────────────────────────────────────────────
+-- Architect N1a: active shifts of one area must not overlap anywhere in the week, so generation
+-- can never hit the exclusion constraint. Week minutes: day*1440 + start; crossing midnight adds
+-- 1440; ranges compare modulo the 10080-minute week (Saturday night wraps into Sunday).
+-- SECURITY INVOKER: callers only see shifts their RLS allows (no cross-tenant oracle);
+-- service role / postgres see all.
+create function app.check_shift_overlap()
+returns trigger language plpgsql set search_path = '' as $$
+begin
+  if not new.active then
+    return new;
+  end if;
+  if exists (
+    with mine as (
+      select d * 1440 + extract(epoch from new.start_local)::int / 60 as s,
+             d * 1440 + extract(epoch from new.start_local)::int / 60
+               + case when new.end_local <= new.start_local then 1440 else 0 end
+               + (extract(epoch from new.end_local)::int - extract(epoch from new.start_local)::int) / 60 as e
+        from unnest(new.days_of_week) d
+    ), theirs as (
+      select d * 1440 + extract(epoch from o.start_local)::int / 60 as s,
+             d * 1440 + extract(epoch from o.start_local)::int / 60
+               + case when o.end_local <= o.start_local then 1440 else 0 end
+               + (extract(epoch from o.end_local)::int - extract(epoch from o.start_local)::int) / 60 as e
+        from public.shifts o
+       cross join lateral unnest(o.days_of_week) d
+       where o.area_id = new.area_id and o.active and o.id <> new.id
+    )
+    select 1 from mine m cross join theirs t cross join (values (-10080), (0), (10080)) k(off)
+     where m.s < t.e + k.off and t.s + k.off < m.e) then
+    raise exception 'VALIDATION_FAILED' using detail = 'shift: overlaps another active shift of the same area';
+  end if;
+  return new;
+end;
+$$;
+comment on function app.check_shift_overlap() is
+  'A6/N1a BEFORE INSERT/UPDATE on shifts: rejects (VALIDATION_FAILED) an active shift whose weekly hours overlap another active shift in the same area.';
+
+create trigger shifts_check_overlap
+  before insert or update of area_id, start_local, end_local, days_of_week, active on public.shifts
+  for each row execute function app.check_shift_overlap();
 create trigger shifts_audit after insert or update on public.shifts
   for each row execute function app.audit();
 create trigger shift_instances_audit after update on public.shift_instances
@@ -192,13 +232,59 @@ begin
     returning 1
   )
   select count(*)::int into v_count from upserted;
+
+  -- Architect N1c: unreferenced future instances whose shift is now inactive, or no longer runs
+  -- on that weekday, are marked "didn't run" (never deleted).
+  with retired as (
+    update public.shift_instances si
+       set skipped_at = pg_catalog.now()
+      from public.shifts s
+     where s.id = si.shift_id
+       and si.plant_id = p_plant_id
+       and si.skipped_at is null
+       and si.starts_at > pg_catalog.now()
+       and (not s.active or not (extract(dow from si.business_date)::smallint = any (s.days_of_week)))
+       and not exists (select 1 from public.finished_goods_entries f where f.shift_instance_id = si.id)
+       and not exists (select 1 from public.washer_cycles w where w.shift_instance_id = si.id)
+       and not exists (select 1 from public.shift_crew_hours h where h.shift_instance_id = si.id)
+       and not exists (select 1 from public.alert_events a where a.shift_instance_id = si.id)
+    returning 1
+  )
+  select v_count + count(*)::int into v_count from retired;
   return v_count;
 end;
 $$;
 comment on function app.generate_shift_instances(uuid, int, date) is
-  'A6/D6: creates shift_instances for p_days (1–60) days from p_from (default plant-local today), per active shift and day of week (0=Sun). DST-safe via AT TIME ZONE. Idempotent; updates times only of unreferenced future instances. Returns rows inserted or updated. service_role/postgres only.';
+  'A6/D6: creates shift_instances for p_days (1–60) days from p_from (default plant-local today), per active shift and day of week (0=Sun). DST-safe via AT TIME ZONE. Idempotent; updates times only of unreferenced future instances, and marks unreferenced future instances of inactive shifts / removed weekdays as skipped (N1c). Returns rows inserted, updated or skipped. service_role/postgres only.';
 revoke all on function app.generate_shift_instances(uuid, int, date) from public;
 grant execute on function app.generate_shift_instances(uuid, int, date) to service_role;
+
+-- Architect N1d: the pg_cron entry point. One plant failing never blocks the others; a failure is
+-- recorded in alert_events (kind shift_generation_failed, subject = plant) for the alert mailer.
+-- alert_events is created in create_messaging_and_alerts; plpgsql resolves it at call time.
+create function app.generate_all_shift_instances(p_days int default 7, p_from date default null)
+returns int language plpgsql volatile security definer set search_path = '' as $$
+declare
+  v_plant record;
+  v_total int := 0;
+begin
+  for v_plant in select p.id, p.org_id from public.plants p order by p.id loop
+    begin
+      v_total := v_total + app.generate_shift_instances(v_plant.id, p_days, p_from);
+    exception when others then
+      raise warning 'generate_shift_instances failed for plant %: % (%)', v_plant.id, sqlerrm, sqlstate;
+      insert into public.alert_events (org_id, plant_id, kind, subject_id, recipients)
+      values (v_plant.org_id, v_plant.id, 'shift_generation_failed', v_plant.id, '{}')
+      on conflict (kind, subject_id, shift_instance_id) do update set sent_at = excluded.sent_at, recipients = '{}';
+    end;
+  end loop;
+  return v_total;
+end;
+$$;
+comment on function app.generate_all_shift_instances(int, date) is
+  'A6/N1d pg_cron entry point (service_role/postgres only): runs app.generate_shift_instances for every plant; a failing plant is logged as alert_events kind shift_generation_failed (subject_id = plant; sent_at = latest failure, recipients reset) and the loop continues. Returns total rows changed.';
+revoke all on function app.generate_all_shift_instances(int, date) from public;
+grant execute on function app.generate_all_shift_instances(int, date) to service_role;
 
 -- D5: person-based shift attribution (A8). Returns a shift_instance id, or null (off-shift).
 create function app.resolve_entry_shift(p_staff_id uuid, p_choice text, p_ts timestamptz, p_area_id uuid)
