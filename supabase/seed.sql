@@ -45,7 +45,7 @@ select p.org_id, p.id, f.external_no, f.name, f.cycle_minutes
  ) as f(external_no, name, cycle_minutes)
  where p.name = 'Miami';
 
--- ── Wash groups + item catalog (A2; owner 2026-11-01, 2026-11-02): 36 groups, 74 items ──
+-- ── Wash groups + item catalog (A2; owner 2026-11-01, 2026-11-02): 34 groups, 73 items ──
 -- The washroom works by WASH GROUP (what may share a washer); finishing counts ITEMS. Every item is in
 -- exactly one group. Spanish names are AI drafts, pending the separate AI review (H1).
 -- Estimates: 'load' (catalog 🔸 assumed default); no baskets_per_load yet (null, TODO owner).
@@ -56,7 +56,7 @@ select p.org_id, p.id, f.external_no, f.name, f.cycle_minutes
 --   5×7 = 3.5  (approximate, owner range midpoint: "about 3 or 4 5x7s to the washer");
 --   2×3 = 35   (approximate, owner range midpoint: "probably 30 to 40"; low volume, ≤ ~10 a night).
 -- Every other item: null (TODO owner). The sanitizer dispenser is excluded (not washed or finished).
--- formula_no = the washer program the group is washed with (owner 2026-11-02); null = unmapped (TODO owner).
+-- formula_no = the washer program the group is washed with (owner 2026-11-02). Every group has one.
 insert into public.wash_groups (org_id, plant_id, name, name_i18n, sort_order, wash_formula_id)
 select p.org_id, p.id, g.name, jsonb_build_object('es', g.name_es), g.sort_order, f.id
   from public.plants p
@@ -72,32 +72,31 @@ select p.org_id, p.id, g.name, jsonb_build_object('es', g.name_es), g.sort_order
   ('Presidente logo mats',                'Tapetes con logo Presidente',               40, '6'),
   ('Logo mats',                           'Tapetes con logo',                          50, '6'),   -- all other logos
   ('Dust & wet mops',                     'Mopas de polvo y trapeadores',              60, '1'),
-  ('Microfiber mops',                     'Mopas de microfibra',                       70, null),  -- formula TODO owner
+  ('Microfiber mops',                     'Mopas de microfibra',                       70, '1'),
   ('Kitchen towels',                      'Toallas de cocina',                         80, '5'),
   ('Microfiber towels',                   'Toallas de microfibra',                     90, '2'),   -- color and black wash together (owner 2026-11-02)
-  ('Mechanic towels',                     'Toallas de mecánico',                       95, null),  -- white and colored together; formula TODO owner
+  ('Mechanic towels',                     'Toallas de mecánico',                       95, '5'),   -- white and colored wash together
   ('White aprons',                        'Delantales blancos',                       100, '5'),
   ('Black aprons',                        'Delantales negros',                        110, '4'),
   ('Coats (white)',                       'Batas y filipinas (blancas)',              120, '3'),
   ('White tablecloths',                   'Manteles blancos',                         130, '3'),
   ('Black tablecloths',                   'Manteles negros',                          140, '4'),
   ('Red & blue tablecloths',              'Manteles rojos y azules',                  145, '4'),   -- red and blue wash together (owner 2026-11-02)
-  -- Napkins: each color washes on its own (owner 2026-11-01). Whites → F3, colors → F4.
+  -- Napkins: each color washes on its own (owner 2026-11-01), except bone + chambray, which wash together
+  -- on formula 3 (owner 2026-11-02; LinenTrack's "Charcoal Napkin" is chambray). Whites → F3, colors → F4.
   ('Napkins – Green',                     'Servilletas – verde',                      150, '4'),
   ('Napkins – Navy Blue w/ Stripe',       'Servilletas – azul marino con raya',       160, '4'),
   ('Napkins – Dark Navy Blue w/ Stripe',  'Servilletas – azul marino oscuro con raya', 170, '4'),
   ('Napkins – Navy Blue',                 'Servilletas – azul marino',                180, '4'),
-  ('Napkins – Bone',                      'Servilletas – hueso',                      190, null),  -- formula TODO owner
   ('Napkins – Red',                       'Servilletas – roja',                       200, '4'),
   ('Napkins – Regular White',             'Servilletas – blanca regular',             210, '3'),
   ('Napkins – New White',                 'Servilletas – blanca nueva',               220, '3'),
-  ('Napkins – Chambray',                  'Servilletas – chambray',                   230, '4'),
+  ('Napkins – Bone & Chambray',           'Servilletas – hueso y chambray',           230, '3'),
   ('Napkins – Black w/ Stripe',           'Servilletas – negra con raya',             240, '4'),
   ('Napkins – Black',                     'Servilletas – negra',                      250, '4'),
   ('Napkins – Pink',                      'Servilletas – rosada',                     260, '4'),
   ('Napkins – Cotton White',              'Servilletas – blanca de algodón',          270, '3'),
   ('Napkins – Cotton Black',              'Servilletas – negra de algodón',           280, '4'),
-  ('Napkins – Charcoal',                  'Servilletas – carbón',                     285, '4'),   -- washes alone (owner 2026-11-02)
   ('Old sheets',                          'Sábanas viejas',                           290, '2'),
   ('Regular sheets',                      'Sábanas regulares',                        300, '2'),
   ('New sheets',                          'Sábanas nuevas',                           310, '2')
@@ -150,10 +149,10 @@ select p.org_id, p.id, g.id, i.name, jsonb_build_object('es', i.name_es), i.cate
   ('Kitchen towels',    'Kitchen towel',            'Toalla de cocina',              'towel', 'pack', 50, null, 210),
   ('Microfiber towels', 'Microfiber towel – color', 'Toalla de microfibra – color',  'towel', 'pack', 50, null, 220),
   ('Microfiber towels', 'Microfiber towel – black', 'Toalla de microfibra – negra',  'towel', 'pack', 50, null, 222),
-  -- Mechanic towels, white and colored wash together (owner 2026-11-02). Count mode unknown: 'unit' for
-  -- now, TODO owner (pack size?).
-  ('Mechanic towels',   'Mechanic towel – white',   'Toalla de mecánico – blanca',   'towel', 'unit', null, null, 224),
-  ('Mechanic towels',   'Mechanic towel – color',   'Toalla de mecánico – de color', 'towel', 'unit', null, null, 226),
+  -- Mechanic towels: white and colored wash together but are counted separately at finishing, pack of 100
+  -- each ✅ (owner 2026-11-02).
+  ('Mechanic towels',   'Mechanic towel – white',   'Toalla de mecánico – blanca',   'towel', 'pack', 100, null, 224),
+  ('Mechanic towels',   'Mechanic towel – color',   'Toalla de mecánico – de color', 'towel', 'pack', 100, null, 226),
   -- Apparel: by unit (aprons, chef coat 🔸 assumed; butcher coats ✅ counted by size, owner 2026-11-02).
   -- White and black aprons always wash separately (owner), hence two groups.
   ('White aprons',  'Apron white',  'Delantal blanco',   'apparel', 'unit', null, null, 230),
@@ -187,23 +186,22 @@ select p.org_id, p.id, g.id, i.name, jsonb_build_object('es', i.name_es), i.cate
   ('Red & blue tablecloths', 'Tablecloth 72×72 red',  'Mantel 72×72 rojo', 'linen', 'pack', 10, null, 424),
   ('Red & blue tablecloths', 'Tablecloth 90×90 red',  'Mantel 90×90 rojo', 'linen', 'pack', 5,  null, 426),
   ('Red & blue tablecloths', 'Tablecloth 62×62 blue', 'Mantel 62×62 azul', 'linen', 'pack', 15, null, 428),
-  -- Napkins: one item per color, each in its own group. Pack of 100 for every color and material ✅
+  -- Napkins: one item per color; each color is its own group except bone + chambray (one group). Pack of 100 for every color and material ✅
   -- (owner 2026-11-01).
   ('Napkins – Green',                    'Napkin – Green',                    'Servilleta – verde',                       'linen', 'pack', 100, null, 430),
   ('Napkins – Navy Blue w/ Stripe',      'Napkin – Navy Blue w/ Stripe',      'Servilleta – azul marino con raya',        'linen', 'pack', 100, null, 440),
   ('Napkins – Dark Navy Blue w/ Stripe', 'Napkin – Dark Navy Blue w/ Stripe', 'Servilleta – azul marino oscuro con raya', 'linen', 'pack', 100, null, 450),
   ('Napkins – Navy Blue',                'Napkin – Navy Blue',                'Servilleta – azul marino',                 'linen', 'pack', 100, null, 460),
-  ('Napkins – Bone',                     'Napkin – Bone',                     'Servilleta – hueso',                       'linen', 'pack', 100, null, 470),
+  ('Napkins – Bone & Chambray',          'Napkin – Bone',                     'Servilleta – hueso',                       'linen', 'pack', 100, null, 470),
   ('Napkins – Red',                      'Napkin – Red',                      'Servilleta – roja',                        'linen', 'pack', 100, null, 480),
   ('Napkins – Regular White',            'Napkin – Regular White',            'Servilleta – blanca regular',              'linen', 'pack', 100, null, 490),
   ('Napkins – New White',                'Napkin – New White',                'Servilleta – blanca nueva',                'linen', 'pack', 100, null, 500),
-  ('Napkins – Chambray',                 'Napkin – Chambray',                 'Servilleta – chambray',                    'linen', 'pack', 100, null, 510),
+  ('Napkins – Bone & Chambray',          'Napkin – Chambray',                 'Servilleta – chambray',                    'linen', 'pack', 100, null, 510),
   ('Napkins – Black w/ Stripe',          'Napkin – Black w/ Stripe',          'Servilleta – negra con raya',              'linen', 'pack', 100, null, 520),
   ('Napkins – Black',                    'Napkin – Black',                    'Servilleta – negra',                       'linen', 'pack', 100, null, 530),
   ('Napkins – Pink',                     'Napkin – Pink',                     'Servilleta – rosada',                      'linen', 'pack', 100, null, 540),
   ('Napkins – Cotton White',             'Napkin – Cotton White',             'Servilleta – blanca de algodón',           'linen', 'pack', 100, null, 550),
   ('Napkins – Cotton Black',             'Napkin – Cotton Black',             'Servilleta – negra de algodón',            'linen', 'pack', 100, null, 560),
-  ('Napkins – Charcoal',                 'Napkin – Charcoal',                 'Servilleta – carbón',                      'linen', 'pack', 100, null, 565),
   -- Sheets: all three grades in packs of 10 ✅ (owner 2026-11-01); each grade washes on its own.
   ('Old sheets',     'Sheet – old',     'Sábana vieja',   'linen', 'pack', 10, null, 570),
   ('Regular sheets', 'Sheet – regular', 'Sábana regular', 'linen', 'pack', 10, null, 580),
