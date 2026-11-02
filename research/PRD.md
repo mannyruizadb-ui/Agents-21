@@ -492,6 +492,15 @@ Save and reuse a typical day's order.
   - Changing the group is a second tap (pick from the next 3).
   - Undo within 30 s.
   - The washman's PIN is entered **once per shift** (A8 session for the washroom tablet; owner OK 2026-11-02; needs security review before build).
+- **Washer-done sound (P1, owner request 2026-11-02):**
+  - When a washer's timer (start tap + formula `cycle_minutes`) runs out, the TV showing that washer flashes "READY TO UNLOAD" with an icon and text. It also plays a chime, plus a spoken washer number in the screen's language ("Lavadora 3").
+  - **Never sound alone.** The visual cue is always there for noise and for deaf or hard-of-hearing staff.
+  - It is set per screen: sound on/off, chime only or chime + voice, and one repeat after N minutes if no new load has started on that washer. No endless repeats (alarm fatigue).
+  - It is an estimate: the timer can't see pauses or faults, so the screen says "should be done" until Accu-Flow data exists.
+  - **Browser constraint:** browsers block sound until someone interacts with the page.
+    - The TV device must run a browser we control in kiosk mode, set to allow sound without a tap (Chromium flag or a kiosk-browser setting).
+    - Otherwise the screen shows "Tap to enable sound" after every reload.
+    - The device choice is an owner purchase decision.
 - **Tech notes:**
   - Route `/display/:deviceId`. The feed RPC `get_display_feed()` resolves the caller's device → screen config → machines/area.
   - Display RLS scope is extended from device→area to device→screen (machines in its config). Schema arrives with M2 (`display_screens`, `display_screen_machines`, optional `queue_items.pinned_machine_id`).

@@ -17,6 +17,7 @@ Why butcher coats start by about 21:00–21:30 (owner):
 - The first batch is ready to hang about 00:30–01:00, for the finishing night shift (00:00).
 - **Butcher coats, sheets and floor mats are daily-turnaround goods:** processed the same night, out on the trucks at **06:00**.
 - So the real deadline is "ready for night finishing by about 01:00, so it ships at 06:00". The 21:30 start is derived from it.
+- **Owner confirmed 2026-11-02:** only these three (butcher coats, sheets, floor mats) are next-morning goods. Nothing else ships at 06:00. These groups get the midnight "behind schedule" warning.
 - Once real turnaround data exists, the deadline rule should work backwards from the 06:00 truck: truck → finishing time → dry → wash. A fixed clock time is only the fallback.
 
 Rewash: the finishing staff pull items that came out dirty and send them back to the washroom. Rewash is a queue item, and its loads are excluded from washed-vs-finished reconciliation.
