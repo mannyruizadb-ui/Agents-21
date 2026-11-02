@@ -1,0 +1,46 @@
+# Push database migrations to the Supabase cloud project ("Plant Ops Board").
+# Manual only: run it from GitHub → Actions → "Deploy database" → Run workflow.
+# Needs repository secrets: SUPABASE_ACCESS_TOKEN, SUPABASE_PROJECT_REF, SUPABASE_DB_PASSWORD.
+# Every run first prints a dry run; set "apply" to true to actually push.
+name: Deploy database
+
+on:
+  workflow_dispatch:
+    inputs:
+      apply:
+        description: 'Apply the migrations (false = dry run only)'
+        type: boolean
+        default: false
+      include_seed:
+        description: 'Also load supabase/seed.sql (first deploy only)'
+        type: boolean
+        default: false
+
+concurrency:
+  group: deploy-db
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  push:
+    runs-on: ubuntu-latest
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+      PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - name: Link project
+        run: npx supabase link --project-ref "$PROJECT_REF" --password "$SUPABASE_DB_PASSWORD" </dev/null
+      - name: Dry run (always)
+        run: npx supabase db push --dry-run ${{ inputs.include_seed && '--include-seed' || '' }} --password "$SUPABASE_DB_PASSWORD" </dev/null
+      - name: Apply
+        if: ${{ inputs.apply }}
+        run: npx supabase db push ${{ inputs.include_seed && '--include-seed' || '' }} --password "$SUPABASE_DB_PASSWORD" </dev/null

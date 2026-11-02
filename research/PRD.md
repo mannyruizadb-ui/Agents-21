@@ -670,6 +670,29 @@ Log stoppages (machine down, waiting on washroom, no work) with start and end ti
   - **Suggested pieces per load** = finished pieces ÷ loads washed over the trailing 28 days. Shown only when ≥ 20 loads, with the sample size. The owner accepts or ignores it (see A2).
   - **Caveat on screen:** the suggestion assumes most washed goods were also finished in the same window. A large clean backlog skews it.
 
+#### G6. Production pace, goals & behind-schedule alerts (P0) *(v1.6, owner request 2026-11-02: "I'm a visual guy")*
+
+- **Story:** As the owner, I want to see at a glance, mostly as pictures rather than tables, whether tonight is on pace, and to be warned before we fall behind, so that I act early instead of finding out at 6 a.m.
+- **Scope:** totals per wash group, area, shift and production day only. **Never per person** (§6.2 #11). This is the same reason G2 stays P1.
+- **Acceptance criteria:**
+  - **Owner home screen (phone), visual first:**
+    - One card per next-morning group (mats, sheets, butcher coats): progress ring of loads washed vs. loads needed (the latest estimate), projected finish time vs. the deadline, and a status of **On pace ✓ / Watch ⚠ / Behind ✕**. The status always pairs icon + text + color, never color alone.
+    - A **pace chart** for the current shift: cumulative loads (actual line) against the goal line, with "now" marked.
+    - A strip showing the 6 washers: running / idle / ready-to-unload, with minutes idle. Idle washers during a shift are the cheapest thing to fix.
+  - **Goals and thresholds, owner-set and editable in the app:**
+    - Per shift, per area: a target in loads (washroom) and pieces or packs (finishing), optionally per wash group.
+    - Per next-morning group: a deadline, default "ready for night finishing by 01:00" (`research/washroom-patterns.md`).
+    - Thresholds: **Watch** when projected below 90% of goal or projected finish within 30 min of the deadline; **Behind** below 75% or projected past the deadline. All values editable.
+  - **Projection:** remaining loads ÷ current pace, where pace = standard loads per hour over the last 60–90 min across running washers. Labelled "≈". Hidden until 30 minutes of data exist in the shift.
+  - **Alerts:**
+    - A single push or banner when a group enters **Behind**, max 1 per group per shift.
+    - The TV gets a small "behind" badge for that group only if the owner turns it on for that screen. The crew screens stay simple by default.
+  - **First weeks:** no goals are set; the screen shows actuals only plus "set a goal". Suggested goals come from about 3 weeks of data: the median shift.
+- **Tech notes:**
+  - View `shift_pace` (standard loads per 15-min bucket per shift + group), `production_goals` table (plant/area/shift/group, target, thresholds), RPC `get_pace_dashboard()`.
+  - Recharts for the charts.
+  - Builds on F1 washer taps and the G1 views. Ships in M2 with live data from the M2 tap flow; goals are tuned during the M3 pilot.
+
 #### G4. CSV export (P1)
 
 Export any report, or the raw entries (finished goods, washer loads, estimates), for a date range (owner/manager).

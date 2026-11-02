@@ -1,0 +1,28 @@
+# Netlify build settings for PlantBoard (static SPA + PWA).
+# Env vars are set in the Netlify UI (Site configuration → Environment variables):
+#   VITE_SUPABASE_URL, VITE_SUPABASE_PUBLISHABLE_KEY (publishable key only — never the service role key).
+[build]
+  command = "npm ci && npm run build"
+  publish = "dist"
+
+[build.environment]
+  NODE_VERSION = "22"
+
+# Single-page app: every route is served by index.html (React Router handles it).
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+
+# The service worker must never be cached, or clients get stuck on an old version.
+[[headers]]
+  for = "/sw.js"
+  [headers.values]
+    Cache-Control = "no-cache"
+
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+    X-Frame-Options = "DENY"
