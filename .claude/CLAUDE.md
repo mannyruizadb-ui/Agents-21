@@ -39,7 +39,7 @@ Full context lives in these docs. Read the relevant one before non-trivial work;
   - Seed: 48 items (tablecloths per size+color, 14 napkin colors, towels and wipes in packs of 50, sheets in packs of 10) and 10 machines. Sign-ups are OFF.
   - **Wash groups BUILT** (`20261101214357_create_wash_groups.sql`):
     - The washroom works by wash group: estimates, queue, washer cycles and the TVs. Finishing counts items. Reconciliation is per production day per group.
-    - 34 groups, 73 items in the seed; every group has a formula (Scraper, City & Brito, red & blue tablecloths, bone into whites, mechanic towels white/color pack 100, bone + chambray napkins together, butcher coats M/L/XL). Mat pieces per standard load: 16 (3×5), 12 (4×6), 9 (3×10), ≈3.5 (5×7), ≈35 (2×3).
+    - 33 groups, 73 items in the seed (green + red napkins wash together); every group has a formula (Scraper, City & Brito, red & blue tablecloths, bone into whites, mechanic towels white/color pack 100, bone + chambray napkins together, butcher coats M/L/XL). Mat pieces per standard load: 16 (3×5), 12 (4×6), 9 (3×10), ≈3.5 (5×7), ≈35 (2×3).
     - History is snapshotted: `finished_goods_entries.wash_group_id`, `washer_cycles.load_factor_used`.
     - **480 pgTAP tests pass.** security-reviewer: BLOCK (cross-tenant error-code oracle) → fixed → PASS WITH NOTES. architect: PASS WITH NOTES.
     - PRD v1.6 rewrite still owed: A2, B, C1/C4, D1/D2, F, G1–G3, §4.4–4.9, §5.3.

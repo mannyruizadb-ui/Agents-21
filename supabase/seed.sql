@@ -45,7 +45,7 @@ select p.org_id, p.id, f.external_no, f.name, f.cycle_minutes
  ) as f(external_no, name, cycle_minutes)
  where p.name = 'Miami';
 
--- ── Wash groups + item catalog (A2; owner 2026-11-01, 2026-11-02): 34 groups, 73 items ──
+-- ── Wash groups + item catalog (A2; owner 2026-11-01, 2026-11-02): 33 groups, 73 items ──
 -- The washroom works by WASH GROUP (what may share a washer); finishing counts ITEMS. Every item is in
 -- exactly one group. Spanish names are AI drafts, pending the separate AI review (H1).
 -- Estimates: 'load' (catalog 🔸 assumed default); no baskets_per_load yet (null, TODO owner).
@@ -84,11 +84,10 @@ select p.org_id, p.id, g.name, jsonb_build_object('es', g.name_es), g.sort_order
   ('Red & blue tablecloths',              'Manteles rojos y azules',                  145, '4'),   -- red and blue wash together (owner 2026-11-02)
   -- Napkins: each color washes on its own (owner 2026-11-01), except bone + chambray, which wash together
   -- on formula 3 (owner 2026-11-02; LinenTrack's "Charcoal Napkin" is chambray). Whites → F3, colors → F4.
-  ('Napkins – Green',                     'Servilletas – verde',                      150, '4'),
+  ('Napkins – Green & Red',               'Servilletas – verde y roja',               150, '4'),   -- green and red wash together (owner 2026-11-02)
   ('Napkins – Navy Blue w/ Stripe',       'Servilletas – azul marino con raya',       160, '4'),
   ('Napkins – Dark Navy Blue w/ Stripe',  'Servilletas – azul marino oscuro con raya', 170, '4'),
   ('Napkins – Navy Blue',                 'Servilletas – azul marino',                180, '4'),
-  ('Napkins – Red',                       'Servilletas – roja',                       200, '4'),
   ('Napkins – Regular White',             'Servilletas – blanca regular',             210, '3'),
   ('Napkins – New White',                 'Servilletas – blanca nueva',               220, '3'),
   ('Napkins – Bone & Chambray',           'Servilletas – hueso y chambray',           230, '3'),
@@ -188,12 +187,12 @@ select p.org_id, p.id, g.id, i.name, jsonb_build_object('es', i.name_es), i.cate
   ('Red & blue tablecloths', 'Tablecloth 62×62 blue', 'Mantel 62×62 azul', 'linen', 'pack', 15, null, 428),
   -- Napkins: one item per color; each color is its own group except bone + chambray (one group). Pack of 100 for every color and material ✅
   -- (owner 2026-11-01).
-  ('Napkins – Green',                    'Napkin – Green',                    'Servilleta – verde',                       'linen', 'pack', 100, null, 430),
+  ('Napkins – Green & Red',              'Napkin – Green',                    'Servilleta – verde',                       'linen', 'pack', 100, null, 430),
   ('Napkins – Navy Blue w/ Stripe',      'Napkin – Navy Blue w/ Stripe',      'Servilleta – azul marino con raya',        'linen', 'pack', 100, null, 440),
   ('Napkins – Dark Navy Blue w/ Stripe', 'Napkin – Dark Navy Blue w/ Stripe', 'Servilleta – azul marino oscuro con raya', 'linen', 'pack', 100, null, 450),
   ('Napkins – Navy Blue',                'Napkin – Navy Blue',                'Servilleta – azul marino',                 'linen', 'pack', 100, null, 460),
   ('Napkins – Bone & Chambray',          'Napkin – Bone',                     'Servilleta – hueso',                       'linen', 'pack', 100, null, 470),
-  ('Napkins – Red',                      'Napkin – Red',                      'Servilleta – roja',                        'linen', 'pack', 100, null, 480),
+  ('Napkins – Green & Red',              'Napkin – Red',                      'Servilleta – roja',                        'linen', 'pack', 100, null, 480),
   ('Napkins – Regular White',            'Napkin – Regular White',            'Servilleta – blanca regular',              'linen', 'pack', 100, null, 490),
   ('Napkins – New White',                'Napkin – New White',                'Servilleta – blanca nueva',                'linen', 'pack', 100, null, 500),
   ('Napkins – Bone & Chambray',          'Napkin – Chambray',                 'Servilleta – chambray',                    'linen', 'pack', 100, null, 510),
