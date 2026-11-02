@@ -57,7 +57,13 @@ Full context lives in these docs. Read the relevant one before non-trivial work;
     - Nightly mat and linen counts, par levels, damage and repair, route-count variance. Don't rebuild inventory in PlantBoard; integrate later.
     - Its item list differs from the seed (Scraper, City, Brito mats; red, blue and bone tablecloths; mechanic towels; …). Waiting on the owner.
     - Its login has security issues (PIN is the account password, lockout only in the browser, user list shown before sign-in). Reported to the owner; its repo isn't in this session.
-  - Washroom tapping: a night-shift supervisor will tap each washer start. Owner: the washman taps on every shift. PIN once per shift for washroom taps needs an A8 policy change plus security review before it's built.
+  - Washroom tapping: the washman taps each washer start, on every shift. **Taps carry no name or PIN** (owner 2026-11-02). The tablet is a washroom station, because washmen overlap and per-washman loads would be per-worker output. Manager corrections use name + PIN.
+  - The mat roller (20:00 until the mats are done) is in **finishing**. Goals: learn first; pace actuals ship in M2, goals and alerts about 2 weeks after go-live.
+  - **Live:**
+    - Netlify site `adb-plantboard` (https://adb-plantboard.netlify.app), linked to `main`, env vars set.
+    - PR #3 merged 2026-11-02.
+    - Cloud DB upload via `.github/workflows/deploy-db.yml`. The dry run passed: 19 migrations + seed. The real run waits on an explicit owner "upload".
+  - Invite email: the owner has no own domain yet (gave a Gmail address). Resend needs a verified domain, so the choice is Gmail SMTP with an app password, or buy a domain. Pending.
   - **Displays (PRD D1 v1.6):** screens are configurable data (machine or area layout), so TVs can be added anywhere without code. Launch: washroom TV A = washers 1–3, TV B = washers 4–6, finishing 1 TV. No dryer TV (dryers are 5 steps away). NOW + NEXT only. **The washman taps** each washer start, one tap, PIN once per shift.
   - Security notes to carry forward:
     - snapshot `load_factor` per washer cycle;

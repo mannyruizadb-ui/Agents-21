@@ -491,7 +491,11 @@ Save and reuse a typical day's order.
   - **One tap** starts the load and writes the `washer_cycles` row.
   - Changing the group is a second tap (pick from the next 3).
   - Undo within 30 s.
-  - The washman's PIN is entered **once per shift** (A8 session for the washroom tablet; owner OK 2026-11-02; needs security review before build).
+  - **No name or PIN for washer taps** (owner decision 2026-11-02, superseding "PIN once per shift"):
+    - Two washmen overlap (14:00–22:00 and 16:00–24:00), so a per-person session would attribute loads to the wrong person.
+    - Recording which washman started each load would be per-worker output (§6.2 #11).
+    - The washroom tablet is a station: taps are attributed to the station + shift, counted by shift, washer and wash group.
+    - Corrections are made by a manager, with name + PIN.
 - **Washer-done sound (P1, owner request 2026-11-02):**
   - When a washer's timer (start tap + formula `cycle_minutes`) runs out, the TV showing that washer flashes "READY TO UNLOAD" with an icon and text. It also plays a chime, plus a spoken washer number in the screen's language ("Lavadora 3").
   - **Never sound alone.** The visual cue is always there for noise and for deaf or hard-of-hearing staff.
@@ -688,6 +692,7 @@ Log stoppages (machine down, waiting on washroom, no work) with start and end ti
     - A single push or banner when a group enters **Behind**, max 1 per group per shift.
     - The TV gets a small "behind" badge for that group only if the owner turns it on for that screen. The crew screens stay simple by default.
   - **First weeks:** no goals are set; the screen shows actuals only plus "set a goal". Suggested goals come from about 3 weeks of data: the median shift.
+  - **Owner decision 2026-11-02:** learn first. The pace screens with actuals ship with M2. Goals, thresholds and alerts are switched on about 2 weeks into live use.
 - **Tech notes:**
   - View `shift_pace` (standard loads per 15-min bucket per shift + group), `production_goals` table (plant/area/shift/group, target, thresholds), RPC `get_pace_dashboard()`.
   - Recharts for the charts.
