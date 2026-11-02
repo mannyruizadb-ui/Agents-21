@@ -39,10 +39,16 @@ Full context lives in these docs. Read the relevant one before non-trivial work;
   - Seed: 48 items (tablecloths per size+color, 14 napkin colors, towels and wipes in packs of 50, sheets in packs of 10) and 10 machines. Sign-ups are OFF.
   - **Wash groups BUILT** (`20261101214357_create_wash_groups.sql`):
     - The washroom works by wash group: estimates, queue, washer cycles and the TVs. Finishing counts items. Reconciliation is per production day per group.
-    - 34 groups, 69 items in the seed (adds Scraper, City & Brito, red & blue tablecloths, bone into whites). Mat pieces per standard load: 16 (3×5), 12 (4×6), 9 (3×10), ≈3.5 (5×7), ≈35 (2×3).
+    - 36 groups, 74 items in the seed (Scraper, City & Brito, red & blue tablecloths, bone into whites, mechanic towels, charcoal napkins, butcher coats M/L/XL). Mat pieces per standard load: 16 (3×5), 12 (4×6), 9 (3×10), ≈3.5 (5×7), ≈35 (2×3).
     - History is snapshotted: `finished_goods_entries.wash_group_id`, `washer_cycles.load_factor_used`.
     - **480 pgTAP tests pass.** security-reviewer: BLOCK (cross-tenant error-code oracle) → fixed → PASS WITH NOTES. architect: PASS WITH NOTES.
     - PRD v1.6 rewrite still owed: A2, B, C1/C4, D1/D2, F, G1–G3, §4.4–4.9, §5.3.
+  - **Formulas, washer assignment, rewash (2026-11-02; 549 pgTAP tests pass; security-reviewer PASS WITH NOTES):**
+    - 6 Milnor formulas with cycle minutes. Each wash group maps to one formula (`wash_groups.wash_formula_id`); one formula covers many groups, so Accu-Flow rows alone can't tell which group ran.
+    - The owner can assign a queue item to a washer (`queue_items.assigned_machine_id`; the machine must be in the same area).
+    - `washer_cycles.is_rewash`: rewash loads are excluded from `standard_loads` and reconciliation and reported as `rewash_loads`.
+    - Open: formulas for microfiber mops, bone napkins and mechanic towels; mechanic towel count mode; who marks rewash and how to correct it; washers-only assignment.
+    - Security carry-forward: M2 must `revoke update` on washer_cycles; corrections are void + re-enter.
   - **Owner's existing inventory app "LinenTrack"** (separate Netlify + Supabase app, labeled "Test DB"):
     - Nightly mat and linen counts, par levels, damage and repair, route-count variance. Don't rebuild inventory in PlantBoard; integrate later.
     - Its item list differs from the seed (Scraper, City, Brito mats; red, blue and bone tablecloths; mechanic towels; …). Waiting on the owner.
