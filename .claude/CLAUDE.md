@@ -28,9 +28,42 @@ Full context lives in these docs. Read the relevant one before non-trivial work;
 - **Supabase: "Plant Ops Board"** (ref `ypurifebjiivvltbcufx`, us-east-1). The only cloud project (staging until the pilot), still empty; the first `db push` needs owner OK. Never touch "ADB Project" or "Fleet Repair Log".
 - **M1 part 1 DONE (2026-11-01): database foundation**
   - 8 migrations in `supabase/migrations/20261101*`: 26 tables, RLS per role, staff PIN RPCs, pairing codes, DST-safe shift generation, `resolve_entry_shift`, reporting views.
-  - `supabase/seed.sql`: ADB plant, 25 items, per-area shifts. Interim 'unit' items are marked TODO owner.
+  - `supabase/seed.sql`: ADB plant, items, machines, per-area shifts (updated 2026-11-01, see below).
   - **359 pgTAP tests pass**, locally and in CI.
   - Reviews: architect PASS; security-reviewer PASS after a BLOCK (devices and pairing codes are now RPC-only; no trigger oracles). Deviations are recorded in PRD v1.5.
+- **PR #2 (M1 part 1) merged to main by the owner (2026-11-01).**
+- **Owner answers 2026-11-01 (built, 432 pgTAP tests pass; security-reviewer PASS WITH NOTES):**
+  - Staff admin: owner, plus managers the owner grants (`memberships.can_manage_staff`).
+  - Production day runs **12:00 → 12:00** (`plants.production_day_start`, `shift_instances.production_date`). Report views now use `production_date`, `loads_run` and `standard_loads`.
+  - Washer 6 (160 lb) has `machines.load_factor` 1.19; washers 1–5 (135 lb) are 1.00.
+  - Seed: 48 items (tablecloths per size+color, 14 napkin colors, towels and wipes in packs of 50, sheets in packs of 10) and 10 machines. Sign-ups are OFF.
+  - **Wash groups BUILT** (`20261101214357_create_wash_groups.sql`):
+    - The washroom works by wash group: estimates, queue, washer cycles and the TVs. Finishing counts items. Reconciliation is per production day per group.
+    - 33 groups, 73 items in the seed (green + red napkins wash together); every group has a formula (Scraper, City & Brito, red & blue tablecloths, bone into whites, mechanic towels white/color pack 100, bone + chambray napkins together, butcher coats M/L/XL). Mat pieces per standard load: 16 (3×5), 12 (4×6), 9 (3×10), ≈3.5 (5×7), ≈35 (2×3).
+    - History is snapshotted: `finished_goods_entries.wash_group_id`, `washer_cycles.load_factor_used`.
+    - **480 pgTAP tests pass.** security-reviewer: BLOCK (cross-tenant error-code oracle) → fixed → PASS WITH NOTES. architect: PASS WITH NOTES.
+    - PRD v1.6 rewrite still owed: A2, B, C1/C4, D1/D2, F, G1–G3, §4.4–4.9, §5.3.
+  - **Formulas, washer assignment, rewash (2026-11-02; 549 pgTAP tests pass; security-reviewer PASS WITH NOTES):**
+    - 6 Milnor formulas with cycle minutes. Each wash group maps to one formula (`wash_groups.wash_formula_id`); one formula covers many groups, so Accu-Flow rows alone can't tell which group ran.
+    - The owner can assign a queue item to a washer (`queue_items.assigned_machine_id`; the machine must be in the same area).
+    - `washer_cycles.is_rewash`: rewash loads are excluded from `standard_loads` and reconciliation and reported as `rewash_loads`.
+    - 2026-11-02 follow-up (566 tests; security PASS WITH NOTES): assignment is washers-only (FK on generated `assigned_machine_kind`). Rewash comes from finishing, so it is set on the queue item (`queue_items.is_rewash`). Managers may move loads off broken washers.
+    - M2 notes:
+      - the start-load RPC copies `is_rewash` and must look up by id + plant + area with a role guard first (no oracle);
+      - the UI hides inactive washers.
+    - Washroom patterns and the learning plan are in `research/washroom-patterns.md`. Build no rules before about 3 weeks of tap data.
+    - Security carry-forward: M2 must `revoke update` on washer_cycles; corrections are void + re-enter.
+  - **Owner's existing inventory app "LinenTrack"** (separate Netlify + Supabase app, labeled "Test DB"):
+    - Nightly mat and linen counts, par levels, damage and repair, route-count variance. Don't rebuild inventory in PlantBoard; integrate later.
+    - Its item list differs from the seed (Scraper, City, Brito mats; red, blue and bone tablecloths; mechanic towels; …). Waiting on the owner.
+    - Its login has security issues (PIN is the account password, lockout only in the browser, user list shown before sign-in). Reported to the owner; its repo isn't in this session.
+  - Washroom tapping: a night-shift supervisor will tap each washer start. Owner: the washman taps on every shift. PIN once per shift for washroom taps needs an A8 policy change plus security review before it's built.
+  - **Displays (PRD D1 v1.6):** screens are configurable data (machine or area layout), so TVs can be added anywhere without code. Launch: washroom TV A = washers 1–3, TV B = washers 4–6, finishing 1 TV. No dryer TV (dryers are 5 steps away). NOW + NEXT only. **The washman taps** each washer start, one tap, PIN once per shift.
+  - Security notes to carry forward:
+    - snapshot `load_factor` per washer cycle;
+    - store `production_date` on off-shift rows in the M2 RPCs;
+    - invite-user must gate the `can_manage_staff` and owner role grants;
+    - duplicate-PIN errors reveal which PINs are in use (accepted for now; PINs are attribution only).
 - **Next, M1 part 2:**
   - invite-user and pair-device/revoke-device Edge Functions (create the edge-engineer agent first);
   - Custom Access Token Hook, pg_cron schedule, languages data migration for the cloud;
@@ -39,8 +72,8 @@ Full context lives in these docs. Read the relevant one before non-trivial work;
 - **Process note:** the orchestrator subagent can't wait on its children in this harness, so meta runs pipelines directly (db-engineer → security-reviewer → architect).
 - **Waiting on the owner (do not invent values):**
   1. Diamond Chemical's answer on Accu-Flow CloudView export: API, scheduled CSV/email, or none.
-  2. Item list **received** (`research/item-catalog.md`, 26 items). Still TBD there: tablecloth, towel and wipe pack sizes; how sheets are counted; colors; baskets per load; pieces per load.
-  3. Shift schedule **received** (`research/shift-schedule.md`). Still open: production-day start for day reconciliation (14:00 proposed); holidays. Also owner to do: Supabase dashboard sign-ups OFF; GitHub ruleset on `main`.
+  2. Item list **received** (`research/item-catalog.md`). Still TBD there: napkin colors; baskets per load; pieces per load.
+  3. Shift schedule **received** (`research/shift-schedule.md`). Business-day rule: owner rejected 14:00→14:00, alternative pending; still open: holidays. Also owner to do: GitHub ruleset on `main`.
   4. Which languages to enable beyond EN/ES. Creole can be added later as data plus a translation file. Also: voice-input test results on the real phones (iOS installed-app support and Creole recognition are unconfirmed).
   5. Screen locations: Wi-Fi strength and heat at each spot.
   6. Baseline tally of phone calls per shift.

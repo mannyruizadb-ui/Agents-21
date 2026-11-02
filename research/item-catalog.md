@@ -1,4 +1,5 @@
 # Item Catalog: ADB (seed source for `item_types`)
+> **Status 2026-11-01:** superseded in part. The seeded catalog (`supabase/seed.sql`: 31 wash groups, 57 items) is current. Owner's LinenTrack app lists more items (Scraper, City, Brito mats; red, blue and bone tablecloths; charcoal napkin; mechanic towels; butcher coat sizes). Reconcile before the pilot.
 
 *Received from the owner 2026-10-27. This file is the source for `supabase/seed.sql`. Every value is editable later in the app (PRD A2). Nothing here is invented: unknown values are marked **TBD**, and defaults are marked **assumed**.*
 
@@ -31,20 +32,22 @@ Status of each value: ✅ confirmed by owner · 🔸 assumed default (confirm) �
 | Dust mop | unit 🔸 | — | load 🔸 | ❓ | |
 | Wet mop | unit 🔸 | — | load 🔸 | ❓ | |
 | Microfiber mop | unit 🔸 | — | load 🔸 | ❓ | |
-| Microfiber wipe | pack 🔸 | ❓ | load 🔸 | ❓ | Small items are usually packed. Confirm pack size |
+| Microfiber wipe | pack ✅ | 50 ✅ | load 🔸 | ❓ | Owner: "microfiber towels", packs of 50 |
 
 ## Restaurant linens
 
 | Item | Count | Pack | Est. | Pcs/load | Notes |
 |---|---|---|---|---|---|
-| Napkin | pack ✅ | 100 ✅ | load 🔸 | ❓ | "pack of 100 + leftover". Colors tracked separately? ❓ |
-| Tablecloth 52" | pack ✅ | ❓ | load 🔸 | ❓ | Owner: each tablecloth pack size differs |
-| Tablecloth 62" | pack ✅ | ❓ | load 🔸 | ❓ | |
-| Tablecloth 72" | pack ✅ | ❓ | load 🔸 | ❓ | |
-| Tablecloth 90" | pack ✅ | ❓ | load 🔸 | ❓ | |
-| Tablecloth 120" | pack ✅ | ❓ | load 🔸 | ❓ | |
-| Tablecloth 130" | pack ✅ | ❓ | load 🔸 | ❓ | |
-| Kitchen towel | pack ✅ | ❓ | load 🔸 | ❓ | Owner: "towels by pack" |
+| Napkin | pack ✅ | 100 ✅ | load 🔸 | ❓ | Each napkin color washes on its own ✅, so one item per color. **Color list needed** ❓ |
+| Tablecloth 42×42 — white / black | pack ✅ | 25 ✅ | load 🔸 | ❓ | **Each color is its own item** (whites wash only with whites, blacks only with blacks ✅) |
+| Tablecloth 52×52 — white / black | pack ✅ | 20 ✅ | load 🔸 | ❓ | |
+| Tablecloth 62×62 — white / black | pack ✅ | 15 ✅ | load 🔸 | ❓ | |
+| Tablecloth 72×72 — white / black | pack ✅ | 10 ✅ | load 🔸 | ❓ | |
+| Tablecloth 90×90 — white / black | pack ✅ | 5 ✅ | load 🔸 | ❓ | |
+| Tablecloth 52×114 — white / black | pack ✅ | 10 ✅ | load 🔸 | ❓ | |
+| Tablecloth 120" round — white / black | unit ✅ | — | load 🔸 | ❓ | |
+| Tablecloth 132" round — white / black | unit ✅ | — | load 🔸 | ❓ | Was listed as 130" |
+| Kitchen towel | pack ✅ | 50 ✅ | load 🔸 | ❓ | Owner: "towels by pack" |
 | Apron | unit 🔸 | — | load 🔸 | ❓ | |
 | Chef coat | unit 🔸 | — | load 🔸 | ❓ | |
 | Butcher coat | unit ✅ | — | load 🔸 | ❓ | Owner: "butcher coats by unit" |
@@ -53,9 +56,9 @@ Status of each value: ✅ confirmed by owner · 🔸 assumed default (confirm) �
 
 | Item | Count | Pack | Est. | Pcs/load | Notes |
 |---|---|---|---|---|---|
-| Sheet – new | ❓ | ❓ | load 🔸 | ❓ | Are new/regular/old separate stock, or quality grades sorted at finishing? |
-| Sheet – regular | ❓ | ❓ | load 🔸 | ❓ | |
-| Sheet – old | ❓ | ❓ | load 🔸 | ❓ | |
+| Sheet – new | pack ✅ | 10 ✅ | load 🔸 | ❓ | All three grades in packs of 10 ✅ |
+| Sheet – regular | pack ✅ | 10 ✅ | load 🔸 | ❓ | |
+| Sheet – old | pack ✅ | 10 ✅ | load 🔸 | ❓ | Are new/regular/old separate stock, or sorted at finishing? ❓ |
 
 ## Other services & products
 
@@ -66,11 +69,11 @@ Status of each value: ✅ confirmed by owner · 🔸 assumed default (confirm) �
 
 ## Open questions (needed before seeding)
 
-1. **Tablecloth pack sizes** for 52", 62", 72", 90", 120", 130".
-2. **Kitchen towel** and **microfiber wipe** pack sizes.
+1. ~~Tablecloth pack sizes~~ **Answered 2026-11-01** (table above; rounds are per unit).
+2. ~~Kitchen towel and microfiber wipe pack sizes~~ **Answered:** 50 each.
 3. **Aprons, chef coats, mops, uniforms:** counted by unit? (assumed yes)
-4. **Sheets:** unit or pack (and pack size)? Are new, regular and old washed together and sorted afterwards, or kept apart from the start?
-5. **Colors:** should napkins and tablecloths be tracked per color (white, bone, black, …), or by size only? Per color multiplies the item list, so the default is by size only.
+4. **Sheets:** ~~unit or pack~~ pack of 10 ✅. Are new, regular and old washed together and sorted afterwards, or kept apart from the start?
+5. **Colors:** whites wash only with whites, blacks only with blacks, and each napkin color on its own (owner 2026-11-01). Tablecloths are now one item per size per color (16). **Still needed:** the napkin color list, and whether any other item (towels, aprons, coats) comes in colors that wash apart.
 6. **Sanitizer dispensers:** leave out of PlantBoard?
 7. **Estimates:** do managers count any of these in **baskets** instead of loads? If so, roughly how many baskets per load?
 8. **Optional now:** rough pieces per load for your highest-volume items, e.g. "a load of napkins ≈ 450". Otherwise the app learns it from history (PRD G3).

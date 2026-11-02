@@ -1,5 +1,7 @@
--- PlantBoard local/dev seed: ADB org, Miami plant, areas, languages, item catalog, shifts.
--- Sources: research/item-catalog.md (2026-10-27), research/shift-schedule.md (2026-10-30).
+-- PlantBoard local/dev seed: ADB org, Miami plant, areas, languages, wash formulas, wash groups + item catalog,
+-- machines, shifts.
+-- Sources: research/item-catalog.md (2026-10-27), research/shift-schedule.md (2026-10-30), owner decisions
+-- 2026-11-01 and 2026-11-02.
 -- Only owner-confirmed values are filled in; TBD values stay null (never invented).
 -- No entry_staff rows: the owner adds people and PINs in the app (A8).
 
@@ -25,51 +27,210 @@ select p.org_id, p.id, a.name, a.kind::app.area_kind, a.sort_order
  cross join (values ('Washroom', 'washroom', 10), ('Finishing', 'finishing', 20)) as a(name, kind, sort_order)
  where p.name = 'Miami';
 
--- ── Item catalog (A2): 25 items; the sanitizer dispenser is excluded (not washed or finished) ──
--- Spanish names are AI drafts from research/item-catalog.md, pending the separate AI review (H1).
--- Estimates: 'load' (catalog 🔸 assumed default); no basket factors yet. pieces_per_load: all TBD (null).
-insert into public.item_types (org_id, plant_id, name, name_i18n, category, count_mode, pack_size, sort_order)
-select p.org_id, p.id, i.name, jsonb_build_object('es', i.name_es), i.category::app.item_category,
-       i.count_mode::app.count_mode, i.pack_size, i.sort_order
+-- ── Wash formulas (owner 2026-11-02): the 6 Milnor washer programs and their run times ──
+-- One formula washes MANY wash groups, so the mapping is wash_groups.wash_formula_id (group → formula).
+-- wash_formulas.wash_group_id (Accu-Flow resolution) is set only for a formula that washes exactly one
+-- group; every formula here washes several, so it stays null.
+insert into public.wash_formulas (org_id, plant_id, external_no, name, cycle_minutes)
+select p.org_id, p.id, f.external_no, f.name, f.cycle_minutes
   from public.plants p
   join public.organizations o on o.id = p.org_id and o.slug = 'americas-dust-busters'
  cross join (values
-  -- Floor mats: by unit ✅
-  ('3×5 mat',            'Tapete 3×5',            'mat',     'unit', null::int,  10),
-  ('4×6 mat',            'Tapete 4×6',            'mat',     'unit', null,       20),
-  ('3×10 mat',           'Tapete 3×10',           'mat',     'unit', null,       30),
-  ('5×7 mat',            'Tapete 5×7',            'mat',     'unit', null,       40),
-  ('Logo mat',           'Tapete con logo',       'mat',     'unit', null,       50),
-  ('Elevator mat',       'Tapete de elevador',    'mat',     'unit', null,       60),
-  -- Mops: by unit (🔸 assumed)
-  ('Dust mop',           'Mopa de polvo',         'mop',     'unit', null,       70),
-  ('Wet mop',            'Trapeador',             'mop',     'unit', null,       80),
-  ('Microfiber mop',     'Mopa de microfibra',    'mop',     'unit', null,       90),
-  -- TODO owner: pack size (pack item assumed 🔸, not confirmed): counted by unit until then.
-  ('Microfiber wipe',    'Paño de microfibra',    'other',   'unit', null,      100),
-  -- Napkin: pack of 100 ✅
-  ('Napkin',             'Servilleta',            'linen',   'pack', 100,       110),
-  -- TODO owner: pack size (confirmed pack item) for each tablecloth: counted by unit until then.
-  ('Tablecloth 52"',     'Mantel 52 pulg.',       'linen',   'unit', null,      120),
-  ('Tablecloth 62"',     'Mantel 62 pulg.',       'linen',   'unit', null,      130),
-  ('Tablecloth 72"',     'Mantel 72 pulg.',       'linen',   'unit', null,      140),
-  ('Tablecloth 90"',     'Mantel 90 pulg.',       'linen',   'unit', null,      150),
-  ('Tablecloth 120"',    'Mantel 120 pulg.',      'linen',   'unit', null,      160),
-  ('Tablecloth 130"',    'Mantel 130 pulg.',      'linen',   'unit', null,      170),
-  -- TODO owner: pack size (confirmed pack item): counted by unit until then.
-  ('Kitchen towel',      'Toalla de cocina',      'towel',   'unit', null,      180),
-  -- Apparel: apron, chef coat, uniform by unit (🔸 assumed); butcher coat by unit ✅
-  ('Apron',              'Delantal',              'apparel', 'unit', null,      190),
-  ('Chef coat',          'Filipina de chef',      'apparel', 'unit', null,      200),
-  ('Butcher coat',       'Bata de carnicero',     'apparel', 'unit', null,      210),
-  -- TODO owner: count mode / pack size for sheets (and whether new/regular/old are separate stock).
-  ('Sheet – new',        'Sábana nueva',          'linen',   'unit', null,      220),
-  ('Sheet – regular',    'Sábana regular',        'linen',   'unit', null,      230),
-  ('Sheet – old',        'Sábana vieja',          'linen',   'unit', null,      240),
-  -- Uniform: one item (🔸 assumed; shirts/pants split pending)
-  ('Uniform',            'Uniforme',              'apparel', 'unit', null,      250)
- ) as i(name, name_es, category, count_mode, pack_size, sort_order)
+  ('1', 'Standard mats, dust mops',             26),
+  ('2', 'Sheets, microfiber towels',            42),
+  ('3', 'White napkins, tablecloths, coats',    88),
+  ('4', 'Colored linen, black aprons',          59),
+  ('5', 'Kitchen towels, white aprons, rewash', 96),
+  ('6', 'Logo mats',                            26)
+ ) as f(external_no, name, cycle_minutes)
  where p.name = 'Miami';
+
+-- ── Wash groups + item catalog (A2; owner 2026-11-01, 2026-11-02): 33 groups, 73 items ──
+-- The washroom works by WASH GROUP (what may share a washer); finishing counts ITEMS. Every item is in
+-- exactly one group. Spanish names are AI drafts, pending the separate AI review (H1).
+-- Estimates: 'load' (catalog 🔸 assumed default); no baskets_per_load yet (null, TODO owner).
+-- pieces_per_load = pieces of the item in one full load of only that item in a standard washer
+-- (load_factor 1.00). Mats only, from
+-- the owner (2026-11-01), source 'counted' (the owner's own count, not derived from history):
+--   3×5 = 16, 4×6 = 12, 3×10 = 9  ("16 3x5s in a washer, or 12 4x6s, or 9 3x10s");
+--   5×7 = 3.5  (approximate, owner range midpoint: "about 3 or 4 5x7s to the washer");
+--   2×3 = 35   (approximate, owner range midpoint: "probably 30 to 40"; low volume, ≤ ~10 a night).
+-- Every other item: null (TODO owner). The sanitizer dispenser is excluded (not washed or finished).
+-- formula_no = the washer program the group is washed with (owner 2026-11-02). Every group has one.
+insert into public.wash_groups (org_id, plant_id, name, name_i18n, sort_order, wash_formula_id)
+select p.org_id, p.id, g.name, jsonb_build_object('es', g.name_es), g.sort_order, f.id
+  from public.plants p
+  join public.organizations o on o.id = p.org_id and o.slug = 'americas-dust-busters'
+ cross join (values
+  -- F1 standard mats + dust mops · F2 sheets + microfiber towels · F3 white linen + coats · F4 colored linen +
+  -- black aprons · F5 kitchen towels + white aprons (+ rewash) · F6 logo mats (owner 2026-11-02).
+  ('Black mats',                          'Tapetes negros',                            10, '1'),
+  ('Colored mats',                        'Tapetes de color',                          20, '1'),   -- red, green, brown wash together
+  ('Charcoal mats',                       'Tapetes carbón',                            30, '1'),   -- washed alone
+  ('Scraper mats',                        'Tapetes raspadores',                        32, '1'),   -- washed alone (owner 2026-11-02)
+  ('City & Brito mats',                   'Tapetes City y Brito',                      34, '1'),   -- wash together; the roller separates them
+  ('Presidente logo mats',                'Tapetes con logo Presidente',               40, '6'),
+  ('Logo mats',                           'Tapetes con logo',                          50, '6'),   -- all other logos
+  ('Dust & wet mops',                     'Mopas de polvo y trapeadores',              60, '1'),
+  ('Microfiber mops',                     'Mopas de microfibra',                       70, '1'),
+  ('Kitchen towels',                      'Toallas de cocina',                         80, '5'),
+  ('Microfiber towels',                   'Toallas de microfibra',                     90, '2'),   -- color and black wash together (owner 2026-11-02)
+  ('Mechanic towels',                     'Toallas de mecánico',                       95, '5'),   -- white and colored wash together
+  ('White aprons',                        'Delantales blancos',                       100, '5'),
+  ('Black aprons',                        'Delantales negros',                        110, '4'),
+  ('Coats (white)',                       'Batas y filipinas (blancas)',              120, '3'),
+  ('White tablecloths',                   'Manteles blancos',                         130, '3'),
+  ('Black tablecloths',                   'Manteles negros',                          140, '4'),
+  ('Red & blue tablecloths',              'Manteles rojos y azules',                  145, '4'),   -- red and blue wash together (owner 2026-11-02)
+  -- Napkins: each color washes on its own (owner 2026-11-01), except bone + chambray, which wash together
+  -- on formula 3 (owner 2026-11-02; LinenTrack's "Charcoal Napkin" is chambray). Whites → F3, colors → F4.
+  ('Napkins – Green & Red',               'Servilletas – verde y roja',               150, '4'),   -- green and red wash together (owner 2026-11-02)
+  ('Napkins – Navy Blue w/ Stripe',       'Servilletas – azul marino con raya',       160, '4'),
+  ('Napkins – Dark Navy Blue w/ Stripe',  'Servilletas – azul marino oscuro con raya', 170, '4'),
+  ('Napkins – Navy Blue',                 'Servilletas – azul marino',                180, '4'),
+  ('Napkins – Regular White',             'Servilletas – blanca regular',             210, '3'),
+  ('Napkins – New White',                 'Servilletas – blanca nueva',               220, '3'),
+  ('Napkins – Bone & Chambray',           'Servilletas – hueso y chambray',           230, '3'),
+  ('Napkins – Black w/ Stripe',           'Servilletas – negra con raya',             240, '4'),
+  ('Napkins – Black',                     'Servilletas – negra',                      250, '4'),
+  ('Napkins – Pink',                      'Servilletas – rosada',                     260, '4'),
+  ('Napkins – Cotton White',              'Servilletas – blanca de algodón',          270, '3'),
+  ('Napkins – Cotton Black',              'Servilletas – negra de algodón',           280, '4'),
+  ('Old sheets',                          'Sábanas viejas',                           290, '2'),
+  ('Regular sheets',                      'Sábanas regulares',                        300, '2'),
+  ('New sheets',                          'Sábanas nuevas',                           310, '2')
+ ) as g(name, name_es, sort_order, formula_no)
+  left join public.wash_formulas f on f.plant_id = p.id and f.external_no = g.formula_no
+ where p.name = 'Miami';
+
+insert into public.item_types (org_id, plant_id, wash_group_id, name, name_i18n, category, count_mode, pack_size,
+                               pieces_per_load, pieces_per_load_source, sort_order)
+select p.org_id, p.id, g.id, i.name, jsonb_build_object('es', i.name_es), i.category::app.item_category,
+       i.count_mode::app.count_mode, i.pack_size, i.pieces_per_load,
+       case when i.pieces_per_load is not null then 'counted' end, i.sort_order
+  from public.plants p
+  join public.organizations o on o.id = p.org_id and o.slug = 'americas-dust-busters'
+ cross join (values
+  -- Black mats: by unit ✅
+  ('Black mats', 'Black mat 2×3',  'Tapete negro 2×3',  'mat', 'unit', null::int, 35::numeric,   10),
+  ('Black mats', 'Black mat 3×5',  'Tapete negro 3×5',  'mat', 'unit', null,      16,           20),
+  ('Black mats', 'Black mat 4×6',  'Tapete negro 4×6',  'mat', 'unit', null,      12,           30),
+  ('Black mats', 'Black mat 3×10', 'Tapete negro 3×10', 'mat', 'unit', null,       9,           40),
+  ('Black mats', 'Black mat 5×7',  'Tapete negro 5×7',  'mat', 'unit', null,      3.5,          50),
+  -- Colored mats (red, green, brown). 2×3 colored = red only (owner). No 3×4 item: the few red 3×4s are
+  -- counted as red 3×5 (owner 2026-11-02).
+  ('Colored mats', 'Colored mat 2×3',  'Tapete de color 2×3',  'mat', 'unit', null, 35,    60),
+  ('Colored mats', 'Colored mat 3×5',  'Tapete de color 3×5',  'mat', 'unit', null, 16,    70),
+  ('Colored mats', 'Colored mat 4×6',  'Tapete de color 4×6',  'mat', 'unit', null, 12,    80),
+  ('Colored mats', 'Colored mat 3×10', 'Tapete de color 3×10', 'mat', 'unit', null,  9,    90),
+  ('Colored mats', 'Colored mat 5×7',  'Tapete de color 5×7',  'mat', 'unit', null, 3.5,  100),
+  -- Charcoal mats (washed alone)
+  ('Charcoal mats', 'Charcoal mat 4×6', 'Tapete carbón 4×6', 'mat', 'unit', null, 12, 110),
+  -- Scraper mats (washed alone) and City & Brito mats (wash together), from LinenTrack's list (owner 2026-11-02)
+  ('Scraper mats',      'Scraper mat 3×5',     'Tapete raspador 3×5',  'mat', 'unit', null, 16, 115),
+  ('City & Brito mats', 'Black City mat 3×5',  'Tapete City negro 3×5',  'mat', 'unit', null, 16, 116),
+  ('City & Brito mats', 'Black City mat 4×6',  'Tapete City negro 4×6',  'mat', 'unit', null, 12, 118),
+  ('City & Brito mats', 'Black City mat 3×10', 'Tapete City negro 3×10', 'mat', 'unit', null,  9, 120),
+  ('City & Brito mats', 'Red Brito mat 4×6',   'Tapete Brito rojo 4×6',  'mat', 'unit', null, 12, 122),
+  ('City & Brito mats', 'Red Brito mat 3×10',  'Tapete Brito rojo 3×10', 'mat', 'unit', null,  9, 124),
+  -- Presidente logo mats: 5×7 only (owner 2026-11-01)
+  ('Presidente logo mats', 'Presidente logo mat 5×7', 'Tapete con logo Presidente 5×7', 'mat', 'unit', null, 3.5, 140),
+  -- Logo mats (all other logos)
+  ('Logo mats', 'Logo mat 3×5', 'Tapete con logo 3×5', 'mat', 'unit', null, 16,   150),
+  ('Logo mats', 'Logo mat 4×6', 'Tapete con logo 4×6', 'mat', 'unit', null, 12,   160),
+  ('Logo mats', 'Logo mat 5×7', 'Tapete con logo 5×7', 'mat', 'unit', null, 3.5,  170),
+  -- Mops: by unit (🔸 assumed)
+  ('Dust & wet mops', 'Dust mop',       'Mopa de polvo',      'mop', 'unit', null, null, 180),
+  ('Dust & wet mops', 'Wet mop',        'Trapeador',          'mop', 'unit', null, null, 190),
+  ('Microfiber mops', 'Microfiber mop', 'Mopa de microfibra', 'mop', 'unit', null, null, 200),
+  -- Kitchen towel: pack of 50 ✅ (owner 2026-11-01). Microfiber towels, color and black, pack of 50 ✅
+  -- (owner 2026-11-02; they replace the old "microfiber wipe").
+  ('Kitchen towels',    'Kitchen towel',            'Toalla de cocina',              'towel', 'pack', 50, null, 210),
+  ('Microfiber towels', 'Microfiber towel – color', 'Toalla de microfibra – color',  'towel', 'pack', 50, null, 220),
+  ('Microfiber towels', 'Microfiber towel – black', 'Toalla de microfibra – negra',  'towel', 'pack', 50, null, 222),
+  -- Mechanic towels: white and colored wash together but are counted separately at finishing, pack of 100
+  -- each ✅ (owner 2026-11-02).
+  ('Mechanic towels',   'Mechanic towel – white',   'Toalla de mecánico – blanca',   'towel', 'pack', 100, null, 224),
+  ('Mechanic towels',   'Mechanic towel – color',   'Toalla de mecánico – de color', 'towel', 'pack', 100, null, 226),
+  -- Apparel: by unit (aprons, chef coat 🔸 assumed; butcher coats ✅ counted by size, owner 2026-11-02).
+  -- White and black aprons always wash separately (owner), hence two groups.
+  ('White aprons',  'Apron white',  'Delantal blanco',   'apparel', 'unit', null, null, 230),
+  ('Black aprons',  'Apron black',  'Delantal negro',    'apparel', 'unit', null, null, 240),
+  ('Coats (white)', 'Chef coat',    'Filipina de chef',  'apparel', 'unit', null, null, 250),
+  ('Coats (white)', 'Butcher coat M',  'Bata de carnicero M',  'apparel', 'unit', null, null, 260),
+  ('Coats (white)', 'Butcher coat L',  'Bata de carnicero L',  'apparel', 'unit', null, null, 262),
+  ('Coats (white)', 'Butcher coat XL', 'Bata de carnicero XL', 'apparel', 'unit', null, null, 264),
+  -- Tablecloths: pack sizes ✅; rounds by unit ✅ (owner 2026-11-01). Whites wash only with whites.
+  ('White tablecloths', 'Tablecloth 42×42 white',      'Mantel 42×42 blanco',             'linen', 'pack', 25,   null, 270),
+  ('White tablecloths', 'Tablecloth 52×52 white',      'Mantel 52×52 blanco',             'linen', 'pack', 20,   null, 280),
+  ('White tablecloths', 'Tablecloth 62×62 white',      'Mantel 62×62 blanco',             'linen', 'pack', 15,   null, 290),
+  ('White tablecloths', 'Tablecloth 72×72 white',      'Mantel 72×72 blanco',             'linen', 'pack', 10,   null, 300),
+  ('White tablecloths', 'Tablecloth 90×90 white',      'Mantel 90×90 blanco',             'linen', 'pack', 5,    null, 310),
+  ('White tablecloths', 'Tablecloth 52×114 white',     'Mantel 52×114 blanco',            'linen', 'pack', 10,   null, 320),
+  ('White tablecloths', 'Tablecloth 120" round white', 'Mantel redondo 120 pulg. blanco', 'linen', 'unit', null, null, 330),
+  ('White tablecloths', 'Tablecloth 132" round white', 'Mantel redondo 132 pulg. blanco', 'linen', 'unit', null, null, 340),
+  -- Bone goes in the white wash (owner 2026-11-02). Pack 15 ✅ (owner-confirmed 2026-11-02).
+  ('White tablecloths', 'Tablecloth 62×62 bone',       'Mantel 62×62 hueso',              'linen', 'pack', 15,   null, 345),
+  -- Blacks wash only with blacks.
+  ('Black tablecloths', 'Tablecloth 42×42 black',      'Mantel 42×42 negro',              'linen', 'pack', 25,   null, 350),
+  ('Black tablecloths', 'Tablecloth 52×52 black',      'Mantel 52×52 negro',              'linen', 'pack', 20,   null, 360),
+  ('Black tablecloths', 'Tablecloth 62×62 black',      'Mantel 62×62 negro',              'linen', 'pack', 15,   null, 370),
+  ('Black tablecloths', 'Tablecloth 72×72 black',      'Mantel 72×72 negro',              'linen', 'pack', 10,   null, 380),
+  ('Black tablecloths', 'Tablecloth 90×90 black',      'Mantel 90×90 negro',              'linen', 'pack', 5,    null, 390),
+  ('Black tablecloths', 'Tablecloth 52×114 black',     'Mantel 52×114 negro',             'linen', 'pack', 10,   null, 400),
+  ('Black tablecloths', 'Tablecloth 120" round black', 'Mantel redondo 120 pulg. negro',  'linen', 'unit', null, null, 410),
+  ('Black tablecloths', 'Tablecloth 132" round black', 'Mantel redondo 132 pulg. negro',  'linen', 'unit', null, null, 420),
+  -- Red and blue wash together (owner 2026-11-02). Pack sizes ✅ (owner-confirmed 2026-11-02).
+  ('Red & blue tablecloths', 'Tablecloth 62×62 red',  'Mantel 62×62 rojo', 'linen', 'pack', 15, null, 422),
+  ('Red & blue tablecloths', 'Tablecloth 72×72 red',  'Mantel 72×72 rojo', 'linen', 'pack', 10, null, 424),
+  ('Red & blue tablecloths', 'Tablecloth 90×90 red',  'Mantel 90×90 rojo', 'linen', 'pack', 5,  null, 426),
+  ('Red & blue tablecloths', 'Tablecloth 62×62 blue', 'Mantel 62×62 azul', 'linen', 'pack', 15, null, 428),
+  -- Napkins: one item per color; each color is its own group except bone + chambray (one group). Pack of 100 for every color and material ✅
+  -- (owner 2026-11-01).
+  ('Napkins – Green & Red',              'Napkin – Green',                    'Servilleta – verde',                       'linen', 'pack', 100, null, 430),
+  ('Napkins – Navy Blue w/ Stripe',      'Napkin – Navy Blue w/ Stripe',      'Servilleta – azul marino con raya',        'linen', 'pack', 100, null, 440),
+  ('Napkins – Dark Navy Blue w/ Stripe', 'Napkin – Dark Navy Blue w/ Stripe', 'Servilleta – azul marino oscuro con raya', 'linen', 'pack', 100, null, 450),
+  ('Napkins – Navy Blue',                'Napkin – Navy Blue',                'Servilleta – azul marino',                 'linen', 'pack', 100, null, 460),
+  ('Napkins – Bone & Chambray',          'Napkin – Bone',                     'Servilleta – hueso',                       'linen', 'pack', 100, null, 470),
+  ('Napkins – Green & Red',              'Napkin – Red',                      'Servilleta – roja',                        'linen', 'pack', 100, null, 480),
+  ('Napkins – Regular White',            'Napkin – Regular White',            'Servilleta – blanca regular',              'linen', 'pack', 100, null, 490),
+  ('Napkins – New White',                'Napkin – New White',                'Servilleta – blanca nueva',                'linen', 'pack', 100, null, 500),
+  ('Napkins – Bone & Chambray',          'Napkin – Chambray',                 'Servilleta – chambray',                    'linen', 'pack', 100, null, 510),
+  ('Napkins – Black w/ Stripe',          'Napkin – Black w/ Stripe',          'Servilleta – negra con raya',              'linen', 'pack', 100, null, 520),
+  ('Napkins – Black',                    'Napkin – Black',                    'Servilleta – negra',                       'linen', 'pack', 100, null, 530),
+  ('Napkins – Pink',                     'Napkin – Pink',                     'Servilleta – rosada',                      'linen', 'pack', 100, null, 540),
+  ('Napkins – Cotton White',             'Napkin – Cotton White',             'Servilleta – blanca de algodón',           'linen', 'pack', 100, null, 550),
+  ('Napkins – Cotton Black',             'Napkin – Cotton Black',             'Servilleta – negra de algodón',            'linen', 'pack', 100, null, 560),
+  -- Sheets: all three grades in packs of 10 ✅ (owner 2026-11-01); each grade washes on its own.
+  ('Old sheets',     'Sheet – old',     'Sábana vieja',   'linen', 'pack', 10, null, 570),
+  ('Regular sheets', 'Sheet – regular', 'Sábana regular', 'linen', 'pack', 10, null, 580),
+  ('New sheets',     'Sheet – new',     'Sábana nueva',   'linen', 'pack', 10, null, 590)
+ ) as i(group_name, name, name_es, category, count_mode, pack_size, pieces_per_load, sort_order)
+  join public.wash_groups g on g.plant_id = p.id and g.name = i.group_name
+ where p.name = 'Miami';
+
+-- ── Washroom machines (owner 2026-11-01): 3 TVs = washers 1–3, washers 4–6, dryers 1–4 ──
+-- Model strings are vendor descriptions only; PlantBoard never weighs anything. Dryer models TBD (owner).
+-- load_factor (standard loads per load run): Washer 6 = 1.19, the ratio of its rated size to the
+-- standard washers', because it is filled to its larger size (owner 2026-11-01). Every other machine 1.00.
+insert into public.machines (org_id, plant_id, area_id, name, kind, vendor, model, load_factor)
+select a.org_id, a.plant_id, a.id, m.name, m.kind::app.machine_kind, m.vendor, m.model, m.load_factor
+  from public.areas a
+  join public.plants p on p.id = a.plant_id and p.name = 'Miami'
+  join public.organizations o on o.id = p.org_id and o.slug = 'americas-dust-busters'
+ cross join (values
+  ('Washer 1', 'washer', 'Milnor', '135 lb hard-mount', 1.00),
+  ('Washer 2', 'washer', 'Milnor', '135 lb hard-mount', 1.00),
+  ('Washer 3', 'washer', 'Milnor', '135 lb hard-mount', 1.00),
+  ('Washer 4', 'washer', 'Milnor', '135 lb hard-mount', 1.00),
+  ('Washer 5', 'washer', 'Milnor', '135 lb hard-mount', 1.00),
+  ('Washer 6', 'washer', 'Milnor', '160 lb soft-mount', 1.19),
+  ('Dryer 1',  'dryer',  null,     null,     1.00),
+  ('Dryer 2',  'dryer',  null,     null,     1.00),
+  ('Dryer 3',  'dryer',  null,     null,     1.00),
+  ('Dryer 4',  'dryer',  null,     null,     1.00)
+ ) as m(name, kind, vendor, model, load_factor)
+ where a.kind = 'washroom';
 
 -- ── Shifts (A6), per area; days = the day a shift STARTS (0 = Sun … 6 = Sat) ──
 -- Thursday variants are separate rows with the same name. No washroom midday shift (owner).

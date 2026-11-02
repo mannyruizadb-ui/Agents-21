@@ -2,7 +2,7 @@
 -- Matrix arrays: [owner, manager, lead, viewer, display, display-without-device, owner of B, anon].
 begin;
 \ir _fixtures.psql
-select plan(52);
+select plan(60);
 
 -- Fixture rows (as the service role): Napkin 7 packs + 34 loose and Mat 25 at Tue 11:30 (finishing Day).
 insert into public.finished_goods_entries (id, org_id, plant_id, area_id, item_type_id, packs, loose_pieces, occurred_at, entered_by, client_id) values
@@ -10,8 +10,8 @@ insert into public.finished_goods_entries (id, org_id, plant_id, area_id, item_t
    pg_temp.ny('2026-11-03 11:30'), pg_temp.id('owner'), gen_random_uuid()),
   ('f0000000-0000-0000-0000-0000000000a2', pg_temp.id('orgA'), pg_temp.id('plantA'), pg_temp.id('fin'), pg_temp.id('mat'), 0, 25,
    pg_temp.ny('2026-11-03 11:30'), pg_temp.id('owner'), gen_random_uuid());
-insert into public.washer_cycles (id, org_id, plant_id, area_id, item_type_id, started_at, load_count, source, entered_by, client_id) values
-  ('f1000000-0000-0000-0000-0000000000a1', pg_temp.id('orgA'), pg_temp.id('plantA'), pg_temp.id('wash'), pg_temp.id('napkin'),
+insert into public.washer_cycles (id, org_id, plant_id, area_id, wash_group_id, started_at, load_count, source, entered_by, client_id) values
+  ('f1000000-0000-0000-0000-0000000000a1', pg_temp.id('orgA'), pg_temp.id('plantA'), pg_temp.id('wash'), pg_temp.id('gNapkin'),
    pg_temp.ny('2026-11-03 01:00'), 3, 'manual', pg_temp.id('owner'), gen_random_uuid());
 insert into public.shift_crew_hours (org_id, plant_id, shift_instance_id, area_id, crew_count, labor_hours, entered_by) values
   (pg_temp.id('orgA'), pg_temp.id('plantA'), pg_temp.si(pg_temp.id('fin'), 'Day', '2026-11-03'), pg_temp.id('fin'), 4, 24, pg_temp.id('owner'));
@@ -107,15 +107,29 @@ select throws_ok($$insert into public.finished_goods_entries (org_id, plant_id, 
   values (pg_temp.id('orgA'), pg_temp.id('plantA'), pg_temp.id('fin'), pg_temp.id('mat'), 1, pg_temp.id('nobody'), gen_random_uuid())$$,
   'P0001', 'RATE_LIMITED', 'the 121st finished-goods insert is rate limited');
 
+-- Security H1: owner B on plant B with packs = 1 and plant A's unit item vs plant A's pack item gets
+-- the same 23503 (before: COUNT_MODE_MISMATCH revealed the foreign item's count mode).
+select is(array[pg_temp.run_as('ownerB', $$insert into public.finished_goods_entries (org_id, plant_id, area_id, item_type_id, packs, entered_by, client_id)
+                  values (pg_temp.id('orgB'), pg_temp.id('plantB'), pg_temp.id('washB'), pg_temp.id('mat'), 1, (select auth.uid()), gen_random_uuid())$$),
+                pg_temp.run_as('ownerB', $$insert into public.finished_goods_entries (org_id, plant_id, area_id, item_type_id, packs, entered_by, client_id)
+                  values (pg_temp.id('orgB'), pg_temp.id('plantB'), pg_temp.id('washB'), pg_temp.id('napkin'), 1, (select auth.uid()), gen_random_uuid())$$)],
+  '{23503,23503}', 'H1 finished goods: foreign unit item vs foreign pack item → same 23503');
+-- Architect N1: the entry snapshots the item's wash group; a client value is ignored.
+select is(pg_temp.run_as('manager', $$insert into public.finished_goods_entries (id, org_id, plant_id, area_id, item_type_id, wash_group_id, loose_pieces, entered_by, client_id)
+  values ('f0000000-0000-0000-0000-0000000000a9', pg_temp.id('orgA'), pg_temp.id('plantA'), pg_temp.id('fin'), pg_temp.id('napkin'), pg_temp.id('gTowel'), 5, (select auth.uid()), gen_random_uuid())$$),
+  '1', 'manager records finished goods with a bogus wash_group_id');
+select is((select wash_group_id from public.finished_goods_entries where id = 'f0000000-0000-0000-0000-0000000000a9'), pg_temp.id('gNapkin'),
+  'finished goods wash_group_id = the item''s group (client value ignored)');
+
 -- ── washer_cycles: owner/manager/lead R C (manual); viewer R; display none ──
 select is(pg_temp.reads($$select 1 from public.washer_cycles where plant_id = pg_temp.id('plantA')$$), '{1,1,1,1,0,0,0,0}', 'washer_cycles R (display: none)');
-select is(pg_temp.writes($$insert into public.washer_cycles (org_id, plant_id, area_id, item_type_id, started_at, load_count, source, entered_by, client_id)
-  values (pg_temp.id('orgA'), pg_temp.id('plantA'), pg_temp.id('wash'), pg_temp.id('napkin'), now(), 1, 'manual', (select auth.uid()), gen_random_uuid())$$),
+select is(pg_temp.writes($$insert into public.washer_cycles (org_id, plant_id, area_id, wash_group_id, started_at, load_count, source, entered_by, client_id)
+  values (pg_temp.id('orgA'), pg_temp.id('plantA'), pg_temp.id('wash'), pg_temp.id('gNapkin'), now(), 1, 'manual', (select auth.uid()), gen_random_uuid())$$),
   '{1,1,1,42501,42501,42501,42501,42501}', 'washer_cycles C owner/manager/lead');
-select is(array[pg_temp.run_as('lead', $$insert into public.washer_cycles (org_id, plant_id, area_id, item_type_id, started_at, source, entered_by, client_id)
-                  values (pg_temp.id('orgA'), pg_temp.id('plantA'), pg_temp.id('wash'), pg_temp.id('napkin'), now(), 'accuflow_csv', (select auth.uid()), gen_random_uuid())$$),
-                pg_temp.run_as('lead', $$insert into public.washer_cycles (org_id, plant_id, area_id, item_type_id, started_at, source, entered_by, client_id)
-                  values (pg_temp.id('orgA'), pg_temp.id('plantA'), pg_temp.id('wash'), pg_temp.id('napkin'), now(), 'manual', pg_temp.id('owner'), gen_random_uuid())$$)],
+select is(array[pg_temp.run_as('lead', $$insert into public.washer_cycles (org_id, plant_id, area_id, wash_group_id, started_at, source, entered_by, client_id)
+                  values (pg_temp.id('orgA'), pg_temp.id('plantA'), pg_temp.id('wash'), pg_temp.id('gNapkin'), now(), 'accuflow_csv', (select auth.uid()), gen_random_uuid())$$),
+                pg_temp.run_as('lead', $$insert into public.washer_cycles (org_id, plant_id, area_id, wash_group_id, started_at, source, entered_by, client_id)
+                  values (pg_temp.id('orgA'), pg_temp.id('plantA'), pg_temp.id('wash'), pg_temp.id('gNapkin'), now(), 'manual', pg_temp.id('owner'), gen_random_uuid())$$)],
   '{42501,42501}', 'D8: clients insert source=manual only, as themselves');
 select is(pg_temp.writes($$update public.washer_cycles set load_count = 2$$), '{0,0,0,0,0,0,0,0}', 'washer_cycles U denied');
 select throws_ok($$delete from public.washer_cycles$$, 'P0001', 'VALIDATION_FAILED', 'prevent_delete on washer cycles');
@@ -124,28 +138,51 @@ select is((select shift_instance_id from public.washer_cycles where id = 'f10000
 insert into public.washer_cycles (id, org_id, plant_id, area_id, wash_formula_id, started_at, source, entered_by, client_id) values
   ('f1000000-0000-0000-0000-0000000000a2', pg_temp.id('orgA'), pg_temp.id('plantA'), pg_temp.id('wash'), pg_temp.id('formula'),
    pg_temp.ny('2026-11-03 02:00'), 'manual', pg_temp.id('owner'), gen_random_uuid());
-select is((select item_type_id from public.washer_cycles where id = 'f1000000-0000-0000-0000-0000000000a2'), pg_temp.id('napkin'),
-  'resolve_item_from_formula copies the formula''s item');
+select is((select wash_group_id from public.washer_cycles where id = 'f1000000-0000-0000-0000-0000000000a2'), pg_temp.id('gNapkin'),
+  'resolve_group_from_formula copies the formula''s wash group');
+select throws_ok($$insert into public.washer_cycles (org_id, plant_id, area_id, wash_group_id, started_at, source, client_id) values
+  (pg_temp.id('orgA'), pg_temp.id('plantA'), pg_temp.id('wash'), pg_temp.id('groupB'), now(), 'manual', gen_random_uuid())$$,
+  '23503', null, 'a washer load cannot use another tenant''s wash group');
+select throws_ok($$insert into public.washer_cycles (org_id, plant_id, area_id, wash_group_id, started_at, source, client_id) values
+  (pg_temp.id('orgA'), pg_temp.id('plantA'), pg_temp.id('wash'), pg_temp.id('groupA2'), now(), 'manual', gen_random_uuid())$$,
+  '23503', null, 'a washer load cannot use another plant''s wash group (same org)');
+select ok(not exists (select 1 from information_schema.columns where table_schema = 'public'
+                       and table_name in ('washer_cycles', 'soil_estimates', 'wash_formulas') and column_name = 'item_type_id'),
+  'washroom-side tables reference wash groups, not items');
 select throws_ok($$insert into public.washer_cycles (org_id, plant_id, area_id, started_at, source, client_id) values
-  (pg_temp.id('orgA'), pg_temp.id('plantA'), pg_temp.id('wash'), now(), 'manual', gen_random_uuid())$$, '23514', null, 'item or formula required');
-select throws_ok($$insert into public.washer_cycles (org_id, plant_id, area_id, item_type_id, started_at, source) values
-  (pg_temp.id('orgA'), pg_temp.id('plantA'), pg_temp.id('wash'), pg_temp.id('napkin'), now(), 'manual')$$, '23514', null, 'N2: manual loads require client_id');
-select lives_ok($$insert into public.washer_cycles (org_id, plant_id, area_id, item_type_id, started_at, source, external_id) values
-  (pg_temp.id('orgA'), pg_temp.id('plantA'), pg_temp.id('wash'), pg_temp.id('napkin'), now(), 'accuflow_csv', 'row-1')$$, 'imports may omit client_id');
-select throws_ok($$insert into public.washer_cycles (org_id, plant_id, area_id, item_type_id, started_at, source, load_count, client_id) values
-  (pg_temp.id('orgA'), pg_temp.id('plantA'), pg_temp.id('wash'), pg_temp.id('napkin'), now(), 'manual', 201, gen_random_uuid())$$, '23514', null, 'load_count 1–200');
-select throws_ok($$insert into public.washer_cycles (org_id, plant_id, area_id, item_type_id, started_at, source, shift_instance_id, client_id) values
-  (pg_temp.id('orgA'), pg_temp.id('plantA'), pg_temp.id('wash'), pg_temp.id('napkin'), now(), 'manual', pg_temp.si(pg_temp.id('fin'), 'Day', '2026-11-03'), gen_random_uuid())$$,
+  (pg_temp.id('orgA'), pg_temp.id('plantA'), pg_temp.id('wash'), now(), 'manual', gen_random_uuid())$$, '23514', null, 'wash group or formula required');
+select throws_ok($$insert into public.washer_cycles (org_id, plant_id, area_id, wash_group_id, started_at, source) values
+  (pg_temp.id('orgA'), pg_temp.id('plantA'), pg_temp.id('wash'), pg_temp.id('gNapkin'), now(), 'manual')$$, '23514', null, 'N2: manual loads require client_id');
+select lives_ok($$insert into public.washer_cycles (org_id, plant_id, area_id, wash_group_id, started_at, source, external_id) values
+  (pg_temp.id('orgA'), pg_temp.id('plantA'), pg_temp.id('wash'), pg_temp.id('gNapkin'), now(), 'accuflow_csv', 'row-1')$$, 'imports may omit client_id');
+select throws_ok($$insert into public.washer_cycles (org_id, plant_id, area_id, wash_group_id, started_at, source, load_count, client_id) values
+  (pg_temp.id('orgA'), pg_temp.id('plantA'), pg_temp.id('wash'), pg_temp.id('gNapkin'), now(), 'manual', 201, gen_random_uuid())$$, '23514', null, 'load_count 1–200');
+select throws_ok($$insert into public.washer_cycles (org_id, plant_id, area_id, wash_group_id, started_at, source, shift_instance_id, client_id) values
+  (pg_temp.id('orgA'), pg_temp.id('plantA'), pg_temp.id('wash'), pg_temp.id('gNapkin'), now(), 'manual', pg_temp.si(pg_temp.id('fin'), 'Day', '2026-11-03'), gen_random_uuid())$$,
   '23503', null, 'a washer load cannot use another area''s shift instance');
-select throws_ok($$insert into public.washer_cycles (org_id, plant_id, area_id, item_type_id, started_at, source, machine_id, client_id) values
-  (pg_temp.id('orgB'), pg_temp.id('plantB'), pg_temp.id('washB'), pg_temp.id('itemB'), now(), 'manual', pg_temp.id('machine'), gen_random_uuid())$$,
+select throws_ok($$insert into public.washer_cycles (org_id, plant_id, area_id, wash_group_id, started_at, source, machine_id, client_id) values
+  (pg_temp.id('orgB'), pg_temp.id('plantB'), pg_temp.id('washB'), pg_temp.id('groupB'), now(), 'manual', pg_temp.id('machine'), gen_random_uuid())$$,
   '23503', null, 'a washer load cannot use another plant''s machine');
-select lives_ok($$insert into public.washer_cycles (org_id, plant_id, area_id, item_type_id, started_at, source, entered_by, client_id)
-  select pg_temp.id('orgA'), pg_temp.id('plantA'), pg_temp.id('wash'), pg_temp.id('napkin'), now(), 'manual', pg_temp.id('nobody'), gen_random_uuid()
+select lives_ok($$insert into public.washer_cycles (org_id, plant_id, area_id, wash_group_id, started_at, source, entered_by, client_id)
+  select pg_temp.id('orgA'), pg_temp.id('plantA'), pg_temp.id('wash'), pg_temp.id('gNapkin'), now(), 'manual', pg_temp.id('nobody'), gen_random_uuid()
     from generate_series(1, 120)$$, '120 washer inserts in a minute are fine');
-select throws_ok($$insert into public.washer_cycles (org_id, plant_id, area_id, item_type_id, started_at, source, entered_by, client_id)
-  values (pg_temp.id('orgA'), pg_temp.id('plantA'), pg_temp.id('wash'), pg_temp.id('napkin'), now(), 'manual', pg_temp.id('nobody'), gen_random_uuid())$$,
+select throws_ok($$insert into public.washer_cycles (org_id, plant_id, area_id, wash_group_id, started_at, source, entered_by, client_id)
+  values (pg_temp.id('orgA'), pg_temp.id('plantA'), pg_temp.id('wash'), pg_temp.id('gNapkin'), now(), 'manual', pg_temp.id('nobody'), gen_random_uuid())$$,
   'P0001', 'RATE_LIMITED', 'the 121st washer insert is rate limited');
+
+-- Architect N1: load_factor_used snapshots the machine's factor; a client value is ignored.
+insert into public.machines (id, org_id, plant_id, area_id, name, kind, load_factor) values
+  ('60000000-0000-0000-0000-0000000000a7', pg_temp.id('orgA'), pg_temp.id('plantA'), pg_temp.id('wash'), 'Big washer', 'washer', 1.19);
+select is(array[pg_temp.run_as('lead', $$insert into public.washer_cycles (id, org_id, plant_id, area_id, wash_group_id, machine_id, load_factor_used, started_at, source, entered_by, client_id)
+                  values ('f1000000-0000-0000-0000-0000000000a7', pg_temp.id('orgA'), pg_temp.id('plantA'), pg_temp.id('wash'), pg_temp.id('gNapkin'),
+                          '60000000-0000-0000-0000-0000000000a7', 3, now(), 'manual', (select auth.uid()), gen_random_uuid())$$),
+                pg_temp.run_as('lead', $$insert into public.washer_cycles (id, org_id, plant_id, area_id, wash_group_id, load_factor_used, started_at, source, entered_by, client_id)
+                  values ('f1000000-0000-0000-0000-0000000000a8', pg_temp.id('orgA'), pg_temp.id('plantA'), pg_temp.id('wash'), pg_temp.id('gNapkin'),
+                          2, now(), 'manual', (select auth.uid()), gen_random_uuid())$$)],
+  '{1,1}', 'lead records loads with bogus load_factor_used values');
+select is((select array_agg(load_factor_used order by id) from public.washer_cycles
+            where id in ('f1000000-0000-0000-0000-0000000000a7', 'f1000000-0000-0000-0000-0000000000a8')),
+  array[1.19, 1.00]::numeric[], 'load_factor_used = the machine''s factor, 1.00 without a machine (client values ignored)');
 
 -- ── shift_crew_hours: owner/manager R C U; lead, viewer R ──
 select is(pg_temp.reads($$select 1 from public.shift_crew_hours where plant_id = pg_temp.id('plantA')$$), '{1,1,1,1,0,0,0,0}', 'shift_crew_hours R');

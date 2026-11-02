@@ -4,7 +4,7 @@ select plan(14);
 
 select is(
   (select count(*)::int from pg_tables where schemaname = 'public'),
-  26, '§4.4: 26 tables in public');
+  27, '§4.4: 26 tables + wash_groups (owner 2026-11-01) in public');
 
 -- Every FK has a non-partial index whose leading columns are exactly the FK columns (§4.8).
 select is(
@@ -66,13 +66,13 @@ select is(
   '{}'::text[], 'no app function is executable by PUBLIC (grants are per function)');
 
 -- Security L3: exact allow-list of app helpers a signed-in client may execute (RLS helpers,
--- CHECK helpers, to_loads for the views). Everything else is service-role / trigger only.
+-- CHECK helpers, to_loads / production_date for the views). Everything else is service-role / trigger only.
 select is(
   (select array_agg(p.proname::text order by p.proname) from pg_proc p
      join pg_namespace n on n.oid = p.pronamespace
     where n.nspname = 'app' and has_function_privilege('authenticated', p.oid, 'execute')),
-  array['has_org_role','has_role','is_clean_text','is_display','is_display_account','is_my_device',
-        'my_device','to_loads','valid_a11y_prefs'],
+  array['can_manage_staff','has_org_role','has_role','is_clean_text','is_display','is_display_account','is_my_device',
+        'my_device','production_date','to_loads','valid_a11y_prefs'],
   'authenticated executes only the allow-listed app helpers');
 
 select ok(exists (select 1 from pg_default_acl

@@ -60,5 +60,6 @@
 
 1. ~~Finishing day shift start~~ **Answered:** it varies (10 or 12), so attribution follows the person (A8).
 2. ~~Washroom midday~~ **Answered:** no shift, no report; loads count in day totals.
-3. **Production day start** (for day-level reconciliation): pending, with 14:00 proposed (see the architect's ADR question).
+3. **Production day start:** **answered 2026-11-01.** Washing starts Monday 14:00; the first finishing (processing) shift starts Monday 16:00.
+   - The 14:00 → 14:00 business day was **rejected by the owner** (2026-11-01). Their alternative was cut off mid-message ("each…"); ask again. Until then the built rule stands: each shift is dated by the local day it starts.
 4. **Holidays and unusual weeks:** for now a manager can mark a shift "didn't run", which hides it from reports (P1). Is there a fixed holiday list?

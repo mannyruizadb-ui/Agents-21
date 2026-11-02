@@ -74,6 +74,15 @@ These are carried over from the earlier research and are not blockers to *starti
 > - **Finished goods are entered by the finishing manager only**, by unit or by pack + loose pieces.
 > - Operator check-in, PINs, station tablets and per-person productivity were removed from the MVP.
 >
+> **Revision note (v1.6, 2026-11-02):** after owner input:
+> - **Wash groups:** the washroom (estimates, queue, washer loads, TVs) works by wash group; finishing counts items. Reconciliation is per production day per group.
+> - **Production day:** runs 12:00 → 12:00.
+> - **Staff admin:** owner, plus managers the owner grants.
+> - **Washer 6:** load factor 1.19.
+> - **History snapshots:** an entry keeps its wash group and load factor.
+> - **D1 rewritten:** configurable screens with machine or area layout, NOW + NEXT only; launch is 2 washroom TVs + 1 finishing TV; one-tap washer start with the PIN once per shift.
+> - A2, B, C1/C4, F, G1–G3 and §4–§5 detail still describe items in places. The migrations (`20261101212508`…`20261101214357`) are authoritative until those sections are rewritten.
+
 > **Revision note (v1.5, 2026-11-01):** the Milestone 1 database is built (migrations `20261101*`, 359 pgTAP tests passing). No decisions changed; these implementation decisions are now recorded.
 > - **Entry staff (A8, §4.4):** `pin_hash` is nullable; `has_pin` is a generated column. Clients get column grants only, never `pin_hash`, `failed_pin_attempts` or `locked_until`. Staff sessions are single-use when reuse is 0 (a 2-minute session), and carry `org_id` and `consumed_at`.
 > - **Keys and constraints (§4.4):** `client_id` is required and unique on queue items and manual washer cycles; more composite tenant FKs; `app.is_clean_text` CHECKs on text; the shift overlap exclusion ignores skipped instances; `alert_events` gains `shift_generation_failed`.
@@ -329,7 +338,7 @@ Feature IDs are referenced throughout. Each epic opens with what it covers.
   - **Not** per-worker production tracking. The crew doesn't get PINs, and no report totals or ranks output by person.
   - Anything per-worker needs owner approval and HR/legal review first (§6.2 #11).
 - **Acceptance criteria:**
-  - Owner/manager screen to add, edit and deactivate entry staff:
+  - Screen to add, edit and deactivate entry staff, for the **owner and managers the owner has granted staff admin** (`memberships.can_manage_staff`; v1.6, owner decision 2026-11-01). Other managers and leads can read the list only:
     - display name;
     - language;
     - **home shift** (e.g., "Finishing – Night"), optional;
@@ -443,25 +452,60 @@ Save and reuse a typical day's order.
 
 ### Epic D — Wall displays
 
-#### D1. Area display: Now / Next / Later (P0)
+#### D1. Wall displays: configurable screens, NOW + NEXT (P0) *(v1.6, owner decisions 2026-11-02)*
 
-- **Story:** As a washroom or finishing worker, I want a big, simple screen that shows what to run now, what's next, and what's coming, in my language, so that I don't need to wait for a phone call.
-- **Acceptance criteria:**
-  - **Layout at 1920×1080:**
-    - **NOW:** the current `in_progress` item, or the first queued item if none is in progress. Item name, quantity + unit, RUSH badge, note.
-    - **NEXT:** the next 3 items.
-    - **LATER:** a count of remaining items + total loads queued.
-    - **Side panel:** dirty work remaining (in loads) for the top 6 items, with freshness.
-    - **Footer:** the current shift **of this display's area**, clock, connection status, "updated Xs ago".
-  - **Readability:** NOW item text ≥ 96 px; NEXT ≥ 56 px; nothing below 32 px. Readable at 6 m.
-  - **Language:** each display shows one or two of the plant's enabled languages (two are stacked), chosen per display.
-  - **No interaction required.** Runs unattended for 72 h without a manual reload.
-  - Contrast ≥ 7:1 for all text.
+- **Story:**
+  - As a worker, I want a big, simple screen that shows only what is running now and what is next, in my language, so that I don't need a phone call.
+  - As the owner, I want to add a TV to any area later and choose what it shows, without paying for new code.
+- **Screens are data, not code (scalability):**
+  - Each paired TV (A7 device) has a **screen configuration**:
+    - the area;
+    - a **layout**;
+    - for the machine layout, an ordered list of the machines it shows (1–4 columns).
+  - The owner, or a manager with the setting permission, adds, edits or retires screens in the app. Adding a dryer TV, a second finishing TV or a TV at another plant is configuration only.
+  - **Two layouts only.** No free-form dashboard builder; it isn't needed and it would be the expensive part.
+    1. **Machine layout:** one column per machine.
+    2. **Area layout:** one NOW + NEXT for the whole area, for areas without per-machine work, e.g. finishing.
+- **Launch configuration (ADB Miami):**
+  - Washroom: TV A = Washers 1–3, TV B = Washers 4–6, both machine layout.
+  - Finishing: 1 TV, area layout.
+  - **No dryer TV:** loads go straight from washer to dryer about 5 steps away. Dryers stay in the machine list, so one can be added later.
+- **Machine layout, acceptance criteria:**
+  - **NOW, per washer:** the washer number, very large, plus the wash group it is running (e.g., "White tablecloths"), the group's icon + text + color chip, and "started 23 min ago". It is set when the washman taps that washer's start (F1); there is no other tap. It shows "—" when nothing has been started on that washer this shift.
+  - **NEXT:** the next 1–2 wash groups in the washroom queue, shown once on the TV ("Next up"), not repeated under every washer.
+    - A queue item the owner pins to a washer (e.g., Washer 6 for a big load) shows under that washer instead.
+    - Pinning is optional.
+  - **No LATER.** The full queue is on the owner's phone, not on the wall.
+  - Rush items show a RUSH badge with icon + text, never color alone.
+- **Area layout, acceptance criteria:**
+  - NOW = the area's current item or group, with quantity and unit.
+  - NEXT = the next 1–2.
+  - No LATER.
+- **Readability (all layouts):**
+  - Washer number and NOW text ≥ 96 px in the 3-column layout; for 4 columns the UI uses short group labels instead of shrinking the text below 72 px.
+  - Nothing below 32 px. Contrast ≥ 7:1. Readable at 6 m.
+- **Language:** one or two of the plant's enabled languages per screen (stacked).
+- **No interaction required.** Runs unattended for 72 h without a manual reload.
+- **Washman tap (F1, "extremely simple"):**
+  - A tablet by the washers shows one huge button per washer, each labeled with the next group ("Washer 3 ▶ White tablecloths").
+  - **One tap** starts the load and writes the `washer_cycles` row.
+  - Changing the group is a second tap (pick from the next 3).
+  - Undo within 30 s.
+  - The washman's PIN is entered **once per shift** (A8 session for the washroom tablet; owner OK 2026-11-02; needs security review before build).
+- **Washer-done sound (P1, owner request 2026-11-02):**
+  - When a washer's timer (start tap + formula `cycle_minutes`) runs out, the TV showing that washer flashes "READY TO UNLOAD" with an icon and text. It also plays a chime, plus a spoken washer number in the screen's language ("Lavadora 3").
+  - **Never sound alone.** The visual cue is always there for noise and for deaf or hard-of-hearing staff.
+  - It is set per screen: sound on/off, chime only or chime + voice, and one repeat after N minutes if no new load has started on that washer. No endless repeats (alarm fatigue).
+  - It is an estimate: the timer can't see pauses or faults, so the screen says "should be done" until Accu-Flow data exists.
+  - **Browser constraint:** browsers block sound until someone interacts with the page.
+    - The TV device must run a browser we control in kiosk mode, set to allow sound without a tap (Chromium flag or a kiosk-browser setting).
+    - Otherwise the screen shows "Tap to enable sound" after every reload.
+    - The device choice is an owner purchase decision.
 - **Tech notes:**
-  - Route `/display/:areaId`.
-  - Initial data from RPC `get_display_feed(area_id)`, then Realtime.
-  - Screen Wake Lock API.
-  - Scheduled full reload at 04:00 local (configurable) to clear memory.
+  - Route `/display/:deviceId`. The feed RPC `get_display_feed()` resolves the caller's device → screen config → machines/area.
+  - Display RLS scope is extended from device→area to device→screen (machines in its config). Schema arrives with M2 (`display_screens`, `display_screen_machines`, optional `queue_items.pinned_machine_id`).
+  - Initial data from RPC, then Realtime, with full refetch on reconnect, `online`, `visibilitychange` and every 5 min.
+  - Screen Wake Lock API. Scheduled full reload at 04:00 local (configurable).
 
 #### D2. Connection & data-age indicator (P0)
 
@@ -491,7 +535,7 @@ Save and reuse a typical day's order.
 
 #### D5. Shift scoreboard on display (P1)
 
-- The washroom display shows **loads washed this shift by item**.
+- The washroom display shows **loads washed this shift by wash group** (v1.6).
 - The finishing display shows **finished goods this shift by item** (packs + loose, or units), against targets if any are set.
 - Totals only. Nothing per person is recorded.
 
@@ -625,6 +669,29 @@ Log stoppages (machine down, waiting on washroom, no work) with start and end ti
   - Estimate accuracy (% error) per item.
   - **Suggested pieces per load** = finished pieces ÷ loads washed over the trailing 28 days. Shown only when ≥ 20 loads, with the sample size. The owner accepts or ignores it (see A2).
   - **Caveat on screen:** the suggestion assumes most washed goods were also finished in the same window. A large clean backlog skews it.
+
+#### G6. Production pace, goals & behind-schedule alerts (P0) *(v1.6, owner request 2026-11-02: "I'm a visual guy")*
+
+- **Story:** As the owner, I want to see at a glance, mostly as pictures rather than tables, whether tonight is on pace, and to be warned before we fall behind, so that I act early instead of finding out at 6 a.m.
+- **Scope:** totals per wash group, area, shift and production day only. **Never per person** (§6.2 #11). This is the same reason G2 stays P1.
+- **Acceptance criteria:**
+  - **Owner home screen (phone), visual first:**
+    - One card per next-morning group (mats, sheets, butcher coats): progress ring of loads washed vs. loads needed (the latest estimate), projected finish time vs. the deadline, and a status of **On pace ✓ / Watch ⚠ / Behind ✕**. The status always pairs icon + text + color, never color alone.
+    - A **pace chart** for the current shift: cumulative loads (actual line) against the goal line, with "now" marked.
+    - A strip showing the 6 washers: running / idle / ready-to-unload, with minutes idle. Idle washers during a shift are the cheapest thing to fix.
+  - **Goals and thresholds, owner-set and editable in the app:**
+    - Per shift, per area: a target in loads (washroom) and pieces or packs (finishing), optionally per wash group.
+    - Per next-morning group: a deadline, default "ready for night finishing by 01:00" (`research/washroom-patterns.md`).
+    - Thresholds: **Watch** when projected below 90% of goal or projected finish within 30 min of the deadline; **Behind** below 75% or projected past the deadline. All values editable.
+  - **Projection:** remaining loads ÷ current pace, where pace = standard loads per hour over the last 60–90 min across running washers. Labelled "≈". Hidden until 30 minutes of data exist in the shift.
+  - **Alerts:**
+    - A single push or banner when a group enters **Behind**, max 1 per group per shift.
+    - The TV gets a small "behind" badge for that group only if the owner turns it on for that screen. The crew screens stay simple by default.
+  - **First weeks:** no goals are set; the screen shows actuals only plus "set a goal". Suggested goals come from about 3 weeks of data: the median shift.
+- **Tech notes:**
+  - View `shift_pace` (standard loads per 15-min bucket per shift + group), `production_goals` table (plant/area/shift/group, target, thresholds), RPC `get_pace_dashboard()`.
+  - Recharts for the charts.
+  - Builds on F1 washer taps and the G1 views. Ships in M2 with live data from the M2 tap flow; goals are tuned during the M3 pilot.
 
 #### G4. CSV export (P1)
 
