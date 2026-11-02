@@ -25,7 +25,7 @@ Full context lives in these docs. Read the relevant one before non-trivial work;
 ## Current state (update this section as work progresses)
 
 - **Sprint Zero DONE (2026-10-30, `research/roadmap.md` §3):** React 19/Router 8/Vite 8 PWA scaffold, magic-link sign-in, EN/ES locales (ES pending AI review), Supabase init, CI (app + migrations/pgTAP + hook tests), Foundation agents and guard hooks. Local Supabase works when Docker is started; CI always proves SQL.
-- **Supabase: "Plant Ops Board"** (ref `ypurifebjiivvltbcufx`, us-east-1). The only cloud project (staging until the pilot), still empty; the first `db push` needs owner OK. Never touch "ADB Project" or "Fleet Repair Log".
+- **Supabase: "Plant Ops Board"** (ref `ypurifebjiivvltbcufx`, us-east-1). The only cloud project (staging until the pilot), schema + seed uploaded 2026-11-02 via the manual deploy-db workflow (staging until the pilot). Never touch "ADB Project" or "Fleet Repair Log".
 - **M1 part 1 DONE (2026-11-01): database foundation**
   - 8 migrations in `supabase/migrations/20261101*`: 26 tables, RLS per role, staff PIN RPCs, pairing codes, DST-safe shift generation, `resolve_entry_shift`, reporting views.
   - `supabase/seed.sql`: ADB plant, items, machines, per-area shifts (updated 2026-11-01, see below).
@@ -62,8 +62,10 @@ Full context lives in these docs. Read the relevant one before non-trivial work;
   - **Live:**
     - Netlify site `adb-plantboard` (https://adb-plantboard.netlify.app), linked to `main`, env vars set.
     - PR #3 merged 2026-11-02.
-    - Cloud DB upload via `.github/workflows/deploy-db.yml`. The dry run passed: 19 migrations + seed. The real run waits on an explicit owner "upload".
-  - Invite email: the owner has no own domain yet (gave a Gmail address). Resend needs a verified domain, so the choice is Gmail SMTP with an app password, or buy a domain. Pending.
+    - **Cloud DB uploaded 2026-11-02** (owner said "upload"; workflow run 2): 19 migrations + seed.
+      - Verified: 1 plant, 2 areas, 33 wash groups, 73 items, 6 formulas, 10 machines, 8 shifts, 0 users, 0 tables without RLS.
+      - Advisors show by-design items only: RLS with no policy on the RPC-only `staff_sessions` and `alert_events`; definer RPCs callable by authenticated users that check roles inside.
+  - Invite email: sender `info@adbheadquarters.com` via Resend (domain verification by the owner is pending), then Supabase custom SMTP.
   - **Displays (PRD D1 v1.6):** screens are configurable data (machine or area layout), so TVs can be added anywhere without code. Launch: washroom TV A = washers 1–3, TV B = washers 4–6, finishing 1 TV. No dryer TV (dryers are 5 steps away). NOW + NEXT only. **The washman taps** each washer start, one tap, PIN once per shift.
   - Security notes to carry forward:
     - snapshot `load_factor` per washer cycle;
