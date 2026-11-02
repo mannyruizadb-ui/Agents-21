@@ -25,7 +25,7 @@ select p.org_id, p.id, a.name, a.kind::app.area_kind, a.sort_order
  cross join (values ('Washroom', 'washroom', 10), ('Finishing', 'finishing', 20)) as a(name, kind, sort_order)
  where p.name = 'Miami';
 
--- ── Wash groups + item catalog (A2; owner 2026-11-01): 31 wash groups, 57 items ──
+-- ── Wash groups + item catalog (A2; owner 2026-11-01): 34 groups, 69 items ──
 -- The washroom works by WASH GROUP (what may share a washer); finishing counts ITEMS. Every item is in
 -- exactly one group. Spanish names are AI drafts, pending the separate AI review (H1).
 -- Estimates: 'load' (catalog 🔸 assumed default); no baskets_per_load yet (null, TODO owner).
@@ -44,6 +44,8 @@ select p.org_id, p.id, g.name, jsonb_build_object('es', g.name_es), g.sort_order
   ('Black mats',                          'Tapetes negros',                            10),
   ('Colored mats',                        'Tapetes de color',                          20),   -- red, green, brown wash together
   ('Charcoal mats',                       'Tapetes carbón',                            30),   -- washed alone
+  ('Scraper mats',                        'Tapetes raspadores',                        32),   -- washed alone (owner 2026-11-02)
+  ('City & Brito mats',                   'Tapetes City y Brito',                      34),   -- wash together; the roller separates them
   ('Presidente logo mats',                'Tapetes con logo Presidente',               40),
   ('Logo mats',                           'Tapetes con logo',                          50),   -- all other logos
   ('Dust & wet mops',                     'Mopas de polvo y trapeadores',              60),
@@ -55,6 +57,7 @@ select p.org_id, p.id, g.name, jsonb_build_object('es', g.name_es), g.sort_order
   ('Coats (white)',                       'Batas y filipinas (blancas)',              120),
   ('White tablecloths',                   'Manteles blancos',                         130),
   ('Black tablecloths',                   'Manteles negros',                          140),
+  ('Red & blue tablecloths',              'Manteles rojos y azules',                  145),   -- red and blue wash together (owner 2026-11-02)
   -- Napkins: each color washes on its own (owner 2026-11-01).
   ('Napkins – Green',                     'Servilletas – verde',                      150),
   ('Napkins – Navy Blue w/ Stripe',       'Servilletas – azul marino con raya',       160),
@@ -96,8 +99,16 @@ select p.org_id, p.id, g.id, i.name, jsonb_build_object('es', i.name_es), i.cate
   ('Colored mats', 'Colored mat 4×6',  'Tapete de color 4×6',  'mat', 'unit', null, 12,    80),
   ('Colored mats', 'Colored mat 3×10', 'Tapete de color 3×10', 'mat', 'unit', null,  9,    90),
   ('Colored mats', 'Colored mat 5×7',  'Tapete de color 5×7',  'mat', 'unit', null, 3.5,  100),
+  ('Colored mats', 'Colored mat 3×4',  'Tapete de color 3×4',  'mat', 'unit', null, null, 105),  -- red only (LinenTrack); per-load count TODO owner
   -- Charcoal mats (washed alone)
   ('Charcoal mats', 'Charcoal mat 4×6', 'Tapete carbón 4×6', 'mat', 'unit', null, 12, 110),
+  -- Scraper mats (washed alone) and City & Brito mats (wash together), from LinenTrack's list (owner 2026-11-02)
+  ('Scraper mats',      'Scraper mat 3×5',     'Tapete raspador 3×5',  'mat', 'unit', null, 16, 115),
+  ('City & Brito mats', 'Black City mat 3×5',  'Tapete City negro 3×5',  'mat', 'unit', null, 16, 116),
+  ('City & Brito mats', 'Black City mat 4×6',  'Tapete City negro 4×6',  'mat', 'unit', null, 12, 118),
+  ('City & Brito mats', 'Black City mat 3×10', 'Tapete City negro 3×10', 'mat', 'unit', null,  9, 120),
+  ('City & Brito mats', 'Red Brito mat 4×6',   'Tapete Brito rojo 4×6',  'mat', 'unit', null, 12, 122),
+  ('City & Brito mats', 'Red Brito mat 3×10',  'Tapete Brito rojo 3×10', 'mat', 'unit', null,  9, 124),
   -- Presidente logo mats: 5×7 only (owner 2026-11-01)
   ('Presidente logo mats', 'Presidente logo mat 5×7', 'Tapete con logo Presidente 5×7', 'mat', 'unit', null, 3.5, 140),
   -- Logo mats (all other logos)
@@ -126,6 +137,8 @@ select p.org_id, p.id, g.id, i.name, jsonb_build_object('es', i.name_es), i.cate
   ('White tablecloths', 'Tablecloth 52×114 white',     'Mantel 52×114 blanco',            'linen', 'pack', 10,   null, 320),
   ('White tablecloths', 'Tablecloth 120" round white', 'Mantel redondo 120 pulg. blanco', 'linen', 'unit', null, null, 330),
   ('White tablecloths', 'Tablecloth 132" round white', 'Mantel redondo 132 pulg. blanco', 'linen', 'unit', null, null, 340),
+  -- Bone goes in the white wash (owner 2026-11-02). Pack 15 assumed from the 62×62 size; TODO owner confirm.
+  ('White tablecloths', 'Tablecloth 62×62 bone',       'Mantel 62×62 hueso',              'linen', 'pack', 15,   null, 345),
   -- Blacks wash only with blacks.
   ('Black tablecloths', 'Tablecloth 42×42 black',      'Mantel 42×42 negro',              'linen', 'pack', 25,   null, 350),
   ('Black tablecloths', 'Tablecloth 52×52 black',      'Mantel 52×52 negro',              'linen', 'pack', 20,   null, 360),
@@ -135,6 +148,11 @@ select p.org_id, p.id, g.id, i.name, jsonb_build_object('es', i.name_es), i.cate
   ('Black tablecloths', 'Tablecloth 52×114 black',     'Mantel 52×114 negro',             'linen', 'pack', 10,   null, 400),
   ('Black tablecloths', 'Tablecloth 120" round black', 'Mantel redondo 120 pulg. negro',  'linen', 'unit', null, null, 410),
   ('Black tablecloths', 'Tablecloth 132" round black', 'Mantel redondo 132 pulg. negro',  'linen', 'unit', null, null, 420),
+  -- Red and blue wash together (owner 2026-11-02). Pack sizes assumed from the same-size white/black; TODO owner confirm.
+  ('Red & blue tablecloths', 'Tablecloth 62×62 red',  'Mantel 62×62 rojo', 'linen', 'pack', 15, null, 422),
+  ('Red & blue tablecloths', 'Tablecloth 72×72 red',  'Mantel 72×72 rojo', 'linen', 'pack', 10, null, 424),
+  ('Red & blue tablecloths', 'Tablecloth 90×90 red',  'Mantel 90×90 rojo', 'linen', 'pack', 5,  null, 426),
+  ('Red & blue tablecloths', 'Tablecloth 62×62 blue', 'Mantel 62×62 azul', 'linen', 'pack', 15, null, 428),
   -- Napkins: one item per color, each in its own group. Pack of 100 for every color and material ✅
   -- (owner 2026-11-01).
   ('Napkins – Green',                    'Napkin – Green',                    'Servilleta – verde',                       'linen', 'pack', 100, null, 430),
