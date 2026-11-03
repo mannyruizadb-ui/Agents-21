@@ -81,6 +81,15 @@ Full context lives in these docs. Read the relevant one before non-trivial work;
     - store `production_date` on off-shift rows in the M2 RPCs;
     - invite-user must gate the `can_manage_staff` and owner role grants;
     - duplicate-PIN errors reveal which PINs are in use (accepted for now; PINs are attribution only).
+- **Launch scope (owner 2026-11-03): build the whole app and release it all at once; TVs last.**
+  - Day-one screens:
+    - queue + washer control (start taps from managers' phones);
+    - dirty-work estimates;
+    - finished goods (name + PIN);
+    - reports: shift report, day report, pace screen.
+  - In-app setup: items + wash groups, people + entry staff, washers + formulas, shifts.
+  - First users are the owner and managers only. The washroom tablet and TVs come later.
+  - Build order: server RPCs + pg_cron → setup screens → queue/washer → estimates → finished goods → reports/pace. Merge in PRs; the owner starts using it when all are done.
 - **Next, M1 part 2:**
   - invite-user and pair-device/revoke-device Edge Functions (create the edge-engineer agent first);
   - Custom Access Token Hook, pg_cron schedule, languages data migration for the cloud;
