@@ -71,7 +71,9 @@ Full context lives in these docs. Read the relevant one before non-trivial work;
     - Forced password change is enforced in the DB (`app.password_ok()` gates has_role/has_org_role/can_manage_staff).
     - 592 pgTAP tests pass; security-reviewer PASS WITH NOTES (2 rounds).
     - Cloud: the owner account (`mannyruiz.adb@gmail.com`) has an org-wide owner membership; `profiles.full_name` = 'Manny Ruiz'.
-    - Before the pilot: cloud Auth settings (signups off, confirm email ON, secure email change ON, leaked-password protection, minimum length 10), a null MX record on `accounts.adbheadquarters.com`, and deploying the function with `ALLOWED_ORIGINS` (deploy-db workflow, `deploy_functions` input).
+    - **LIVE 2026-11-03:** PR #4 merged; deploy-db run 3 applied the migration (20 in the cloud, latest 20261103202156) and deployed `manage-users` (ACTIVE, verify_jwt). CORS answers only https://adb-plantboard.netlify.app.
+    - The owner set the cloud minimum password length to **6**; I recommended 10. The function still enforces ≥ 10 on change_own_password.
+    - The null MX record was skipped. `accounts.adbheadquarters.com` is NXDOMAIN with no wildcard (checked), so mail to it can't be delivered.
     - Carry-forward: the Custom Access Token Hook must keep `app_metadata` in the JWT, or the password gate silently passes.
   - **Displays (PRD D1 v1.6):** screens are configurable data (machine or area layout), so TVs can be added anywhere without code. Launch: washroom TV A = washers 1–3, TV B = washers 4–6, finishing 1 TV. No dryer TV (dryers are 5 steps away). NOW + NEXT only. **The washman taps** each washer start, one tap, PIN once per shift.
   - Security notes to carry forward:
