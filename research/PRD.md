@@ -74,6 +74,8 @@ These are carried over from the earlier research and are not blockers to *starti
 > - **Finished goods are entered by the finishing manager only**, by unit or by pack + loose pieces.
 > - Operator check-in, PINs, station tablets and per-person productivity were removed from the MVP.
 >
+> **Revision note (2026-11-03, owner decision):** sign-in is **username + password**; the owner creates accounts. No email is ever sent. Magic links opened in Safari, not the installed iOS PWA, so the session never reached the app. A4, §5.4, §5.6, §5.7, §6.2 #5 and §6.3 are updated.
+
 > **Revision note (v1.6, 2026-11-02):** after owner input:
 > - **Wash groups:** the washroom (estimates, queue, washer loads, TVs) works by wash group; finishing counts items. Reconciliation is per production day per group.
 > - **Production day:** runs 12:00 → 12:00.
@@ -276,18 +278,24 @@ Feature IDs are referenced throughout. Each epic opens with what it covers.
   - Deactivation works without deletion.
 - **Tech notes:** Seeded for ADB at launch. The UI can be minimal.
 
-#### A4. User invites & roles (P0)
+#### A4. User accounts & roles (P0) *(owner decision 2026-11-03: username + password, no email)*
 
-- **Story:** As an owner, I want to invite managers by email and assign roles so that only the right people can change priorities.
+- **Story:** As an owner, I want to create accounts for my managers myself and assign roles, so that only the right people can change priorities, without running email.
 - **Acceptance criteria:**
-  - Owner enters an email and a role (`manager`, `lead`, `viewer`). The invitee receives a magic-link email and lands in the app with that role.
-  - Role changes take effect on the user's next token refresh (≤ 1 hour) or on forced sign-out.
-  - Owner can revoke access, which ends the user's sessions.
-  - At least one `owner` must exist per org. The last owner cannot be removed.
+  - People sign in with a **username** + password. The word "email" never appears in the UI. Usernames: lowercase `a-z 0-9 . _ -`, 3–32 characters.
+  - On the People screen (`/control/people`, owners only) the owner enters a name, username and role (`manager`, `lead`, `viewer`, `owner`; staff admin for managers). The app shows a **temporary password once**, for the owner to hand over in private.
+  - At first sign-in (and after an owner reset), the person must choose a new password (≥ 10 characters) before anything else.
+  - The owner can reset a password (new temporary password, shown once) and deactivate a person. Deactivation revokes the plant memberships and, when none remain, bans the account in Auth. Accounts are never deleted.
+  - Role changes take effect on the user's next token refresh (≤ 1 hour); revoked memberships take effect immediately through RLS.
+  - At least one `owner` must exist per org. An owner can't deactivate or reset themselves, so the acting owner always remains.
+  - An owner **may** reset or deactivate a co-owner in the same scope (owner decision 2026-11-03). Nobody may manage a person who also has (or had) access outside the acting owner's scope.
+  - Until the temporary password is changed, the database refuses the account too: `app.has_role` / `has_org_role` / `can_manage_staff` return false while the JWT carries `must_change_password`. Only the person's own profile stays readable.
+  - Create, reset and deactivate are written to `audit_log` with the acting owner, never the password. A person can't change their own sign-in email (email changes need confirmation from both mailboxes).
 - **Tech notes:**
-  - Supabase Auth `inviteUserByEmail`, called from an Edge Function using the service role.
-  - Membership rows (§4).
-  - Custom Access Token Hook adds `org_id`, `role` and `plant_ids` to the JWT.
+  - Edge Function `manage-users` (`list`, `create`, `reset_password`, `deactivate`, `change_own_password`). Uses the Auth admin API with the service role; membership writes go through RLS so they are audited with the acting owner.
+  - A username maps to the Auth email `<username>@accounts.adbheadquarters.com`, a domain the owner controls with no mailbox. The owner's own account is created the same way in the Supabase dashboard.
+  - The display name is stored in `profiles.full_name`. The forced change is `app_metadata.must_change_password`, which only `manage-users` clears.
+  - Membership rows (§4). Custom Access Token Hook adds `org_id`, `role` and `plant_ids` to the JWT.
 
 #### A5. Crew hours per shift (P1)
 
@@ -1716,8 +1724,7 @@ All functions are `security definer` with `set search_path = ''`. Each checks th
 
 | Function | Trigger | Auth | Purpose |
 |---|---|---|---|
-| `invite-user` | HTTP POST | O (verified from JWT + membership) | `{ email, role, plant_id? }` → Supabase Admin `inviteUserByEmail`, insert membership. Returns `{ user_id }`. |
-| `revoke-user` | HTTP POST | O | Marks membership revoked and signs out all sessions (`auth.admin.signOut`). |
+| `manage-users` (replaces `invite-user` / `revoke-user`, 2026-11-03) | HTTP POST | O for `list`, `create`, `reset_password`, `deactivate` (verified from JWT + membership); any signed-in user for `change_own_password` | Owner-created username + password accounts (A4). `create` returns `{ user_id, username, temp_password }` once; `deactivate` revokes memberships and bans the account when none remain. Errors: `NOT_AUTHORIZED` (also for an unknown or out-of-scope user), `VALIDATION_FAILED`, `USERNAME_TAKEN`. CORS limited to `ALLOWED_ORIGINS`. |
 | `pair-device` | HTTP POST | **Public** (code is the credential) | `{ code }` → validates code, creates the display's auth user, membership and `devices` row, consumes the code, returns `{ access_token, refresh_token, device }`. **Rate limit:** 10 attempts per IP per 10 min (tracked in a `pairing_attempts` table), plus a constant-time compare. |
 | `revoke-device` | HTTP POST | O,M | Sets `revoked_at`, signs out the device user. The display's Realtime presence channel receives an `unpaired` broadcast. |
 | `import-washer-file` (P1) | HTTP POST (multipart) | O,M,L | Stage 1 `preview`: store the file, parse, return rows + issues. Stage 2 `commit`: insert with dedupe, return a summary. Max 10 MB, CSV/XLSX only. |
@@ -1742,7 +1749,7 @@ All functions are `security definer` with `set search_path = ''`. Each checks th
 
 | Actor | Sign-in | Token lifetime | Notes |
 |---|---|---|---|
-| Owner / manager / lead / viewer | Email magic link (or email + password) via Supabase Auth | Access 1 h, refresh rotating | MFA (TOTP) **required for owners** (P1), optional for others |
+| Owner / manager / lead / viewer | Username + password via Supabase Auth (owner-created accounts, A4; no magic links, no email) | Access 1 h, refresh rotating | MFA (TOTP) **required for owners** (P1), optional for others |
 | Display device | Pairing code → device account | Refresh token persisted on device; long-lived | Read-only RLS; revocable |
 | Edge Functions | Service role key (server env only) | — | Never shipped to clients |
 
@@ -1752,7 +1759,7 @@ Supabase gives some limits out of the box; the rest are added at the app level.
 
 | Surface | Limit | Mechanism |
 |---|---|---|
-| Auth (magic link, sign-in) | Supabase defaults (configurable in the dashboard). Magic-link emails are limited per hour. | Supabase Auth rate limits. Use custom SMTP (Resend) to avoid the default email cap. |
+| Auth (password sign-in) | Supabase defaults (configurable in the dashboard): sign-in requests per IP per 5 min. | Supabase Auth rate limits. |
 | Pairing | 10 attempts / IP / 10 min; codes expire in 15 min | `pair-device` Edge Function + `pairing_attempts` table |
 | Entry writes | 120 finished-goods or washer entries / user / minute | `app.throttle_writes` trigger |
 | Reads | Max 1,000 rows per request; `statement_timeout` 5 s for `authenticated` | PostgREST `max_rows` + role setting |
@@ -1794,7 +1801,9 @@ There is **no general per-IP API rate limiting at the PostgREST layer** at this 
    - Only the publishable (anon) key is in the client.
    - No secrets in the repo; GitHub secret scanning is on.
 4. **No per-worker production data** (v1.1). v1.4 adds name + PIN for **data-entry staff only** (owner, managers, leads), to record who typed each entry. PINs are bcrypt-hashed, never returned by any API, and locked after 5 failures. Crew hours are area totals.
-5. **Owner accounts require MFA (TOTP)** from P1. Magic links expire in 1 hour.
+5. **Owner accounts require MFA (TOTP)** from P1.
+   - **Sign-in is username + password** (owner decision 2026-11-03). Magic links were dropped because iOS opens them in Safari, not in the installed PWA, so the session never reached the app; the owner also didn't want to run email/DNS.
+   - Passwords are ≥ 10 characters. Temporary passwords are crypto-random, shown once, and must be changed at first sign-in. Self sign-up stays off.
 6. **Transport:** HTTPS only (HSTS via host). Realtime over WSS.
 7. **Audit:** all configuration, queue, estimate and void actions are written to `audit_log`, retained ≥ 2 years.
 8. **Backups:** Supabase daily backups plus a nightly encrypted `pg_dump` to Cloudflare R2. Restore is tested before launch and quarterly after.
@@ -1812,7 +1821,7 @@ There is **no general per-IP API rate limiting at the PostgREST layer** at this 
 
 ### 6.3 Accessibility standards
 
-- **Control surface (phones and any shared tablet):** WCAG 2.2 Level AA, including the 2.2 criteria on target size (2.5.8), dragging alternatives (2.5.7), label in name (2.5.3) and accessible authentication (3.3.8): magic links, no cognitive puzzles.
+- **Control surface (phones and any shared tablet):** WCAG 2.2 Level AA, including the 2.2 criteria on target size (2.5.8), dragging alternatives (2.5.7), label in name (2.5.3) and accessible authentication (3.3.8): password fields allow paste and password managers (`autocomplete`), with a "Show password" option and no cognitive puzzles.
 - **Wall displays:** exceed AA. Text contrast ≥ 7:1 (AAA) because of distance, glare and steam.
 - **Color is never the only signal.** RUSH, freshness and offline states always combine color + icon + text.
 - **Touch targets:**

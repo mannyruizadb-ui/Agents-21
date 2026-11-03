@@ -65,7 +65,14 @@ Full context lives in these docs. Read the relevant one before non-trivial work;
     - **Cloud DB uploaded 2026-11-02** (owner said "upload"; workflow run 2): 19 migrations + seed.
       - Verified: 1 plant, 2 areas, 33 wash groups, 73 items, 6 formulas, 10 machines, 8 shifts, 0 users, 0 tables without RLS.
       - Advisors show by-design items only: RLS with no policy on the RPC-only `staff_sessions` and `alert_events`; definer RPCs callable by authenticated users that check roles inside.
-  - Invite email: sender `info@adbheadquarters.com` via Resend (domain verification by the owner is pending), then Supabase custom SMTP.
+  - **Sign-in (owner decision 2026-11-03): username + password; the owner creates every account. No email is ever sent, and Resend/DNS are off the critical path.** Magic links were dropped because they open in Safari, not the installed iOS app.
+    - Usernames map to `<u>@accounts.adbheadquarters.com`; a typed value containing "@" is used as-is (the owner signs in with their Gmail).
+    - Edge Function `manage-users` (create / reset / deactivate / list / change_own_password).
+    - Forced password change is enforced in the DB (`app.password_ok()` gates has_role/has_org_role/can_manage_staff).
+    - 592 pgTAP tests pass; security-reviewer PASS WITH NOTES (2 rounds).
+    - Cloud: the owner account (`mannyruiz.adb@gmail.com`) has an org-wide owner membership; `profiles.full_name` = 'Manny Ruiz'.
+    - Before the pilot: cloud Auth settings (signups off, confirm email ON, secure email change ON, leaked-password protection, minimum length 10), a null MX record on `accounts.adbheadquarters.com`, and deploying the function with `ALLOWED_ORIGINS` (deploy-db workflow, `deploy_functions` input).
+    - Carry-forward: the Custom Access Token Hook must keep `app_metadata` in the JWT, or the password gate silently passes.
   - **Displays (PRD D1 v1.6):** screens are configurable data (machine or area layout), so TVs can be added anywhere without code. Launch: washroom TV A = washers 1–3, TV B = washers 4–6, finishing 1 TV. No dryer TV (dryers are 5 steps away). NOW + NEXT only. **The washman taps** each washer start, one tap, PIN once per shift.
   - Security notes to carry forward:
     - snapshot `load_factor` per washer cycle;

@@ -1,44 +1,113 @@
 import { useState, type FormEvent } from 'react';
+import { useNavigate } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import { supabase } from '../../lib/supabase';
+import { toLoginEmail } from '../../lib/loginId';
+import { LanguageSwitch } from './LanguageSwitch';
+import '../../lib/forms.css';
 
-type Status = 'idle' | 'sending' | 'sent' | 'error';
+type Status = 'idle' | 'signing-in' | 'wrong' | 'failed';
 
+// Username + password (PRD A4, owner decision 2026-11-03). Magic links were dropped: they open in
+// Safari, not the installed iOS PWA, so the session never reached the app.
 export function SignInPage() {
   const { t } = useTranslation();
-  const [email, setEmail] = useState('');
+  const navigate = useNavigate();
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [status, setStatus] = useState<Status>('idle');
 
   async function onSubmit(event: FormEvent) {
     event.preventDefault();
-    setStatus('sending');
-    const { error } = await supabase.auth.signInWithOtp({
-      email,
-      options: { emailRedirectTo: `${window.location.origin}/control`, shouldCreateUser: false },
-    });
-    setStatus(error ? 'error' : 'sent');
+    const email = toLoginEmail(username);
+    // A value that can't be a username gets the same message as a wrong password.
+    if (!email || password.length === 0) {
+      setStatus('wrong');
+      return;
+    }
+    setStatus('signing-in');
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    if (!error) {
+      navigate('/control', { replace: true });
+      return;
+    }
+    // 4xx = bad credentials (never says whether the user exists); anything else = try again.
+    setStatus(
+      error.status !== undefined && error.status >= 400 && error.status < 500 ? 'wrong' : 'failed',
+    );
   }
 
   return (
-    <main>
+    <main className="form-page theme-dark">
+      <header className="brand">
+        {/* LOGO SLOT: no logo file exists yet. Replace this box with
+            <img src="/logo.svg" alt="" width="72" height="72" />. The company name below stays
+            as the accessible text, so the logo is decorative (alt=""). */}
+        <div className="brand-logo-slot" aria-hidden="true">
+          ADB
+        </div>
+        <div>
+          <p className="brand-company">{t('brand.company')}</p>
+          <p className="brand-product">{t('app.name')}</p>
+        </div>
+      </header>
+      <LanguageSwitch />
       <h1>{t('auth.signInTitle')}</h1>
-      <form onSubmit={onSubmit}>
-        <label htmlFor="email">{t('auth.emailLabel')}</label>
-        <input
-          id="email"
-          type="email"
-          autoComplete="email"
-          required
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-        />
-        <button type="submit" disabled={status === 'sending'}>
-          {status === 'sending' ? t('auth.sending') : t('auth.sendLink')}
+      <form onSubmit={onSubmit} noValidate>
+        <div className="field">
+          <label htmlFor="username">{t('auth.usernameLabel')}</label>
+          <input
+            id="username"
+            name="username"
+            type="text"
+            autoComplete="username"
+            autoCapitalize="none"
+            autoCorrect="off"
+            spellCheck={false}
+            required
+            aria-describedby="username-hint"
+            value={username}
+            onChange={(e) => setUsername(e.target.value)}
+          />
+          <p id="username-hint" className="hint">
+            {t('auth.usernameHint')}
+          </p>
+        </div>
+        <div className="field">
+          <label htmlFor="password">{t('auth.passwordLabel')}</label>
+          <input
+            id="password"
+            name="password"
+            type={showPassword ? 'text' : 'password'}
+            autoComplete="current-password"
+            required
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+          />
+        </div>
+        <div className="field check">
+          <label>
+            <input
+              type="checkbox"
+              checked={showPassword}
+              onChange={(e) => setShowPassword(e.target.checked)}
+            />
+            {t('auth.showPassword')}
+          </label>
+        </div>
+        <button type="submit" disabled={status === 'signing-in'}>
+          {status === 'signing-in' ? t('auth.signingIn') : t('auth.signIn')}
         </button>
       </form>
-      <p role="status" aria-live="polite">
-        {status === 'sent' && t('auth.linkSent')}
-        {status === 'error' && t('auth.error')}
+      <p role="status" aria-live="polite" className="error">
+        {(status === 'wrong' || status === 'failed') && (
+          <span aria-hidden="true" className="error-icon">
+            ⚠
+          </span>
+        )}
+        {status === 'wrong' && t('auth.wrongCredentials')}
+        {status === 'failed' && t('auth.signInFailed')}
       </p>
     </main>
   );

@@ -11,6 +11,20 @@ export const router = createBrowserRouter([
   {
     path: '/control',
     lazy: async () => ({ Component: (await import('./app/control/ControlRoute')).ControlRoute }),
+    children: [
+      {
+        index: true,
+        lazy: async () => ({ Component: (await import('./app/control/ControlHome')).ControlHome }),
+      },
+      {
+        // Owner only (PRD A4). The page shows nothing manageable to others, and manage-users
+        // re-checks the owner role on every request.
+        path: 'people',
+        lazy: async () => ({
+          Component: (await import('./features/admin/PeoplePage')).PeoplePage,
+        }),
+      },
+    ],
   },
   {
     path: '/display/:areaId',

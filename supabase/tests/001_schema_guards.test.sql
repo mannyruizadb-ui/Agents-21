@@ -72,7 +72,7 @@ select is(
      join pg_namespace n on n.oid = p.pronamespace
     where n.nspname = 'app' and has_function_privilege('authenticated', p.oid, 'execute')),
   array['can_manage_staff','has_org_role','has_role','is_clean_text','is_display','is_display_account','is_my_device',
-        'my_device','production_date','to_loads','valid_a11y_prefs'],
+        'my_device','password_ok','production_date','to_loads','valid_a11y_prefs'],
   'authenticated executes only the allow-listed app helpers');
 
 select ok(exists (select 1 from pg_default_acl

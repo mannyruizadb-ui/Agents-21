@@ -1,5 +1,6 @@
 import i18n from 'i18next';
 import { initReactI18next } from 'react-i18next';
+import { readRememberedLanguage, rememberLanguage } from './languagePrefs';
 
 // Locale files are discovered from src/locales/*.json and loaded on demand, so adding a
 // language is a new file plus a `languages` row — no code change (PRD H1).
@@ -16,15 +17,22 @@ async function loadLocale(code: string): Promise<void> {
   i18n.addResourceBundle(code, 'translation', module.default, true, true);
 }
 
-export async function setLanguage(code: string): Promise<void> {
+export async function setLanguage(
+  code: string,
+  options: { remember?: boolean } = {},
+): Promise<void> {
   await loadLocale(code);
   await i18n.changeLanguage(code);
   document.documentElement.lang = code;
+  if (options.remember) rememberLanguage(code);
 }
 
 export async function initI18n(): Promise<void> {
+  // A choice made on this device wins over the browser language.
   const preferred = navigator.language.split('-')[0] ?? 'en';
-  const initial = availableLocales.includes(preferred) ? preferred : 'en';
+  const initial =
+    readRememberedLanguage(availableLocales) ??
+    (availableLocales.includes(preferred) ? preferred : 'en');
   await i18n.use(initReactI18next).init({
     lng: initial,
     fallbackLng: 'en',

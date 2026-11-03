@@ -1,0 +1,243 @@
+/* Shared form styles for the control surface (PRD §6.3): targets ≥ 48 px, body ≥ 16 px,
+   visible labels, works at 360 px wide and at 200% text size. Scoped to .form-page. */
+.form-page {
+  box-sizing: border-box;
+  max-width: 36rem;
+  margin: 0 auto;
+  padding: 16px;
+  font-family: system-ui, sans-serif;
+  font-size: 1rem;
+  line-height: 1.5;
+  color: #111;
+  background: #fff;
+}
+.form-page *,
+.form-page *::before,
+.form-page *::after {
+  box-sizing: inherit;
+}
+.form-page h1 {
+  font-size: 1.75rem;
+  margin: 0 0 1rem;
+}
+.form-page h2 {
+  font-size: 1.375rem;
+  margin: 1.5rem 0 0.75rem;
+}
+.form-page .field {
+  margin-bottom: 1rem;
+}
+.form-page label {
+  display: block;
+  font-weight: 600;
+  margin-bottom: 0.25rem;
+}
+.form-page .check label {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  min-height: 48px;
+  font-weight: 400;
+}
+.form-page input[type='checkbox'] {
+  width: 28px;
+  height: 28px;
+  flex: none;
+}
+.form-page input:not([type='checkbox']),
+.form-page select {
+  width: 100%;
+  min-height: 48px;
+  padding: 0.5rem 0.75rem;
+  font-size: 1.125rem;
+  border: 2px solid #555;
+  border-radius: 6px;
+  background: #fff;
+  color: #111;
+}
+.form-page button,
+.form-page .button-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 48px;
+  min-width: 48px;
+  padding: 0.5rem 1rem;
+  font-size: 1.0625rem;
+  font-weight: 600;
+  border: 2px solid #1f3a8a;
+  border-radius: 6px;
+  background: #1f3a8a;
+  color: #fff;
+  text-decoration: none;
+  cursor: pointer;
+}
+.form-page button.secondary,
+.form-page .button-link.secondary {
+  background: #fff;
+  color: #1f3a8a;
+}
+.form-page button.danger {
+  background: #8b0000;
+  border-color: #8b0000;
+}
+.form-page button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+.form-page :focus-visible {
+  outline: 3px solid #b45309;
+  outline-offset: 2px;
+}
+.form-page .actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 0.5rem;
+}
+.form-page .hint {
+  font-size: 0.9375rem;
+  color: #333;
+  margin: 0.25rem 0 0;
+}
+.form-page .error {
+  color: #8b0000;
+  font-weight: 600;
+}
+.form-page .card {
+  border: 2px solid #ccc;
+  border-radius: 8px;
+  padding: 0.75rem 1rem;
+  margin-bottom: 0.75rem;
+}
+.form-page .people {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+.form-page .secret {
+  border: 3px solid #b45309;
+  border-radius: 8px;
+  padding: 1rem;
+  margin-bottom: 1.5rem;
+  background: #fff8eb;
+}
+.form-page .secret-value {
+  display: block;
+  font-family: ui-monospace, Menlo, Consolas, monospace;
+  font-size: 1.75rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  word-break: break-all;
+  user-select: all;
+  margin: 0.5rem 0;
+}
+
+/* ── Dark, high-contrast theme (matches the planned wall-TV look). Every text/background pair is
+   ≥ 7:1: white on #0b0f14 = 19.2, #c9d1d9 hint = 12.5, #ffd60a accent = 13.6, black on the
+   #ffd60a button = 14.9, #ff8a8a error = 8.5. Errors also carry an icon + text (never color only). */
+.form-page.theme-dark {
+  max-width: none;
+  min-height: 100vh;
+  min-height: 100dvh;
+  color: #fff;
+  background: #0b0f14;
+}
+.form-page.theme-dark > * {
+  max-width: 32rem;
+  margin-left: auto;
+  margin-right: auto;
+}
+.theme-dark h1 {
+  font-size: 1.875rem;
+  margin-top: 1.5rem;
+}
+.theme-dark label,
+.theme-dark .language-switch-label {
+  color: #fff;
+  font-size: 1.125rem;
+}
+.theme-dark .hint {
+  color: #c9d1d9;
+}
+.theme-dark input:not([type='checkbox']) {
+  min-height: 56px;
+  font-size: 1.25rem;
+  color: #fff;
+  background: #000;
+  border: 2px solid #fff;
+}
+.theme-dark input[type='checkbox'] {
+  accent-color: #ffd60a;
+}
+.theme-dark button {
+  min-height: 56px;
+  font-size: 1.125rem;
+  color: #000;
+  background: #ffd60a;
+  border-color: #ffd60a;
+}
+.theme-dark button[type='submit'] {
+  width: 100%;
+}
+.theme-dark button.secondary {
+  color: #fff;
+  background: transparent;
+  border-color: #fff;
+}
+.theme-dark :focus-visible {
+  outline: 3px solid #ffd60a;
+  outline-offset: 3px;
+}
+.theme-dark .error {
+  color: #ff8a8a;
+  font-size: 1.125rem;
+}
+.theme-dark .error-icon {
+  margin-right: 0.5rem;
+}
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding-bottom: 1rem;
+  border-bottom: 2px solid #ffd60a;
+  margin-bottom: 1rem;
+}
+.brand-logo-slot {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 72px;
+  height: 72px;
+  border: 2px dashed #ffd60a;
+  border-radius: 12px;
+  color: #ffd60a;
+  font-weight: 800;
+  font-size: 1.25rem;
+}
+.brand p {
+  margin: 0;
+}
+.brand-company {
+  font-size: 1.375rem;
+  font-weight: 800;
+  line-height: 1.2;
+}
+.brand-product {
+  font-size: 1.125rem;
+  color: #ffd60a;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+.language-switch .actions {
+  margin-top: 0.25rem;
+}
+/* No white frame around full-bleed pages (browser default body margin). */
+body:has(.form-page) {
+  margin: 0;
+}
+body:has(.theme-dark) {
+  background: #0b0f14;
+}

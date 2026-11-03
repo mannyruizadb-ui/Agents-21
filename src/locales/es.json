@@ -1,16 +1,101 @@
 {
-  "app": { "name": "PlantBoard" },
+  "app": {
+    "name": "PlantBoard"
+  },
+  "brand": {
+    "company": "America's Dust Busters"
+  },
+  "language": {
+    "label": "Idioma"
+  },
   "auth": {
     "signInTitle": "Iniciar sesión",
-    "emailLabel": "Correo electrónico",
-    "sendLink": "Enviar enlace de acceso",
-    "sending": "Enviando…",
-    "linkSent": "Revise su correo: le enviamos un enlace de acceso.",
-    "error": "No se pudo enviar el enlace. Verifique el correo e intente de nuevo.",
+    "usernameLabel": "Usuario",
+    "usernameHint": "El usuario que le dio el dueño.",
+    "passwordLabel": "Contraseña",
+    "showPassword": "Mostrar contraseña",
+    "signIn": "Iniciar sesión",
+    "signingIn": "Iniciando sesión…",
+    "wrongCredentials": "Usuario o contraseña incorrectos. Revise ambos e intente de nuevo.",
+    "signInFailed": "No se pudo iniciar sesión. Revise su conexión e intente de nuevo.",
     "signOut": "Cerrar sesión"
   },
-  "control": { "placeholder": "App de control: las funciones llegan en el Hito 2." },
-  "display": { "placeholder": "Pantalla de pared: llega en el Hito 2." },
-  "pair": { "placeholder": "Vincular pantalla: llega en el Hito 1." },
-  "common": { "loading": "Cargando…" }
+  "changePassword": {
+    "title": "Elija una contraseña nueva",
+    "intro": "Entró con una contraseña temporal. Elija la suya para continuar. Use al menos {{count}} caracteres.",
+    "newLabel": "Contraseña nueva",
+    "confirmLabel": "Escríbala otra vez",
+    "save": "Guardar contraseña",
+    "saving": "Guardando…",
+    "errors": {
+      "tooShort": "Muy corta. Use al menos {{count}} caracteres.",
+      "tooLong": "Muy larga. Use una contraseña más corta.",
+      "mismatch": "Las dos contraseñas no coinciden. Escriba la misma en ambos campos.",
+      "same": "Esa es la contraseña que tiene ahora. Elija otra.",
+      "failed": "No se pudo guardar la contraseña. Revise su conexión e intente de nuevo."
+    }
+  },
+  "roles": {
+    "owner": "Dueño",
+    "manager": "Gerente",
+    "lead": "Encargado",
+    "viewer": "Solo lectura"
+  },
+  "people": {
+    "title": "Personas",
+    "back": "Volver",
+    "notOwner": "Solo un dueño puede administrar personas.",
+    "plantLabel": "Planta",
+    "listTitle": "Quién puede iniciar sesión",
+    "empty": "Nadie todavía.",
+    "you": "(usted)",
+    "usernameValue": "Usuario: {{username}}",
+    "roleValue": "Rol: {{roles}}",
+    "staffAdmin": "Admin. de personal",
+    "allPlants": "Todas las plantas",
+    "notManageable": "Lo administra un dueño de toda la empresa.",
+    "resetPassword": "Restablecer contraseña",
+    "deactivate": "Desactivar",
+    "confirmDeactivate": "¿Desactivar a {{name}}? Ya no podrá iniciar sesión aquí.",
+    "confirmYes": "Sí, desactivar",
+    "cancel": "Cancelar",
+    "deactivated": "Se desactivó a {{name}}.",
+    "createTitle": "Crear una cuenta",
+    "displayNameLabel": "Nombre",
+    "usernameLabel": "Usuario",
+    "usernameHelp": "De 3 a 32 caracteres: letras minúsculas, números, punto, guion bajo o guion.",
+    "roleLabel": "Rol",
+    "canManageStaffLabel": "Puede administrar el personal de registro y los PIN",
+    "create": "Crear cuenta",
+    "creating": "Creando…",
+    "secretTitle": "Contraseña temporal de {{username}}",
+    "secretLabel": "Contraseña temporal",
+    "secretWarning": "Entréguela a la persona en privado. No se volverá a mostrar.",
+    "secretNext": "Deberá elegir una contraseña nueva la primera vez que inicie sesión.",
+    "copy": "Copiar contraseña",
+    "copied": "Copiada.",
+    "copyFailed": "No se pudo copiar. Seleccione la contraseña y cópiela a mano.",
+    "done": "Listo",
+    "errors": {
+      "notAuthorized": "No puede hacer eso. Solo un dueño de esta planta puede administrar a estas personas.",
+      "usernameTaken": "Ese usuario ya existe. Elija otro.",
+      "invalid": "Algunos datos no son válidos. Revise el nombre, el usuario y el rol.",
+      "generic": "Algo salió mal. Revise su conexión e intente de nuevo.",
+      "nameRequired": "Escriba el nombre de la persona.",
+      "usernameInvalid": "Use de 3 a 32 letras minúsculas, números, punto, guion bajo o guion."
+    },
+    "noUsername": "Sin usuario"
+  },
+  "control": {
+    "placeholder": "App de control: las funciones llegan en el Hito 2."
+  },
+  "display": {
+    "placeholder": "Pantalla de pared: llega en el Hito 2."
+  },
+  "pair": {
+    "placeholder": "Vincular pantalla: llega en el Hito 1."
+  },
+  "common": {
+    "loading": "Cargando…"
+  }
 }
