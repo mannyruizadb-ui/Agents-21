@@ -1,0 +1,135 @@
+import { assert, assertEquals, assertMatch, assertNotEquals } from '@std/assert';
+import { isValidUsername, toLoginEmail, usernameFromEmail } from '../_shared/loginId.ts';
+import { corsHeaders, parseAllowedOrigins } from '../_shared/cors.ts';
+import { generateTempPassword, parseRequest, TEMP_PASSWORD_ALPHABET } from './validation.ts';
+
+const PLANT = '00000000-0000-0000-0000-0000000000a1';
+const USER = '00000000-0000-0000-0000-0000000000b2';
+const base = {
+  action: 'create',
+  plant_id: PLANT,
+  username: 'maria',
+  display_name: 'María',
+  role: 'lead',
+};
+
+Deno.test('loginId (Edge copy): username mapping and bounds', () => {
+  assertEquals(toLoginEmail(' Maria '), 'maria@accounts.adbheadquarters.com');
+  assertEquals(toLoginEmail('Owner@Example.com'), 'owner@example.com');
+  // Owner's real-email account, typed in full into the Username field.
+  assertEquals(toLoginEmail(' Owner.Name@Example.COM '), 'owner.name@example.com');
+  assertEquals(toLoginEmail('ab'), null);
+  assertEquals(isValidUsername('a'.repeat(32)), true);
+  assertEquals(isValidUsername('a'.repeat(33)), false);
+  assertEquals(usernameFromEmail('maria@accounts.adbheadquarters.com'), 'maria');
+  assertEquals(usernameFromEmail('owner@example.com'), null);
+  // Owner account created in the dashboard as <username>@accounts.adbheadquarters.com.
+  assertEquals(toLoginEmail('  Manny '), 'manny@accounts.adbheadquarters.com');
+});
+
+Deno.test('create: valid input passes; can_manage_staff defaults to false', () => {
+  const r = parseRequest(base);
+  assert(r.ok);
+  if (r.ok && r.value.action === 'create') assertEquals(r.value.can_manage_staff, false);
+});
+
+Deno.test('create: display name is trimmed', () => {
+  const r = parseRequest({ ...base, display_name: '  Ana  ' });
+  assert(r.ok && r.value.action === 'create' && r.value.display_name === 'Ana');
+});
+
+Deno.test('create: rejects bad usernames, roles, names and extra fields', () => {
+  for (const bad of [
+    { ...base, username: 'Maria' },
+    { ...base, username: 'maria@x.com' },
+    { ...base, username: 'ab' },
+    { ...base, role: 'display' },
+    { ...base, role: 'superuser' },
+    { ...base, display_name: '   ' },
+    { ...base, display_name: 'a\u0007b' },
+    { ...base, display_name: 'x'.repeat(81) },
+    { ...base, plant_id: 'not-a-uuid' },
+    { ...base, org_id: PLANT },
+    { ...base, plant_id: null },
+  ]) {
+    const r = parseRequest(bad);
+    assert(!r.ok, JSON.stringify(bad));
+  }
+});
+
+Deno.test('create: can_manage_staff only with role manager', () => {
+  assert(parseRequest({ ...base, role: 'manager', can_manage_staff: true }).ok);
+  for (const role of ['owner', 'lead', 'viewer']) {
+    const r = parseRequest({ ...base, role, can_manage_staff: true });
+    assert(!r.ok);
+    if (!r.ok) assertEquals(r.fields, ['can_manage_staff']);
+  }
+});
+
+Deno.test('target actions need plant_id and user_id', () => {
+  for (const action of ['reset_password', 'deactivate']) {
+    assert(parseRequest({ action, plant_id: PLANT, user_id: USER }).ok);
+    assert(!parseRequest({ action, plant_id: PLANT }).ok);
+    assert(!parseRequest({ action, user_id: USER }).ok);
+  }
+  assert(parseRequest({ action: 'list', plant_id: PLANT }).ok);
+  assert(!parseRequest({ action: 'nope', plant_id: PLANT }).ok);
+  assert(!parseRequest(null).ok);
+  assert(!parseRequest('create').ok);
+});
+
+Deno.test('change_own_password: 10 chars min, 72 bytes max, reasons reported', () => {
+  assert(parseRequest({ action: 'change_own_password', new_password: 'a'.repeat(10) }).ok);
+  assert(parseRequest({ action: 'change_own_password', new_password: 'a'.repeat(72) }).ok);
+  const short = parseRequest({ action: 'change_own_password', new_password: 'a'.repeat(9) });
+  assert(!short.ok && short.reason === 'password_too_short');
+  const long = parseRequest({ action: 'change_own_password', new_password: 'a'.repeat(73) });
+  assert(!long.ok && long.reason === 'password_too_long');
+  // 25 × 3-byte chars = 75 bytes: too long even though only 25 characters.
+  const multibyte = parseRequest({ action: 'change_own_password', new_password: '€'.repeat(25) });
+  assert(!multibyte.ok && multibyte.reason === 'password_too_long');
+});
+
+Deno.test('validation errors never echo values', () => {
+  const r = parseRequest({ action: 'change_own_password', new_password: 'secret' });
+  assert(!r.ok);
+  assert(!JSON.stringify(r).includes('secret'));
+});
+
+Deno.test('temp password: 19 chars, 4 groups of 4, unambiguous alphabet, random', () => {
+  const seen = new Set<string>();
+  for (let i = 0; i < 200; i++) {
+    const p = generateTempPassword();
+    assertMatch(p, /^[A-Za-z2-9]{4}(-[A-Za-z2-9]{4}){3}$/);
+    assert(p.length >= 14);
+    for (const ch of p.replaceAll('-', '')) assert(TEMP_PASSWORD_ALPHABET.includes(ch), ch);
+    assert(!/[IOlo01]/.test(p));
+    seen.add(p);
+  }
+  assertEquals(seen.size, 200);
+});
+
+Deno.test('temp password: rejection sampling skips biased bytes', () => {
+  // 255 is above the 224 limit for a 56-symbol alphabet and must be skipped.
+  let call = 0;
+  const p = generateTempPassword((b) => {
+    b.fill(call++ === 0 ? 255 : 0);
+    return b;
+  });
+  assertEquals(p, 'AAAA-AAAA-AAAA-AAAA');
+});
+
+Deno.test('cors: only listed origins are echoed', () => {
+  const allowed = parseAllowedOrigins('https://a.example, https://b.example');
+  assertEquals(
+    corsHeaders('https://a.example', allowed)['Access-Control-Allow-Origin'],
+    'https://a.example',
+  );
+  assertEquals(
+    corsHeaders('https://evil.example', allowed)['Access-Control-Allow-Origin'],
+    undefined,
+  );
+  assertEquals(corsHeaders(null, allowed)['Access-Control-Allow-Origin'], undefined);
+  assertNotEquals(corsHeaders('https://a.example', allowed)['Access-Control-Allow-Origin'], '*');
+  assertEquals(parseAllowedOrigins(undefined), ['http://127.0.0.1:5173', 'http://localhost:5173']);
+});

@@ -25,7 +25,7 @@ Full context lives in these docs. Read the relevant one before non-trivial work;
 ## Current state (update this section as work progresses)
 
 - **Sprint Zero DONE (2026-10-30, `research/roadmap.md` §3):** React 19/Router 8/Vite 8 PWA scaffold, magic-link sign-in, EN/ES locales (ES pending AI review), Supabase init, CI (app + migrations/pgTAP + hook tests), Foundation agents and guard hooks. Local Supabase works when Docker is started; CI always proves SQL.
-- **Supabase: "Plant Ops Board"** (ref `ypurifebjiivvltbcufx`, us-east-1). The only cloud project (staging until the pilot), still empty; the first `db push` needs owner OK. Never touch "ADB Project" or "Fleet Repair Log".
+- **Supabase: "Plant Ops Board"** (ref `ypurifebjiivvltbcufx`, us-east-1). The only cloud project (staging until the pilot), schema + seed uploaded 2026-11-02 via the manual deploy-db workflow (staging until the pilot). Never touch "ADB Project" or "Fleet Repair Log".
 - **M1 part 1 DONE (2026-11-01): database foundation**
   - 8 migrations in `supabase/migrations/20261101*`: 26 tables, RLS per role, staff PIN RPCs, pairing codes, DST-safe shift generation, `resolve_entry_shift`, reporting views.
   - `supabase/seed.sql`: ADB plant, items, machines, per-area shifts (updated 2026-11-01, see below).
@@ -57,7 +57,22 @@ Full context lives in these docs. Read the relevant one before non-trivial work;
     - Nightly mat and linen counts, par levels, damage and repair, route-count variance. Don't rebuild inventory in PlantBoard; integrate later.
     - Its item list differs from the seed (Scraper, City, Brito mats; red, blue and bone tablecloths; mechanic towels; …). Waiting on the owner.
     - Its login has security issues (PIN is the account password, lockout only in the browser, user list shown before sign-in). Reported to the owner; its repo isn't in this session.
-  - Washroom tapping: a night-shift supervisor will tap each washer start. Owner: the washman taps on every shift. PIN once per shift for washroom taps needs an A8 policy change plus security review before it's built.
+  - Washroom tapping: the washman taps each washer start, on every shift. **Taps carry no name or PIN** (owner 2026-11-02). The tablet is a washroom station, because washmen overlap and per-washman loads would be per-worker output. Manager corrections use name + PIN.
+  - The mat roller (20:00 until the mats are done) is in **finishing**. Goals: learn first; pace actuals ship in M2, goals and alerts about 2 weeks after go-live.
+  - **Live:**
+    - Netlify site `adb-plantboard` (https://adb-plantboard.netlify.app), linked to `main`, env vars set.
+    - PR #3 merged 2026-11-02.
+    - **Cloud DB uploaded 2026-11-02** (owner said "upload"; workflow run 2): 19 migrations + seed.
+      - Verified: 1 plant, 2 areas, 33 wash groups, 73 items, 6 formulas, 10 machines, 8 shifts, 0 users, 0 tables without RLS.
+      - Advisors show by-design items only: RLS with no policy on the RPC-only `staff_sessions` and `alert_events`; definer RPCs callable by authenticated users that check roles inside.
+  - **Sign-in (owner decision 2026-11-03): username + password; the owner creates every account. No email is ever sent, and Resend/DNS are off the critical path.** Magic links were dropped because they open in Safari, not the installed iOS app.
+    - Usernames map to `<u>@accounts.adbheadquarters.com`; a typed value containing "@" is used as-is (the owner signs in with their Gmail).
+    - Edge Function `manage-users` (create / reset / deactivate / list / change_own_password).
+    - Forced password change is enforced in the DB (`app.password_ok()` gates has_role/has_org_role/can_manage_staff).
+    - 592 pgTAP tests pass; security-reviewer PASS WITH NOTES (2 rounds).
+    - Cloud: the owner account (`mannyruiz.adb@gmail.com`) has an org-wide owner membership; `profiles.full_name` = 'Manny Ruiz'.
+    - Before the pilot: cloud Auth settings (signups off, confirm email ON, secure email change ON, leaked-password protection, minimum length 10), a null MX record on `accounts.adbheadquarters.com`, and deploying the function with `ALLOWED_ORIGINS` (deploy-db workflow, `deploy_functions` input).
+    - Carry-forward: the Custom Access Token Hook must keep `app_metadata` in the JWT, or the password gate silently passes.
   - **Displays (PRD D1 v1.6):** screens are configurable data (machine or area layout), so TVs can be added anywhere without code. Launch: washroom TV A = washers 1–3, TV B = washers 4–6, finishing 1 TV. No dryer TV (dryers are 5 steps away). NOW + NEXT only. **The washman taps** each washer start, one tap, PIN once per shift.
   - Security notes to carry forward:
     - snapshot `load_factor` per washer cycle;

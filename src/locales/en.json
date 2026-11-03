@@ -1,16 +1,101 @@
 {
-  "app": { "name": "PlantBoard" },
+  "app": {
+    "name": "PlantBoard"
+  },
+  "brand": {
+    "company": "America's Dust Busters"
+  },
+  "language": {
+    "label": "Language"
+  },
   "auth": {
     "signInTitle": "Sign in",
-    "emailLabel": "Email",
-    "sendLink": "Send sign-in link",
-    "sending": "Sending…",
-    "linkSent": "Check your email for a sign-in link.",
-    "error": "Couldn't send the link. Check the email address and try again.",
+    "usernameLabel": "Username",
+    "usernameHint": "The username the owner gave you.",
+    "passwordLabel": "Password",
+    "showPassword": "Show password",
+    "signIn": "Sign in",
+    "signingIn": "Signing in…",
+    "wrongCredentials": "Wrong username or password. Check both and try again.",
+    "signInFailed": "Couldn't sign in. Check your connection and try again.",
     "signOut": "Sign out"
   },
-  "control": { "placeholder": "Control app: features arrive in Milestone 2." },
-  "display": { "placeholder": "Wall display: arrives in Milestone 2." },
-  "pair": { "placeholder": "Display pairing: arrives in Milestone 1." },
-  "common": { "loading": "Loading…" }
+  "changePassword": {
+    "title": "Choose a new password",
+    "intro": "You signed in with a temporary password. Choose your own to continue. Use at least {{count}} characters.",
+    "newLabel": "New password",
+    "confirmLabel": "Type it again",
+    "save": "Save password",
+    "saving": "Saving…",
+    "errors": {
+      "tooShort": "Too short. Use at least {{count}} characters.",
+      "tooLong": "Too long. Use a shorter password.",
+      "mismatch": "The two passwords don't match. Type the same password in both boxes.",
+      "same": "That is the password you have now. Choose a different one.",
+      "failed": "Couldn't save the password. Check your connection and try again."
+    }
+  },
+  "roles": {
+    "owner": "Owner",
+    "manager": "Manager",
+    "lead": "Lead",
+    "viewer": "Viewer"
+  },
+  "people": {
+    "title": "People",
+    "back": "Back",
+    "notOwner": "Only an owner can manage people.",
+    "plantLabel": "Plant",
+    "listTitle": "Who can sign in",
+    "empty": "No one yet.",
+    "you": "(you)",
+    "usernameValue": "Username: {{username}}",
+    "roleValue": "Role: {{roles}}",
+    "staffAdmin": "Staff admin",
+    "allPlants": "All plants",
+    "notManageable": "Managed by a company-wide owner.",
+    "resetPassword": "Reset password",
+    "deactivate": "Deactivate",
+    "confirmDeactivate": "Deactivate {{name}}? They will no longer be able to sign in here.",
+    "confirmYes": "Yes, deactivate",
+    "cancel": "Cancel",
+    "deactivated": "{{name}} was deactivated.",
+    "createTitle": "Create an account",
+    "displayNameLabel": "Name",
+    "usernameLabel": "Username",
+    "usernameHelp": "3 to 32 characters: lowercase letters, numbers, dot, underscore or hyphen.",
+    "roleLabel": "Role",
+    "canManageStaffLabel": "Can manage entry staff and PINs",
+    "create": "Create account",
+    "creating": "Creating…",
+    "secretTitle": "Temporary password for {{username}}",
+    "secretLabel": "Temporary password",
+    "secretWarning": "Give this to the person in private. It won't be shown again.",
+    "secretNext": "They must choose a new password the first time they sign in.",
+    "copy": "Copy password",
+    "copied": "Copied.",
+    "copyFailed": "Couldn't copy. Select the password and copy it by hand.",
+    "done": "Done",
+    "errors": {
+      "notAuthorized": "You can't do that. Only an owner of this plant can manage these people.",
+      "usernameTaken": "That username is already in use. Choose another.",
+      "invalid": "Some details aren't valid. Check the name, username and role.",
+      "generic": "Something went wrong. Check your connection and try again.",
+      "nameRequired": "Enter the person's name.",
+      "usernameInvalid": "Use 3 to 32 lowercase letters, numbers, dot, underscore or hyphen."
+    },
+    "noUsername": "No username"
+  },
+  "control": {
+    "placeholder": "Control app: features arrive in Milestone 2."
+  },
+  "display": {
+    "placeholder": "Wall display: arrives in Milestone 2."
+  },
+  "pair": {
+    "placeholder": "Display pairing: arrives in Milestone 1."
+  },
+  "common": {
+    "loading": "Loading…"
+  }
 }

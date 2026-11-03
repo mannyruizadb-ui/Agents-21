@@ -11,6 +11,10 @@ on:
         description: 'Apply the migrations (false = dry run only)'
         type: boolean
         default: false
+      deploy_functions:
+        description: 'Also deploy Edge Functions (manage-users) and set ALLOWED_ORIGINS'
+        type: boolean
+        default: false
       include_seed:
         description: 'Also load supabase/seed.sql (first deploy only)'
         type: boolean
@@ -40,7 +44,12 @@ jobs:
       - name: Link project
         run: npx supabase link --project-ref "$PROJECT_REF" --password "$SUPABASE_DB_PASSWORD" </dev/null
       - name: Dry run (always)
-        run: npx supabase db push --dry-run ${{ inputs.include_seed && '--include-seed' || '' }} --password "$SUPABASE_DB_PASSWORD" </dev/null
+        run: npx supabase db push --linked --dry-run ${{ inputs.include_seed && '--include-seed' || '' }} --password "$SUPABASE_DB_PASSWORD" </dev/null
       - name: Apply
         if: ${{ inputs.apply }}
-        run: npx supabase db push ${{ inputs.include_seed && '--include-seed' || '' }} --password "$SUPABASE_DB_PASSWORD" </dev/null
+        run: npx supabase db push --linked ${{ inputs.include_seed && '--include-seed' || '' }} --password "$SUPABASE_DB_PASSWORD" </dev/null
+      - name: Deploy Edge Functions
+        if: ${{ inputs.apply && inputs.deploy_functions }}
+        run: |
+          npx supabase secrets set ALLOWED_ORIGINS=https://adb-plantboard.netlify.app --project-ref "$PROJECT_REF" </dev/null
+          npx supabase functions deploy manage-users --project-ref "$PROJECT_REF" </dev/null
