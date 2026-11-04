@@ -34,6 +34,19 @@ export const router = createBrowserRouter([
     ],
   },
   {
+    // Washer station: a tablet at one washer opens this URL in kiosk mode (stable per machine).
+    path: '/station',
+    lazy: async () => ({ Component: (await import('./app/station/StationRoute')).StationRoute }),
+    children: [
+      {
+        path: 'washer/:machineId',
+        lazy: async () => ({
+          Component: (await import('./features/washroom/WasherStationPage')).WasherStationPage,
+        }),
+      },
+    ],
+  },
+  {
     path: '/display/:areaId',
     lazy: async () => ({ Component: (await import('./app/display/DisplayPage')).DisplayPage }),
   },
