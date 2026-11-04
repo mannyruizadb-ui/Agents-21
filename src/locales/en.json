@@ -183,6 +183,42 @@
   "queue": {
     "rush": "RUSH",
     "rewash": "Rewash",
-    "pinnedTo": "Washer: {{washer}}"
+    "pinnedTo": "Washer: {{washer}}",
+    "title": "Work queue",
+    "areaLabel": "Area",
+    "readOnly": "You can see the queue. Only the owner can change it.",
+    "listTitle": "In order",
+    "empty": "The queue is empty.",
+    "noArea": "No area is set up for your plant.",
+    "place": "{{n}}.",
+    "inProgress": "{{started}} started",
+    "note": "Note: {{note}}",
+    "addTitle": "Add work",
+    "groupLabel": "Wash group",
+    "choose": "Choose…",
+    "loadsLabel": "Loads",
+    "loadsHint": "Number of wash loads, for example 2 or 1.5.",
+    "rushLabel": "RUSH (goes to the top)",
+    "rewashLabel": "Rewash (sent back by finishing)",
+    "washerLabel": "Washer",
+    "nextFreeWasher": "Next free washer",
+    "noteLabel": "Note (optional)",
+    "add": "Add to queue",
+    "adding": "Adding…",
+    "added": "Added {{group}} to the queue.",
+    "moveUp": "Move up",
+    "moveDown": "Move down",
+    "markRush": "Make RUSH",
+    "unmarkRush": "Remove RUSH",
+    "cancelItem": "Cancel",
+    "confirmCancel": "Cancel {{group}}? It stays in the history.",
+    "confirmYes": "Yes, cancel it",
+    "keep": "Keep it",
+    "saved": "Saved.",
+    "cancelled": "Cancelled.",
+    "errors": {
+      "chooseGroup": "Choose a wash group.",
+      "loads": "Type a number of loads from 0.01 to 100,000, with up to 2 decimals."
+    }
   }
 }

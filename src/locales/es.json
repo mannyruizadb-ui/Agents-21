@@ -183,6 +183,42 @@
   "queue": {
     "rush": "URGENTE",
     "rewash": "Relavar",
-    "pinnedTo": "Lavadora: {{washer}}"
+    "pinnedTo": "Lavadora: {{washer}}",
+    "title": "Cola de trabajo",
+    "areaLabel": "Área",
+    "readOnly": "Puedes ver la cola. Solo el dueño puede cambiarla.",
+    "listTitle": "En orden",
+    "empty": "La cola está vacía.",
+    "noArea": "Tu planta no tiene áreas configuradas.",
+    "place": "{{n}}.",
+    "inProgress": "{{started}} arrancadas",
+    "note": "Nota: {{note}}",
+    "addTitle": "Agregar trabajo",
+    "groupLabel": "Grupo de lavado",
+    "choose": "Elegir…",
+    "loadsLabel": "Cargas",
+    "loadsHint": "Número de cargas, por ejemplo 2 o 1.5.",
+    "rushLabel": "URGENTE (va arriba)",
+    "rewashLabel": "Relavar (devuelto por terminado)",
+    "washerLabel": "Lavadora",
+    "nextFreeWasher": "La próxima lavadora libre",
+    "noteLabel": "Nota (opcional)",
+    "add": "Agregar a la cola",
+    "adding": "Agregando…",
+    "added": "{{group}} agregado a la cola.",
+    "moveUp": "Subir",
+    "moveDown": "Bajar",
+    "markRush": "Marcar URGENTE",
+    "unmarkRush": "Quitar URGENTE",
+    "cancelItem": "Cancelar",
+    "confirmCancel": "¿Cancelar {{group}}? Queda en el historial.",
+    "confirmYes": "Sí, cancelar",
+    "keep": "Dejarlo",
+    "saved": "Guardado.",
+    "cancelled": "Cancelado.",
+    "errors": {
+      "chooseGroup": "Elige un grupo de lavado.",
+      "loads": "Escribe un número de cargas de 0.01 a 100,000, con hasta 2 decimales."
+    }
   }
 }

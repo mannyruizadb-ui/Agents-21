@@ -31,6 +31,14 @@ export const router = createBrowserRouter([
           Component: (await import('./features/washroom/WasherBoardPage')).WasherBoardPage,
         }),
       },
+      {
+        // Work queue (C1–C4). Everyone with a role reads it; only the owner gets edit controls
+        // (owner decision 2026-11-04).
+        path: 'queue',
+        lazy: async () => ({
+          Component: (await import('./features/queue/QueuePage')).QueuePage,
+        }),
+      },
     ],
   },
   {
