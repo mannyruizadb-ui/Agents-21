@@ -64,12 +64,12 @@ select ok(position('Ana' in current_setting('test.fr')) = 0 and position('b00000
 
 -- ══ get_day_report ═══════════════════════════════════════════════════════
 select is(pg_temp.writes($$select public.get_day_report(pg_temp.id('plantA'), '2026-11-02')$$),
-  '{1,1,1,1,NOT_AUTHORIZED,NOT_AUTHORIZED,NOT_AUTHORIZED,42501}', 'get_day_report: owner/manager/lead/viewer only');
+  '{1,NOT_AUTHORIZED,NOT_AUTHORIZED,NOT_AUTHORIZED,NOT_AUTHORIZED,NOT_AUTHORIZED,NOT_AUTHORIZED,42501}', 'get_day_report: owner only (owner 2026-11-04)');
 select is(array[pg_temp.run_as('ownerB', $$select public.get_day_report(pg_temp.id('plantA'), '2026-11-02')$$),
                 pg_temp.run_as('ownerB', $$select public.get_day_report(gen_random_uuid(), '2026-11-02')$$),
                 pg_temp.run_as('owner', $$select public.get_day_report(pg_temp.id('plantA'), null)$$)],
   '{NOT_AUTHORIZED,NOT_AUTHORIZED,VALIDATION_FAILED}', 'no oracle (foreign vs missing plant); production date required');
-select set_config('test.dr', pg_temp.val_as('manager', $$select public.get_day_report(pg_temp.id('plantA'), '2026-11-02')::text$$), true);
+select set_config('test.dr', pg_temp.val_as('owner', $$select public.get_day_report(pg_temp.id('plantA'), '2026-11-02')::text$$), true);
 select is((select x - 'wash_group_name_i18n' - 'wash_group_id' from jsonb_array_elements(current_setting('test.dr')::jsonb -> 'reconciliation') x
             where x ->> 'wash_group_name' = 'Napkins'),
   '{"wash_group_name":"Napkins","ships_next_morning":false,"est_loads_start":5,"est_loads_end":5,"loads_run":4,"standard_loads":3.00,"rewash_loads":1,
@@ -88,7 +88,7 @@ select ok(position('Ana' in current_setting('test.dr')) = 0 and position('b00000
 
 -- ══ get_wash_group_pace ══════════════════════════════════════════════════
 select is(pg_temp.writes($$select * from public.get_wash_group_pace(pg_temp.id('plantA'), '2026-11-02')$$),
-  '{3,3,3,3,NOT_AUTHORIZED,NOT_AUTHORIZED,NOT_AUTHORIZED,42501}', 'get_wash_group_pace: one row per active group; owner/manager/lead/viewer only');
+  '{3,NOT_AUTHORIZED,NOT_AUTHORIZED,NOT_AUTHORIZED,NOT_AUTHORIZED,NOT_AUTHORIZED,NOT_AUTHORIZED,42501}', 'get_wash_group_pace: one row per active group; owner only (owner 2026-11-04)');
 select is(pg_temp.val_as('owner', $$select array_agg(wash_group_name || ':' || ships_next_morning || ':' || loads_run || ':' || standard_loads || ':' || coalesce(estimate_loads::text, 'null') order by 1)::text
                                      from (select * from public.get_wash_group_pace(pg_temp.id('plantA'), '2026-11-02')) p$$),
   '{Mats:true:2:2.00:6.00,Napkins:false:4:3.00:5.00,Towels:false:0:0:null}', 'pace: loads today per group, next-morning flag, latest estimate in loads');
@@ -114,8 +114,8 @@ select is(array[pg_temp.run_as('owner', $$update public.machines set plant_id = 
                 pg_temp.run_as('owner', $$update public.shifts set area_id = pg_temp.id('spare') where id = pg_temp.id('washNight')$$),
                 pg_temp.run_as('owner', $$update public.wash_groups set id = gen_random_uuid() where id = pg_temp.id('gMat')$$)],
   '{42501,42501,42501,42501}', 'tenant, id and shift-area columns are not updatable by clients');
-select is(pg_temp.writes($$update public.wash_groups set ships_next_morning = true, baskets_per_load = 3, allow_basket_estimates = true where id = pg_temp.id('gNapkin')$$),
-  '{1,1,0,0,0,0,0,0}', 'wash group settings (next-morning, baskets per load): owner/manager');
+select is(pg_temp.writes($$update public.wash_groups set ships_next_morning = true, loads_per_basket = 3, allow_basket_estimates = true, loads_per_bin = 2, allow_bin_estimates = true where id = pg_temp.id('gNapkin')$$),
+  '{1,1,0,0,0,0,0,0}', 'wash group settings (next-morning, loads per basket / bin): owner/manager');
 select is(pg_temp.writes($$update public.machines set load_factor = 1.10, name = name where id = '60000000-0000-0000-0000-0000000000a7'$$),
   '{1,1,0,0,0,0,0,0}', 'machine edits: owner/manager');
 select is(array[pg_temp.run_as('manager', $$update public.machines set kind = 'dryer' where id = pg_temp.id('machine')$$),
