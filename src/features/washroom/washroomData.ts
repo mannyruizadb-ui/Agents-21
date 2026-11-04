@@ -52,6 +52,7 @@ export interface WasherBoardRow {
   /** Owner 2026-11-04: marked down (takes precedence over status; no NEXT; refuses taps). */
   is_down: boolean | null;
   down_reason: string | null;
+  down_reason_code: string | null;
   down_since: string | null;
 }
 

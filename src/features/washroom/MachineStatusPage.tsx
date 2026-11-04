@@ -9,7 +9,13 @@ import { useRequiredSession } from '../../app/auth/sessionContext';
 import { DataAge } from './DataAge';
 import { DownBanner } from './DownBanner';
 import { IconMachineDown, IconReady } from './Icons';
-import { buildDownReason, REASON_MAX, REASON_PICKS, type ReasonPick } from './machineReason';
+import {
+  buildDownReason,
+  REASON_CODES,
+  REASON_MAX,
+  reasonText,
+  type ReasonCode,
+} from './machineReason';
 import { errorMessageKey, unwrap } from './rpcError';
 import { useMyRoles } from './useMyRoles';
 import { estimateServerNow } from './washerTime';
@@ -37,7 +43,7 @@ export function MachineStatusPage() {
 
   const machineId = params.get('machine') ?? '';
   const machine = status.data?.find((m) => m.machine_id === machineId);
-  const [pick, setPick] = useState<ReasonPick | null>(null);
+  const [pick, setPick] = useState<ReasonCode | null>(null);
   const [details, setDetails] = useState('');
   const [confirming, setConfirming] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
@@ -55,14 +61,20 @@ export function MachineStatusPage() {
   }
 
   const setStatus = useMutation({
-    mutationFn: async (v: { m: MachineStatusRow; to: 'down' | 'up'; reason?: string }) => {
+    mutationFn: async (v: {
+      m: MachineStatusRow;
+      to: 'down' | 'up';
+      code?: ReasonCode;
+      details?: string | null;
+    }) => {
       clientId.current ??= crypto.randomUUID();
       return unwrap(
         await supabase.rpc('set_machine_status', {
           p_machine_id: v.m.machine_id,
           p_status: v.to,
           p_client_id: clientId.current,
-          ...(v.reason ? { p_reason: v.reason } : {}),
+          ...(v.code ? { p_reason_code: v.code } : {}),
+          ...(v.details ? { p_reason: v.details } : {}),
         }),
       );
     },
@@ -81,7 +93,8 @@ export function MachineStatusPage() {
     },
   });
 
-  const built = buildDownReason(pick, pick ? t(`machines.reasons.${pick}`) : '', details);
+  const built = buildDownReason(pick, details);
+  const label = (c: ReasonCode) => t(`machines.reasons.${c}`);
 
   function onReview() {
     if (!built.ok) {
@@ -120,6 +133,7 @@ export function MachineStatusPage() {
         <DownBanner
           key={m.machine_id}
           name={`${m.machine_name} (${m.area_name})`}
+          reasonCode={m.reason_code}
           reason={m.reason}
           since={m.since}
           serverNowMs={serverNow}
@@ -154,7 +168,12 @@ export function MachineStatusPage() {
 
           {machine?.status === 'down' && (
             <>
-              <DownBanner reason={machine.reason} since={machine.since} serverNowMs={serverNow} />
+              <DownBanner
+                reasonCode={machine.reason_code}
+                reason={machine.reason}
+                since={machine.since}
+                serverNowMs={serverNow}
+              />
               {!confirming ? (
                 <button type="button" onClick={() => setConfirming(true)}>
                   <IconReady /> {t('machines.backUp')}
@@ -192,7 +211,7 @@ export function MachineStatusPage() {
                   <strong>{t('machines.reasonLabel')}</strong>
                 </legend>
                 <ul className="pick-list">
-                  {REASON_PICKS.map((p) => (
+                  {REASON_CODES.map((p) => (
                     <li key={p}>
                       <button
                         type="button"
@@ -235,14 +254,25 @@ export function MachineStatusPage() {
               <p id="confirm-down">
                 <strong>{t('machines.confirmDown', { name: machine.machine_name })}</strong>
               </p>
-              <p>{t('machines.reasonValue', { reason: built.reason })}</p>
+              <p>
+                {t('machines.reasonValue', {
+                  reason: reasonText(built.code, built.details, label),
+                })}
+              </p>
               {machine.kind === 'washer' && <p className="hint">{t('machines.downEffect')}</p>}
               <div className="actions">
                 <button
                   type="button"
                   className="danger"
                   disabled={setStatus.isPending}
-                  onClick={() => setStatus.mutate({ m: machine, to: 'down', reason: built.reason })}
+                  onClick={() =>
+                    setStatus.mutate({
+                      m: machine,
+                      to: 'down',
+                      code: built.code,
+                      details: built.details,
+                    })
+                  }
                 >
                   {t('machines.yesDown')}
                 </button>

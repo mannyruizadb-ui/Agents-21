@@ -270,9 +270,9 @@
     "yesUp": "Yes, it's working",
     "reasonLabel": "What's wrong?",
     "reasons": {
-      "waterPump": "Water pump",
-      "soapDispenser": "Soap dispenser",
-      "wontStart": "Won't start",
+      "water_pump": "Water pump",
+      "soap_dispenser": "Soap dispenser",
+      "wont_start": "Won't start",
       "leaking": "Leaking",
       "other": "Other"
     },

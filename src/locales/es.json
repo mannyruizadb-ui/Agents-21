@@ -270,9 +270,9 @@
     "yesUp": "Sí, ya funciona",
     "reasonLabel": "¿Qué le pasa?",
     "reasons": {
-      "waterPump": "Bomba de agua",
-      "soapDispenser": "Dosificador de jabón",
-      "wontStart": "No arranca",
+      "water_pump": "Bomba de agua",
+      "soap_dispenser": "Dosificador de jabón",
+      "wont_start": "No arranca",
       "leaking": "Gotea",
       "other": "Otro"
     },

@@ -1,35 +1,46 @@
 import { describe, expect, it } from 'vitest';
-import { buildDownReason } from './machineReason';
+import { buildDownReason, reasonText } from './machineReason';
 
 describe('buildDownReason', () => {
-  it('uses the pick label, with details after a colon', () => {
-    expect(buildDownReason('waterPump', 'Water pump', '')).toEqual({
+  it('keeps the code and optional details', () => {
+    expect(buildDownReason('water_pump', '')).toEqual({
       ok: true,
-      reason: 'Water pump',
+      code: 'water_pump',
+      details: null,
     });
-    expect(buildDownReason('leaking', 'Leaking', '  door  seal ')).toEqual({
+    expect(buildDownReason('leaking', '  door  seal ')).toEqual({
       ok: true,
-      reason: 'Leaking: door seal',
+      code: 'leaking',
+      details: 'door seal',
     });
   });
-  it('needs a pick, and details for Other', () => {
-    expect(buildDownReason(null, '', 'x')).toEqual({ ok: false, error: 'pick' });
-    expect(buildDownReason('other', 'Other', '   ')).toEqual({ ok: false, error: 'details' });
-    expect(buildDownReason('other', 'Other', 'Belt broke')).toEqual({
+  it('needs a pick, and details for other', () => {
+    expect(buildDownReason(null, 'x')).toEqual({ ok: false, error: 'pick' });
+    expect(buildDownReason('other', '   ')).toEqual({ ok: false, error: 'details' });
+    expect(buildDownReason('other', 'Belt broke')).toEqual({
       ok: true,
-      reason: 'Belt broke',
+      code: 'other',
+      details: 'Belt broke',
     });
   });
-  it('removes control characters and enforces 200 characters', () => {
-    expect(buildDownReason('other', 'Other', 'a\nb\tc')).toEqual({ ok: true, reason: 'a b c' });
-    expect(buildDownReason('other', 'Other', 'x'.repeat(200))).toMatchObject({ ok: true });
-    expect(buildDownReason('other', 'Other', 'x'.repeat(201))).toEqual({
-      ok: false,
-      error: 'tooLong',
-    });
-    expect(buildDownReason('wontStart', "Won't start", 'x'.repeat(190))).toEqual({
-      ok: false,
-      error: 'tooLong',
-    });
+  it('removes control characters and enforces 200 characters of details', () => {
+    expect(buildDownReason('other', 'a\nb\tc')).toMatchObject({ details: 'a b c' });
+    expect(buildDownReason('wont_start', 'x'.repeat(200))).toMatchObject({ ok: true });
+    expect(buildDownReason('wont_start', 'x'.repeat(201))).toEqual({ ok: false, error: 'tooLong' });
+  });
+});
+
+describe('reasonText', () => {
+  const es = (c: string) => ({ water_pump: 'Bomba de agua', other: 'Otro' })[c] ?? c;
+  it("renders the code in the viewer's language plus details", () => {
+    expect(reasonText('water_pump', null, es)).toBe('Bomba de agua');
+    expect(reasonText('water_pump', 'grinding noise', es)).toBe('Bomba de agua: grinding noise');
+    expect(reasonText('other', 'Belt broke', es)).toBe('Belt broke');
+    expect(reasonText('other', null, es)).toBe('Otro');
+  });
+  it('falls back to the old free text, and to nothing', () => {
+    expect(reasonText(null, 'Water pump: old row', es)).toBe('Water pump: old row');
+    expect(reasonText('bogus', 'x', es)).toBe('x');
+    expect(reasonText(null, null, es)).toBeNull();
   });
 });

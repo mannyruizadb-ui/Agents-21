@@ -1,37 +1,57 @@
-// Machine-down reasons (owner 2026-11-04): a quick pick, plus optional details ("Other" needs them).
-// The server stores 1–200 characters with no control characters (set_machine_status). Pure module.
+// Machine-down reasons (owner 2026-11-04): a preset reason CODE (stored as
+// machine_status_events.reason_code, translated by each viewer's screen) plus optional free-text
+// details (required for "other"). Details: 1–200 characters, no control characters
+// (set_machine_status). The form asks people to describe the problem, not the person. Pure module.
 
-export const REASON_PICKS = [
-  'waterPump',
-  'soapDispenser',
-  'wontStart',
+import type { Database } from '../../types/database';
+
+export type ReasonCode = NonNullable<
+  Database['public']['Functions']['set_machine_status']['Args']['p_reason_code']
+>;
+
+export const REASON_CODES: readonly ReasonCode[] = [
+  'water_pump',
+  'soap_dispenser',
+  'wont_start',
   'leaking',
   'other',
-] as const;
-export type ReasonPick = (typeof REASON_PICKS)[number];
+];
 
 export const REASON_MAX = 200;
 
 export type ReasonResult =
-  { ok: true; reason: string } | { ok: false; error: 'pick' | 'details' | 'tooLong' };
+  | { ok: true; code: ReasonCode; details: string | null }
+  | { ok: false; error: 'pick' | 'details' | 'tooLong' };
 
-/**
- * Builds the stored reason: "<pick label>" or "<pick label>: <details>"; for "other", the details alone.
- * `label` is the pick's text in the user's language.
- */
-export function buildDownReason(
-  pick: ReasonPick | null,
-  label: string,
-  details: string,
-): ReasonResult {
-  if (!pick) return { ok: false, error: 'pick' };
+/** Cleans the details and checks the server's rules. */
+export function buildDownReason(code: ReasonCode | null, details: string): ReasonResult {
+  if (!code) return { ok: false, error: 'pick' };
   const extra = details
     // eslint-disable-next-line no-control-regex -- strip control characters the server would refuse
     .replace(/[\u0000-\u001f\u007f]+/g, ' ')
     .replace(/\s+/g, ' ')
     .trim();
-  if (pick === 'other' && !extra) return { ok: false, error: 'details' };
-  const reason = pick === 'other' ? extra : extra ? `${label}: ${extra}` : label;
-  if (reason.length > REASON_MAX) return { ok: false, error: 'tooLong' };
-  return { ok: true, reason };
+  if (code === 'other' && !extra) return { ok: false, error: 'details' };
+  if (extra.length > REASON_MAX) return { ok: false, error: 'tooLong' };
+  return { ok: true, code, details: extra || null };
+}
+
+export function isReasonCode(v: unknown): v is ReasonCode {
+  return typeof v === 'string' && (REASON_CODES as readonly string[]).includes(v);
+}
+
+/**
+ * The text a viewer reads: the preset in their language, then the details ("Water pump: grinding
+ * noise"). "other" shows the details alone. A row from before reason codes shows its old text.
+ * `label` translates a code.
+ */
+export function reasonText(
+  code: string | null | undefined,
+  details: string | null | undefined,
+  label: (code: ReasonCode) => string,
+): string | null {
+  const d = details?.trim() || null;
+  if (!isReasonCode(code)) return d;
+  if (code === 'other') return d ?? label('other');
+  return d ? `${label(code)}: ${d}` : label(code);
 }
