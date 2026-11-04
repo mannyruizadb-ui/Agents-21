@@ -59,7 +59,7 @@ select is((select array[qty, qty_loads] from public.current_soil_estimates where
 select is((select array[wash_group_name, wash_group_name_i18n ->> 'es'] from public.current_soil_estimates where wash_group_id = pg_temp.id('gNapkin')),
   array['Napkins', 'Servilletas'], 'current_soil_estimates carries the wash group names');
 select is((select array[qty_loads::text, has_conversion::text, freshness] from public.current_soil_estimates where wash_group_id = pg_temp.id('gTowel')),
-  array['3.0000000000000000', 'true', 'red'], 'baskets converted via the group''s baskets_per_load; 5 h old → red');
+  array['3.00000', 'true', 'red'], 'baskets converted via the group''s loads_per_basket; 5 h old → red');
 select is((select array[freshness, age_minutes::text] from public.current_soil_estimates where wash_group_id = pg_temp.id('gMat')),
   array['amber', '180'], '3 h old → amber; age in minutes');
 select is(array[pg_temp.run_as('lead', $$select 1 from public.current_soil_estimates where entered_by_name = 'Ana'$$, true),

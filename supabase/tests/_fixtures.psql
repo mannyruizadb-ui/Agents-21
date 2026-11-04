@@ -7,7 +7,7 @@
 --   areas  c..a1 washroom A · c..a2 finishing A · c..a3 spare A (kind other) · c..b1 washroom B
 --          c..c1 washroom A2
 --   wash groups (owner 2026-11-01: washroom data is per group) g..a1 Napkins · g..a2 Mats
---          g..a3 Towels (baskets allowed, 2/load) · g..b1 group B · g..c1 group A2
+--          g..a3 Towels (baskets allowed, 0.5 loads/basket = 2 baskets/load) · g..b1 group B · g..c1 group A2
 --   items  d..a1 Napkin (pack 100, 500 pcs/load; Napkins) · d..a2 Mat (unit, no pcs/load; Mats)
 --          d..a3 Towel (unit, 200 pcs/load; Towels) · d..b1 item B · d..c1 item A2
 
@@ -70,13 +70,13 @@ insert into public.machines (id, org_id, plant_id, area_id, name, kind, external
   ('60000000-0000-0000-0000-0000000000a1', '10000000-0000-0000-0000-00000000000a', '20000000-0000-0000-0000-00000000000a',
    '30000000-0000-0000-0000-0000000000a1', 'Washer 1', 'washer', 'W1');
 
-insert into public.wash_groups (id, org_id, plant_id, name, name_i18n, allow_basket_estimates, baskets_per_load) values
+insert into public.wash_groups (id, org_id, plant_id, name, name_i18n, allow_basket_estimates, loads_per_basket) values
   ('71000000-0000-0000-0000-0000000000a1', '10000000-0000-0000-0000-00000000000a', '20000000-0000-0000-0000-00000000000a',
    'Napkins', '{"es":"Servilletas"}', false, null),
   ('71000000-0000-0000-0000-0000000000a2', '10000000-0000-0000-0000-00000000000a', '20000000-0000-0000-0000-00000000000a',
    'Mats', '{}', false, null),
   ('71000000-0000-0000-0000-0000000000a3', '10000000-0000-0000-0000-00000000000a', '20000000-0000-0000-0000-00000000000a',
-   'Towels', '{}', true, 2),
+   'Towels', '{}', true, 0.5),
   ('71000000-0000-0000-0000-0000000000b1', '10000000-0000-0000-0000-00000000000b', '20000000-0000-0000-0000-00000000000b',
    'Group B', '{}', false, null),
   ('71000000-0000-0000-0000-0000000000c1', '10000000-0000-0000-0000-00000000000a', '20000000-0000-0000-0000-00000000000c',

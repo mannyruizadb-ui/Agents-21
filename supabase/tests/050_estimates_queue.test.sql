@@ -121,8 +121,8 @@ select is(array[pg_temp.run_as('ownerB', $$insert into public.soil_estimates (or
                   values (pg_temp.id('orgB'), pg_temp.id('plantB'), pg_temp.id('gNapkin'), 1, 'basket', (select auth.uid()), gen_random_uuid())$$)],
   '{42501,42501}', 'H1 estimate (M2): owner B direct inserts are denied before any trigger runs (RPC pairs: 120)');
 -- Same org, other plant: the plant A manager probing plant A2.
-insert into public.wash_groups (id, org_id, plant_id, name, allow_basket_estimates, baskets_per_load) values
-  ('71000000-0000-0000-0000-0000000000c2', pg_temp.id('orgA'), pg_temp.id('plantA2'), 'A2 baskets', true, 2);
+insert into public.wash_groups (id, org_id, plant_id, name, allow_basket_estimates, loads_per_basket) values
+  ('71000000-0000-0000-0000-0000000000c2', pg_temp.id('orgA'), pg_temp.id('plantA2'), 'A2 baskets', true, 0.5);
 select is(array[pg_temp.run_as('manager', $$insert into public.queue_items (org_id, plant_id, area_id, wash_group_id, item_type_id, qty, unit, position, created_by, client_id)
                   values (pg_temp.id('orgA'), pg_temp.id('plantA'), pg_temp.id('wash'), pg_temp.id('groupA2'), pg_temp.id('itemA2'), 1, 'load', 1, (select auth.uid()), gen_random_uuid())$$),
                 pg_temp.run_as('manager', $$insert into public.queue_items (org_id, plant_id, area_id, wash_group_id, item_type_id, qty, unit, position, created_by, client_id)
