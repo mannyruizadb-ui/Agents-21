@@ -307,12 +307,13 @@
       "bin": "Bins"
     },
     "loadHint": "Number of wash loads, for example 1 or 1.5.",
-    "preview": "≈ {{n}} loads (estimate)",
     "noFactor": "No load conversion for this group yet; it will be counted by hand.",
     "add": "Add rewash",
     "added": "Rewash added: {{group}}, {{amount}}.",
     "errors": {
       "amount": "Type an amount from 0.01 to 100,000, with up to 2 decimals."
-    }
+    },
+    "preview_one": "≈ {{n}} load (estimate)",
+    "preview_other": "≈ {{n}} loads (estimate)"
   }
 }

@@ -173,7 +173,7 @@ export function RewashForm({
             {unit === 'load'
               ? t('rewash.loadHint')
               : preview !== null
-                ? t('rewash.preview', { n: fmt(preview) })
+                ? t('rewash.preview', { count: pluralCount(preview), n: fmt(preview) })
                 : t('rewash.noFactor')}
           </p>
         </div>

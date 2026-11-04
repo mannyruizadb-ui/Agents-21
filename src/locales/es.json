@@ -307,12 +307,13 @@
       "bin": "Contenedores"
     },
     "loadHint": "Número de cargas, por ejemplo 1 o 1.5.",
-    "preview": "≈ {{n}} cargas (estimado)",
     "noFactor": "Este grupo no tiene conversión a cargas todavía; se cuenta a mano.",
     "add": "Agregar relavado",
     "added": "Relavado agregado: {{group}}, {{amount}}.",
     "errors": {
       "amount": "Escribe una cantidad de 0.01 a 100,000, con hasta 2 decimales."
-    }
+    },
+    "preview_one": "≈ {{n}} carga (estimado)",
+    "preview_other": "≈ {{n}} cargas (estimado)"
   }
 }
