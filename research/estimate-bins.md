@@ -1,53 +1,30 @@
-# Estimates by bin fill: loads per full bin
+# Estimates by container fill: loads per full bin / basket
 
-Owner idea, 2026-11-04. Denise estimates dirty work by how full each bin is (¼, ½, ¾, full, or
-several bins, e.g. 2 full + 1 half). The app turns that into wash loads using one number per
-wash group: **how many washer loads one full bin makes.**
+Owner, 2026-11-04. Denise estimates dirty work by container: a **bin** (tall, 5–6 ft, mostly
+linen) or a **basket** (half the height, longer; mats, sometimes linen). She picks the container
+and enters full ones plus a partial (¼ ½ ¾). The app converts that to wash loads using one number
+per wash group and container. All the numbers are estimates, not rules ("don't make that a
+rule"). After 2–3 weeks of washer taps, compare estimated loads with the loads actually run and
+correct them.
 
-How it fits the existing schema (no schema change):
-- the estimate is stored as `unit = 'basket'` and `qty` = bins (e.g. 2.5);
-- `wash_groups.baskets_per_load = 1 / loads_per_full_bin`;
-- `allow_basket_estimates = true`.
+Schema (migration `20261104163713_add_container_load_factors.sql`):
+- the columns are `wash_groups.loads_per_basket` and `wash_groups.loads_per_bin`;
+- `allow_basket_estimates` / `allow_bin_estimates` control which containers are offered;
+- units are `'basket'` / `'bin'`;
+- conversion goes through `app.to_loads()`;
+- a missing number means the screen shows "no number set" and never guesses;
+- `baskets_per_load` is deprecated (no longer read).
 
-The app shows the result with "≈" (approximate). After 2–3 weeks of washer taps, compare the
-estimated loads with the loads actually run per group, then correct these numbers.
+| Wash group | Loads per full basket | Loads per full bin | Status |
+|---|---|---|---|
+| All 7 mat groups | 3.5 | **?** (AA Linen brings mats in bins) | owner |
+| Kitchen towels | 2 | 2.5 | owner |
+| All 3 sheet groups | **?** | 2 | owner |
+| All 12 napkin groups (14 colors) | **?** | 2 | owner |
+| All 3 tablecloth groups | **?** | 2 | **confirm**: owner wrote "2 baskets per full bin" |
+| Dust & wet mops, Microfiber mops | ? | ? | missing |
+| Microfiber towels, Mechanic towels | ? | ? | missing |
+| White / black aprons, Coats (white) | ? | ? | missing |
 
-**Owner: fill in one number per row.** A range like "5–6" can't be used as is, so pick the
-midpoint or your best single guess. Also check that the same bin size is used for every group;
-if mats use a different container, say so.
-
-| Wash group | Loads per full bin | Source |
-|---|---|---|
-| Black mats | 5–6 (pick one) | owner: "carpets 5 to 6" |
-| Colored mats | ? | |
-| Charcoal mats | ? | |
-| Scraper mats | ? | |
-| City & Brito mats | ? | |
-| Presidente logo mats | ? | |
-| Logo mats | ? | |
-| Dust & wet mops | ? | |
-| Microfiber mops | ? | |
-| Kitchen towels | 2–3 (pick one) | owner |
-| Microfiber towels | ? | |
-| Mechanic towels | ? | |
-| White aprons | ? | |
-| Black aprons | ? | |
-| Coats (white) | ? | |
-| White tablecloths | 2? | owner: "linens ≈ 2". Confirm which groups count as linens |
-| Black tablecloths | 2? | |
-| Red & blue tablecloths | 2? | |
-| Napkins – Green & Red | 2? | |
-| Napkins – Navy Blue w/ Stripe | 2? | |
-| Napkins – Dark Navy Blue w/ Stripe | 2? | |
-| Napkins – Navy Blue | 2? | |
-| Napkins – Regular White | 2? | |
-| Napkins – New White | 2? | |
-| Napkins – Bone & Chambray | 2? | |
-| Napkins – Black w/ Stripe | 2? | |
-| Napkins – Black | 2? | |
-| Napkins – Pink | 2? | |
-| Napkins – Cotton White | 2? | |
-| Napkins – Cotton Black | 2? | |
-| Old sheets | 2? | |
-| Regular sheets | 2? | |
-| New sheets | 2? | |
+AA Linen (a second customer, volume varies) sends everything in bins: kitchen towels, aprons,
+mats, napkins and tablecloths. It is not modeled separately yet; see CLAUDE.md.
