@@ -89,7 +89,8 @@
   "control": {
     "placeholder": "Control app: features arrive in Milestone 2.",
     "washerBoard": "Washers",
-    "queue": "Queue"
+    "queue": "Queue",
+    "estimates": "Estimates"
   },
   "display": {
     "placeholder": "Wall display: arrives in Milestone 2."
@@ -111,7 +112,8 @@
     "tooLate": "Too late to undo. Ask a manager to correct it.",
     "rateLimited": "Too many changes at once. Wait a few seconds and try again.",
     "network": "Couldn't reach the server. Check the Wi-Fi and try again.",
-    "machineDown": "That washer is marked down. Choose another washer, or mark it back up first."
+    "machineDown": "That washer is marked down. Choose another washer, or mark it back up first.",
+    "pinAgain": "The PIN has to be entered again. Enter it and save."
   },
   "units": {
     "load_one": "{{n}} load",
@@ -315,5 +317,87 @@
     },
     "preview_one": "≈ {{n}} load (estimate)",
     "preview_other": "≈ {{n}} loads (estimate)"
+  },
+  "estimates": {
+    "title": "Dirty work waiting",
+    "intro": "For each wash group, say how much dirty work is waiting. Review, then save once with your PIN.",
+    "notAllowed": "Only the owner and managers enter estimates.",
+    "summaryTitle": "Waiting now",
+    "totalLoads_one": "≈ {{n}} load waiting",
+    "totalLoads_other": "≈ {{n}} loads waiting",
+    "totalHours_one": "≈ {{time}} of washing on {{count}} working washer",
+    "totalHours_other": "≈ {{time}} of washing on {{count}} working washers",
+    "noWashers": "No working washers right now, so no washing time.",
+    "noWashTime": "Washing time: no number set",
+    "unknownGroups_one": "{{count}} group has no load number set and isn't counted.",
+    "unknownGroups_other": "{{count}} groups have no load number set and aren't counted.",
+    "groupsWithout_one": "{{count}} group has no estimate yet.",
+    "groupsWithout_other": "{{count}} groups have no estimate yet.",
+    "includesUnsaved_one": "Includes {{count}} change not saved yet.",
+    "includesUnsaved_other": "Includes {{count}} changes not saved yet.",
+    "waitingToSend_one": "{{count}} estimate is saved on this phone and will send when the connection is back.",
+    "waitingToSend_other": "{{count}} estimates are saved on this phone and will send when the connection is back.",
+    "offline": "No connection. You can still save: estimates stay on this phone and send later.",
+    "rejected": "Not saved: {{group}}, {{amount}}.",
+    "hoursValue": "{{h}} h {{m}} min",
+    "minutesValue": "{{m}} min",
+    "noEstimateYet": "No estimate yet.",
+    "minutesAgo_one": "{{count}} min ago",
+    "minutesAgo_other": "{{count}} min ago",
+    "hoursAgo_one": "{{count}} h ago",
+    "hoursAgo_other": "{{count}} h ago",
+    "lastValue": "Last: {{what}} at {{at}} ({{ago}})",
+    "old": "old, check again",
+    "countIn": "Count it in",
+    "howFullLast": "How full is the last {{unit}}?",
+    "unitOne": {
+      "bin": "bin",
+      "basket": "basket"
+    },
+    "addOne": {
+      "load": "+1 load",
+      "basket": "+1 full basket",
+      "bin": "+1 full bin"
+    },
+    "noChange": "No change.",
+    "badAmount": "Type a number from 0 to 10,000, with up to 2 decimals.",
+    "nothingWaiting": "Nothing waiting",
+    "approxLoads_one": "{{amount}} ≈ {{n}} load",
+    "approxLoads_other": "{{amount}} ≈ {{n}} loads",
+    "noNumber": "{{amount}} · loads: no number set",
+    "washing": "≈ {{time}} of washing",
+    "nothingWaitingButton": "Nothing waiting",
+    "undoChange": "Undo change",
+    "notSaved": "Changed, not saved yet",
+    "review_one": "Review {{count}} change",
+    "review_other": "Review {{count}} changes",
+    "reviewTitle_one": "Check {{count}} estimate",
+    "reviewTitle_other": "Check {{count}} estimates",
+    "fixFirst_one": "Fix {{count}} amount above first.",
+    "fixFirst_other": "Fix {{count}} amounts above first.",
+    "whoLabel": "Who is entering?",
+    "noStaff": "No one with a PIN yet. The owner sets up names and PINs.",
+    "pinLabel": "Your 4-digit PIN",
+    "pinHint": "One PIN saves all of them.",
+    "pinStillGood_one": "{{name}}'s PIN is still good on this phone for {{count}} more minute.",
+    "pinStillGood_other": "{{name}}'s PIN is still good on this phone for {{count}} more minutes.",
+    "enterPinAnyway": "Enter a PIN anyway",
+    "saveAll_one": "Save {{count}} estimate",
+    "saveAll_other": "Save {{count}} estimates",
+    "saving": "Saving…",
+    "keepEditing": "Keep editing",
+    "saved_one": "Saved {{count}} estimate.",
+    "saved_other": "Saved {{count}} estimates.",
+    "savedOnPhone_one": "{{count}} estimate is saved on this phone and will send when the connection is back.",
+    "savedOnPhone_other": "{{count}} estimates are saved on this phone and will send when the connection is back.",
+    "notStored": "This phone couldn't keep the estimates. Keep this page open until the connection is back.",
+    "needsPin": "Some estimates are waiting for the PIN to be entered again (wrong, changed or locked PIN).",
+    "sendNow": "Send now",
+    "errors": {
+      "who": "Choose who is entering.",
+      "pin": "Type the 4-digit PIN.",
+      "wrongPin": "Wrong PIN. Try again.",
+      "locked": "Too many wrong PINs. Wait 5 minutes and try again."
+    }
   }
 }

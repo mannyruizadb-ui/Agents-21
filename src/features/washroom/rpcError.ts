@@ -11,6 +11,7 @@ export const APP_ERROR_CODES = [
   'OUT_OF_RANGE_TIMESTAMP',
   'RATE_LIMITED',
   'MACHINE_DOWN',
+  'STAFF_SESSION_REQUIRED',
 ] as const;
 
 export type AppErrorCode = (typeof APP_ERROR_CODES)[number];
@@ -82,6 +83,8 @@ export function errorMessageKey(e: unknown): string {
       return 'errors.rateLimited';
     case 'MACHINE_DOWN':
       return 'errors.machineDown';
+    case 'STAFF_SESSION_REQUIRED':
+      return 'errors.pinAgain';
     default:
       return 'errors.network';
   }

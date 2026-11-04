@@ -89,7 +89,8 @@
   "control": {
     "placeholder": "App de control: las funciones llegan en el Hito 2.",
     "washerBoard": "Lavadoras",
-    "queue": "Cola de trabajo"
+    "queue": "Cola de trabajo",
+    "estimates": "Estimados"
   },
   "display": {
     "placeholder": "Pantalla de pared: llega en el Hito 2."
@@ -111,7 +112,8 @@
     "tooLate": "Ya es tarde para deshacer. Pídele a un gerente que lo corrija.",
     "rateLimited": "Demasiados cambios a la vez. Espera unos segundos e intenta de nuevo.",
     "network": "No hay conexión con el servidor. Revisa el Wi-Fi e intenta de nuevo.",
-    "machineDown": "Esa lavadora está marcada como dañada. Elige otra, o márcala como arreglada primero."
+    "machineDown": "Esa lavadora está marcada como dañada. Elige otra, o márcala como arreglada primero.",
+    "pinAgain": "Hay que poner el PIN otra vez. Escríbelo y guarda."
   },
   "units": {
     "load_one": "{{n}} carga",
@@ -315,5 +317,87 @@
     },
     "preview_one": "≈ {{n}} carga (estimado)",
     "preview_other": "≈ {{n}} cargas (estimado)"
+  },
+  "estimates": {
+    "title": "Ropa sucia esperando",
+    "intro": "Para cada grupo de lavado, di cuánta ropa sucia está esperando. Revisa y guarda una sola vez con tu PIN.",
+    "notAllowed": "Solo el dueño y los gerentes ponen estimados.",
+    "summaryTitle": "Esperando ahora",
+    "totalLoads_one": "≈ {{n}} carga esperando",
+    "totalLoads_other": "≈ {{n}} cargas esperando",
+    "totalHours_one": "≈ {{time}} de lavado en {{count}} lavadora funcionando",
+    "totalHours_other": "≈ {{time}} de lavado en {{count}} lavadoras funcionando",
+    "noWashers": "No hay lavadoras funcionando ahora, así que no hay tiempo de lavado.",
+    "noWashTime": "Tiempo de lavado: sin número",
+    "unknownGroups_one": "{{count}} grupo no tiene número de cargas y no se cuenta.",
+    "unknownGroups_other": "{{count}} grupos no tienen número de cargas y no se cuentan.",
+    "groupsWithout_one": "{{count}} grupo no tiene estimado todavía.",
+    "groupsWithout_other": "{{count}} grupos no tienen estimado todavía.",
+    "includesUnsaved_one": "Incluye {{count}} cambio sin guardar.",
+    "includesUnsaved_other": "Incluye {{count}} cambios sin guardar.",
+    "waitingToSend_one": "{{count}} estimado está guardado en este teléfono y se enviará cuando vuelva la conexión.",
+    "waitingToSend_other": "{{count}} estimados están guardados en este teléfono y se enviarán cuando vuelva la conexión.",
+    "offline": "Sin conexión. Puedes guardar igual: los estimados quedan en este teléfono y se envían después.",
+    "rejected": "No se guardó: {{group}}, {{amount}}.",
+    "hoursValue": "{{h}} h {{m}} min",
+    "minutesValue": "{{m}} min",
+    "noEstimateYet": "Todavía no hay estimado.",
+    "minutesAgo_one": "hace {{count}} min",
+    "minutesAgo_other": "hace {{count}} min",
+    "hoursAgo_one": "hace {{count}} h",
+    "hoursAgo_other": "hace {{count}} h",
+    "lastValue": "Último: {{what}} a las {{at}} ({{ago}})",
+    "old": "viejo, revisa otra vez",
+    "countIn": "Contarlo en",
+    "howFullLast": "¿Qué tan lleno está el último {{unit}}?",
+    "unitOne": {
+      "bin": "contenedor",
+      "basket": "canasta"
+    },
+    "addOne": {
+      "load": "+1 carga",
+      "basket": "+1 canasta llena",
+      "bin": "+1 contenedor lleno"
+    },
+    "noChange": "Sin cambio.",
+    "badAmount": "Escribe un número de 0 a 10,000, con hasta 2 decimales.",
+    "nothingWaiting": "No hay nada esperando",
+    "approxLoads_one": "{{amount}} ≈ {{n}} carga",
+    "approxLoads_other": "{{amount}} ≈ {{n}} cargas",
+    "noNumber": "{{amount}} · cargas: sin número",
+    "washing": "≈ {{time}} de lavado",
+    "nothingWaitingButton": "No hay nada",
+    "undoChange": "Deshacer cambio",
+    "notSaved": "Cambiado, sin guardar",
+    "review_one": "Revisar {{count}} cambio",
+    "review_other": "Revisar {{count}} cambios",
+    "reviewTitle_one": "Revisa {{count}} estimado",
+    "reviewTitle_other": "Revisa {{count}} estimados",
+    "fixFirst_one": "Corrige {{count}} cantidad arriba primero.",
+    "fixFirst_other": "Corrige {{count}} cantidades arriba primero.",
+    "whoLabel": "¿Quién lo pone?",
+    "noStaff": "Nadie tiene PIN todavía. El dueño configura los nombres y PIN.",
+    "pinLabel": "Tu PIN de 4 números",
+    "pinHint": "Un solo PIN guarda todos.",
+    "pinStillGood_one": "El PIN de {{name}} sigue bueno en este teléfono por {{count}} minuto más.",
+    "pinStillGood_other": "El PIN de {{name}} sigue bueno en este teléfono por {{count}} minutos más.",
+    "enterPinAnyway": "Poner PIN de todos modos",
+    "saveAll_one": "Guardar {{count}} estimado",
+    "saveAll_other": "Guardar {{count}} estimados",
+    "saving": "Guardando…",
+    "keepEditing": "Seguir cambiando",
+    "saved_one": "{{count}} estimado guardado.",
+    "saved_other": "{{count}} estimados guardados.",
+    "savedOnPhone_one": "{{count}} estimado está guardado en este teléfono y se enviará cuando vuelva la conexión.",
+    "savedOnPhone_other": "{{count}} estimados están guardados en este teléfono y se enviarán cuando vuelva la conexión.",
+    "notStored": "Este teléfono no pudo guardar los estimados. Deja esta página abierta hasta que vuelva la conexión.",
+    "needsPin": "Hay estimados esperando que se ponga el PIN otra vez (PIN equivocado, cambiado o bloqueado).",
+    "sendNow": "Enviar ahora",
+    "errors": {
+      "who": "Elige quién lo pone.",
+      "pin": "Escribe el PIN de 4 números.",
+      "wrongPin": "PIN equivocado. Intenta otra vez.",
+      "locked": "Demasiados PIN equivocados. Espera 5 minutos e intenta otra vez."
+    }
   }
 }

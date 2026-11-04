@@ -132,7 +132,7 @@ export type RecordOutcome =
 
 export type SessionOutcome =
   | { kind: 'ok'; sessionId: string }
-  | { kind: 'pin'; error: 'PIN_INVALID' | 'STAFF_LOCKED' } // stop: someone must enter the PIN again
+  | { kind: 'pin'; error: string } // PIN_INVALID | STAFF_LOCKED | PIN_NEEDED: someone must enter the PIN again
   | { kind: 'retry'; error: string }
   | { kind: 'rejected'; errorCode: string }; // e.g. person deactivated
 

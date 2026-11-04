@@ -18,6 +18,9 @@ export function ControlHome() {
         <Link className="button-link" to="/control/washers">
           {t('control.washerBoard')}
         </Link>
+        <Link className="button-link" to="/control/estimates">
+          {t('control.estimates')}
+        </Link>
         <Link className="button-link" to="/control/queue">
           {t('control.queue')}
         </Link>

@@ -32,6 +32,13 @@ export const router = createBrowserRouter([
         }),
       },
       {
+        // Soil estimates (B1): owner and managers, one name + PIN per batch (owner 2026-11-04).
+        path: 'estimates',
+        lazy: async () => ({
+          Component: (await import('./features/estimates/EstimatesPage')).EstimatesPage,
+        }),
+      },
+      {
         // Machine down / back up (owner 2026-11-04): owner and managers change; others read.
         path: 'machines',
         lazy: async () => ({
