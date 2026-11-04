@@ -109,3 +109,10 @@ export const IconStart = (p: IconProps) => (
     <path d="M7 4v16l13-8L7 4z" fill="currentColor" />
   </Svg>
 );
+
+/** Machine down: a wrench. */
+export const IconMachineDown = (p: IconProps) => (
+  <Svg {...p}>
+    <path d="M14.7 6.3a4 4 0 0 0-5.4 5.4L3 18l3 3 6.3-6.3a4 4 0 0 0 5.4-5.4l-2.6 2.6-2.4-.6-.6-2.4 2.6-2.6z" />
+  </Svg>
+);

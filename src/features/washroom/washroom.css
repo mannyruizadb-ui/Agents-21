@@ -418,3 +418,75 @@ body:has(.station) {
   gap: 0.25rem 0.5rem;
   font-weight: 600;
 }
+
+/* Machine down: wrench icon + "DOWN" text + reason; the striped border is extra, never the only cue. */
+.down-banner {
+  border: 3px dashed #8b0000;
+  border-radius: 10px;
+  background: #fff0f0;
+  color: #5c0000;
+  padding: 0.5rem 0.75rem;
+  margin: 0.5rem 0;
+}
+.down-banner p {
+  margin: 0.125rem 0;
+}
+.down-title {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 1.125rem;
+  text-transform: uppercase;
+}
+.washer-card.status-down {
+  border-color: #8b0000;
+  border-style: dashed;
+}
+.station .down-banner {
+  background: #4a0f0f;
+  color: #fff;
+  border-color: #ff8a8a;
+  font-size: 1.375rem;
+  padding: 16px;
+}
+.station .down-title {
+  font-size: clamp(2rem, 7vw, 3.5rem);
+  color: #ff8a8a;
+}
+.form-page .pick-list {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 1rem;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 9.5rem), 1fr));
+  gap: 8px;
+}
+.form-page .pick-list button {
+  width: 100%;
+  min-height: 56px;
+}
+.form-page .pick-list button[aria-pressed='true'] {
+  background: #1f3a8a;
+  color: #fff;
+  outline: 3px solid #b45309;
+  outline-offset: 1px;
+}
+.form-page .pick-list button[aria-pressed='false'] {
+  background: #fff;
+  color: #1f3a8a;
+}
+.form-page .confirm-box {
+  border: 3px solid #b45309;
+  border-radius: 8px;
+  padding: 0.75rem 1rem;
+  background: #fff8eb;
+}
+.form-page textarea {
+  width: 100%;
+  min-height: 4.5rem;
+  padding: 0.5rem 0.75rem;
+  font: inherit;
+  font-size: 1.125rem;
+  border: 2px solid #555;
+  border-radius: 6px;
+}

@@ -6,7 +6,8 @@ import { supabase } from '../../lib/supabase';
 import { useLiveRefetch } from '../../lib/useLiveRefetch';
 import { useNow } from '../../lib/useNow';
 import { useRequiredSession } from '../../app/auth/sessionContext';
-import { useOwnerPlants } from '../admin/useOwnerPlants';
+import { useMyRoles } from '../washroom/useMyRoles';
+import { RewashForm } from './RewashForm';
 import { DataAge } from '../washroom/DataAge';
 import { IconDown, IconRush, IconUp } from '../washroom/Icons';
 import { QueueBadges } from '../washroom/QueueBadges';
@@ -17,6 +18,7 @@ import { useQtyText } from '../washroom/useQtyText';
 import {
   pickArea,
   useAreas,
+  useMachineStatus,
   useQueue,
   useWashers,
   useWashGroups,
@@ -39,6 +41,16 @@ import '../washroom/washroom.css';
 // assign a washer, RUSH, cancel); managers, leads and viewers see a read-only list. The server still
 // lets managers edit until a separate migration tightens it; this screen only offers what the owner
 // decided. Items are cancelled, never deleted.
+
+/** A washer <option>: a down washer says so in its text and can't be chosen. */
+function WasherOption({ w, down }: { w: WasherRow; down: boolean }) {
+  const { t } = useTranslation();
+  return (
+    <option value={w.id} disabled={down}>
+      {down ? t('queue.washerDown', { name: w.name }) : w.name}
+    </option>
+  );
+}
 
 /** Sends every editable field (update_queue_item is a full replacement). */
 function updateArgs(
@@ -66,12 +78,14 @@ function AddForm({
   plantId,
   isWashroom,
   washers,
+  downIds,
   onDone,
 }: {
   areaId: string;
   plantId: string;
   isWashroom: boolean;
   washers: WasherRow[];
+  downIds: Set<string>;
   onDone: (message: string) => void;
 }) {
   const { t } = useTranslation();
@@ -195,9 +209,7 @@ function AddForm({
             <select id="q-washer" value={washerId} onChange={(e) => setWasherId(e.target.value)}>
               <option value="">{t('queue.nextFreeWasher')}</option>
               {washers.map((w) => (
-                <option key={w.id} value={w.id}>
-                  {w.name}
-                </option>
+                <WasherOption key={w.id} w={w} down={downIds.has(w.id)} />
               ))}
             </select>
           </div>
@@ -228,8 +240,10 @@ function QueueItemCard({
   item,
   place,
   canEdit,
+  canMoveOff,
   isWashroom,
   washers,
+  downIds,
   canUp,
   canDown,
   busy,
@@ -240,8 +254,11 @@ function QueueItemCard({
   item: QueueRow;
   place: number;
   canEdit: boolean;
+  /** Manager exception 1: may move this load off its washer because that washer is down. */
+  canMoveOff: boolean;
   isWashroom: boolean;
   washers: WasherRow[];
+  downIds: Set<string>;
   canUp: boolean;
   canDown: boolean;
   busy: boolean;
@@ -255,6 +272,12 @@ function QueueItemCard({
   const [confirming, setConfirming] = useState(false);
   const groupName = localized(item.wash_group_name, item.wash_group_name_i18n);
   const washerSelectId = `washer-${item.id}`;
+  const [moveTarget, setMoveTarget] = useState('');
+  // Down = marked down, or turned off in setup (no longer an active washer).
+  const assignedDown =
+    !!item.assigned_machine_id &&
+    (downIds.has(item.assigned_machine_id) ||
+      !washers.some((w) => w.id === item.assigned_machine_id));
 
   return (
     <li className={item.is_rush ? 'queue-item rush' : 'queue-item'}>
@@ -278,6 +301,38 @@ function QueueItemCard({
           ` · ${t('queue.inProgress', { started: item.loads_started })}`}
       </p>
       {item.note && <p className="hint">{t('queue.note', { note: item.note })}</p>}
+      {assignedDown && (
+        <p className="down-banner">
+          <strong>{t('queue.assignedDown', { name: item.assigned_machine_name ?? '?' })}</strong>
+        </p>
+      )}
+
+      {canMoveOff && assignedDown && (
+        <div className="field">
+          <label htmlFor={`move-${item.id}`}>{t('queue.moveOffLabel')}</label>
+          <select
+            id={`move-${item.id}`}
+            value={moveTarget}
+            onChange={(e) => setMoveTarget(e.target.value)}
+          >
+            <option value="">{t('queue.nextFreeWasher')}</option>
+            {washers
+              .filter((w) => w.id !== item.assigned_machine_id)
+              .map((w) => (
+                <WasherOption key={w.id} w={w} down={downIds.has(w.id)} />
+              ))}
+          </select>
+          <div className="actions">
+            <button
+              type="button"
+              disabled={busy}
+              onClick={() => onUpdate({ assigned_machine_id: moveTarget || null })}
+            >
+              {t('queue.moveOff')}
+            </button>
+          </div>
+        </div>
+      )}
 
       {canEdit && (
         <>
@@ -299,9 +354,7 @@ function QueueItemCard({
                     </option>
                   )}
                 {washers.map((w) => (
-                  <option key={w.id} value={w.id}>
-                    {w.name}
-                  </option>
+                  <WasherOption key={w.id} w={w} down={downIds.has(w.id)} />
                 ))}
               </select>
             </div>
@@ -369,11 +422,17 @@ export function QueuePage() {
   const qc = useQueryClient();
   const now = useNow(1000);
   const areas = useAreas();
-  const ownerPlants = useOwnerPlants(session.user.id);
+  const roles = useMyRoles(session.user.id);
   const [areaId, setAreaId] = useState<string | null>(null);
   const area = pickArea(areas.data, 'washroom', areaId);
   const isWashroom = area?.kind === 'washroom';
-  const isOwner = !!area && (ownerPlants.data ?? []).some((p) => p.id === area.plant_id);
+  const myRoles = roles.rolesFor(area?.plant_id);
+  const isOwner = myRoles.has('owner');
+  const isManager = !isOwner && myRoles.has('manager');
+  const machineStatus = useMachineStatus(area?.plant_id);
+  const downIds = new Set(
+    (machineStatus.data ?? []).filter((m) => m.status === 'down').map((m) => m.machine_id),
+  );
   const queue = useQueue(area?.id);
   useLiveRefetch(queue.refetch, !!area);
   const washers = useWashers(isWashroom ? area?.id : undefined);
@@ -465,7 +524,9 @@ export function QueuePage() {
           </select>
         </div>
       )}
-      {!isOwner && area && ownerPlants.isSuccess && <p className="notice">{t('queue.readOnly')}</p>}
+      {!isOwner && area && roles.isSuccess && (
+        <p className="notice">{isManager ? t('queue.managerNotice') : t('queue.readOnly')}</p>
+      )}
       <DataAge
         updatedAt={queue.dataUpdatedAt}
         now={now}
@@ -483,6 +544,18 @@ export function QueuePage() {
           plantId={area.plant_id}
           isWashroom={isWashroom}
           washers={washers.data ?? []}
+          downIds={downIds}
+          onDone={(m) => {
+            setMessage(m);
+            setError(null);
+          }}
+        />
+      )}
+
+      {(isOwner || isManager) && area && isWashroom && (
+        <RewashForm
+          areaId={area.id}
+          plantId={area.plant_id}
           onDone={(m) => {
             setMessage(m);
             setError(null);
@@ -510,8 +583,10 @@ export function QueuePage() {
               item={item}
               place={places.get(item.id) ?? 0}
               canEdit={isOwner}
+              canMoveOff={isManager}
               isWashroom={isWashroom}
               washers={washers.data ?? []}
+              downIds={downIds}
               canUp={canMove(items, item.id, 'up')}
               canDown={canMove(items, item.id, 'down')}
               busy={busy}

@@ -49,6 +49,10 @@ export interface WasherBoardRow {
   next_loads_remaining: number | null;
   next_version: number | null;
   server_time: string;
+  /** Owner 2026-11-04: marked down (takes precedence over status; no NEXT; refuses taps). */
+  is_down: boolean | null;
+  down_reason: string | null;
+  down_since: string | null;
 }
 
 /** One row of get_queue (queue_board, board order: RUSH first, then position). */
@@ -67,7 +71,15 @@ export interface WashGroupRow {
   name: string;
   name_i18n: I18nJson;
   color_hex: string;
+  allow_basket_estimates: boolean;
+  allow_bin_estimates: boolean;
+  loads_per_basket: number | null;
+  loads_per_bin: number | null;
 }
+
+/** One row of get_machine_status: every active machine (any kind), down or up. */
+export type MachineStatusRow =
+  Database['public']['Functions']['get_machine_status']['Returns'][number];
 
 export interface WasherRow {
   id: string;
@@ -86,6 +98,7 @@ export const washroomKeys = {
   washGroups: (plantId: string) => ['wash-groups', plantId] as const,
   washers: (areaId: string) => ['washers', areaId] as const,
   machine: (machineId: string) => ['machine', machineId] as const,
+  machineStatus: (plantId: string) => ['machine-status', plantId] as const,
 };
 
 /** Active areas the user can see (RLS), in plant order. */
@@ -127,7 +140,9 @@ export function useWashGroups(plantId: string | undefined) {
       unwrap(
         await supabase
           .from('wash_groups')
-          .select('id, plant_id, name, name_i18n, color_hex')
+          .select(
+            'id, plant_id, name, name_i18n, color_hex, allow_basket_estimates, allow_bin_estimates, loads_per_basket, loads_per_bin',
+          )
           .eq('plant_id', plantId ?? '')
           .eq('active', true)
           .order('sort_order')
@@ -190,6 +205,17 @@ export function useQueue(areaId: string | undefined) {
     enabled: !!areaId,
     queryFn: async (): Promise<QueueRow[]> =>
       unwrap(await supabase.rpc('get_queue', { p_area_id: areaId ?? '' })) ?? [],
+    refetchInterval: LIVE_REFETCH_MS,
+  });
+}
+
+/** Down/up status of every machine of a plant (live like the board). */
+export function useMachineStatus(plantId: string | undefined) {
+  return useQuery({
+    queryKey: washroomKeys.machineStatus(plantId ?? ''),
+    enabled: !!plantId,
+    queryFn: async (): Promise<MachineStatusRow[]> =>
+      unwrap(await supabase.rpc('get_machine_status', { p_plant_id: plantId ?? '' })) ?? [],
     refetchInterval: LIVE_REFETCH_MS,
   });
 }

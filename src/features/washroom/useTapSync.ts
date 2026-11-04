@@ -114,6 +114,9 @@ async function sendTap(tap: PendingTap): Promise<SendOutcome<WasherLoadResult>> 
     const res = await supabase.rpc('start_washer_load', {
       p_machine_id: tap.machineId,
       p_client_id: tap.clientId,
+      // The tap's own time (server-clock corrected at tap time), so an offline tap that syncs later
+      // still starts the cycle when the washer was loaded. Older than 30 min → OUT_OF_RANGE_TIMESTAMP.
+      p_tapped_at: tap.tappedAt,
       ...(tap.washGroupId ? { p_wash_group_id: tap.washGroupId } : {}),
     });
     if (res.error) {
@@ -170,11 +173,18 @@ export function useTapSync() {
     };
   }, [qc, hasPending]);
 
-  /** Records a start-tap on the device first, then sends it. Returns its client_id. */
+  /**
+   * Records a start-tap on the device first, then sends it. Returns its client_id. `clockOffsetMs`
+   * = server clock − device clock (from the board's server_time), so a tablet whose clock runs fast
+   * doesn't send a tap time in the future (the server allows at most 1 minute ahead).
+   */
   const tap = useCallback(
-    (machineId: string, washGroupId: string | null): string => {
+    (machineId: string, washGroupId: string | null, clockOffsetMs = 0): string => {
       const clientId = crypto.randomUUID();
-      addPending(store, newTap(machineId, washGroupId, clientId, new Date()));
+      addPending(
+        store,
+        newTap(machineId, washGroupId, clientId, new Date(Date.now() + clockOffsetMs)),
+      );
       refresh();
       void flush(qc);
       return clientId;

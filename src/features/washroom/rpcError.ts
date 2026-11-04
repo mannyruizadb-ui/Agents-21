@@ -10,6 +10,7 @@ export const APP_ERROR_CODES = [
   'INVALID_STATUS_TRANSITION',
   'OUT_OF_RANGE_TIMESTAMP',
   'RATE_LIMITED',
+  'MACHINE_DOWN',
 ] as const;
 
 export type AppErrorCode = (typeof APP_ERROR_CODES)[number];
@@ -79,9 +80,21 @@ export function errorMessageKey(e: unknown): string {
       return 'errors.tooLate';
     case 'RATE_LIMITED':
       return 'errors.rateLimited';
+    case 'MACHINE_DOWN':
+      return 'errors.machineDown';
     default:
       return 'errors.network';
   }
+}
+
+/**
+ * Message key for a washer start-tap the server refused. A late-synced tap (OUT_OF_RANGE_TIMESTAMP:
+ * more than 30 min old) and a down washer get their own wording; the rest share errorMessageKey.
+ */
+export function tapRejectedKey(code: string): string {
+  if (code === 'OUT_OF_RANGE_TIMESTAMP') return 'station.rejectTooLate';
+  if (code === 'MACHINE_DOWN') return 'station.rejectDown';
+  return errorMessageKey({ message: code });
 }
 
 /** Throws an RpcError for a supabase-js `{ error }` result; returns data otherwise. */

@@ -9,10 +9,18 @@ import { QueueBadges } from './QueueBadges';
 import { useQtyText } from './useQtyText';
 import { WashGroupLabel } from './WashGroupLabel';
 import { errorMessageKey } from './rpcError';
-import { formatCountdown, minutesLeftRoundedUp, washerNow, type WasherNow } from './washerTime';
+import {
+  estimateServerNow,
+  formatCountdown,
+  minutesLeftRoundedUp,
+  washerNow,
+  type WasherNow,
+} from './washerTime';
+import { DownBanner } from './DownBanner';
 import {
   pickArea,
   useAreas,
+  useMachineStatus,
   useQueue,
   useWashroomBoard,
   type QueueRow,
@@ -89,10 +97,23 @@ function WasherCard({
   const qtyText = useQtyText();
   const view = washerNow(row.status, row.expected_end_at, row.server_time, fetchedAt, now);
   const headingId = `washer-${row.machine_id}`;
+  // A down washer takes precedence over its cycle status (get_washroom_board, owner 2026-11-04).
+  const isDown = !!row.is_down;
   return (
-    <li className={`washer-card status-${view.status}`} aria-labelledby={headingId}>
+    <li
+      className={`washer-card status-${isDown ? 'down' : view.status}`}
+      aria-labelledby={headingId}
+    >
       <h2 id={headingId}>{row.machine_name}</h2>
-      <StatusLine view={view} />
+      {isDown ? (
+        <DownBanner
+          reason={row.down_reason}
+          since={row.down_since}
+          serverNowMs={estimateServerNow(row.server_time, fetchedAt, now)}
+        />
+      ) : (
+        <StatusLine view={view} />
+      )}
       <dl>
         <dt>{t('washroom.now')}</dt>
         <dd>
@@ -120,28 +141,37 @@ function WasherCard({
             </dd>
           </>
         )}
-        <dt>{t('washroom.next')}</dt>
-        <dd>
-          {/* Only a load pinned to THIS washer is shown here; unassigned work is listed once in
+        {!isDown && <dt>{t('washroom.next')}</dt>}
+        {!isDown && (
+          <dd>
+            {/* Only a load pinned to THIS washer is shown here; unassigned work is listed once in
               the "Next in queue" panel (the board RPC repeats it on every free washer). */}
-          {row.next_queue_item_id && row.next_is_assigned ? (
-            <>
-              <WashGroupLabel
-                name={row.next_wash_group_name}
-                nameI18n={row.next_wash_group_name_i18n}
-                colorHex={row.next_wash_group_color_hex}
-              />
-              <span>{qtyText(row.next_loads_remaining, row.next_qty, row.next_unit)}</span>
-              <QueueBadges rush={row.next_is_rush} rewash={row.next_is_rewash} pinnedTo />
-            </>
-          ) : (
-            <span>{t('washroom.nextFromQueue')}</span>
-          )}
-        </dd>
+            {row.next_queue_item_id && row.next_is_assigned ? (
+              <>
+                <WashGroupLabel
+                  name={row.next_wash_group_name}
+                  nameI18n={row.next_wash_group_name_i18n}
+                  colorHex={row.next_wash_group_color_hex}
+                />
+                <span>{qtyText(row.next_loads_remaining, row.next_qty, row.next_unit)}</span>
+                <QueueBadges rush={row.next_is_rush} rewash={row.next_is_rewash} pinnedTo />
+              </>
+            ) : (
+              <span>{t('washroom.nextFromQueue')}</span>
+            )}
+          </dd>
+        )}
       </dl>
       <Link className="button-link" to={`/station/washer/${row.machine_id}`}>
         {t('washroom.openStation', { washer: row.machine_name })}
       </Link>
+      {isDown && (
+        <p>
+          <Link to={`/control/machines?machine=${row.machine_id}`}>
+            {t('machines.markUpNamed', { name: row.machine_name })}
+          </Link>
+        </p>
+      )}
     </li>
   );
 }
@@ -192,6 +222,18 @@ export function WasherBoardPage() {
   const queue = useQueue(area?.id);
   useLiveRefetch(queue.refetch, !!area);
   const taps = useTapSync();
+  const machines = useMachineStatus(area?.plant_id);
+  useLiveRefetch(machines.refetch, !!area);
+  // Down machines that have no washer card here (dryers, ironers…, and washers turned off in setup).
+  const boardIds = new Set((board.data ?? []).map((r) => r.machine_id));
+  const otherDown = (machines.data ?? []).filter(
+    (m) => m.status === 'down' && !boardIds.has(m.machine_id),
+  );
+  const machinesServerNow = estimateServerNow(
+    machines.data?.[0]?.server_time,
+    machines.dataUpdatedAt,
+    now,
+  );
 
   return (
     <main className="form-page">
@@ -231,6 +273,25 @@ export function WasherBoardPage() {
             {t('common.tryAgain')}
           </button>
         </div>
+      )}
+      <p>
+        <Link className="button-link secondary" to="/control/machines">
+          {t('machines.linkLabel')}
+        </Link>
+      </p>
+      {otherDown.length > 0 && (
+        <section aria-labelledby="other-down">
+          <h2 id="other-down">{t('machines.otherDown')}</h2>
+          {otherDown.map((m) => (
+            <DownBanner
+              key={m.machine_id}
+              name={`${m.machine_name} (${m.area_name})`}
+              reason={m.reason}
+              since={m.since}
+              serverNowMs={machinesServerNow}
+            />
+          ))}
+        </section>
       )}
       {queue.data && <NextInQueue items={queue.data} />}
       {queue.isError && !queue.data && <p className="error">{t(errorMessageKey(queue.error))}</p>}

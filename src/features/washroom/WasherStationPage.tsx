@@ -8,10 +8,11 @@ import { IconIdle, IconOffline, IconReady, IconRunning, IconStart, IconWarning }
 import { QueueBadges } from './QueueBadges';
 import { WashGroupLabel } from './WashGroupLabel';
 import { useLocalizedName } from './localizedName';
-import { errorMessageKey } from './rpcError';
+import { errorMessageKey, tapRejectedKey } from './rpcError';
 import { UNDO_WINDOW_MS, useTapSync } from './useTapSync';
 import { useQtyText } from './useQtyText';
-import { formatCountdown, minutesLeftRoundedUp, washerNow } from './washerTime';
+import { estimateServerNow, formatCountdown, minutesLeftRoundedUp, washerNow } from './washerTime';
+import { DownBanner } from './DownBanner';
 import { useMachine, useWashGroups, useWashroomBoard, type WashGroupRow } from './washroomData';
 import './washroom.css';
 
@@ -78,6 +79,7 @@ export function WasherStationPage() {
   const startRef = useRef<HTMLButtonElement>(null);
 
   const row = board.data?.find((r) => r.machine_id === machineId);
+  const isDown = !!row?.is_down;
   const view = row
     ? washerNow(row.status, row.expected_end_at, row.server_time, board.dataUpdatedAt, now)
     : null;
@@ -104,7 +106,13 @@ export function WasherStationPage() {
 
   function onStart() {
     if (!machineId || !startGroupName || locked) return;
-    const clientId = taps.tap(machineId, override?.id ?? null);
+    // Server clock − device clock, so the stored tap time is in server time (see useTapSync.tap).
+    const offset = row ? Date.parse(row.server_time) - board.dataUpdatedAt : 0;
+    const clientId = taps.tap(
+      machineId,
+      override?.id ?? null,
+      Number.isFinite(offset) ? offset : 0,
+    );
     setLastTap({ clientId, at: now, groupName: startGroupName });
     setUndoState('idle');
     setUndoError(null);
@@ -157,6 +165,21 @@ export function WasherStationPage() {
         />
       </header>
 
+      {isDown && row && (
+        <div role="alert">
+          <DownBanner
+            reason={row.down_reason}
+            since={row.down_since}
+            serverNowMs={estimateServerNow(row.server_time, board.dataUpdatedAt, now)}
+          />
+          <p className="meta">{t('station.downNoStart')}</p>
+          <p>
+            <Link to={`/control/machines?machine=${machine.data.id}`}>
+              {t('machines.markUpNamed', { name: machine.data.name })}
+            </Link>
+          </p>
+        </div>
+      )}
       {!machine.data.active && (
         <p className="station-message bad" role="alert">
           <IconWarning />
@@ -236,29 +259,31 @@ export function WasherStationPage() {
         )}
       </section>
 
-      {/* NEXT */}
-      <section className="station-panel station-next" aria-labelledby="next-title">
-        <h2 id="next-title">{t('washroom.next')}</h2>
-        {row?.next_queue_item_id ? (
-          <>
-            <WashGroupLabel
-              name={row.next_wash_group_name}
-              nameI18n={row.next_wash_group_name_i18n}
-              colorHex={row.next_wash_group_color_hex}
-            />
-            <p className="meta">
-              <span>{qtyText(row.next_loads_remaining, row.next_qty, row.next_unit)}</span>
-              <QueueBadges
-                rush={row.next_is_rush}
-                rewash={row.next_is_rewash}
-                pinnedTo={row.next_is_assigned ? true : null}
+      {/* NEXT (none while down: the board gives a down washer no NEXT) */}
+      {!isDown && (
+        <section className="station-panel station-next" aria-labelledby="next-title">
+          <h2 id="next-title">{t('washroom.next')}</h2>
+          {row?.next_queue_item_id ? (
+            <>
+              <WashGroupLabel
+                name={row.next_wash_group_name}
+                nameI18n={row.next_wash_group_name_i18n}
+                colorHex={row.next_wash_group_color_hex}
               />
-            </p>
-          </>
-        ) : (
-          <p className="status-line">{board.data ? t('washroom.nothingQueued') : '…'}</p>
-        )}
-      </section>
+              <p className="meta">
+                <span>{qtyText(row.next_loads_remaining, row.next_qty, row.next_unit)}</span>
+                <QueueBadges
+                  rush={row.next_is_rush}
+                  rewash={row.next_is_rewash}
+                  pinnedTo={row.next_is_assigned ? true : null}
+                />
+              </p>
+            </>
+          ) : (
+            <p className="status-line">{board.data ? t('washroom.nothingQueued') : '…'}</p>
+          )}
+        </section>
+      )}
 
       {/* Status of the last tap, and taps that are waiting or were refused. */}
       <div role="status" aria-live="polite">
@@ -303,7 +328,7 @@ export function WasherStationPage() {
                 minute: '2-digit',
               }),
             })}{' '}
-            {t(errorMessageKey({ message: r.errorCode }))}
+            {t(tapRejectedKey(r.errorCode))}
           </p>
           <button type="button" onClick={() => taps.dismiss(r.clientId)}>
             {t('station.dismiss')}
@@ -333,66 +358,73 @@ export function WasherStationPage() {
         </div>
       )}
 
-      {/* START */}
-      <button
-        ref={startRef}
-        type="button"
-        className="start-button"
-        onClick={onStart}
-        disabled={!startGroupName || locked || !machine.data.active}
-        aria-describedby="start-what"
-      >
-        <IconStart size="1em" />
-        <span>{locked ? t('station.startedShort') : t('station.start')}</span>
-      </button>
-      <p id="start-what" className="meta">
-        {startGroupName
-          ? override
-            ? t('station.willStartOther', { group: startGroupName })
-            : t('station.willStart', { group: startGroupName })
-          : t('station.chooseGroup')}
-      </p>
-
-      <div className="row">
-        <button
-          type="button"
-          aria-expanded={pickerOpen}
-          aria-controls="group-picker"
-          onClick={() => setPickerOpen((o) => !o)}
-        >
-          {t('station.otherGroup')}
-        </button>
-        {override && (
-          <button type="button" onClick={() => setOverride(null)}>
-            {t('station.useQueue')}
+      {/* START, hidden while the washer is down (the server refuses with MACHINE_DOWN anyway). */}
+      {!isDown && (
+        <>
+          <button
+            ref={startRef}
+            type="button"
+            className="start-button"
+            onClick={onStart}
+            disabled={!startGroupName || locked || !machine.data.active}
+            aria-describedby="start-what"
+          >
+            <IconStart size="1em" />
+            <span>{locked ? t('station.startedShort') : t('station.start')}</span>
           </button>
-        )}
-      </div>
-      {pickerOpen && (
-        <section id="group-picker" aria-label={t('station.otherGroup')}>
-          {groups.isError && (
-            <p className="station-message bad">{t(errorMessageKey(groups.error))}</p>
+          <p id="start-what" className="meta">
+            {startGroupName
+              ? override
+                ? t('station.willStartOther', { group: startGroupName })
+                : t('station.willStart', { group: startGroupName })
+              : t('station.chooseGroup')}
+          </p>
+
+          <div className="row">
+            <button
+              type="button"
+              aria-expanded={pickerOpen}
+              aria-controls="group-picker"
+              onClick={() => setPickerOpen((o) => !o)}
+            >
+              {t('station.otherGroup')}
+            </button>
+            {override && (
+              <button type="button" onClick={() => setOverride(null)}>
+                {t('station.useQueue')}
+              </button>
+            )}
+          </div>
+          {pickerOpen && (
+            <section id="group-picker" aria-label={t('station.otherGroup')}>
+              {groups.isError && (
+                <p className="station-message bad">{t(errorMessageKey(groups.error))}</p>
+              )}
+              <ul className="group-picker">
+                {(groups.data ?? []).map((g) => (
+                  <li key={g.id}>
+                    <button
+                      type="button"
+                      aria-pressed={override?.id === g.id}
+                      onClick={() => {
+                        setOverride(g);
+                        setPickerOpen(false);
+                        startRef.current?.focus();
+                      }}
+                    >
+                      <WashGroupLabel name={g.name} nameI18n={g.name_i18n} colorHex={g.color_hex} />
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </section>
           )}
-          <ul className="group-picker">
-            {(groups.data ?? []).map((g) => (
-              <li key={g.id}>
-                <button
-                  type="button"
-                  aria-pressed={override?.id === g.id}
-                  onClick={() => {
-                    setOverride(g);
-                    setPickerOpen(false);
-                    startRef.current?.focus();
-                  }}
-                >
-                  <WashGroupLabel name={g.name} nameI18n={g.name_i18n} colorHex={g.color_hex} />
-                </button>
-              </li>
-            ))}
-          </ul>
-        </section>
+        </>
       )}
 
+      <p>
+        <Link to={`/control/machines?machine=${machine.data.id}`}>{t('machines.linkLabel')}</Link>
+      </p>
       <p>
         <Link to="/control/washers">{t('station.toBoard')}</Link>
       </p>

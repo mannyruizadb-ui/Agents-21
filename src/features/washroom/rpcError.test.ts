@@ -4,6 +4,7 @@ import {
   errorMessageKey,
   isRetryable,
   RpcError,
+  tapRejectedKey,
   toRpcError,
   unwrap,
 } from './rpcError';
@@ -42,5 +43,18 @@ describe('rpcError', () => {
       expect((e as RpcError).detail).toBe('no role');
     }
     expect(toRpcError({ message: 'x' }).code).toBeNull();
+  });
+});
+
+describe('machine down and late taps', () => {
+  it('never retries MACHINE_DOWN or OUT_OF_RANGE_TIMESTAMP (kept on screen as not recorded)', () => {
+    expect(isRetryable({ message: 'MACHINE_DOWN' })).toBe(false);
+    expect(isRetryable({ message: 'OUT_OF_RANGE_TIMESTAMP' })).toBe(false);
+    expect(errorMessageKey({ message: 'MACHINE_DOWN' })).toBe('errors.machineDown');
+  });
+  it('words refused taps by reason', () => {
+    expect(tapRejectedKey('OUT_OF_RANGE_TIMESTAMP')).toBe('station.rejectTooLate');
+    expect(tapRejectedKey('MACHINE_DOWN')).toBe('station.rejectDown');
+    expect(tapRejectedKey('VALIDATION_FAILED')).toBe('errors.validation');
   });
 });
