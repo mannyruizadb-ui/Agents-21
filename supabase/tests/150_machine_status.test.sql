@@ -90,7 +90,7 @@ select is(pg_temp.reads($$select * from public.get_machine_status(pg_temp.id('pl
 select is(array[pg_temp.run_as('ownerB', $$select * from public.get_machine_status(pg_temp.id('plantA'))$$),
                 pg_temp.run_as('ownerB', $$select * from public.get_machine_status(gen_random_uuid())$$)],
   '{NOT_AUTHORIZED,NOT_AUTHORIZED}', 'no oracle (foreign vs missing plant)');
-select is(pg_temp.val_as('lead', $$select array_agg(machine_name || ':' || kind || ':' || status || ':' || coalesce(reason, '-') || ':' || (since is not null)::text order by machine_name)::text
+select is(pg_temp.val_as('manager', $$select array_agg(machine_name || ':' || kind || ':' || status || ':' || coalesce(reason, '-') || ':' || (since is not null)::text order by machine_name)::text
                                     from public.get_machine_status(pg_temp.id('plantA'))$$),
   '{"Dryer 1:dryer:up:-:false","Ironer M:ironer:up:Belt replaced:true","Washer 1:washer:down:Door latch broken:true","Washer 3:washer:up:-:false"}',
   'status per machine: down with reason and since; up after a fix keeps its note; never-down machines: up, since null');
@@ -141,9 +141,9 @@ select is(pg_temp.val_as('lead', $$select (public.undo_washer_load(pg_temp.cyc(2
 -- ══ get_washroom_board: down washers ═════════════════════════════════════
 select is(pg_temp.val_as('display', $$select array_agg(machine_name || ':' || is_down || ':' || coalesce(down_reason, '-') || ':' || (down_since is not null) || ':' || coalesce(next_queue_item_id::text, '-') order by machine_name)::text
                                        from public.get_washroom_board(pg_temp.id('wash'))$$),
-  (select array['Washer 1:true:Door latch broken:true:-',
+  (select array['Washer 1:true:-:true:-',
                 'Washer 3:false:-:false:' || (select id from public.queue_items where client_id = pg_temp.cid(20))]::text),
-  'board (the washroom TV too): a down washer shows why and since, and no NEXT; an up washer is unchanged');
+  'board (the washroom TV too): a down washer shows since-when and no NEXT (the reason is for owner/manager only, see 152); an up washer is unchanged');
 
 -- ══ queue assignment never targets a down washer ═════════════════════════
 select is(pg_temp.run_as('owner', $$select public.create_queue_item(pg_temp.id('wash'), 1, 'load', gen_random_uuid(), pg_temp.id('gMat'), p_assigned_machine_id => pg_temp.id('machine'))$$),
