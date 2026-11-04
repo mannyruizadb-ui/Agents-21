@@ -33,12 +33,12 @@ $$;
 
 -- ── create_queue_item ─────────────────────────────────────────────────────
 select is(pg_temp.writes($$select public.create_queue_item(pg_temp.id('wash'), 2, 'load', gen_random_uuid(), pg_temp.id('gMat'))$$),
-  '{1,1,NOT_AUTHORIZED,NOT_AUTHORIZED,NOT_AUTHORIZED,NOT_AUTHORIZED,NOT_AUTHORIZED,42501}',
-  'create_queue_item: owner/manager only (lead, viewer, display, other tenant: NOT_AUTHORIZED; anon: no EXECUTE)');
+  '{1,NOT_AUTHORIZED,NOT_AUTHORIZED,NOT_AUTHORIZED,NOT_AUTHORIZED,NOT_AUTHORIZED,NOT_AUTHORIZED,42501}',
+  'create_queue_item: owner only for normal work (managers: rewash only, see 150) (lead, viewer, display, other tenant: NOT_AUTHORIZED; anon: no EXECUTE)');
 select is(pg_temp.run_as('owner', $$select public.create_queue_item(pg_temp.id('wash'), 4, 'load', pg_temp.cid(1), pg_temp.id('gNapkin'), p_note => ' Club 6am ')$$), '1', 'normal item 1');
 select is(pg_temp.run_as('owner', $$select public.create_queue_item(pg_temp.id('wash'), 2, 'load', pg_temp.cid(2), pg_temp.id('gMat'))$$), '1', 'normal item 2');
-select is(pg_temp.run_as('manager', $$select public.create_queue_item(pg_temp.id('wash'), 1, 'load', pg_temp.cid(3), pg_temp.id('gTowel'), p_is_rush => true)$$), '1', 'rush item 3');
-select is(pg_temp.run_as('manager', $$select public.create_queue_item(pg_temp.id('wash'), 3, 'basket', pg_temp.cid(4), pg_temp.id('gTowel'), p_is_rush => true)$$), '1', 'rush item 4');
+select is(pg_temp.run_as('owner', $$select public.create_queue_item(pg_temp.id('wash'), 1, 'load', pg_temp.cid(3), pg_temp.id('gTowel'), p_is_rush => true)$$), '1', 'rush item 3');
+select is(pg_temp.run_as('owner', $$select public.create_queue_item(pg_temp.id('wash'), 3, 'basket', pg_temp.cid(4), pg_temp.id('gTowel'), p_is_rush => true)$$), '1', 'rush item 4');
 select is(pg_temp.board(pg_temp.id('wash')), array[4, 3, 1, 2], 'C1: rush lands on top of the rush items, normal work at the bottom');
 select is((select array[note, created_by::text, status::text, version::text, loads_started::text] from public.queue_items where id = pg_temp.q(1)),
   array['Club 6am', pg_temp.id('owner')::text, 'queued', '1', '0'], 'note trimmed; created_by = caller; queued, version 1, no loads started');
@@ -46,37 +46,37 @@ select is((select array[loads_needed::text, loads_remaining::text] from public.q
   array['2', '2'], 'queue_board: 3 baskets at 2/load → 2 loads needed (ceil of app.to_loads)');
 
 -- Idempotency: the same client_id gives one row and the same id back.
-select is(pg_temp.val_as('manager', $$select (public.create_queue_item(pg_temp.id('wash'), 9, 'load', pg_temp.cid(1), pg_temp.id('gMat'))).id$$), pg_temp.q(1)::text,
+select is(pg_temp.val_as('owner', $$select (public.create_queue_item(pg_temp.id('wash'), 9, 'load', pg_temp.cid(1), pg_temp.id('gMat'))).id$$), pg_temp.q(1)::text,
   'idempotent: a retry with the same client_id returns the existing row');
 select is((select count(*)::int from public.queue_items where client_id = pg_temp.cid(1)), 1, 'idempotent: still one row');
 select is(pg_temp.run_as('ownerB', $$select public.create_queue_item(pg_temp.id('washB'), 1, 'load', pg_temp.cid(1), pg_temp.id('groupB'))$$),
   'VALIDATION_FAILED', 'a client_id used in another tenant is rejected (never returns their row)');
 
--- Validation (as the manager on plant A).
+-- Validation (as the owner; managers are limited to rewash items, see 150).
 select is(array[
-  pg_temp.run_as('manager', $$select public.create_queue_item(pg_temp.id('fin'), 3, 'pack', gen_random_uuid(), pg_temp.id('gMat'), pg_temp.id('napkin'))$$),
-  pg_temp.run_as('manager', $$select public.create_queue_item(pg_temp.id('wash'), 0, 'load', gen_random_uuid(), pg_temp.id('gMat'))$$),
-  pg_temp.run_as('manager', $$select public.create_queue_item(pg_temp.id('wash'), 1.234, 'load', gen_random_uuid(), pg_temp.id('gMat'))$$),
-  pg_temp.run_as('manager', $$select public.create_queue_item(pg_temp.id('wash'), 1, 'load', gen_random_uuid(), pg_temp.id('gMat'), p_note => repeat('x', 141))$$),
-  pg_temp.run_as('manager', $$select public.create_queue_item(pg_temp.id('wash'), 1, 'load', gen_random_uuid(), pg_temp.id('gMat'), p_note => E'a\tb')$$),
-  pg_temp.run_as('manager', $$select public.create_queue_item(pg_temp.id('fin'), 10, 'piece', gen_random_uuid(), pg_temp.id('gMat'))$$),
-  pg_temp.run_as('manager', $$select public.create_queue_item(pg_temp.id('wash'), 1, 'load', null, pg_temp.id('gMat'))$$),
-  pg_temp.run_as('manager', $$select public.create_queue_item(pg_temp.id('wash'), 1, 'load', gen_random_uuid())$$)],
+  pg_temp.run_as('owner', $$select public.create_queue_item(pg_temp.id('fin'), 3, 'pack', gen_random_uuid(), pg_temp.id('gMat'), pg_temp.id('napkin'))$$),
+  pg_temp.run_as('owner', $$select public.create_queue_item(pg_temp.id('wash'), 0, 'load', gen_random_uuid(), pg_temp.id('gMat'))$$),
+  pg_temp.run_as('owner', $$select public.create_queue_item(pg_temp.id('wash'), 1.234, 'load', gen_random_uuid(), pg_temp.id('gMat'))$$),
+  pg_temp.run_as('owner', $$select public.create_queue_item(pg_temp.id('wash'), 1, 'load', gen_random_uuid(), pg_temp.id('gMat'), p_note => repeat('x', 141))$$),
+  pg_temp.run_as('owner', $$select public.create_queue_item(pg_temp.id('wash'), 1, 'load', gen_random_uuid(), pg_temp.id('gMat'), p_note => E'a\tb')$$),
+  pg_temp.run_as('owner', $$select public.create_queue_item(pg_temp.id('fin'), 10, 'piece', gen_random_uuid(), pg_temp.id('gMat'))$$),
+  pg_temp.run_as('owner', $$select public.create_queue_item(pg_temp.id('wash'), 1, 'load', null, pg_temp.id('gMat'))$$),
+  pg_temp.run_as('owner', $$select public.create_queue_item(pg_temp.id('wash'), 1, 'load', gen_random_uuid())$$)],
   array['VALIDATION_FAILED','VALIDATION_FAILED','VALIDATION_FAILED','VALIDATION_FAILED','VALIDATION_FAILED','VALIDATION_FAILED','VALIDATION_FAILED','VALIDATION_FAILED'],
   'rejects: item outside the group, qty 0, 3 decimals, note > 140, control chars, piece without item, no client_id, no group');
-select is(pg_temp.run_as('manager', $$select public.create_queue_item(pg_temp.id('fin'), 2, 'pack', gen_random_uuid(), p_item_type_id => pg_temp.id('mat'))$$),
+select is(pg_temp.run_as('owner', $$select public.create_queue_item(pg_temp.id('fin'), 2, 'pack', gen_random_uuid(), p_item_type_id => pg_temp.id('mat'))$$),
   'COUNT_MODE_MISMATCH', 'unit pack needs a pack-counted item');
-select is(pg_temp.run_as('manager', $$select public.create_queue_item(pg_temp.id('fin'), 2, 'pack', pg_temp.cid(5), p_item_type_id => pg_temp.id('napkin'))$$),
+select is(pg_temp.run_as('owner', $$select public.create_queue_item(pg_temp.id('fin'), 2, 'pack', pg_temp.cid(5), p_item_type_id => pg_temp.id('napkin'))$$),
   '1', 'finishing item counted in packs (group taken from the item)');
 select is((select wash_group_id from public.queue_items where id = pg_temp.q(5)), pg_temp.id('gNapkin'), 'group defaults to the item''s group');
 select is(array[
-  pg_temp.run_as('manager', $$select public.create_queue_item(pg_temp.id('fin'), 1, 'load', gen_random_uuid(), pg_temp.id('gMat'), p_is_rewash => true)$$),
-  pg_temp.run_as('manager', $$select public.create_queue_item(pg_temp.id('wash'), 1, 'load', gen_random_uuid(), pg_temp.id('gMat'), p_assigned_machine_id => '60000000-0000-0000-0000-0000000000a4')$$),
-  pg_temp.run_as('manager', $$select public.create_queue_item(pg_temp.id('wash'), 1, 'load', gen_random_uuid(), pg_temp.id('gMat'), p_assigned_machine_id => '60000000-0000-0000-0000-0000000000a2')$$),
-  pg_temp.run_as('manager', $$select public.create_queue_item(pg_temp.id('fin'), 1, 'load', gen_random_uuid(), pg_temp.id('gMat'), p_assigned_machine_id => pg_temp.id('machine'))$$)],
+  pg_temp.run_as('owner', $$select public.create_queue_item(pg_temp.id('fin'), 1, 'load', gen_random_uuid(), pg_temp.id('gMat'), p_is_rewash => true)$$),
+  pg_temp.run_as('owner', $$select public.create_queue_item(pg_temp.id('wash'), 1, 'load', gen_random_uuid(), pg_temp.id('gMat'), p_assigned_machine_id => '60000000-0000-0000-0000-0000000000a4')$$),
+  pg_temp.run_as('owner', $$select public.create_queue_item(pg_temp.id('wash'), 1, 'load', gen_random_uuid(), pg_temp.id('gMat'), p_assigned_machine_id => '60000000-0000-0000-0000-0000000000a2')$$),
+  pg_temp.run_as('owner', $$select public.create_queue_item(pg_temp.id('fin'), 1, 'load', gen_random_uuid(), pg_temp.id('gMat'), p_assigned_machine_id => pg_temp.id('machine'))$$)],
   array['VALIDATION_FAILED','VALIDATION_FAILED','VALIDATION_FAILED','VALIDATION_FAILED'],
   'rejects: rewash outside the washroom, a dryer, an inactive washer, a washer of another area');
-select is(pg_temp.run_as('manager', $$select public.create_queue_item(pg_temp.id('wash'), 1, 'load', pg_temp.cid(6), pg_temp.id('gMat'), p_assigned_machine_id => pg_temp.id('machine'), p_is_rewash => true)$$),
+select is(pg_temp.run_as('owner', $$select public.create_queue_item(pg_temp.id('wash'), 1, 'load', pg_temp.cid(6), pg_temp.id('gMat'), p_assigned_machine_id => pg_temp.id('machine'), p_is_rewash => true)$$),
   '1', 'assigned to an active washer of the area, as a rewash');
 select is((select array[assigned_machine_id::text, is_rewash::text] from public.queue_items where id = pg_temp.q(6)),
   array[pg_temp.id('machine')::text, 'true'], 'assignment and rewash stored');
@@ -97,15 +97,15 @@ select is(array[pg_temp.run_as('ownerB', $$select public.create_queue_item(pg_te
                 pg_temp.run_as('ownerB', $$select public.create_queue_item(pg_temp.id('washB'), 1, 'load', gen_random_uuid(), pg_temp.id('groupB'), p_assigned_machine_id => '60000000-0000-0000-0000-0000000000a4')$$),
                 pg_temp.run_as('ownerB', $$select public.create_queue_item(pg_temp.id('washB'), 1, 'load', gen_random_uuid(), pg_temp.id('groupB'), p_assigned_machine_id => gen_random_uuid())$$)],
   '{VALIDATION_FAILED,VALIDATION_FAILED,VALIDATION_FAILED}', 'no oracle: plant A washer vs dryer vs missing machine → same error');
-select is(array[pg_temp.run_as('manager', $$select public.create_queue_item(pg_temp.id('wash'), 1, 'load', gen_random_uuid(), pg_temp.id('groupA2'))$$),
-                pg_temp.run_as('manager', $$select public.create_queue_item(pg_temp.id('wash'), 1, 'load', gen_random_uuid(), gen_random_uuid())$$)],
+select is(array[pg_temp.run_as('owner', $$select public.create_queue_item(pg_temp.id('wash'), 1, 'load', gen_random_uuid(), pg_temp.id('groupA2'))$$),
+                pg_temp.run_as('owner', $$select public.create_queue_item(pg_temp.id('wash'), 1, 'load', gen_random_uuid(), gen_random_uuid())$$)],
   '{VALIDATION_FAILED,VALIDATION_FAILED}', 'no oracle, same org: plant A2 group vs missing group');
 select ok((select count(*) = 1 from public.audit_log where entity = 'queue_items' and action = 'queue_items.insert' and entity_id = pg_temp.q(1)),
   'create is audited');
 
 -- ── reorder_queue_item ────────────────────────────────────────────────────
 select is(pg_temp.writes($$select public.reorder_queue_item(pg_temp.q(2), pg_temp.v(2), null)$$),
-  '{1,1,NOT_AUTHORIZED,NOT_AUTHORIZED,NOT_AUTHORIZED,NOT_AUTHORIZED,NOT_AUTHORIZED,42501}', 'reorder_queue_item: owner/manager only');
+  '{1,NOT_AUTHORIZED,NOT_AUTHORIZED,NOT_AUTHORIZED,NOT_AUTHORIZED,NOT_AUTHORIZED,NOT_AUTHORIZED,42501}', 'reorder_queue_item: owner only (owner 2026-11-04)');
 select is(pg_temp.board(pg_temp.id('wash')), array[4, 3, 2, 1, 6], 'item 2 moved to the top of the normal items');
 select is(pg_temp.run_as('owner', $$select public.reorder_queue_item(pg_temp.q(2), pg_temp.v(2), pg_temp.q(1))$$), '1', 'move item 2 below item 1');
 select is(pg_temp.board(pg_temp.id('wash')), array[4, 3, 1, 2, 6], 'midpoint between item 1 and item 6');
@@ -129,7 +129,7 @@ select ok((select p2.position - p1.position = 1 and p6.position * 2 = p1.positio
 
 -- ── update_queue_item ─────────────────────────────────────────────────────
 select is(pg_temp.writes($$select public.update_queue_item(pg_temp.q(2), pg_temp.v(2), 2, 'load', false, false, 'n', null)$$),
-  '{1,1,NOT_AUTHORIZED,NOT_AUTHORIZED,NOT_AUTHORIZED,NOT_AUTHORIZED,NOT_AUTHORIZED,42501}', 'update_queue_item: owner/manager only');
+  '{1,NOT_AUTHORIZED,NOT_AUTHORIZED,NOT_AUTHORIZED,NOT_AUTHORIZED,NOT_AUTHORIZED,NOT_AUTHORIZED,42501}', 'update_queue_item: owner only (managers: moving off a down washer, see 150)');
 select is(pg_temp.run_as('owner', $$select public.update_queue_item(pg_temp.q(2), pg_temp.v(2), 5, 'load', true, false, null, null)$$), '1', 'RUSH on, qty 5, note cleared');
 select is(pg_temp.board(pg_temp.id('wash')), array[2, 4, 3, 1, 6], 'C3: RUSH moves the item to the top');
 select is((select array[qty::text, coalesce(note, 'null'), is_rush::text] from public.queue_items where id = pg_temp.q(2)),
@@ -169,16 +169,16 @@ select is(array[pg_temp.run_as('lead', $$select public.cancel_queue_item(pg_temp
                 pg_temp.run_as('viewer', $$select public.cancel_queue_item(pg_temp.q(6), pg_temp.v(6))$$),
                 pg_temp.run_as('ownerB', $$select public.cancel_queue_item(pg_temp.q(6), 1)$$),
                 pg_temp.run_as('anon', $$select public.cancel_queue_item(pg_temp.q(6), 1)$$)],
-  '{NOT_AUTHORIZED,NOT_AUTHORIZED,NOT_AUTHORIZED,42501}', 'cancel_queue_item: owner/manager only');
-select is(pg_temp.run_as('manager', $$select public.cancel_queue_item(pg_temp.q(6), pg_temp.v(6) - 1)$$), 'QUEUE_VERSION_CONFLICT', 'cancel checks the version');
-select is(pg_temp.run_as('manager', $$select public.cancel_queue_item(pg_temp.q(6), pg_temp.v(6))$$), '1', 'cancel');
-select is(pg_temp.val_as('manager', $$select (public.cancel_queue_item(pg_temp.q(6), 1)).status$$), 'cancelled', 'cancel again: idempotent (returns the cancelled row)');
+  '{NOT_AUTHORIZED,NOT_AUTHORIZED,NOT_AUTHORIZED,42501}', 'cancel_queue_item: owner only');
+select is(pg_temp.run_as('owner', $$select public.cancel_queue_item(pg_temp.q(6), pg_temp.v(6) - 1)$$), 'QUEUE_VERSION_CONFLICT', 'cancel checks the version');
+select is(pg_temp.run_as('owner', $$select public.cancel_queue_item(pg_temp.q(6), pg_temp.v(6))$$), '1', 'cancel');
+select is(pg_temp.val_as('owner', $$select (public.cancel_queue_item(pg_temp.q(6), 1)).status$$), 'cancelled', 'cancel again: idempotent (returns the cancelled row)');
 select is(pg_temp.run_as('owner', $$select public.cancel_queue_item(pg_temp.q(5), pg_temp.v(5))$$), 'INVALID_STATUS_TRANSITION', 'a done item cannot be cancelled');
 select is((select count(*)::int from public.queue_items where id = pg_temp.q(6)), 1, 'cancelled, never deleted');
 
 -- ── get_queue ─────────────────────────────────────────────────────────────
 select is(pg_temp.reads($$select * from public.get_queue(pg_temp.id('wash'))$$),
-  '{6,6,6,6,6,NOT_AUTHORIZED,NOT_AUTHORIZED,42501}', 'get_queue: plant roles and the washroom display; others denied');
+  '{5,5,5,5,5,NOT_AUTHORIZED,NOT_AUTHORIZED,42501}', 'get_queue: plant roles and the washroom display; others denied');
 select is(pg_temp.run_as('display', $$select * from public.get_queue(pg_temp.id('fin'))$$, true), 'NOT_AUTHORIZED',
   'a display cannot read another area''s queue');
 select is(pg_temp.val_as('viewer', $$select array_agg(g.id)::text from public.get_queue(pg_temp.id('wash')) g$$),
