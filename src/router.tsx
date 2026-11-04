@@ -32,6 +32,13 @@ export const router = createBrowserRouter([
         }),
       },
       {
+        // Machine down / back up (owner 2026-11-04): owner and managers change; others read.
+        path: 'machines',
+        lazy: async () => ({
+          Component: (await import('./features/washroom/MachineStatusPage')).MachineStatusPage,
+        }),
+      },
+      {
         // Work queue (C1–C4). Everyone with a role reads it; only the owner gets edit controls
         // (owner decision 2026-11-04).
         path: 'queue',

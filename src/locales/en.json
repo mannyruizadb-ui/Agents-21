@@ -110,7 +110,8 @@
     "statusChanged": "That item already changed status. The list was refreshed.",
     "tooLate": "Too late to undo. Ask a manager to correct it.",
     "rateLimited": "Too many changes at once. Wait a few seconds and try again.",
-    "network": "Couldn't reach the server. Check the Wi-Fi and try again."
+    "network": "Couldn't reach the server. Check the Wi-Fi and try again.",
+    "machineDown": "That washer is marked down. Choose another washer, or mark it back up first."
   },
   "units": {
     "load_one": "{{n}} load",
@@ -120,7 +121,9 @@
     "piece_one": "{{n}} piece",
     "piece_other": "{{n}} pieces",
     "pack_one": "{{n}} pack",
-    "pack_other": "{{n}} packs"
+    "pack_other": "{{n}} packs",
+    "bin_one": "{{n}} bin",
+    "bin_other": "{{n}} bins"
   },
   "washroom": {
     "boardTitle": "Washers",
@@ -160,7 +163,10 @@
     "noUnassigned": "Nothing waiting for a free washer.",
     "moreInQueue_one": "…and {{count}} more",
     "moreInQueue_other": "…and {{count}} more",
-    "seeQueue": "See the whole queue"
+    "seeQueue": "See the whole queue",
+    "approxLoadsLeft_one": "{{amount}} · ≈ {{n}} load left",
+    "approxLoadsLeft_other": "{{amount}} · ≈ {{n}} loads left",
+    "noLoadFactor": "{{amount}} · no load conversion set yet"
   },
   "station": {
     "pendingCount_one": "{{count}} start is waiting to send. It will send when the connection is back.",
@@ -185,7 +191,10 @@
     "undoFor_other": "Undo is available for {{count}} more seconds.",
     "rejected": "The start from {{time}} was not recorded.",
     "dismiss": "OK, dismiss",
-    "noStorage": "This device can't save starts if the page is closed. Keep this page open until the connection is back."
+    "noStorage": "This device can't save starts if the page is closed. Keep this page open until the connection is back.",
+    "rejectTooLate": "It reached the server more than 30 minutes late, so it can't be counted. Tell the manager so they can add the load.",
+    "rejectDown": "The washer was marked down at that time. If it really ran, tell the manager.",
+    "downNoStart": "START is off while this washer is down. Mark it back up when it's fixed."
   },
   "queue": {
     "rush": "RUSH",
@@ -226,6 +235,84 @@
     "errors": {
       "chooseGroup": "Choose a wash group.",
       "loads": "Type a number of loads from 0.01 to 100,000, with up to 2 decimals."
+    },
+    "washerDown": "{{name}} (down)",
+    "assignedDown": "Assigned to {{name}}, which is down.",
+    "moveOffLabel": "Move this load to",
+    "moveOff": "Move off this washer",
+    "managerNotice": "You can see the queue, add rewash, and move loads off a washer that is down. Only the owner can change the order."
+  },
+  "machines": {
+    "title": "Machine down / back up",
+    "linkLabel": "Machine down / back up",
+    "toBoard": "All washers",
+    "down": "Down",
+    "isDownNamed": "{{name}} is DOWN",
+    "reasonValue": "Reason: {{reason}}",
+    "since": "Down since {{time}} ({{duration}})",
+    "minutesShort_one": "{{count}} min",
+    "minutesShort_other": "{{count}} min",
+    "hoursShort_one": "{{count}} h {{m}} min",
+    "hoursShort_other": "{{count}} h {{m}} min",
+    "downNow": "Down right now",
+    "noneDown": "All machines are working.",
+    "otherDown": "Other machines down",
+    "readOnly": "Only the owner or a manager can mark a machine down or back up.",
+    "changeTitle": "Change a machine",
+    "machineLabel": "Machine",
+    "choose": "Choose…",
+    "optionDown": "{{name}} ({{area}}) — DOWN",
+    "optionUp": "{{name}} ({{area}})",
+    "backUp": "Back up",
+    "confirmUp": "Mark {{name}} back up? It can be used again.",
+    "yesUp": "Yes, it's working",
+    "reasonLabel": "What's wrong?",
+    "reasons": {
+      "waterPump": "Water pump",
+      "soapDispenser": "Soap dispenser",
+      "wontStart": "Won't start",
+      "leaking": "Leaking",
+      "other": "Other"
+    },
+    "detailsRequired": "Describe the problem",
+    "detailsOptional": "More details (optional)",
+    "detailsHint": "Describe the problem, not the person. Up to {{max}} characters. This shows on the washroom screens.",
+    "markDown": "Mark down",
+    "confirmDown": "Mark {{name}} DOWN?",
+    "downEffect": "Its START button turns off and loads can be moved off it.",
+    "yesDown": "Yes, mark it down",
+    "markedDown": "{{name}} is marked down.",
+    "markedUp": "{{name}} is back up.",
+    "markUpNamed": "Mark {{name}} back up",
+    "errors": {
+      "pick": "Choose what's wrong.",
+      "details": "Describe the problem in the box.",
+      "tooLong": "Too long. Use at most {{max}} characters."
+    }
+  },
+  "rewash": {
+    "title": "Add rewash",
+    "intro": "Goods sent back by finishing. They go to the end of the queue.",
+    "unitLabel": "Count it in",
+    "unit": {
+      "load": "Loads",
+      "basket": "Basket",
+      "bin": "Bin"
+    },
+    "howFull": "How full?",
+    "full": "Full",
+    "amountLabel": {
+      "load": "Loads",
+      "basket": "Baskets",
+      "bin": "Bins"
+    },
+    "loadHint": "Number of wash loads, for example 1 or 1.5.",
+    "preview": "≈ {{n}} loads (estimate)",
+    "noFactor": "No load conversion for this group yet; it will be counted by hand.",
+    "add": "Add rewash",
+    "added": "Rewash added: {{group}}, {{amount}}.",
+    "errors": {
+      "amount": "Type an amount from 0.01 to 100,000, with up to 2 decimals."
     }
   }
 }

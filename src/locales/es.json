@@ -110,7 +110,8 @@
     "statusChanged": "Ese trabajo ya cambió de estado. La lista se actualizó.",
     "tooLate": "Ya es tarde para deshacer. Pídele a un gerente que lo corrija.",
     "rateLimited": "Demasiados cambios a la vez. Espera unos segundos e intenta de nuevo.",
-    "network": "No hay conexión con el servidor. Revisa el Wi-Fi e intenta de nuevo."
+    "network": "No hay conexión con el servidor. Revisa el Wi-Fi e intenta de nuevo.",
+    "machineDown": "Esa lavadora está marcada como dañada. Elige otra, o márcala como arreglada primero."
   },
   "units": {
     "load_one": "{{n}} carga",
@@ -120,7 +121,9 @@
     "piece_one": "{{n}} pieza",
     "piece_other": "{{n}} piezas",
     "pack_one": "{{n}} paquete",
-    "pack_other": "{{n}} paquetes"
+    "pack_other": "{{n}} paquetes",
+    "bin_one": "{{n}} contenedor",
+    "bin_other": "{{n}} contenedores"
   },
   "washroom": {
     "boardTitle": "Lavadoras",
@@ -160,7 +163,10 @@
     "noUnassigned": "No hay nada esperando una lavadora libre.",
     "moreInQueue_one": "…y {{count}} más",
     "moreInQueue_other": "…y {{count}} más",
-    "seeQueue": "Ver toda la cola"
+    "seeQueue": "Ver toda la cola",
+    "approxLoadsLeft_one": "{{amount}} · ≈ falta {{n}} carga",
+    "approxLoadsLeft_other": "{{amount}} · ≈ faltan {{n}} cargas",
+    "noLoadFactor": "{{amount}} · sin conversión a cargas todavía"
   },
   "station": {
     "pendingCount_one": "{{count}} arranque está esperando para enviarse. Se enviará cuando vuelva la conexión.",
@@ -185,7 +191,10 @@
     "undoFor_other": "Puedes deshacer durante {{count}} segundos más.",
     "rejected": "El arranque de las {{time}} no se registró.",
     "dismiss": "Entendido, quitar",
-    "noStorage": "Este equipo no puede guardar arranques si se cierra la página. Deja esta página abierta hasta que vuelva la conexión."
+    "noStorage": "Este equipo no puede guardar arranques si se cierra la página. Deja esta página abierta hasta que vuelva la conexión.",
+    "rejectTooLate": "Llegó al servidor más de 30 minutos tarde y no se puede contar. Avísale al gerente para que agregue la carga.",
+    "rejectDown": "La lavadora estaba marcada como dañada a esa hora. Si de verdad lavó, avísale al gerente.",
+    "downNoStart": "ARRANCAR está apagado mientras esta lavadora esté dañada. Márcala como arreglada cuando funcione."
   },
   "queue": {
     "rush": "URGENTE",
@@ -226,6 +235,84 @@
     "errors": {
       "chooseGroup": "Elige un grupo de lavado.",
       "loads": "Escribe un número de cargas de 0.01 a 100,000, con hasta 2 decimales."
+    },
+    "washerDown": "{{name}} (dañada)",
+    "assignedDown": "Asignada a {{name}}, que está dañada.",
+    "moveOffLabel": "Pasar esta carga a",
+    "moveOff": "Sacar de esta lavadora",
+    "managerNotice": "Puedes ver la cola, agregar relavado y sacar cargas de una lavadora dañada. Solo el dueño cambia el orden."
+  },
+  "machines": {
+    "title": "Máquina dañada / arreglada",
+    "linkLabel": "Máquina dañada / arreglada",
+    "toBoard": "Todas las lavadoras",
+    "down": "Dañada",
+    "isDownNamed": "{{name}} está DAÑADA",
+    "reasonValue": "Motivo: {{reason}}",
+    "since": "Dañada desde las {{time}} ({{duration}})",
+    "minutesShort_one": "{{count}} min",
+    "minutesShort_other": "{{count}} min",
+    "hoursShort_one": "{{count}} h {{m}} min",
+    "hoursShort_other": "{{count}} h {{m}} min",
+    "downNow": "Dañadas ahora",
+    "noneDown": "Todas las máquinas funcionan.",
+    "otherDown": "Otras máquinas dañadas",
+    "readOnly": "Solo el dueño o un gerente puede marcar una máquina como dañada o arreglada.",
+    "changeTitle": "Cambiar una máquina",
+    "machineLabel": "Máquina",
+    "choose": "Elegir…",
+    "optionDown": "{{name}} ({{area}}) — DAÑADA",
+    "optionUp": "{{name}} ({{area}})",
+    "backUp": "Arreglada",
+    "confirmUp": "¿Marcar {{name}} como arreglada? Se puede usar otra vez.",
+    "yesUp": "Sí, ya funciona",
+    "reasonLabel": "¿Qué le pasa?",
+    "reasons": {
+      "waterPump": "Bomba de agua",
+      "soapDispenser": "Dosificador de jabón",
+      "wontStart": "No arranca",
+      "leaking": "Gotea",
+      "other": "Otro"
+    },
+    "detailsRequired": "Describe el problema",
+    "detailsOptional": "Más detalles (opcional)",
+    "detailsHint": "Describe el problema, no a la persona. Hasta {{max}} caracteres. Se ve en las pantallas de lavandería.",
+    "markDown": "Marcar dañada",
+    "confirmDown": "¿Marcar {{name}} como DAÑADA?",
+    "downEffect": "Su botón ARRANCAR se apaga y las cargas se pueden pasar a otra lavadora.",
+    "yesDown": "Sí, marcar dañada",
+    "markedDown": "{{name}} quedó marcada como dañada.",
+    "markedUp": "{{name}} ya está arreglada.",
+    "markUpNamed": "Marcar {{name}} como arreglada",
+    "errors": {
+      "pick": "Elige qué le pasa.",
+      "details": "Describe el problema en el cuadro.",
+      "tooLong": "Muy largo. Usa como máximo {{max}} caracteres."
+    }
+  },
+  "rewash": {
+    "title": "Agregar relavado",
+    "intro": "Ropa devuelta por terminado. Va al final de la cola.",
+    "unitLabel": "Contarlo en",
+    "unit": {
+      "load": "Cargas",
+      "basket": "Canasta",
+      "bin": "Contenedor"
+    },
+    "howFull": "¿Qué tan lleno?",
+    "full": "Lleno",
+    "amountLabel": {
+      "load": "Cargas",
+      "basket": "Canastas",
+      "bin": "Contenedores"
+    },
+    "loadHint": "Número de cargas, por ejemplo 1 o 1.5.",
+    "preview": "≈ {{n}} cargas (estimado)",
+    "noFactor": "Este grupo no tiene conversión a cargas todavía; se cuenta a mano.",
+    "add": "Agregar relavado",
+    "added": "Relavado agregado: {{group}}, {{amount}}.",
+    "errors": {
+      "amount": "Escribe una cantidad de 0.01 a 100,000, con hasta 2 decimales."
     }
   }
 }
