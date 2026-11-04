@@ -120,6 +120,7 @@ Full context lives in these docs. Read the relevant one before non-trivial work;
   - Wash group colors: preset them, yes.
   - **Machine breakdowns:** a "machine down" status, shown on the owner boards. Add **automatic notifications** to selected owners and managers (e.g. "Washer 4 down"). The owner asked for text messages; SMS is a paid service, so get approval first.
   - **Washroom TVs stay** (above the washers; the whole crew sees them). Washer tablets come later, maybe iPads with Guided Access. Build the per-washer station screen now so a tablet only has to open its URL.
+  - **Queue: managers can only view it; editing is owner-only.** Today the server lets `{owner,manager}` call create/reorder/update/cancel (`20261103212040`), so a migration must restrict them to owner. Open: may managers still move a load off a broken washer (2026-11-02 decision), and who creates rewash items from finishing?
   - **Pace screen: deferred (not for Monday), and owner-only when built.** Its layout and the ship-next-morning groups are still undecided.
   - **Alerts: push notifications approved (free Web Push to the installed app), not SMS.**
   - **Estimates by bin fill** (¼ / ½ / ¾ / full, several bins allowed) × loads per full bin per wash group. No schema change: `unit='basket'`, `baskets_per_load = 1/loads_per_bin`. Numbers are pending in `research/estimate-bins.md` (owner examples: mats 5–6, kitchen towels 2–3, linens ≈ 2).
