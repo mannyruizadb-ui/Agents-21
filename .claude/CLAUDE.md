@@ -112,6 +112,15 @@ Full context lives in these docs. Read the relevant one before non-trivial work;
   - Managers should see only what they need, not all the owner's data. This is a role/RLS change: get the owner to confirm a screen-by-screen matrix before building.
   - Pilot: for 2–3 weeks the owner is on site nightly and taps washer starts on their phone or the company tablet. Then a tablet at each of the 6 washers (pick the wash group; the formula follows; one green START) plus a removable tablet in finishing. The owner will pay for the tablets.
   - Open: what estimates are, explained to the owner; the meaning of wash group colors, explained; pace with 3 cards.
+- **Owner answers 2026-11-04, round 2 (these supersede round 1 where they conflict):**
+  - **Pilot target: Monday 2026-11-09.** The owner is tallying baseline calls this week.
+  - The owner's father gets his own account with owner access.
+  - **No "entered by" names anywhere, the owner's screens included.** Finished goods are entered by the shift manager only, one person per shift.
+  - **Estimates ship from day one.** Denise enters them; train while the owner is on site. The owner wants a clear, well-designed screen, not just +/− buttons.
+  - Wash group colors: preset them, yes.
+  - **Machine breakdowns:** a "machine down" status, shown on the owner boards. Add **automatic notifications** to selected owners and managers (e.g. "Washer 4 down"). The owner asked for text messages; SMS is a paid service, so get approval first.
+  - **Washroom TVs stay** (above the washers; the whole crew sees them). Washer tablets come later, maybe iPads with Guided Access. Build the per-washer station screen now so a tablet only has to open its URL.
+  - Accu-Flow lags about 10 minutes, so it is for cross-checking reports only, not the live source. The owner offered the CloudView login: still **never scrape the portal**; ask for exported files instead.
 - **Next, M1 part 2:**
   - invite-user and pair-device/revoke-device Edge Functions (create the edge-engineer agent first);
   - Custom Access Token Hook, pg_cron schedule, languages data migration for the cloud;
