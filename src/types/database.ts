@@ -1185,6 +1185,11 @@ isOneToOne: false
               "active": boolean,"area_id": string,"area_name": string,"kind": "washer"|"dryer"|"ironer"|"folder"|"other","machine_id": string,"machine_name": string,"reason": string,"reason_code": "water_pump"|"soap_dispenser"|"wont_start"|"leaking"|"other","server_time": string,"since": string,"status": "down"|"up"
             }[]
                            },
+"get_pending_push_alerts":
+{ Args: Record<PropertyKey, never>; Returns: {
+              "alert_created": string,"alert_id": string,"area_name": string,"auth": string,"down_since": string,"endpoint": string,"language": string,"machine_id": string,"machine_kind": "washer"|"dryer"|"ironer"|"folder"|"other","machine_name": string,"org_id": string,"p256dh": string,"plant_id": string,"plant_name": string,"reason_code": "water_pump"|"soap_dispenser"|"wont_start"|"leaking"|"other","still_down": boolean,"subscription_id": string,"user_id": string
+            }[]
+                           },
 "get_queue":
 { Args: { "p_area_id": string }; Returns: {
               "approximate": boolean | null,
@@ -1235,6 +1240,9 @@ isOneToOne: false
 { Args: { "p_area_id": string }; Returns: {
               "cycle_id": string,"cycle_minutes": number,"down_reason": string,"down_reason_code": "water_pump"|"soap_dispenser"|"wont_start"|"leaking"|"other","down_since": string,"expected_end_at": string,"formula_external_no": string,"formula_name": string,"is_down": boolean,"is_rewash": boolean,"load_factor": number,"machine_id": string,"machine_name": string,"minutes_ready": number,"minutes_since_start": number,"next_is_assigned": boolean,"next_is_rewash": boolean,"next_is_rush": boolean,"next_item_name": string,"next_item_name_i18n": Json,"next_item_type_id": string,"next_loads_remaining": number,"next_qty": number,"next_queue_item_id": string,"next_unit": "load"|"basket"|"bin"|"piece"|"pack","next_version": number,"next_wash_group_color_hex": string,"next_wash_group_id": string,"next_wash_group_name": string,"next_wash_group_name_i18n": Json,"queue_item_id": string,"server_time": string,"started_at": string,"status": string,"wash_formula_id": string,"wash_group_color_hex": string,"wash_group_id": string,"wash_group_name": string,"wash_group_name_i18n": Json
             }[]
+                           },
+"mark_push_alert_delivered":
+{ Args: { "p_alert_id": string,"p_recipients": (string)[] }; Returns: boolean
                            },
 "record_finished_goods":
 { Args: { "p_area_id"?: string,"p_client_id": string,"p_item_type_id": string,"p_loose_pieces": number,"p_note"?: string,"p_occurred_at"?: string,"p_pack_size_used"?: number,"p_packs": number,"p_queue_item_id"?: string,"p_shift_choice"?: string,"p_staff_session_id": string,"p_station_id"?: string }; Returns: Database["public"]['CompositeTypes']["finished_goods_result"]
