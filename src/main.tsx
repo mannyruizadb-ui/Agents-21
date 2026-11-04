@@ -5,6 +5,10 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { initI18n } from './lib/i18n';
 import { supabase } from './lib/supabase';
 import { router } from './router';
+import { runStartupStorageSweep } from './app/startupStorage';
+
+// Security re-review notes 2 and 5: expire stored PINs for every account and drop legacy keys.
+runStartupStorageSweep();
 
 const queryClient = new QueryClient();
 

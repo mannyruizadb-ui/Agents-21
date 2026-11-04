@@ -381,7 +381,7 @@
       "pin": "Escribe el PIN de 4 números.",
       "wrongPin": "PIN equivocado. Intenta otra vez.",
       "locked": "Demasiados PIN equivocados. Espera 5 minutos e intenta otra vez.",
-      "tooOld": "Llegó al servidor más de 30 minutos después de ponerlo, así que no se guardó. Ponlo otra vez."
+      "tooOld": "Tiene más de 6 horas, así que el servidor no lo puede guardar. Ponlo otra vez."
     },
     "noTimeGroups_one": "{{count}} grupo no tiene tiempo de lavadora, así que el tiempo no lo incluye.",
     "noTimeGroups_other": "{{count}} grupos no tienen tiempo de lavadora, así que el tiempo no los incluye.",

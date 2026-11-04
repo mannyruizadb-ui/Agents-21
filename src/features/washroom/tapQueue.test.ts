@@ -145,4 +145,24 @@ describe('flushPending', () => {
     });
     expect(readPending(s)).toEqual([]);
   });
+
+  it('stops at once when the account changes mid-flush (re-review note 3)', async () => {
+    const s = memoryStore();
+    addPending(s, tap('a'));
+    addPending(s, tap('b'));
+    let signedIn = true;
+    const sent: string[] = [];
+    await flushPending(
+      s,
+      async (t): Promise<SendOutcome<null>> => {
+        sent.push(t.clientId);
+        signedIn = false;
+        return { kind: 'sent', result: null };
+      },
+      () => NOW,
+      async () => signedIn,
+    );
+    expect(sent).toEqual(['a']);
+    expect(readPending(s).map((t) => t.clientId)).toEqual(['b']);
+  });
 });

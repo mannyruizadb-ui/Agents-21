@@ -126,8 +126,10 @@ export function flushTaps(userId: string, qc?: QueryClient): Promise<void> {
   if (s.flushing) return s.flushing;
   s.flushing = (async () => {
     try {
-      if (!(await isSignedInAs(userId))) return;
-      const r = await flushPending(userStore(userId), sendTap);
+      // Re-review note 3: the account is checked before EVERY send, not just once per flush.
+      const r = await flushPending(userStore(userId), sendTap, undefined, () =>
+        isSignedInAs(userId),
+      );
       if (r.sent.length > 0) {
         s.sent = { ...s.sent };
         for (const x of r.sent) s.sent[x.tap.clientId] = x.result;

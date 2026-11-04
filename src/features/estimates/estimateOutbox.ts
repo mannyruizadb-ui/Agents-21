@@ -26,6 +26,8 @@ export interface OutboxBatch {
   sessionId: string | null;
   entries: OutboxEntry[];
   createdAt: string;
+  /** When the PIN was stored (at save, or when it was entered again); its 6-hour clock. */
+  pinStoredAt?: string;
   /** Why it is stuck: 'network', 'PIN_INVALID', 'STAFF_LOCKED'… null = not tried / fine. */
   lastError: string | null;
 }
@@ -38,8 +40,18 @@ export interface RejectedEstimate extends OutboxEntry {
 export const OUTBOX_KEY = 'estimates.outbox.v1';
 export const REJECTED_ESTIMATES_KEY = 'estimates.rejected.v1';
 
-/** A stored PIN is wiped after this long; the entries stay and wait for the PIN (security M2). */
-export const PIN_MAX_AGE_MS = 72 * 60 * 60 * 1000;
+/**
+ * A stored PIN is wiped this long after it was stored (security M2, re-review note 1). The entries
+ * stay and wait for someone to enter the PIN again.
+ */
+export const PIN_MAX_AGE_MS = 6 * 60 * 60 * 1000;
+
+/**
+ * The server accepts an estimate up to this long after it was made (p_entered_at window). Older
+ * entries can never be saved: they move to the refused list as OUT_OF_RANGE_TIMESTAMP ("enter it
+ * again") instead of waiting forever.
+ */
+export const ENTRY_MAX_AGE_MS = 6 * 60 * 60 * 1000;
 
 function isEntry(v: unknown): v is OutboxEntry {
   if (typeof v !== 'object' || v === null) return false;
@@ -63,7 +75,8 @@ function isBatch(v: unknown): v is OutboxBatch {
     (o.sessionId === null || typeof o.sessionId === 'string') &&
     Array.isArray(o.entries) &&
     o.entries.every(isEntry) &&
-    typeof o.createdAt === 'string'
+    typeof o.createdAt === 'string' &&
+    (o.pinStoredAt === undefined || typeof o.pinStoredAt === 'string')
   );
 }
 
@@ -111,18 +124,73 @@ export function dismissRejectedEstimate(store: KeyValueStore, clientId: string):
 /** Saves a batch (before any attempt). False = the device refused to store it. */
 export function addBatch(store: KeyValueStore, batch: OutboxBatch): boolean {
   const list = readOutbox(store).filter((b) => b.batchId !== batch.batchId);
-  return write(store, OUTBOX_KEY, [...list, batch]);
+  const stamped =
+    batch.pin && !batch.pinStoredAt ? { ...batch, pinStoredAt: batch.createdAt } : batch;
+  return write(store, OUTBOX_KEY, [...list, stamped]);
 }
 
-/** Replaces the PIN of stuck batches for one person (after "PIN changed, enter it again"). */
-export function updatePin(store: KeyValueStore, staffId: string, pin: string): void {
+/**
+ * Replaces the PIN of stuck batches for one person (after "enter the PIN again"). Restarts the PIN's
+ * 6-hour clock, so an older batch can still be sent (re-review note 1).
+ */
+export function updatePin(
+  store: KeyValueStore,
+  staffId: string,
+  pin: string,
+  nowMs: number = Date.now(),
+): void {
+  const at = new Date(nowMs).toISOString();
   write(
     store,
     OUTBOX_KEY,
     readOutbox(store).map((b) =>
-      b.staffId === staffId ? { ...b, pin, sessionId: null, lastError: null } : b,
+      b.staffId === staffId ? { ...b, pin, pinStoredAt: at, sessionId: null, lastError: null } : b,
     ),
   );
+}
+
+export interface SweepReport {
+  /** Entries too old for the server, moved to the refused list. */
+  tooOld: number;
+  /** PINs wiped because they were stored more than 6 h ago. */
+  pinsWiped: number;
+}
+
+/**
+ * Housekeeping that never sends anything (run before every flush and at app start for every account
+ * on the device, re-review note 2):
+ *  - entries made more than 6 h ago → refused list as OUT_OF_RANGE_TIMESTAMP (a batch left empty is
+ *    dropped, which also wipes its PIN);
+ *  - a PIN stored more than 6 h ago → wiped; the batch waits for the PIN.
+ */
+export function sweepOutbox(store: KeyValueStore, nowMs: number = Date.now()): SweepReport {
+  const report: SweepReport = { tooOld: 0, pinsWiped: 0 };
+  const tooOld: RejectedEstimate[] = [];
+  const kept: OutboxBatch[] = [];
+  const age = (iso: string | undefined) => {
+    const t = iso ? Date.parse(iso) : NaN;
+    return Number.isNaN(t) ? Infinity : nowMs - t;
+  };
+  const before = readOutbox(store);
+  for (const b of before) {
+    const fresh = b.entries.filter((e) => age(e.enteredAt ?? b.createdAt) <= ENTRY_MAX_AGE_MS);
+    for (const e of b.entries) {
+      if (!fresh.includes(e)) tooOld.push({ ...e, errorCode: 'OUT_OF_RANGE_TIMESTAMP' });
+    }
+    if (fresh.length === 0) continue;
+    let next: OutboxBatch = { ...b, entries: fresh };
+    if (next.pin && age(next.pinStoredAt ?? next.createdAt) > PIN_MAX_AGE_MS) {
+      next = { ...next, pin: '', sessionId: null, lastError: 'PIN_EXPIRED' };
+      report.pinsWiped += 1;
+    }
+    kept.push(next);
+  }
+  report.tooOld = tooOld.length;
+  if (tooOld.length > 0) {
+    write(store, REJECTED_ESTIMATES_KEY, [...readRejectedEstimates(store), ...tooOld]);
+  }
+  if (tooOld.length > 0 || report.pinsWiped > 0) write(store, OUTBOX_KEY, kept);
+  return report;
 }
 
 function replaceBatch(store: KeyValueStore, batch: OutboxBatch | null, batchId: string): void {
@@ -146,6 +214,11 @@ export type SessionOutcome =
 export interface OutboxApi {
   record(entry: OutboxEntry, sessionId: string): Promise<RecordOutcome>;
   startSession(staffId: string, pin: string): Promise<SessionOutcome>;
+  /**
+   * Checked before EVERY server call (re-review note 3): false stops the flush at once, e.g. when
+   * the account signed out or changed mid-flush. Default: always continue.
+   */
+  shouldContinue?(): Promise<boolean>;
 }
 
 export interface FlushReport {
@@ -184,12 +257,10 @@ export async function flushOutbox(
     replaceBatch(store, null, b.batchId);
   };
 
-  // Security M2: a PIN never stays on the device for more than 72 h, sent or not.
-  for (const b of readOutbox(store)) {
-    const created = Date.parse(b.createdAt);
-    if (b.pin && (Number.isNaN(created) || nowMs - created > PIN_MAX_AGE_MS)) {
-      replaceBatch(store, { ...b, pin: '', sessionId: null, lastError: 'PIN_EXPIRED' }, b.batchId);
-    }
+  // Security M2 / re-review note 1: drop entries the server can no longer accept; expire old PINs.
+  const swept = sweepOutbox(store, nowMs);
+  if (swept.tooOld > 0) {
+    report.rejected.push(...readRejectedEstimates(store).slice(-swept.tooOld));
   }
 
   batches: for (const initial of readOutbox(store)) {
@@ -203,6 +274,7 @@ export async function flushOutbox(
           report.needsPin = { staffId: batch.staffId, error: batch.lastError ?? 'PIN_NEEDED' };
           continue batches;
         }
+        if (api.shouldContinue && !(await api.shouldContinue())) break batches;
         const s = await api.startSession(batch.staffId, batch.pin);
         if (s.kind === 'pin') {
           // Security M1: drop the refused PIN so it is never retried (5 misses lock the person out).
@@ -223,6 +295,7 @@ export async function flushOutbox(
         freshSession = true;
         replaceBatch(store, batch, batch.batchId);
       }
+      if (api.shouldContinue && !(await api.shouldContinue())) break batches;
       const r = await api.record(entry, batch.sessionId as string);
       if (r.kind === 'saved' || r.kind === 'rejected') {
         if (r.kind === 'saved') report.saved.push(entry);

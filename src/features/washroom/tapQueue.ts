@@ -150,6 +150,8 @@ export async function flushPending<R>(
   store: KeyValueStore,
   send: (tap: PendingTap) => Promise<SendOutcome<R>>,
   now: () => Date = () => new Date(),
+  /** Checked before EVERY send (security re-review note 3): false stops the flush at once. */
+  shouldContinue: () => Promise<boolean> = async () => true,
 ): Promise<FlushResult<R>> {
   const result: FlushResult<R> = { sent: [], rejected: [], remaining: [] };
   const seen = new Set<string>();
@@ -157,6 +159,7 @@ export async function flushPending<R>(
     const tap = readPending(store).find((t) => !seen.has(t.clientId));
     if (!tap) break;
     seen.add(tap.clientId);
+    if (!(await shouldContinue())) break;
     const outcome = await send(tap);
     if (outcome.kind === 'sent') {
       removePending(store, tap.clientId);

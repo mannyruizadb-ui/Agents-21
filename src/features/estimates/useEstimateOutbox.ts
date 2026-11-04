@@ -64,8 +64,10 @@ export async function startSessionDetailed(
   }
 }
 
-function apiFor(onSession: (staffId: string, s: OpenedSession) => void): OutboxApi {
+function apiFor(userId: string, onSession: (staffId: string, s: OpenedSession) => void): OutboxApi {
   return {
+    // Re-review note 3: the account is checked before EVERY server call.
+    shouldContinue: () => isSignedInAs(userId),
     async startSession(staffId, pin) {
       const s = await startSessionDetailed(staffId, pin);
       if (s.kind === 'ok')
@@ -155,7 +157,7 @@ export function flushEstimates(userId: string, ctx?: FlushContext): Promise<numb
     try {
       if (!(await isSignedInAs(userId))) return 0;
       const store = userStore(userId);
-      const api = apiFor((staffId, opened) => {
+      const api = apiFor(userId, (staffId, opened) => {
         if (!ctx) return;
         const end = sessionEnd(opened.expiresAt, Date.now(), ctx.reuseMinutes);
         if (end !== null) {

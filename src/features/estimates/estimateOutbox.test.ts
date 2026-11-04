@@ -4,6 +4,7 @@ import {
   addBatch,
   dismissRejectedEstimate,
   flushOutbox,
+  ENTRY_MAX_AGE_MS,
   OUTBOX_KEY,
   PIN_MAX_AGE_MS,
   readOutbox,
@@ -25,7 +26,7 @@ const batch = (over: Partial<OutboxBatch> = {}): OutboxBatch => ({
     { clientId: 'e2', washGroupId: 'g2', qty: 0, unit: 'load' },
     { clientId: 'e3', washGroupId: 'g3', qty: 3, unit: 'load' },
   ],
-  createdAt: '2026-11-04T22:00:00Z',
+  createdAt: new Date().toISOString(),
   lastError: null,
   ...over,
 });
@@ -153,10 +154,18 @@ describe('estimate outbox', () => {
     expect(readOutbox(s)[0]?.entries).toHaveLength(3);
   });
 
-  it('security M2: a PIN older than 72 h is wiped, the entries kept, and the batch needs a PIN', async () => {
+  it('security M2: a PIN stored more than 6 h ago is wiped, fresh entries kept, batch needs a PIN', async () => {
     const s = memoryStore();
-    const created = Date.parse('2026-11-01T00:00:00Z');
-    addBatch(s, batch({ createdAt: new Date(created).toISOString() }));
+    const now = Date.parse('2026-11-04T22:00:00Z');
+    const fresh = new Date(now - 60_000).toISOString();
+    addBatch(
+      s,
+      batch({
+        createdAt: fresh,
+        pinStoredAt: new Date(now - PIN_MAX_AGE_MS - 1000).toISOString(),
+        entries: [{ clientId: 'e1', washGroupId: 'g', qty: 1, unit: 'load', enteredAt: fresh }],
+      }),
+    );
     let calls = 0;
     const api: OutboxApi = {
       startSession: async () => {
@@ -165,20 +174,78 @@ describe('estimate outbox', () => {
       },
       record: async () => ({ kind: 'saved' }),
     };
-    const r = await flushOutbox(s, api, created + PIN_MAX_AGE_MS + 1);
+    const r = await flushOutbox(s, api, now);
     expect(calls).toBe(0);
     expect(r.needsPin).toEqual({ staffId: 's1', error: 'PIN_EXPIRED' });
     expect(readOutbox(s)[0]).toMatchObject({ pin: '', lastError: 'PIN_EXPIRED' });
-    expect(readOutbox(s)[0]?.entries).toHaveLength(3);
+    expect(readOutbox(s)[0]?.entries).toHaveLength(1);
     expect(s.getItem(OUTBOX_KEY)).not.toContain('1234');
   });
 
-  it('a PIN inside 72 h is kept', async () => {
+  it('a PIN inside 6 h is kept', async () => {
     const s = memoryStore();
-    const created = Date.parse('2026-11-01T00:00:00Z');
-    addBatch(s, batch({ createdAt: new Date(created).toISOString() }));
-    await flushOutbox(s, fakeApi({ offlineAfter: 0 }).api, created + PIN_MAX_AGE_MS - 1000);
+    const now = Date.parse('2026-11-04T22:00:00Z');
+    addBatch(s, batch({ createdAt: new Date(now - PIN_MAX_AGE_MS + 60_000).toISOString() }));
+    await flushOutbox(s, fakeApi({ offlineAfter: 0 }).api, now);
     expect(readOutbox(s)[0]?.pin).toBe('1234');
+  });
+
+  it('note 1: entering the PIN again restarts its clock, so a 5 h old batch can still send', async () => {
+    const s = memoryStore();
+    const t0 = Date.parse('2026-11-04T16:00:00Z');
+    addBatch(s, batch({ createdAt: new Date(t0).toISOString() }));
+    // wrong PIN at t0 → PIN cleared, needs PIN
+    await flushOutbox(s, fakeApi({ pin: '9999' }).api, t0);
+    expect(readOutbox(s)[0]?.pin).toBe('');
+    // 5 h later the right PIN is entered: it must not be wiped by the old createdAt
+    const t1 = t0 + 5 * 3600_000;
+    updatePin(s, 's1', '9999', t1);
+    const r = await flushOutbox(s, fakeApi({ pin: '9999' }).api, t1 + 1000);
+    expect(r.saved).toHaveLength(3);
+    expect(readOutbox(s)).toEqual([]);
+  });
+
+  it('note 1: entries older than 6 h move to the refused list as OUT_OF_RANGE_TIMESTAMP and their PIN is gone', async () => {
+    const s = memoryStore();
+    const now = Date.parse('2026-11-04T22:00:00Z');
+    addBatch(s, batch({ createdAt: new Date(now - ENTRY_MAX_AGE_MS - 1000).toISOString() }));
+    let calls = 0;
+    const api: OutboxApi = {
+      startSession: async () => {
+        calls += 1;
+        return { kind: 'ok', sessionId: 'x' };
+      },
+      record: async () => ({ kind: 'saved' }),
+    };
+    const r = await flushOutbox(s, api, now);
+    expect(calls).toBe(0);
+    expect(r.rejected.map((e) => e.errorCode)).toEqual([
+      'OUT_OF_RANGE_TIMESTAMP',
+      'OUT_OF_RANGE_TIMESTAMP',
+      'OUT_OF_RANGE_TIMESTAMP',
+    ]);
+    expect(readOutbox(s)).toEqual([]);
+    expect(s.getItem(OUTBOX_KEY)).not.toContain('1234');
+    expect(readRejectedEstimates(s)).toHaveLength(3);
+  });
+
+  it('note 3: a flush stops at once when the account changes mid-flush', async () => {
+    const s = memoryStore();
+    addBatch(s, batch({ sessionId: 'sess' }));
+    let signedIn = true;
+    const recorded: string[] = [];
+    const api: OutboxApi = {
+      shouldContinue: async () => signedIn,
+      startSession: async () => ({ kind: 'ok', sessionId: 'x' }),
+      record: async (e) => {
+        recorded.push(e.clientId);
+        signedIn = false; // the account signs out after the first save
+        return { kind: 'saved' };
+      },
+    };
+    await flushOutbox(s, api);
+    expect(recorded).toEqual(['e1']);
+    expect(readOutbox(s)[0]?.entries.map((e) => e.clientId)).toEqual(['e2', 'e3']);
   });
 
   it("security H1: user B's store can't see A's batch, and B's flush never uses A's staff or PIN", async () => {
