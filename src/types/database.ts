@@ -411,14 +411,14 @@ isOneToOne: false
                   ]
                 },"memberships": {
                   Row: {
-                    "can_manage_staff": boolean,"created_at": string,"id": string,"org_id": string,"plant_id": string | null,"revoked_at": string | null,"role": "owner"|"manager"|"lead"|"viewer"|"display","user_id": string
+                    "can_manage_staff": boolean,"created_at": string,"id": string,"notify_machine_down": boolean,"org_id": string,"plant_id": string | null,"revoked_at": string | null,"role": "owner"|"manager"|"lead"|"viewer"|"display","user_id": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "can_manage_staff"?: boolean,"created_at"?: string,"id"?: string,"org_id": string,"plant_id"?: string | null,"revoked_at"?: string | null,"role": "owner"|"manager"|"lead"|"viewer"|"display","user_id": string
+                    "can_manage_staff"?: boolean,"created_at"?: string,"id"?: string,"notify_machine_down": boolean,"org_id": string,"plant_id"?: string | null,"revoked_at"?: string | null,"role": "owner"|"manager"|"lead"|"viewer"|"display","user_id": string
                   }
                   Update: {
-                    "can_manage_staff"?: boolean,"created_at"?: string,"id"?: string,"org_id"?: string,"plant_id"?: string | null,"revoked_at"?: string | null,"role"?: "owner"|"manager"|"lead"|"viewer"|"display","user_id"?: string
+                    "can_manage_staff"?: boolean,"created_at"?: string,"id"?: string,"notify_machine_down"?: boolean,"org_id"?: string,"plant_id"?: string | null,"revoked_at"?: string | null,"role"?: "owner"|"manager"|"lead"|"viewer"|"display","user_id"?: string
                   }
                   Relationships: [
                     {
@@ -1304,6 +1304,24 @@ isOneToOne: false
 "save_push_subscription":
 { Args: { "p_auth": string,"p_endpoint": string,"p_p256dh": string,"p_plant_id": string,"p_user_agent"?: string }; Returns: string
                            },
+"set_alert_recipient":
+{ Args: { "p_membership_id": string,"p_notify": boolean }; Returns: {
+              "can_manage_staff": boolean,
+"created_at": string,
+"id": string,
+"notify_machine_down": boolean,
+"org_id": string,
+"plant_id": string | null,
+"revoked_at": string | null,
+"role": "owner"|"manager"|"lead"|"viewer"|"display",
+"user_id": string
+            }
+                          SetofOptions: {
+        from: "*"
+        to: "memberships"
+        isOneToOne: true
+        isSetofReturn: false
+      } },
 "set_machine_status":
 { Args: { "p_client_id": string,"p_machine_id": string,"p_reason"?: string,"p_reason_code"?: "water_pump"|"soap_dispenser"|"wont_start"|"leaking"|"other","p_status": "down"|"up" }; Returns: Database["public"]['CompositeTypes']["machine_status_result"]
                           SetofOptions: {
