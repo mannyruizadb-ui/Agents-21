@@ -1225,7 +1225,7 @@ isOneToOne: false
         isSetofReturn: false
       } },
 "record_soil_estimate":
-{ Args: { "p_client_id": string,"p_note"?: string,"p_qty": number,"p_staff_session_id": string,"p_unit": "load"|"basket"|"bin"|"piece"|"pack","p_wash_group_id": string }; Returns: {
+{ Args: { "p_client_id": string,"p_entered_at"?: string,"p_note"?: string,"p_qty": number,"p_staff_session_id": string,"p_unit": "load"|"basket"|"bin"|"piece"|"pack","p_wash_group_id": string }; Returns: {
               "client_id": string,
 "entered_at": string,
 "entered_by": string,
