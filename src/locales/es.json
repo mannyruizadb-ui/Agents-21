@@ -408,5 +408,30 @@
     "sending": "Enviando…",
     "keep": "Guardar para la próxima vez",
     "cantSendYet": "Cambia tu contraseña primero para enviarlos. Se quedan en este equipo para tu cuenta."
+  },
+  "notifications": {
+    "title": "Notificaciones",
+    "what": "Alertas de máquina dañada: este teléfono muestra un aviso cuando alguien marca una máquina como dañada (por ejemplo \"Washer 4 está dañada: Bomba de agua\").",
+    "notSetUp": "Las notificaciones todavía no están configuradas.",
+    "iosInstallTitle": "Primero agrega PlantBoard a tu pantalla de inicio",
+    "iosStep1": "En Safari, toca el botón Compartir (el cuadro con una flecha).",
+    "iosStep2": "Toca \"Agregar a pantalla de inicio\" y luego \"Agregar\".",
+    "iosStep3": "Abre PlantBoard desde su ícono en la pantalla de inicio y activa las notificaciones aquí.",
+    "iosUpdate": "Este iPhone necesita iOS 16.4 o más nuevo para las notificaciones. Actualízalo en Ajustes > General > Actualización de software.",
+    "unsupported": "Este navegador no puede mostrar notificaciones. Usa Chrome en Android, o PlantBoard agregado a la pantalla de inicio en iPhone.",
+    "deniedTitle": "Las notificaciones de PlantBoard están bloqueadas en este teléfono.",
+    "deniedIphone": "iPhone: abre Ajustes > Notificaciones > PlantBoard y activa Permitir notificaciones.",
+    "deniedAndroid": "Android: en Chrome, toca el ícono a la izquierda de la dirección, luego Permisos > Notificaciones > Permitir. Después vuelve aquí.",
+    "isOn": "Activadas en este teléfono.",
+    "isOff": "Desactivadas en este teléfono.",
+    "turnOn": "Activar",
+    "turnOff": "Desactivar",
+    "working": "Un momento…",
+    "turnedOn": "Notificaciones activadas.",
+    "turnedOff": "Notificaciones desactivadas.",
+    "dismissed": "No se permitieron las notificaciones. Toca Activar y elige Permitir.",
+    "saveFailed": "No se pudieron activar las notificaciones. Revisa la conexión e intenta otra vez.",
+    "offFailed": "No se pudieron desactivar las notificaciones. Revisa la conexión e intenta otra vez.",
+    "subscribeFailed": "Este teléfono no pudo conectarse a su servicio de notificaciones. Revisa el Wi-Fi o los datos e intenta otra vez."
   }
 }

@@ -6,9 +6,17 @@ import { initI18n } from './lib/i18n';
 import { supabase } from './lib/supabase';
 import { router } from './router';
 import { runStartupStorageSweep } from './app/startupStorage';
+import { env } from './lib/env';
+import { registerServiceWorker } from './features/notifications/pushClient';
 
 // Security re-review notes 2 and 5: expire stored PINs for every account and drop legacy keys.
 runStartupStorageSweep();
+
+// Push service worker (machine-down alerts). Only in production builds or when push is set up, so a
+// dev session without a VAPID key never installs a worker.
+if (import.meta.env.PROD || env.vapidPublicKey) {
+  window.addEventListener('load', () => void registerServiceWorker());
+}
 
 const queryClient = new QueryClient();
 

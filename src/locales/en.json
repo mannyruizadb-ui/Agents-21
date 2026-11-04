@@ -408,5 +408,30 @@
     "sending": "Sending…",
     "keep": "Keep for next time",
     "cantSendYet": "Change your password first to send them. They stay on this device for your account."
+  },
+  "notifications": {
+    "title": "Notifications",
+    "what": "Machine down alerts: this phone shows an alert when someone marks a machine down (for example \"Washer 4 is down: Water pump\").",
+    "notSetUp": "Notifications aren't set up yet.",
+    "iosInstallTitle": "Add PlantBoard to your Home Screen first",
+    "iosStep1": "In Safari, tap the Share button (the square with an arrow).",
+    "iosStep2": "Tap \"Add to Home Screen\", then \"Add\".",
+    "iosStep3": "Open PlantBoard from its Home Screen icon and turn on notifications here.",
+    "iosUpdate": "This iPhone needs iOS 16.4 or newer for notifications. Update it in Settings > General > Software Update.",
+    "unsupported": "This browser can't show notifications. Use Chrome on Android, or PlantBoard added to the Home Screen on iPhone.",
+    "deniedTitle": "Notifications are blocked for PlantBoard on this phone.",
+    "deniedIphone": "iPhone: open Settings > Notifications > PlantBoard and turn on Allow Notifications.",
+    "deniedAndroid": "Android: in Chrome, tap the icon left of the address, then Permissions > Notifications > Allow. Then come back here.",
+    "isOn": "On for this phone.",
+    "isOff": "Off for this phone.",
+    "turnOn": "Turn on",
+    "turnOff": "Turn off",
+    "working": "Working…",
+    "turnedOn": "Notifications are on.",
+    "turnedOff": "Notifications are off.",
+    "dismissed": "Notifications weren't allowed. Tap Turn on and choose Allow.",
+    "saveFailed": "Couldn't turn on notifications. Check the connection and try again.",
+    "offFailed": "Couldn't turn off notifications. Check the connection and try again.",
+    "subscribeFailed": "This phone couldn't reach its notification service. Check the Wi-Fi or data and try again."
   }
 }

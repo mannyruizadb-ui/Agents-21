@@ -10,4 +10,9 @@ export const env = {
     'VITE_SUPABASE_PUBLISHABLE_KEY',
     import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
   ),
+  /**
+   * Web Push VAPID public key (base64url). Optional: when it is not set, push notifications are not
+   * set up and the Notifications card says so. The private key lives only in the push sender.
+   */
+  vapidPublicKey: import.meta.env.VITE_VAPID_PUBLIC_KEY?.trim() || null,
 };
