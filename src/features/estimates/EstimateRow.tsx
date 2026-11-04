@@ -128,9 +128,11 @@ export function EstimateRow({
             />
             <span className="est-row-value">
               {changed && (
-                <span className="est-changed">
-                  <IconWarning /> {t('estimates.changedTag')}:{' '}
-                </span>
+                <>
+                  <span className="est-changed">
+                    <IconWarning /> {t('estimates.changedTag')}:
+                  </span>{' '}
+                </>
               )}
               {rowValue}
               {!changed && last?.freshness && last.freshness !== 'ok' && (
