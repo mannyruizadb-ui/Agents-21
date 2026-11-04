@@ -104,7 +104,37 @@ Full context lives in these docs. Read the relevant one before non-trivial work;
     - Throttle queue and estimate writes.
     - Record in PRD v1.6 §4.7 the display read of the washer board and the owner/manager-only estimates.
   - Waiting on the owner: who enters estimates, setting `ships_next_morning` in the cloud.
-- **Owner answers 2026-11-04 (not built yet):**
+- **Pilot build progress (2026-11-04, branch `claude/amazing-planck-k88ki3`, NOT yet in the cloud; no PR yet):**
+  - Screens:
+    - washer board `/control/washers`, with "Next in queue" shown once;
+    - washer station `/station/washer/:machineId` (one-tap START, undo, offline tap queue with real tap time);
+    - queue `/control/queue` (owner edits; managers can add rewash and move loads off a down washer);
+    - machine down `/control/machines` (preset reason codes, translated);
+    - estimates `/control/estimates` (compact list, bin/basket stepper, one PIN per batch, 10-minute reuse, offline outbox up to 6 h).
+  - Device storage is scoped per account, with a guarded sign-out ("Send now / Keep for next time").
+  - DB migrations `20261104163703…201022`:
+    - machine_status_events and the `alert_events` `machine_down` rows (10-minute cooldown);
+    - owner-only queue with the 2 manager exceptions;
+    - loads_per_basket/bin and the 'bin' unit, seeded with the owner's numbers;
+    - 33 group colors;
+    - owner-only day report and pace;
+    - PIN reuse 10 minutes;
+    - `p_entered_at` (6 h) and `p_tapped_at` (30 min);
+    - who-entered columns hidden from client reads (column grants).
+  - Checks: **946 pgTAP** and **117 Vitest** tests pass. Security-reviewer, latest round: PASS WITH NOTES; its notes are fixed.
+  - Left before the Monday pilot:
+    - Web Push for machine_down (an Edge Function plus VAPID secrets);
+    - a Spanish pass in the browser;
+    - checking Realtime with the column grants;
+    - the owner's OK to run deploy-db on the cloud, then the PR and merge, in that order;
+    - the owner creates the father's account.
+  - Still waiting on the owner:
+    - the manager screen matrix (then lock the views/reports server side);
+    - who edits load factors;
+    - tablecloths at 2 per bin;
+    - the missing bin/basket numbers;
+    - AA Linen questions.
+- **Owner answers 2026-11-04 (now built, see above):**
   - **The M2 screens were lost.** They were never committed and the session container was reset. The server side survived (`d496d09`). Rebuild them, and push WIP at every checkpoint from now on.
   - PIN reuse: 10 minutes on a phone, "for now".
   - Offline entries: no second PIN when they finally send ("too much stuff"). Proposed: keep the pending entry plus its PIN on the device until it sends, then wipe it (PINs are attribution only). Needs security-reviewer sign-off.
