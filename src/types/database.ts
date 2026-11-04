@@ -521,6 +521,26 @@ isOneToOne: false
       referencedColumns: ["code"]
     }
                   ]
+                },"push_subscriptions": {
+                  Row: {
+                    "auth": string,"created_at": string,"endpoint": string,"id": string,"org_id": string,"p256dh": string,"plant_id": string,"revoked_at": string | null,"user_agent": string | null,"user_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "auth": string,"created_at"?: string,"endpoint": string,"id"?: string,"org_id": string,"p256dh": string,"plant_id": string,"revoked_at"?: string | null,"user_agent"?: string | null,"user_id": string
+                  }
+                  Update: {
+                    "auth"?: string,"created_at"?: string,"endpoint"?: string,"id"?: string,"org_id"?: string,"p256dh"?: string,"plant_id"?: string,"revoked_at"?: string | null,"user_agent"?: string | null,"user_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "push_subscriptions_plant_id_org_id_fkey"
+      columns: ["plant_id","org_id"]
+isOneToOne: false
+      referencedRelation: "plants"
+      referencedColumns: ["id","org_id"]
+    }
+                  ]
                 },"queue_items": {
                   Row: {
                     "area_id": string,"assigned_machine_id": string | null,"assigned_machine_kind": "washer"|"dryer"|"ironer"|"folder"|"other" | null,"client_id": string,"completed_at": string | null,"created_at": string,"created_by": string,"id": string,"is_rewash": boolean,"is_rush": boolean,"item_type_id": string | null,"loads_started": number,"note": string | null,"org_id": string,"plant_id": string,"position": number,"qty": number,"started_at": string | null,"status": "queued"|"in_progress"|"done"|"cancelled","unit": "load"|"basket"|"bin"|"piece"|"pack","updated_at": string,"updated_by": string | null,"updated_by_staff_id": string | null,"version": number,"wash_group_id": string
@@ -1244,6 +1264,9 @@ isOneToOne: false
         isOneToOne: true
         isSetofReturn: false
       } },
+"remove_push_subscription":
+{ Args: { "p_endpoint": string }; Returns: boolean
+                           },
 "reorder_queue_item":
 { Args: { "p_after_id"?: string,"p_expected_version": number,"p_id": string }; Returns: {
               "area_id": string,
@@ -1278,6 +1301,9 @@ isOneToOne: false
         isOneToOne: true
         isSetofReturn: false
       } },
+"save_push_subscription":
+{ Args: { "p_auth": string,"p_endpoint": string,"p_p256dh": string,"p_plant_id": string,"p_user_agent"?: string }; Returns: string
+                           },
 "set_machine_status":
 { Args: { "p_client_id": string,"p_machine_id": string,"p_reason"?: string,"p_reason_code"?: "water_pump"|"soap_dispenser"|"wont_start"|"leaking"|"other","p_status": "down"|"up" }; Returns: Database["public"]['CompositeTypes']["machine_status_result"]
                           SetofOptions: {
