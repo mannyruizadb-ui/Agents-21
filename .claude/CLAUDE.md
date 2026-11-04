@@ -90,6 +90,20 @@ Full context lives in these docs. Read the relevant one before non-trivial work;
   - In-app setup: items + wash groups, people + entry staff, washers + formulas, shifts.
   - First users are the owner and managers only. The washroom tablet and TVs come later.
   - Build order: server RPCs + pg_cron → setup screens → queue/washer → estimates → finished goods → reports/pace. Merge in PRs; the owner starts using it when all are done.
+- **M2 server side BUILT (2026-11-04; 791 pgTAP tests pass; security-reviewer PASS WITH NOTES):** 8 migrations `20261103212038…212055`.
+  - Queue RPCs: create / reorder / update / cancel / set_status / get_queue.
+  - Washer taps: `start_washer_load` / `undo_washer_load` / `get_washroom_board` (no PIN).
+  - Entries: `record_soil_estimate` and `record_finished_goods` (staff session), `void_finished_goods`.
+  - Reports: `get_shift_report` / `get_day_report` / `get_wash_group_pace`. Totals only; crew hours removed pending HR/legal review.
+  - Direct operational writes revoked. Setup tables are editable through column grants and history guards; shift edits regenerate instances.
+  - pg_cron nightly `generate-shift-instances`; after the cloud deploy, check `cron.job`.
+  - Follow-ups:
+    - L3: revoke anon table grants.
+    - L4: column grants on `shift_crew_hours`, `display_messages` and `shift_instances`.
+    - Per-plant `client_id` uniqueness.
+    - Throttle queue and estimate writes.
+    - Record in PRD v1.6 §4.7 the display read of the washer board and the owner/manager-only estimates.
+  - Waiting on the owner: PIN reuse window, offline finished-goods session window, who enters estimates, setting `ships_next_morning` in the cloud.
 - **Next, M1 part 2:**
   - invite-user and pair-device/revoke-device Edge Functions (create the edge-engineer agent first);
   - Custom Access Token Hook, pg_cron schedule, languages data migration for the cloud;

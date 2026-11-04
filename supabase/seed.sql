@@ -103,6 +103,18 @@ select p.org_id, p.id, g.name, jsonb_build_object('es', g.name_es), g.sort_order
   left join public.wash_formulas f on f.plant_id = p.id and f.external_no = g.formula_no
  where p.name = 'Miami';
 
+-- Next-morning goods (owner confirmed 2026-11-02, research/washroom-patterns.md): floor mats, sheets and
+-- butcher coats are processed the same night and ship on the 06:00 trucks. Nothing else does.
+-- Mops are not floor mats, so they stay false.
+update public.wash_groups g
+   set ships_next_morning = true
+  from public.plants p
+  join public.organizations o on o.id = p.org_id and o.slug = 'americas-dust-busters'
+ where g.plant_id = p.id and p.name = 'Miami'
+   and g.name in ('Black mats', 'Colored mats', 'Charcoal mats', 'Scraper mats', 'City & Brito mats',
+                  'Presidente logo mats', 'Logo mats', 'Old sheets', 'Regular sheets', 'New sheets',
+                  'Coats (white)');
+
 insert into public.item_types (org_id, plant_id, wash_group_id, name, name_i18n, category, count_mode, pack_size,
                                pieces_per_load, pieces_per_load_source, sort_order)
 select p.org_id, p.id, g.id, i.name, jsonb_build_object('es', i.name_es), i.category::app.item_category,

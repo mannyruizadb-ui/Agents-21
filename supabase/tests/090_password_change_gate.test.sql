@@ -77,9 +77,8 @@ select is(pg_temp.flags('owner', $$select 1 from public.memberships where org_id
   'memberships: 0 rows while flagged, all of org A otherwise');
 select is(pg_temp.flags('manager', $$select 1 from public.finished_goods_entries$$), '{0,1,1}',
   'finished_goods_entries: 0 rows while flagged');
-select is(pg_temp.flags('manager', $$insert into public.finished_goods_entries (org_id, plant_id, area_id, item_type_id, loose_pieces, entered_by, client_id)
-  values (pg_temp.id('orgA'), pg_temp.id('plantA'), pg_temp.id('fin'), pg_temp.id('mat'), 5, (select auth.uid()), gen_random_uuid())$$, false),
-  '{42501,1,1}', 'finished_goods_entries insert denied while flagged');
+select is(pg_temp.flags('manager', $$select public.create_queue_item(pg_temp.id('wash'), 1, 'load', gen_random_uuid(), pg_temp.id('gNapkin'))$$, false),
+  '{NOT_AUTHORIZED,1,1}', 'M2 write RPCs (create_queue_item) are denied while flagged');
 select is(pg_temp.flags('owner', $$update public.memberships set revoked_at = revoked_at where user_id = pg_temp.id('lead')$$, false),
   '{0,1,1}', 'memberships update reaches no rows while flagged');
 

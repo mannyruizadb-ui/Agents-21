@@ -66,13 +66,13 @@ select is(
   '{}'::text[], 'no app function is executable by PUBLIC (grants are per function)');
 
 -- Security L3: exact allow-list of app helpers a signed-in client may execute (RLS helpers,
--- CHECK helpers, to_loads / production_date for the views). Everything else is service-role / trigger only.
+-- CHECK helpers, to_loads / production_date / queue_loads_needed for the views). Everything else is service-role / trigger only.
 select is(
   (select array_agg(p.proname::text order by p.proname) from pg_proc p
      join pg_namespace n on n.oid = p.pronamespace
     where n.nspname = 'app' and has_function_privilege('authenticated', p.oid, 'execute')),
   array['can_manage_staff','has_org_role','has_role','is_clean_text','is_display','is_display_account','is_my_device',
-        'my_device','password_ok','production_date','to_loads','valid_a11y_prefs'],
+        'my_device','password_ok','production_date','queue_loads_needed','to_loads','valid_a11y_prefs'],
   'authenticated executes only the allow-listed app helpers');
 
 select ok(exists (select 1 from pg_default_acl

@@ -17,9 +17,11 @@ select col_not_null('public', 'washer_cycles', 'is_rewash', 'is_rewash is not nu
 select col_default_is('public', 'washer_cycles', 'is_rewash', 'false', 'is_rewash defaults to false');
 select is(pg_temp.writes($$insert into public.washer_cycles (org_id, plant_id, area_id, wash_group_id, started_at, load_count, source, entered_by, client_id, is_rewash)
   values (pg_temp.id('orgA'), pg_temp.id('plantA'), pg_temp.id('wash'), pg_temp.id('gTowel'), pg_temp.ny('2026-11-10 01:00'), 1, 'manual', (select auth.uid()), gen_random_uuid(), true)$$),
-  '{1,1,1,42501,42501,42501,42501,42501}', 'a rewash load C: owner/manager/lead (unchanged washer_cycles matrix)');
+  '{42501,42501,42501,42501,42501,42501,42501,42501}', 'M2: no direct rewash insert for any role (start_washer_load copies the queue item''s flag)');
+insert into public.washer_cycles (org_id, plant_id, area_id, wash_group_id, started_at, load_count, source, entered_by, client_id, is_rewash)
+  values (pg_temp.id('orgA'), pg_temp.id('plantA'), pg_temp.id('wash'), pg_temp.id('gTowel'), pg_temp.ny('2026-11-10 01:00'), 1, 'manual', pg_temp.id('lead'), gen_random_uuid(), true);
 select is(pg_temp.writes($$update public.washer_cycles set is_rewash = false where plant_id = pg_temp.id('plantA')$$),
-  '{0,0,0,0,0,0,0,0}', 'the rewash flag cannot be changed by any client after the fact');
+  '{42501,42501,42501,42501,42501,42501,42501,42501}', 'the rewash flag cannot be changed by any client after the fact (no UPDATE privilege)');
 select throws_ok($$insert into public.washer_cycles (org_id, plant_id, area_id, wash_group_id, started_at, source, client_id, is_rewash)
   values (pg_temp.id('orgA'), pg_temp.id('plantA'), pg_temp.id('wash'), pg_temp.id('gNapkin'), now(), 'manual', gen_random_uuid(), null)$$,
   '23502', null, 'is_rewash cannot be null');
@@ -58,7 +60,7 @@ select is((select array[loads_run, rewash_loads, standard_loads, loads_finished_
              from public.daily_reconciliation where production_date = '2026-11-03' and wash_group_id = pg_temp.id('gTowel')),
   array[2, 2, 0, 0, 0]::numeric[], 'rewash-only day: nothing new washed, so no backlog is created');
 select is((select count(*)::int from public.daily_reconciliation where plant_id = pg_temp.id('plantA') and rewash_loads > 0), 3,
-  'every reconciliation row with rewash exposes rewash_loads (napkins 11-02, towels 11-03, towels 11-09 from the matrix inserts)');
+  'every reconciliation row with rewash exposes rewash_loads (napkins 11-02, towels 11-03, towels 11-09)');
 select is(pg_temp.reads($$select 1 from public.daily_reconciliation where rewash_loads > 0$$),
   '{3,3,3,3,0,0,1,42501}', 'daily_reconciliation rewash rows respect RLS (display none; no cross-tenant)');
 

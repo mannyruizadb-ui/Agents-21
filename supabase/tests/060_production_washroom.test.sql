@@ -2,7 +2,7 @@
 -- Matrix arrays: [owner, manager, lead, viewer, display, display-without-device, owner of B, anon].
 begin;
 \ir _fixtures.psql
-select plan(60);
+select plan(61);
 
 -- Fixture rows (as the service role): Napkin 7 packs + 34 loose and Mat 25 at Tue 11:30 (finishing Day).
 insert into public.finished_goods_entries (id, org_id, plant_id, area_id, item_type_id, packs, loose_pieces, occurred_at, entered_by, client_id) values
@@ -21,7 +21,7 @@ insert into public.import_batches (org_id, plant_id, source, created_by) values 
 select is(pg_temp.reads($$select 1 from public.finished_goods_entries where plant_id = pg_temp.id('plantA')$$), '{2,2,2,2,0,0,0,0}', 'finished goods R (display: none)');
 select is(pg_temp.writes($$insert into public.finished_goods_entries (org_id, plant_id, area_id, item_type_id, loose_pieces, entered_by, client_id)
   values (pg_temp.id('orgA'), pg_temp.id('plantA'), pg_temp.id('fin'), pg_temp.id('mat'), 5, (select auth.uid()), gen_random_uuid())$$),
-  '{1,1,42501,42501,42501,42501,42501,42501}', 'finished goods C owner/manager only (lead/viewer/display cannot)');
+  '{42501,42501,42501,42501,42501,42501,42501,42501}', 'M2: no direct finished goods insert for any role (record_finished_goods only)');
 select is(pg_temp.run_as('manager', $$insert into public.finished_goods_entries (org_id, plant_id, area_id, item_type_id, loose_pieces, entered_by, client_id)
   values (pg_temp.id('orgA'), pg_temp.id('plantA'), pg_temp.id('fin'), pg_temp.id('mat'), 5, pg_temp.id('owner'), gen_random_uuid())$$),
   '42501', 'entered_by is pinned to the caller');
@@ -61,8 +61,8 @@ select throws_ok($$insert into public.finished_goods_entries (org_id, plant_id, 
 select throws_ok($$insert into public.finished_goods_entries (org_id, plant_id, area_id, item_type_id, loose_pieces, pack_size_used, entered_by, client_id)
   values (pg_temp.id('orgA'), pg_temp.id('plantA'), pg_temp.id('fin'), pg_temp.id('mat'), 3, 10, pg_temp.id('owner'), gen_random_uuid())$$,
   'P0001', 'COUNT_MODE_MISMATCH', 'unit item: pack_size_used rejected');
-select is(pg_temp.run_as('manager', $$insert into public.finished_goods_entries (org_id, plant_id, area_id, item_type_id, packs, pack_size_used, loose_pieces, entered_by, client_id)
-  values (pg_temp.id('orgA'), pg_temp.id('plantA'), pg_temp.id('fin'), pg_temp.id('napkin'), 2, 50, 0, (select auth.uid()), gen_random_uuid())$$), '1',
+select is(pg_temp.as_service($$insert into public.finished_goods_entries (org_id, plant_id, area_id, item_type_id, packs, pack_size_used, loose_pieces, entered_by, client_id)
+  values (pg_temp.id('orgA'), pg_temp.id('plantA'), pg_temp.id('fin'), pg_temp.id('napkin'), 2, 50, 0, pg_temp.id('manager'), gen_random_uuid())$$), '1',
   'pack item: per-entry pack size override allowed');
 select is((select pieces from public.finished_goods_entries where pack_size_used = 50), 100, 'override recorded: 2×50 = 100 pieces');
 select throws_ok($$insert into public.finished_goods_entries (org_id, plant_id, area_id, item_type_id, packs, loose_pieces, entered_by, client_id)
@@ -74,13 +74,19 @@ select throws_ok($$insert into public.finished_goods_entries (org_id, plant_id, 
 update public.item_types set pack_size = 50 where id = pg_temp.id('napkin');
 select is((select pack_size_used from public.finished_goods_entries where id = 'f0000000-0000-0000-0000-0000000000a1'), 100,
   'past entries keep the pack size they were recorded with');
--- Extra (b): after the item's count mode changes, voiding an old row still works; editing its counts does not.
+-- M2 setup guard: an item's count mode is fixed once finished goods exist (deactivate + add a new item).
+select throws_ok($$update public.item_types set count_mode = 'unit', pack_size = null where id = pg_temp.id('napkin')$$,
+  'P0001', 'VALIDATION_FAILED', 'count mode cannot change once finished goods exist');
+-- Extra (b), for rows from before the guard: after a count-mode change, voiding an old row still works;
+-- editing its counts does not. The guard is switched off inside this test transaction only.
+alter table public.item_types disable trigger item_types_guard_edit;
 update public.item_types set count_mode = 'unit', pack_size = null where id = pg_temp.id('napkin');
 select lives_ok($$update public.finished_goods_entries set voided_at = now(), voided_by = pg_temp.id('owner'), void_reason = 'test'
   where id = 'f0000000-0000-0000-0000-0000000000a1'$$, 'void of a past pack entry passes after the item became unit-counted');
 select throws_ok($$update public.finished_goods_entries set packs = 8 where id = 'f0000000-0000-0000-0000-0000000000a1'$$,
   'P0001', 'COUNT_MODE_MISMATCH', 'changing counts re-validates against the current count mode');
 update public.item_types set count_mode = 'pack', pack_size = 100 where id = pg_temp.id('napkin');
+alter table public.item_types enable trigger item_types_guard_edit;
 select is((select action from public.audit_log where entity_id = 'f0000000-0000-0000-0000-0000000000a1' and action like '%void%'),
   'finished_goods_entries.void', 'voids are audited');
 
@@ -94,7 +100,7 @@ select throws_ok($$insert into public.finished_goods_entries (org_id, plant_id, 
   '23503', null, 'queue_item_id must be a queue item of the same plant');
 select is(pg_temp.run_as('ownerB', $$insert into public.finished_goods_entries (org_id, plant_id, area_id, item_type_id, loose_pieces, entered_by, client_id)
   values (pg_temp.id('orgB'), pg_temp.id('plantB'), pg_temp.id('washB'), pg_temp.id('mat'), 1, (select auth.uid()), gen_random_uuid())$$),
-  '23503', 'owner B cannot point at tenant A''s item');
+  '42501', 'M2: owner B direct insert is denied before any FK or trigger runs');
 select is((select shift_instance_id from public.finished_goods_entries f
             where f.id = (select id from public.finished_goods_entries where loose_pieces = 25 limit 1)), pg_temp.si(pg_temp.id('fin'), 'Day', '2026-11-03'),
   'explicit/fallback shift kept');
@@ -113,25 +119,25 @@ select is(array[pg_temp.run_as('ownerB', $$insert into public.finished_goods_ent
                   values (pg_temp.id('orgB'), pg_temp.id('plantB'), pg_temp.id('washB'), pg_temp.id('mat'), 1, (select auth.uid()), gen_random_uuid())$$),
                 pg_temp.run_as('ownerB', $$insert into public.finished_goods_entries (org_id, plant_id, area_id, item_type_id, packs, entered_by, client_id)
                   values (pg_temp.id('orgB'), pg_temp.id('plantB'), pg_temp.id('washB'), pg_temp.id('napkin'), 1, (select auth.uid()), gen_random_uuid())$$)],
-  '{23503,23503}', 'H1 finished goods: foreign unit item vs foreign pack item → same 23503');
+  '{42501,42501}', 'H1 finished goods (M2): direct inserts denied before any trigger (RPC pairs: 120)');
 -- Architect N1: the entry snapshots the item's wash group; a client value is ignored.
-select is(pg_temp.run_as('manager', $$insert into public.finished_goods_entries (id, org_id, plant_id, area_id, item_type_id, wash_group_id, loose_pieces, entered_by, client_id)
-  values ('f0000000-0000-0000-0000-0000000000a9', pg_temp.id('orgA'), pg_temp.id('plantA'), pg_temp.id('fin'), pg_temp.id('napkin'), pg_temp.id('gTowel'), 5, (select auth.uid()), gen_random_uuid())$$),
-  '1', 'manager records finished goods with a bogus wash_group_id');
+select is(pg_temp.as_service($$insert into public.finished_goods_entries (id, org_id, plant_id, area_id, item_type_id, wash_group_id, loose_pieces, entered_by, client_id)
+  values ('f0000000-0000-0000-0000-0000000000a9', pg_temp.id('orgA'), pg_temp.id('plantA'), pg_temp.id('fin'), pg_temp.id('napkin'), pg_temp.id('gTowel'), 5, pg_temp.id('manager'), gen_random_uuid())$$),
+  '1', 'a writer passes a bogus wash_group_id');
 select is((select wash_group_id from public.finished_goods_entries where id = 'f0000000-0000-0000-0000-0000000000a9'), pg_temp.id('gNapkin'),
   'finished goods wash_group_id = the item''s group (client value ignored)');
 
--- ── washer_cycles: owner/manager/lead R C (manual); viewer R; display none ──
+-- ── washer_cycles: owner/manager/lead/viewer R; display none; M2: writes via start/undo_washer_load only ──
 select is(pg_temp.reads($$select 1 from public.washer_cycles where plant_id = pg_temp.id('plantA')$$), '{1,1,1,1,0,0,0,0}', 'washer_cycles R (display: none)');
 select is(pg_temp.writes($$insert into public.washer_cycles (org_id, plant_id, area_id, wash_group_id, started_at, load_count, source, entered_by, client_id)
   values (pg_temp.id('orgA'), pg_temp.id('plantA'), pg_temp.id('wash'), pg_temp.id('gNapkin'), now(), 1, 'manual', (select auth.uid()), gen_random_uuid())$$),
-  '{1,1,1,42501,42501,42501,42501,42501}', 'washer_cycles C owner/manager/lead');
+  '{42501,42501,42501,42501,42501,42501,42501,42501}', 'M2: no direct washer_cycles insert for any role (start_washer_load only)');
 select is(array[pg_temp.run_as('lead', $$insert into public.washer_cycles (org_id, plant_id, area_id, wash_group_id, started_at, source, entered_by, client_id)
                   values (pg_temp.id('orgA'), pg_temp.id('plantA'), pg_temp.id('wash'), pg_temp.id('gNapkin'), now(), 'accuflow_csv', (select auth.uid()), gen_random_uuid())$$),
                 pg_temp.run_as('lead', $$insert into public.washer_cycles (org_id, plant_id, area_id, wash_group_id, started_at, source, entered_by, client_id)
                   values (pg_temp.id('orgA'), pg_temp.id('plantA'), pg_temp.id('wash'), pg_temp.id('gNapkin'), now(), 'manual', pg_temp.id('owner'), gen_random_uuid())$$)],
-  '{42501,42501}', 'D8: clients insert source=manual only, as themselves');
-select is(pg_temp.writes($$update public.washer_cycles set load_count = 2$$), '{0,0,0,0,0,0,0,0}', 'washer_cycles U denied');
+  '{42501,42501}', 'M2: no direct insert of any source, as anyone');
+select is(pg_temp.writes($$update public.washer_cycles set load_count = 2$$), '{42501,42501,42501,42501,42501,42501,42501,42501}', 'washer_cycles U denied (security carry-forward: no UPDATE privilege)');
 select throws_ok($$delete from public.washer_cycles$$, 'P0001', 'VALIDATION_FAILED', 'prevent_delete on washer cycles');
 select is((select shift_instance_id from public.washer_cycles where id = 'f1000000-0000-0000-0000-0000000000a1'),
   pg_temp.si(pg_temp.id('wash'), 'Night', '2026-11-03'), 'washer load gets its area''s clock instance');
@@ -173,13 +179,13 @@ select throws_ok($$insert into public.washer_cycles (org_id, plant_id, area_id, 
 -- Architect N1: load_factor_used snapshots the machine's factor; a client value is ignored.
 insert into public.machines (id, org_id, plant_id, area_id, name, kind, load_factor) values
   ('60000000-0000-0000-0000-0000000000a7', pg_temp.id('orgA'), pg_temp.id('plantA'), pg_temp.id('wash'), 'Big washer', 'washer', 1.19);
-select is(array[pg_temp.run_as('lead', $$insert into public.washer_cycles (id, org_id, plant_id, area_id, wash_group_id, machine_id, load_factor_used, started_at, source, entered_by, client_id)
+select is(array[pg_temp.as_service($$insert into public.washer_cycles (id, org_id, plant_id, area_id, wash_group_id, machine_id, load_factor_used, started_at, source, entered_by, client_id)
                   values ('f1000000-0000-0000-0000-0000000000a7', pg_temp.id('orgA'), pg_temp.id('plantA'), pg_temp.id('wash'), pg_temp.id('gNapkin'),
-                          '60000000-0000-0000-0000-0000000000a7', 3, now(), 'manual', (select auth.uid()), gen_random_uuid())$$),
-                pg_temp.run_as('lead', $$insert into public.washer_cycles (id, org_id, plant_id, area_id, wash_group_id, load_factor_used, started_at, source, entered_by, client_id)
+                          '60000000-0000-0000-0000-0000000000a7', 3, now(), 'manual', pg_temp.id('lead'), gen_random_uuid())$$),
+                pg_temp.as_service($$insert into public.washer_cycles (id, org_id, plant_id, area_id, wash_group_id, load_factor_used, started_at, source, entered_by, client_id)
                   values ('f1000000-0000-0000-0000-0000000000a8', pg_temp.id('orgA'), pg_temp.id('plantA'), pg_temp.id('wash'), pg_temp.id('gNapkin'),
-                          2, now(), 'manual', (select auth.uid()), gen_random_uuid())$$)],
-  '{1,1}', 'lead records loads with bogus load_factor_used values');
+                          2, now(), 'manual', pg_temp.id('lead'), gen_random_uuid())$$)],
+  '{1,1}', 'a writer passes bogus load_factor_used values');
 select is((select array_agg(load_factor_used order by id) from public.washer_cycles
             where id in ('f1000000-0000-0000-0000-0000000000a7', 'f1000000-0000-0000-0000-0000000000a8')),
   array[1.19, 1.00]::numeric[], 'load_factor_used = the machine''s factor, 1.00 without a machine (client values ignored)');
