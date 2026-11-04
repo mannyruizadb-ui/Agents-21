@@ -74,10 +74,10 @@ select is(pg_temp.val_as('owner', $$select (status, reason_code)::text from publ
   '(down,soap_dispenser)', 'the latest event''s code is returned');
 select is(array[has_column_privilege('authenticated', 'public.machine_status_events', 'reason_code', 'select'),
                 has_column_privilege('authenticated', 'public.machine_status_events', 'entered_by', 'select')],
-  array[true, false], 'column grant: reason_code readable, entered_by still not');
-select is(pg_temp.val_as('manager', $$select reason_code::text from public.machine_status_events where client_id = pg_temp.cid(1)$$),
+  array[false, false], 'no direct read of reason_code or entered_by (reasons only through the RPCs, hidden per role)');
+select is((select reason_code::text from public.machine_status_events where client_id = pg_temp.cid(1)),
   'water_pump', 'the code is stored on the event');
-select is((select count(*)::int from public.alert_events where kind = 'machine_down'), 3,
+select is((select count(*)::int from public.alert_events where kind = 'machine_down' and plant_id = pg_temp.id('plantA')), 3,
   'one alert per machine marked down through the RPC (codes do not change the push hook)');
 
 select * from finish();

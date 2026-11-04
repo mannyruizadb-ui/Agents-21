@@ -5,7 +5,7 @@
 -- Matrix arrays: [owner, manager, lead, viewer, display, display-without-device, owner of B, anon].
 begin;
 \ir _fixtures.psql
-select plan(19);
+select plan(20);
 
 insert into public.machines (id, org_id, plant_id, area_id, name, kind, active) values
   ('60000000-0000-0000-0000-0000000000a3', pg_temp.id('orgA'), pg_temp.id('plantA'), pg_temp.id('wash'), 'Washer 3', 'washer', true),
@@ -15,7 +15,7 @@ insert into public.machines (id, org_id, plant_id, area_id, name, kind, active) 
 select is(array[has_column_privilege('authenticated', 'public.machine_status_events', 'entered_by', 'select'),
                 has_column_privilege('authenticated', 'public.machine_status_events', 'reason', 'select'),
                 has_column_privilege('authenticated', 'public.machine_status_events', 'occurred_at', 'select')],
-  array[false, true, true], 'authenticated: SELECT on every column except entered_by');
+  array[false, false, true], 'authenticated: no SELECT on entered_by or reason (2026-11-04: reasons only through the RPCs)');
 select is(array[has_table_privilege('authenticated', 'public.machine_status_events', 'MAINTAIN'),
                 has_table_privilege('authenticated', 'public.machine_status_events', 'INSERT'),
                 has_table_privilege('authenticated', 'public.machine_status_events', 'UPDATE'),
@@ -31,7 +31,9 @@ select is(pg_temp.run_as('owner', $$select public.set_machine_status(pg_temp.id(
   '1', 'Washer 1 marked down with a free-text reason');
 select is(pg_temp.writes($$select entered_by from public.machine_status_events$$),
   '{42501,42501,42501,42501,42501,42501,42501,42501}', 'nobody reads entered_by through the API (not even the owner)');
-select is(pg_temp.reads($$select id, seq, org_id, plant_id, machine_id, status, reason, occurred_at, client_id, created_at from public.machine_status_events$$),
+select is(pg_temp.writes($$select reason from public.machine_status_events$$),
+  '{42501,42501,42501,42501,42501,42501,42501,42501}', 'no role reads the free-text reason from the table (lead and viewer included)');
+select is(pg_temp.reads($$select id, seq, org_id, plant_id, machine_id, status, occurred_at, client_id, created_at from public.machine_status_events$$),
   '{1,1,1,1,0,0,0,42501}', 'the other columns stay readable under RLS (plant roles only)');
 
 -- ══ L6: reasons only for owner and managers ══════════════════════════════

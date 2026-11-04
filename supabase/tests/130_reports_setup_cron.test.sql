@@ -106,7 +106,9 @@ select is((select array_agg(t || ':' || p order by t, p) from unnest(array['queu
 select is((select array_agg(tablename || ':' || cmd order by tablename) from pg_policies
             where schemaname = 'public' and tablename in ('queue_items', 'soil_estimates', 'washer_cycles', 'finished_goods_entries')),
   array['finished_goods_entries:SELECT', 'queue_items:SELECT', 'soil_estimates:SELECT', 'washer_cycles:SELECT'], 'only SELECT policies remain');
-select ok(has_table_privilege('authenticated', 'public.washer_cycles', 'SELECT'), 'reads are unchanged');
+select ok(has_any_column_privilege('authenticated', 'public.washer_cycles', 'SELECT')
+          and not has_column_privilege('authenticated', 'public.washer_cycles', 'entered_by', 'SELECT'),
+  'reads stay (column-level since 2026-11-04: who-entered columns hidden)');
 
 -- ══ Setup edits (owner 2026-11-03): direct writes, column-limited, with history guards ══
 select is(array[pg_temp.run_as('owner', $$update public.machines set plant_id = pg_temp.id('plantA2') where id = pg_temp.id('machine')$$),

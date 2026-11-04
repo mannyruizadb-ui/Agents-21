@@ -57,7 +57,7 @@ select ok((select count(*) >= 1 from public.audit_log where action = 'queue_item
 select is(pg_temp.run_as('ownerB', $$update public.queue_items set assigned_machine_id = '60000000-0000-0000-0000-0000000000b1' where plant_id = pg_temp.id('plantA')$$),
   '42501', 'owner of B cannot assign plant A queue items');
 select is(pg_temp.reads($$select 1 from public.queue_items where plant_id = pg_temp.id('plantA') and assigned_machine_id is not null$$),
-  '{1,1,1,1,1,0,0,0}', 'assigned items R: plant roles; display its own (washroom) area; no cross-tenant');
+  '{1,1,1,1,1,0,0,42501}', 'assigned items R: plant roles; display its own (washroom) area; no cross-tenant');
 
 -- ── Washers only, and only of the item's own area (and so its plant) ─────
 select is(pg_temp.as_service($$update public.queue_items set assigned_machine_id = '60000000-0000-0000-0000-0000000000a4' where id = 'e0000000-0000-0000-0000-0000000000a1'$$),

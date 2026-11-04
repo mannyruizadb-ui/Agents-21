@@ -13,7 +13,7 @@ insert into public.soil_estimates (org_id, plant_id, wash_group_id, qty, unit, e
   (pg_temp.id('orgB'), pg_temp.id('plantB'), pg_temp.id('groupB'),  1, 'load',   pg_temp.id('ownerB'),  gen_random_uuid());
 
 -- soil_estimates: owner/manager/lead R C; viewer R; display R (plant-wide).
-select is(pg_temp.reads($$select 1 from public.soil_estimates where plant_id = pg_temp.id('plantA')$$), '{2,2,2,2,2,0,0,0}', 'soil_estimates R');
+select is(pg_temp.reads($$select 1 from public.soil_estimates where plant_id = pg_temp.id('plantA')$$), '{2,2,2,2,2,0,0,42501}', 'soil_estimates R');
 select is(pg_temp.writes($$insert into public.soil_estimates (org_id, plant_id, wash_group_id, qty, unit, entered_by, client_id)
   values (pg_temp.id('orgA'), pg_temp.id('plantA'), pg_temp.id('gNapkin'), 3, 'load', (select auth.uid()), gen_random_uuid())$$),
   '{42501,42501,42501,42501,42501,42501,42501,42501}', 'M2: no direct soil_estimates insert for any role (record_soil_estimate only)');
@@ -59,7 +59,7 @@ insert into public.queue_items (id, org_id, plant_id, area_id, wash_group_id, it
   ('e0000000-0000-0000-0000-0000000000a2', pg_temp.id('orgA'), pg_temp.id('plantA'), pg_temp.id('fin'), pg_temp.id('gMat'), pg_temp.id('mat'), 10, 'piece', 1, pg_temp.id('manager'), gen_random_uuid()),
   ('e0000000-0000-0000-0000-0000000000b1', pg_temp.id('orgB'), pg_temp.id('plantB'), pg_temp.id('washB'), pg_temp.id('groupB'), pg_temp.id('itemB'), 1, 'load', 1, pg_temp.id('ownerB'), gen_random_uuid());
 
-select is(pg_temp.reads($$select 1 from public.queue_items where plant_id = pg_temp.id('plantA')$$), '{2,2,2,2,1,0,0,0}', 'queue_items R (display: own area)');
+select is(pg_temp.reads($$select 1 from public.queue_items where plant_id = pg_temp.id('plantA')$$), '{2,2,2,2,1,0,0,42501}', 'queue_items R (display: own area)');
 select is(pg_temp.run_as('display', $$select 1 from public.queue_items where area_id = pg_temp.id('fin')$$, true), '0', 'display cannot read another area''s queue');
 select is(pg_temp.writes($$insert into public.queue_items (org_id, plant_id, area_id, wash_group_id, item_type_id, qty, unit, position, created_by, client_id)
   values (pg_temp.id('orgA'), pg_temp.id('plantA'), pg_temp.id('wash'), pg_temp.id('gNapkin'), pg_temp.id('napkin'), 1, 'load', 99, (select auth.uid()), gen_random_uuid())$$),
