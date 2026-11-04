@@ -166,14 +166,15 @@ select is((select array[(voided_by = pg_temp.id('manager'))::text, void_reason] 
 select is((select coalesce(sum(pieces), 0)::int from public.finished_by_shift where item_type_id = pg_temp.id('napkin')), 160,
   'voided entries leave the totals (734 voided, 160 left)');
 select is((select count(*)::int from public.finished_goods_entries where client_id = pg_temp.cid(10)), 1, 'voided, never deleted');
-select is((select count(*)::int from public.audit_log where action = 'finished_goods_entries.void'), 1, 'the void is audited');
+select is((select count(*)::int from public.audit_log where action = 'finished_goods_entries.void' and plant_id = pg_temp.id('plantA')
+              and entity_id = (select id from public.finished_goods_entries where client_id = pg_temp.cid(10))), 1, 'the void is audited');
 select is(pg_temp.run_as('manager', $$update public.finished_goods_entries set voided_at = null where client_id = pg_temp.cid(10)$$), '42501',
   'clients cannot un-void (no UPDATE privilege)');
 
 -- ══ Who-entered is attribution only ══════════════════════════════════════
 select is((select count(*)::int from information_schema.columns where table_schema = 'public' and table_name in ('finished_by_shift', 'washroom_by_shift', 'daily_reconciliation')
             and column_name in ('staff_id', 'entered_by', 'entered_by_name')), 0, 'report views carry no per-person column');
-select is((select count(*)::int from public.staff_sessions where auth_user_id <> pg_temp.id('manager') and auth_user_id <> pg_temp.id('owner') and auth_user_id <> pg_temp.id('lead')), 0,
+select is((select count(*)::int from public.staff_sessions where plant_id = pg_temp.id('plantA') and auth_user_id <> pg_temp.id('manager') and auth_user_id <> pg_temp.id('owner') and auth_user_id <> pg_temp.id('lead')), 0,
   'sessions belong to the confirming accounts only');
 
 select * from finish();

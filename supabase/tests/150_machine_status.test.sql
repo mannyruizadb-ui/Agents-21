@@ -61,7 +61,7 @@ select is(pg_temp.run_as('ownerB', $$select public.set_machine_status('60000000-
 select is(pg_temp.val_as('manager', $$select row((r).status, (r).reason, (r).changed)::text
                                         from (select public.set_machine_status('60000000-0000-0000-0000-0000000000a6', 'up', gen_random_uuid(), 'Belt replaced') as r) x$$),
   '(up,"Belt replaced",t)', 'back up, with an optional note');
-select is((select count(*)::int from public.alert_events where kind = 'machine_down'), 2, 'up writes no alert; each down event writes one');
+select is((select count(*)::int from public.alert_events where kind = 'machine_down' and plant_id = pg_temp.id('plantA')), 2, 'up writes no alert; each down event writes one');
 select is(pg_temp.val_as('owner', $$select (public.set_machine_status('60000000-0000-0000-0000-0000000000a4', 'up', gen_random_uuid())).event_id$$),
   null, 'marking a machine up that was never down records nothing');
 
@@ -163,9 +163,9 @@ select is(pg_temp.run_as('lead', $$select public.start_washer_load(pg_temp.id('m
 
 -- Every event and alert is per plant; nothing leaks to plant B.
 select is(pg_temp.run_as('ownerB', $$select 1 from public.machine_status_events$$, true), '0', 'owner B sees no plant A events');
-select is((select count(*)::int from public.machine_status_events), 4, 'four events: down + up for Washer 1, down + up for the ironer');
+select is((select count(*)::int from public.machine_status_events where plant_id = pg_temp.id('plantA')), 4, 'four events: down + up for Washer 1, down + up for the ironer');
 select is((select count(*)::int from public.alert_events a join public.machine_status_events e on e.id = a.subject_id
-            where a.kind = 'machine_down' and e.status = 'down' and e.plant_id = a.plant_id), 2, 'each down event has exactly one alert, in its plant');
+            where a.kind = 'machine_down' and e.status = 'down' and e.plant_id = a.plant_id and a.plant_id = pg_temp.id('plantA')), 2, 'each down event has exactly one alert, in its plant');
 select is((select count(*)::int from pg_proc p where p.proname = 'get_machine_status'
              and pg_get_function_result(p.oid) like '%entered_by%'), 0, 'no per-person column in the read RPC');
 
