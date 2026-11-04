@@ -147,7 +147,7 @@ export function useWasherCapacity(plantId: string | undefined) {
   return useQuery({
     queryKey: estimateKeys.capacity(plantId ?? ''),
     enabled: !!plantId,
-    queryFn: async (): Promise<{ washers: number; capacity: number }> => {
+    queryFn: async (): Promise<{ washers: number; capacity: number; serverOffsetMs: number }> => {
       const [machines, status] = await Promise.all([
         supabase
           .from('machines')
@@ -161,7 +161,10 @@ export function useWasherCapacity(plantId: string | undefined) {
         (unwrap(status) ?? []).filter((m) => m.status === 'down').map((m) => m.machine_id),
       );
       const up = (unwrap(machines) ?? []).filter((m) => !down.has(m.id));
+      const serverTime = Date.parse(unwrap(status)?.[0]?.server_time ?? '');
       return {
+        // server clock − device clock, so entry times sent as p_entered_at use the server's clock
+        serverOffsetMs: Number.isNaN(serverTime) ? 0 : serverTime - Date.now(),
         washers: up.length,
         capacity: up.reduce((sum, m) => sum + Number(m.load_factor ?? 1), 0),
       };

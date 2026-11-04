@@ -175,6 +175,7 @@ function EstimatesScreen({ userId, plantId }: { userId: string; plantId: string 
         }
         // s.kind === 'retry': offline. Store the batch with the PIN; it opens a session later.
       }
+      const enteredAt = new Date(Date.now() + (capacity.data?.serverOffsetMs ?? 0)).toISOString();
       const batch: OutboxBatch = {
         batchId: crypto.randomUUID(),
         staffId,
@@ -182,6 +183,7 @@ function EstimatesScreen({ userId, plantId }: { userId: string; plantId: string 
         sessionId,
         entries: valid.map((c) => ({
           clientId: crypto.randomUUID(),
+          enteredAt: enteredAt,
           washGroupId: c.group.id,
           qty: c.qty as number,
           unit: c.unit as EstimateUnit,
@@ -288,7 +290,9 @@ function EstimatesScreen({ userId, plantId }: { userId: string; plantId: string 
                 group: g ? localized(g.name, g.name_i18n) : '?',
                 amount: amount(r.qty, r.unit),
               })}{' '}
-              {t(errorMessageKey({ message: r.errorCode }))}
+              {r.errorCode === 'OUT_OF_RANGE_TIMESTAMP'
+                ? t('estimates.errors.tooOld')
+                : t(errorMessageKey({ message: r.errorCode }))}
             </p>
             <button type="button" className="secondary" onClick={() => outbox.dismiss(r.clientId)}>
               {t('station.dismiss')}

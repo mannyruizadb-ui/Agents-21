@@ -200,4 +200,32 @@ describe('estimate outbox', () => {
     expect(r.saved).toEqual([]);
     expect(readOutbox(a)).toHaveLength(1);
   });
+
+  it('passes each entry with its own entered-at time to the server', async () => {
+    const s = memoryStore();
+    addBatch(
+      s,
+      batch({
+        sessionId: 'sess',
+        entries: [
+          {
+            clientId: 'e1',
+            washGroupId: 'g',
+            qty: 1,
+            unit: 'load',
+            enteredAt: '2026-11-04T22:00:00.000Z',
+          },
+        ],
+      }),
+    );
+    const seen: (string | undefined)[] = [];
+    await flushOutbox(s, {
+      startSession: async () => ({ kind: 'ok', sessionId: 'x' }),
+      record: async (e) => {
+        seen.push(e.enteredAt);
+        return { kind: 'saved' };
+      },
+    });
+    expect(seen).toEqual(['2026-11-04T22:00:00.000Z']);
+  });
 });

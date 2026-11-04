@@ -14,6 +14,8 @@ export interface OutboxEntry {
   washGroupId: string;
   qty: number;
   unit: EstimateUnit;
+  /** When the estimate was made (server-clock corrected), sent as p_entered_at. */
+  enteredAt?: string;
 }
 
 export interface OutboxBatch {
@@ -46,7 +48,8 @@ function isEntry(v: unknown): v is OutboxEntry {
     typeof o.clientId === 'string' &&
     typeof o.washGroupId === 'string' &&
     typeof o.qty === 'number' &&
-    (o.unit === 'load' || o.unit === 'basket' || o.unit === 'bin')
+    (o.unit === 'load' || o.unit === 'basket' || o.unit === 'bin') &&
+    (o.enteredAt === undefined || typeof o.enteredAt === 'string')
   );
 }
 

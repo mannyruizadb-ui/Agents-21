@@ -380,7 +380,8 @@
       "who": "Choose who is entering.",
       "pin": "Type the 4-digit PIN.",
       "wrongPin": "Wrong PIN. Try again.",
-      "locked": "Too many wrong PINs. Wait 5 minutes and try again."
+      "locked": "Too many wrong PINs. Wait 5 minutes and try again.",
+      "tooOld": "It reached the server more than 30 minutes after it was entered, so it wasn't saved. Enter it again."
     },
     "noTimeGroups_one": "{{count}} group has no washer time set, so the time leaves it out.",
     "noTimeGroups_other": "{{count}} groups have no washer time set, so the time leaves them out.",

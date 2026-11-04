@@ -54,11 +54,7 @@ export async function startSessionDetailed(
         ? { kind: 'retry', error: e.code ?? 'NETWORK' }
         : { kind: 'rejected', errorCode: e.code ?? 'UNKNOWN' };
     }
-    const r = res.data as {
-      staff_session_id: string | null;
-      error: string | null;
-      expires_at?: string | null;
-    } | null;
+    const r = res.data;
     if (r?.staff_session_id) {
       return { kind: 'ok', sessionId: r.staff_session_id, expiresAt: r.expires_at ?? null };
     }
@@ -84,6 +80,8 @@ function apiFor(onSession: (staffId: string, s: OpenedSession) => void): OutboxA
           p_unit: entry.unit,
           p_client_id: entry.clientId,
           p_staff_session_id: sessionId,
+          // The time the estimate was made, so one sent after an outage keeps its real time.
+          ...(entry.enteredAt ? { p_entered_at: entry.enteredAt } : {}),
         });
         if (!res.error) return { kind: 'saved' };
         const code = appErrorCode(res.error);
