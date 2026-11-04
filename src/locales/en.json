@@ -349,7 +349,6 @@
     "lastValue": "Last: {{what}} at {{at}} ({{ago}})",
     "old": "old, check again",
     "countIn": "Count it in",
-    "howFullLast": "How full is the last {{unit}}?",
     "unitOne": {
       "bin": "bin",
       "basket": "basket"
@@ -398,6 +397,9 @@
       "pin": "Type the 4-digit PIN.",
       "wrongPin": "Wrong PIN. Try again.",
       "locked": "Too many wrong PINs. Wait 5 minutes and try again."
-    }
+    },
+    "howFullPart": "Full ones with +1, and how full the other {{unit}} is",
+    "noTimeGroups_one": "{{count}} group has no washing time set, so the hours leave it out.",
+    "noTimeGroups_other": "{{count}} groups have no washing time set, so the hours leave them out."
   }
 }

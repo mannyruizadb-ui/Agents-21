@@ -6,7 +6,7 @@ import {
   fillAmount,
   hoursMinutes,
   parseAmount,
-  setLast,
+  setPart,
   splitAmount,
   summarize,
   toLoads,
@@ -62,22 +62,26 @@ describe('conversion', () => {
 });
 
 describe('bin fill', () => {
-  it('builds 2 full + ½ with +1, +1, ½', () => {
-    let f = { extraFull: 0, last: 0 };
-    f = addFull(f); // first full bin
-    expect(fillAmount(f)).toBe(1);
+  it('builds 2 full + ½ with +1, +1, ½ in any order', () => {
+    let f = { full: 0, part: 0 };
+    f = addFull(f);
     f = addFull(f);
     expect(fillAmount(f)).toBe(2);
-    f = setLast(f, 0.5); // the last one is only half full
-    expect(fillAmount(f)).toBe(1.5);
-    f = addFull(f);
+    f = setPart(f, 0.5);
     expect(fillAmount(f)).toBe(2.5);
+    let g = setPart({ full: 0, part: 0 }, 0.5);
+    g = addFull(addFull(g));
+    expect(fillAmount(g)).toBe(2.5);
+  });
+  it('Full is one more full container; tapping a pick again clears it', () => {
+    expect(fillAmount(setPart({ full: 0, part: 0 }, 1))).toBe(1);
+    expect(fillAmount(setPart({ full: 2, part: 0.5 }, 0.5))).toBe(2);
   });
   it('splits a typed amount back into a fill', () => {
-    expect(splitAmount(2.5)).toEqual({ extraFull: 2, last: 0.5 });
-    expect(splitAmount(3)).toEqual({ extraFull: 2, last: 1 });
-    expect(splitAmount(0.75)).toEqual({ extraFull: 0, last: 0.75 });
-    expect(splitAmount(0)).toEqual({ extraFull: 0, last: 0 });
+    expect(splitAmount(2.5)).toEqual({ full: 2, part: 0.5 });
+    expect(splitAmount(3)).toEqual({ full: 3, part: 0 });
+    expect(splitAmount(0.75)).toEqual({ full: 0, part: 0.75 });
+    expect(splitAmount(0)).toEqual({ full: 0, part: 0 });
   });
   it('parses amounts like the server (0–10,000, 2 decimals)', () => {
     expect(parseAmount('2,5')).toBe(2.5);
@@ -95,10 +99,11 @@ describe('summarize', () => {
         { loads: 1, cycleMinutes: 30 },
         { loads: null, cycleMinutes: 30 },
         { loads: 0, cycleMinutes: 26 },
+        { loads: 2, cycleMinutes: null },
       ],
       2,
     );
-    expect(s).toEqual({ loads: 6, unknown: 1, hours: 2.75 });
+    expect(s).toEqual({ loads: 8, unknown: 1, hours: 2.75, noTime: 1 });
   });
   it('has no hours without working washers, and 0 when nothing is waiting', () => {
     expect(summarize([{ loads: 3, cycleMinutes: 26 }], 0).hours).toBeNull();

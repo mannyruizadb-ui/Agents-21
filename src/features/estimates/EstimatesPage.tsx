@@ -236,6 +236,11 @@ export function EstimatesPage() {
             <IconWarning /> {t('estimates.unknownGroups', { count: summary.unknown })}
           </p>
         )}
+        {summary.noTime > 0 && (
+          <p className="hint">
+            <IconWarning /> {t('estimates.noTimeGroups', { count: summary.noTime })}
+          </p>
+        )}
         {withoutEstimate > 0 && (
           <p className="hint">{t('estimates.groupsWithout', { count: withoutEstimate })}</p>
         )}

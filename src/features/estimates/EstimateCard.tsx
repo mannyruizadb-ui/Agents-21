@@ -8,7 +8,7 @@ import {
   estimateUnits,
   fillAmount,
   parseAmount,
-  setLast,
+  setPart,
   splitAmount,
   toLoads,
   washHours,
@@ -17,7 +17,7 @@ import {
 import type { CurrentEstimate, EstimateGroup } from './estimatesData';
 
 // One wash group's estimate card (owner 2026-11-04: clear, not just +/−). Choose the container the
-// group allows, tap how full (¼ ½ ¾ Full, "+1" for several), or type a number. The card answers
+// group allows, tap "+1" per full one and ¼ ½ ¾ Full for a partly full one, or type a number. The card answers
 // live: "2½ bins ≈ 5 loads · ≈ 4 h 55 min of washing". "≈" always; "no number set" when a factor is
 // missing. The last estimate shows with its time only (no names).
 
@@ -125,15 +125,15 @@ export function EstimateCard({
       {unit !== 'load' ? (
         <div role="group" aria-labelledby={`${idBase}-fill`} className="field">
           <p id={`${idBase}-fill`} className="pick-label">
-            {t('estimates.howFullLast', { unit: t(`estimates.unitOne.${unit}`) })}
+            {t('estimates.howFullPart', { unit: t(`estimates.unitOne.${unit}`) })}
           </p>
           <ul className="pick-list fill-picks">
             {FILL_PICKS.map((p) => (
               <li key={p}>
                 <button
                   type="button"
-                  aria-pressed={qty !== null && splitAmount(qty).last === p}
-                  onClick={() => setQty(fillAmount(setLast(splitAmount(qty ?? 0), p)))}
+                  aria-pressed={qty !== null && qty > 0 && splitAmount(qty).part === p}
+                  onClick={() => setQty(fillAmount(setPart(splitAmount(qty ?? 0), p)))}
                 >
                   {p === 1 ? t('rewash.full') : fractionText(p, fmt)}
                 </button>
@@ -142,6 +142,7 @@ export function EstimateCard({
             <li>
               <button
                 type="button"
+                className="secondary"
                 onClick={() => setQty(fillAmount(addFull(splitAmount(qty ?? 0))))}
               >
                 {t(`estimates.addOne.${unit}`)}

@@ -50,35 +50,33 @@ export function round2(n: number): number {
 }
 
 /**
- * Bin fill as "extra full containers + how full the last one is". Picks ¼ ½ ¾ Full set how full the
- * last container is; "+1" adds another full one. 2 full + ½: tap +1, +1, +1, then ½.
+ * Bin fill = full containers + one partly full container. "+1" adds a full one; ¼ ½ ¾ Full set
+ * how full the extra one is (Full = one more full). 2 full + ½: tap +1, +1, ½ (in any order).
  */
 export interface Fill {
-  extraFull: number;
-  last: number; // 0, 0.25, 0.5, 0.75 or 1
+  full: number;
+  part: number; // 0, 0.25, 0.5, 0.75 or 1
 }
 
 export function fillAmount(f: Fill): number {
-  return f.extraFull + f.last;
+  return f.full + f.part;
 }
 
-/** A typed amount back to a fill: 2.5 → 2 full + ½; 3 → 2 full + a full last one. */
+/** A typed amount back to a fill: 2.5 → 2 full + ½; 3 → 3 full. */
 export function splitAmount(qty: number): Fill {
-  if (qty <= 0) return { extraFull: 0, last: 0 };
-  const whole = Math.floor(qty);
-  const frac = round2(qty - whole);
-  return frac === 0 ? { extraFull: whole - 1, last: 1 } : { extraFull: whole, last: frac };
+  if (qty <= 0) return { full: 0, part: 0 };
+  const full = Math.floor(qty);
+  return { full, part: round2(qty - full) };
 }
 
-export function setLast(f: Fill, last: number): Fill {
-  return { ...f, last };
+/** ¼ ½ ¾ Full: how full the extra container is (tapping the chosen one again clears it). */
+export function setPart(f: Fill, part: number): Fill {
+  return { ...f, part: f.part === part ? 0 : part };
 }
 
-/** "+1 bin": one more full container. With nothing yet, it is the first full one. */
+/** "+1 bin": one more full container. */
 export function addFull(f: Fill): Fill {
-  return f.last === 0 && f.extraFull === 0
-    ? { extraFull: 0, last: 1 }
-    : { ...f, extraFull: f.extraFull + 1 };
+  return { ...f, full: f.full + 1 };
 }
 
 /**
@@ -104,6 +102,8 @@ export interface Summary {
   unknown: number;
   /** ≈ hours to wash it all on the working washers; null when there's no capacity or no data. */
   hours: number | null;
+  /** Groups with loads but no formula time: in the loads total, missing from the hours. */
+  noTime: number;
 }
 
 /**
@@ -115,6 +115,7 @@ export function summarize(rows: readonly SummaryInput[], washerCapacity: number)
   let unknown = 0;
   let minutes = 0;
   let minutesKnown = false;
+  let noTime = 0;
   for (const r of rows) {
     if (r.loads === null) {
       unknown += 1;
@@ -124,11 +125,13 @@ export function summarize(rows: readonly SummaryInput[], washerCapacity: number)
     if (r.cycleMinutes && r.loads > 0) {
       minutes += r.loads * r.cycleMinutes;
       minutesKnown = true;
+    } else if (r.loads > 0) {
+      noTime += 1;
     }
   }
   const hours =
     washerCapacity > 0 && minutesKnown ? minutes / 60 / washerCapacity : loads === 0 ? 0 : null;
-  return { loads: round2(loads), unknown, hours: hours === null ? null : round2(hours) };
+  return { loads: round2(loads), unknown, hours: hours === null ? null : round2(hours), noTime };
 }
 
 /** 2.25 h → { h: 2, m: 15 }, rounded to 5 minutes (it's an estimate). */
