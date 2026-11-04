@@ -130,8 +130,8 @@ select is(pg_temp.val_as('manager', $$select (public.undo_washer_load(pg_temp.cy
   'queued', 'undo of the only load of the rewash item puts it back in the queue');
 select is((select array[status::text, loads_started::text, coalesce(started_at::text, 'null')] from public.queue_items where id = pg_temp.q(3)),
   array['queued', '0', 'null'], 'rewash item: queued, 0 loads, started_at cleared');
-update public.washer_cycles set started_at = now() - interval '31 minutes' where id = pg_temp.cyc(103);
-select is(pg_temp.run_as('lead', $$select public.undo_washer_load(pg_temp.cyc(103))$$), 'OUT_OF_RANGE_TIMESTAMP', 'no undo after 30 minutes');
+update public.washer_cycles set started_at = now() - interval '31 minutes', created_at = now() - interval '31 minutes' where id = pg_temp.cyc(103);
+select is(pg_temp.run_as('lead', $$select public.undo_washer_load(pg_temp.cyc(103))$$), 'OUT_OF_RANGE_TIMESTAMP', 'no undo 30 minutes after the tap was recorded (created_at)');
 select is((select coalesce(sum(loads_run), 0)::int from public.washroom_by_shift where plant_id = pg_temp.id('plantA')),
   (select count(*)::int from public.washer_cycles where plant_id = pg_temp.id('plantA') and voided_at is null),
   'voided loads leave every report');

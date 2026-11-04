@@ -4,7 +4,7 @@ select plan(14);
 
 select is(
   (select count(*)::int from pg_tables where schemaname = 'public'),
-  27, '§4.4: 26 tables + wash_groups (owner 2026-11-01) in public');
+  28, '§4.4: 26 tables + wash_groups (owner 2026-11-01) + machine_status_events (owner 2026-11-04) in public');
 
 -- Every FK has a non-partial index whose leading columns are exactly the FK columns (§4.8).
 select is(
@@ -32,7 +32,7 @@ select is(
     where pubname = 'supabase_realtime' and schemaname = 'public'),
   array['display_messages','queue_items','soil_estimates'], 'Realtime publishes only queue_items, soil_estimates, display_messages');
 
-select enum_has_labels('app', 'qty_unit', array['load','basket','piece','pack'], 'qty_unit has no weight units');
+select enum_has_labels('app', 'qty_unit', array['load','basket','bin','piece','pack'], 'qty_unit has no weight units (bin added 2026-11-04)');
 
 select is(
   (select coalesce(array_agg(p.proname::text order by p.proname), '{}') from pg_proc p
