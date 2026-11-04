@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
+import { SignOutButton } from './SignOutButton';
 import { supabase } from '../../lib/supabase';
 import { callManageUsers, ManageUsersError } from '../../features/admin/manageUsers';
 import '../../lib/forms.css';
@@ -93,9 +94,7 @@ export function ChangePasswordPage() {
           <button type="submit" disabled={saving}>
             {saving ? t('changePassword.saving') : t('changePassword.save')}
           </button>
-          <button type="button" className="secondary" onClick={() => supabase.auth.signOut()}>
-            {t('auth.signOut')}
-          </button>
+          <SignOutButton canSend={false} />
         </div>
       </form>
       <p id="change-password-status" role="status" aria-live="polite" className="error">

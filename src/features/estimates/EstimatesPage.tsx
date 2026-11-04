@@ -21,7 +21,7 @@ import {
   usePinReuseMinutes,
   useWasherCapacity,
 } from './estimatesData';
-import { startSession, useEstimateOutbox } from './useEstimateOutbox';
+import { readLastStaff, startSessionDetailed, useEstimateOutbox } from './useEstimateOutbox';
 import '../../lib/forms.css';
 import '../washroom/washroom.css';
 import './estimates.css';
@@ -31,29 +31,46 @@ import './estimates.css';
 // only. No names on any estimate. Every insert carries a client_id; the batch goes through the
 // device outbox so nothing is lost offline.
 
-const LAST_STAFF_KEY = 'plantboard.estimates.lastStaff.v1';
-
-function readLastStaff(): string {
-  try {
-    return window.localStorage.getItem(LAST_STAFF_KEY) ?? '';
-  } catch {
-    return '';
-  }
-}
-
+/**
+ * Role gate (security review: the outbox hook and its flusher only run for owners and managers).
+ * Everything else, including useEstimateOutbox, lives in EstimatesScreen below.
+ */
 export function EstimatesPage() {
   const { t } = useTranslation();
   const session = useRequiredSession();
-  const now = useNow(15_000);
-  const online = useOnline();
-  const localized = useLocalizedName();
-  const { amount, hours, fmt } = useAmountText();
-
   const areas = useAreas();
   const plantId = areas.data?.[0]?.plant_id;
   const roles = useMyRoles(session.user.id);
   const myRoles = roles.rolesFor(plantId);
   const allowed = myRoles.has('owner') || myRoles.has('manager');
+
+  if (!roles.isSuccess || !areas.isSuccess || !plantId) {
+    return (
+      <main className="form-page">
+        <p role="status">{t('common.loading')}</p>
+      </main>
+    );
+  }
+  if (!allowed) {
+    return (
+      <main className="form-page">
+        <p>
+          <Link to="/control">{t('common.back')}</Link>
+        </p>
+        <h1>{t('estimates.title')}</h1>
+        <p className="notice">{t('estimates.notAllowed')}</p>
+      </main>
+    );
+  }
+  return <EstimatesScreen userId={session.user.id} plantId={plantId} />;
+}
+
+function EstimatesScreen({ userId, plantId }: { userId: string; plantId: string }) {
+  const { t } = useTranslation();
+  const now = useNow(15_000);
+  const online = useOnline();
+  const localized = useLocalizedName();
+  const { amount, hours, fmt } = useAmountText();
 
   const groups = useEstimateGroups(plantId);
   const formulas = useFormulaMinutes(plantId);
@@ -62,12 +79,12 @@ export function EstimatesPage() {
   const staff = useEntryStaff(plantId);
   const reuse = usePinReuseMinutes(plantId);
   const capacity = useWasherCapacity(plantId);
-  const outbox = useEstimateOutbox(reuse.data ?? 0);
+  const outbox = useEstimateOutbox(userId, plantId, reuse.data ?? 0);
 
   const [drafts, setDrafts] = useState<Record<string, Draft>>({});
   const [openId, setOpenId] = useState<string | null>(null);
   const [reviewing, setReviewing] = useState(false);
-  const [staffId, setStaffId] = useState(readLastStaff);
+  const [staffId, setStaffId] = useState(() => readLastStaff(userId));
   const [pin, setPin] = useState('');
   const [usePinAnyway, setUsePinAnyway] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -134,7 +151,7 @@ export function EstimatesPage() {
       let sessionId = needPin ? null : (cached?.sessionId ?? null);
       if (needPin) {
         // Check the PIN now when online, so a typo is caught here and nothing is stored with it.
-        const s = await startSession(staffId, pin);
+        const s = await startSessionDetailed(staffId, pin);
         if (s.kind === 'pin') {
           setMessage({
             kind: 'bad',
@@ -151,7 +168,10 @@ export function EstimatesPage() {
         }
         if (s.kind === 'ok') {
           sessionId = s.sessionId;
-          outbox.rememberNewSession(staffId, s.sessionId);
+          outbox.rememberNewSession(staffId, {
+            sessionId: s.sessionId,
+            expiresAt: s.expiresAt ?? null,
+          });
         }
         // s.kind === 'retry': offline. Store the batch with the PIN; it opens a session later.
       }
@@ -169,12 +189,7 @@ export function EstimatesPage() {
         createdAt: new Date().toISOString(),
         lastError: null,
       };
-      try {
-        window.localStorage.setItem(LAST_STAFF_KEY, staffId);
-      } catch {
-        // not remembered; asked again next time
-      }
-      const r = await outbox.submit(batch);
+      const r = await outbox.submit(batch, staffId);
       setPin('');
       setUsePinAnyway(false);
       setDrafts({});
@@ -192,18 +207,6 @@ export function EstimatesPage() {
     } finally {
       setBusy(false);
     }
-  }
-
-  if (roles.isSuccess && areas.isSuccess && !allowed) {
-    return (
-      <main className="form-page">
-        <p>
-          <Link to="/control">{t('common.back')}</Link>
-        </p>
-        <h1>{t('estimates.title')}</h1>
-        <p className="notice">{t('estimates.notAllowed')}</p>
-      </main>
-    );
   }
 
   const staffName = staff.data?.find((s) => s.id === staffId)?.display_name;
@@ -294,7 +297,7 @@ export function EstimatesPage() {
         );
       })}
 
-      {(groups.isPending || areas.isPending) && <p role="status">{t('common.loading')}</p>}
+      {groups.isPending && <p role="status">{t('common.loading')}</p>}
       {groups.isError && <p className="error">{t(errorMessageKey(groups.error))}</p>}
 
       <ul className="estimate-list compact">

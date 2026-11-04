@@ -399,5 +399,13 @@
     "washerTime": "≈ {{time}} de tiempo de lavadora",
     "lastSaved": "Último guardado: {{what}}",
     "done": "Listo"
+  },
+  "signOut": {
+    "pending_one": "{{count}} dato o arranque de lavadora no se ha enviado todavía.",
+    "pending_other": "{{count}} datos o arranques de lavadora no se han enviado todavía.",
+    "sendNow": "Enviar ahora",
+    "sending": "Enviando…",
+    "keep": "Guardar para la próxima vez",
+    "cantSendYet": "Cambia tu contraseña primero para enviarlos. Se quedan en este equipo para tu cuenta."
   }
 }

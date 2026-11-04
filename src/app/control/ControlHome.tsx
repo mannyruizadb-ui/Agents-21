@@ -1,6 +1,6 @@
 import { Link } from 'react-router';
 import { useTranslation } from 'react-i18next';
-import { supabase } from '../../lib/supabase';
+import { SignOutButton } from '../auth/SignOutButton';
 import { useRequiredSession } from '../auth/sessionContext';
 import { useOwnerPlants } from '../../features/admin/useOwnerPlants';
 import '../../lib/forms.css';
@@ -29,9 +29,7 @@ export function ControlHome() {
             {t('people.title')}
           </Link>
         )}
-        <button type="button" className="secondary" onClick={() => supabase.auth.signOut()}>
-          {t('auth.signOut')}
-        </button>
+        <SignOutButton />
       </div>
     </main>
   );

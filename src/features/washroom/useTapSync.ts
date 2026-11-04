@@ -1,5 +1,8 @@
-import { useCallback, useEffect, useSyncExternalStore } from 'react';
+import { useCallback, useEffect, useMemo, useSyncExternalStore } from 'react';
 import { useQueryClient, type QueryClient } from '@tanstack/react-query';
+import { useRequiredSession } from '../../app/auth/sessionContext';
+import { isSignedInAs } from '../../lib/authUser';
+import { isBrowserStorePersistent, scopedKey, userStore } from '../../lib/scopedStore';
 import { supabase } from '../../lib/supabase';
 import type { Database } from '../../types/database';
 import { isRetryable, toRpcError, unwrap } from './rpcError';
@@ -13,52 +16,22 @@ import {
   readRejected,
   REJECTED_KEY,
   removePending,
-  type KeyValueStore,
   type PendingTap,
   type RejectedTap,
   type SendOutcome,
 } from './tapQueue';
 
-// Washer start-taps that never get lost (task brief + frontend rules: client_id generated before the
-// first attempt; entries persist offline). One module-level flusher per tab; other tabs are picked up
-// through the `storage` event, and the server's client_id idempotency makes a double send harmless.
+// Washer start-taps that never get lost (client_id generated before the first attempt; taps persist
+// offline). Security H1: everything lives in the signed-in account's own storage
+// (plantboard.<userId>.…); a flush reads only that account's taps and checks the account is still
+// signed in right before sending. One flusher per account per tab; the server's client_id
+// idempotency makes a double send from two tabs harmless.
 
 export type WasherLoadResult = Database['public']['CompositeTypes']['washer_load_result'];
 
 /** How long the station offers UNDO after a start (the server allows 30 minutes). */
 export const UNDO_WINDOW_MS = 60_000;
 const RETRY_EVERY_MS = 15_000;
-
-/** localStorage, falling back to memory when the device refuses (private mode, quota). */
-function browserStore(): { store: KeyValueStore; isPersistent: () => boolean } {
-  const memory = new Map<string, string>();
-  let persistent = true;
-  return {
-    isPersistent: () => persistent,
-    store: {
-      getItem(key) {
-        if (!persistent) return memory.get(key) ?? null;
-        try {
-          return window.localStorage.getItem(key);
-        } catch {
-          persistent = false;
-          return memory.get(key) ?? null;
-        }
-      },
-      setItem(key, value) {
-        memory.set(key, value);
-        if (!persistent) return;
-        try {
-          window.localStorage.setItem(key, value);
-        } catch {
-          persistent = false;
-        }
-      },
-    },
-  };
-}
-
-const { store, isPersistent } = browserStore();
 
 export interface TapSnapshot {
   pending: PendingTap[];
@@ -69,44 +42,60 @@ export interface TapSnapshot {
   persistent: boolean;
 }
 
-let sent: Record<string, WasherLoadResult> = {};
-let snapshot: TapSnapshot = { pending: [], rejected: [], sent, persistent: true };
-let loaded = false;
+interface UserState {
+  snapshot: TapSnapshot;
+  sent: Record<string, WasherLoadResult>;
+  flushing: Promise<void> | null;
+}
+
+const users = new Map<string, UserState>();
 const listeners = new Set<() => void>();
 
-function refresh() {
-  snapshot = {
+function state(userId: string): UserState {
+  let s = users.get(userId);
+  if (!s) {
+    const store = userStore(userId);
+    s = {
+      sent: {},
+      flushing: null,
+      snapshot: {
+        pending: readPending(store),
+        rejected: readRejected(store),
+        sent: {},
+        persistent: isBrowserStorePersistent(),
+      },
+    };
+    users.set(userId, s);
+  }
+  return s;
+}
+
+function refresh(userId: string) {
+  const s = state(userId);
+  const store = userStore(userId);
+  s.snapshot = {
     pending: readPending(store),
     rejected: readRejected(store),
-    sent,
-    persistent: isPersistent(),
+    sent: s.sent,
+    persistent: isBrowserStorePersistent(),
   };
   for (const l of listeners) l();
 }
 
-function subscribe(listener: () => void) {
-  listeners.add(listener);
-  const onStorage = (e: StorageEvent) => {
-    if (e.key === PENDING_KEY || e.key === REJECTED_KEY) refresh();
-  };
-  window.addEventListener('storage', onStorage);
-  return () => {
-    listeners.delete(listener);
-    window.removeEventListener('storage', onStorage);
-  };
-}
-
-function getSnapshot(): TapSnapshot {
-  if (!loaded) {
-    loaded = true;
-    snapshot = {
-      pending: readPending(store),
-      rejected: readRejected(store),
-      sent,
-      persistent: isPersistent(),
+function subscribeFor(userId: string) {
+  return (listener: () => void) => {
+    listeners.add(listener);
+    const onStorage = (e: StorageEvent) => {
+      if (e.key === scopedKey(userId, PENDING_KEY) || e.key === scopedKey(userId, REJECTED_KEY)) {
+        refresh(userId);
+      }
     };
-  }
-  return snapshot;
+    window.addEventListener('storage', onStorage);
+    return () => {
+      listeners.delete(listener);
+      window.removeEventListener('storage', onStorage);
+    };
+  };
 }
 
 async function sendTap(tap: PendingTap): Promise<SendOutcome<WasherLoadResult>> {
@@ -131,47 +120,54 @@ async function sendTap(tap: PendingTap): Promise<SendOutcome<WasherLoadResult>> 
   }
 }
 
-function invalidateWashroom(qc: QueryClient) {
-  void qc.invalidateQueries({ queryKey: ['washroom-board'] });
-  void qc.invalidateQueries({ queryKey: ['queue'] });
-}
-
-let flushing: Promise<void> | null = null;
-
-function flush(qc: QueryClient): Promise<void> {
-  if (flushing) return flushing;
-  flushing = (async () => {
+/** Sends this account's waiting taps (only while it is the signed-in account). */
+export function flushTaps(userId: string, qc?: QueryClient): Promise<void> {
+  const s = state(userId);
+  if (s.flushing) return s.flushing;
+  s.flushing = (async () => {
     try {
-      const r = await flushPending(store, sendTap);
+      if (!(await isSignedInAs(userId))) return;
+      const r = await flushPending(userStore(userId), sendTap);
       if (r.sent.length > 0) {
-        sent = { ...sent };
-        for (const s of r.sent) sent[s.tap.clientId] = s.result;
+        s.sent = { ...s.sent };
+        for (const x of r.sent) s.sent[x.tap.clientId] = x.result;
       }
-      if (r.sent.length > 0 || r.rejected.length > 0) invalidateWashroom(qc);
+      if (qc && (r.sent.length > 0 || r.rejected.length > 0)) {
+        void qc.invalidateQueries({ queryKey: ['washroom-board'] });
+        void qc.invalidateQueries({ queryKey: ['queue'] });
+      }
     } finally {
-      flushing = null;
-      refresh();
+      s.flushing = null;
+      refresh(userId);
     }
   })();
-  return flushing;
+  return s.flushing;
+}
+
+/** How many taps this account has waiting (for the guarded sign-out). */
+export function pendingTapCount(userId: string): number {
+  return readPending(userStore(userId)).length;
 }
 
 export function useTapSync() {
+  const userId = useRequiredSession().user.id;
   const qc = useQueryClient();
+  const subscribe = useMemo(() => subscribeFor(userId), [userId]);
+  const getSnapshot = useCallback(() => state(userId).snapshot, [userId]);
   const snap = useSyncExternalStore(subscribe, getSnapshot);
   const hasPending = snap.pending.length > 0;
 
   // Retry on mount, when the device comes back online, and every 15 s while anything is waiting.
   useEffect(() => {
-    const run = () => void flush(qc);
-    if (readPending(store).length > 0) run();
+    const run = () => void flushTaps(userId, qc);
+    if (readPending(userStore(userId)).length > 0) run();
     window.addEventListener('online', run);
     const id = hasPending ? window.setInterval(run, RETRY_EVERY_MS) : undefined;
     return () => {
       window.removeEventListener('online', run);
       if (id !== undefined) window.clearInterval(id);
     };
-  }, [qc, hasPending]);
+  }, [userId, qc, hasPending]);
 
   /**
    * Records a start-tap on the device first, then sends it. Returns its client_id. `clockOffsetMs`
@@ -182,14 +178,14 @@ export function useTapSync() {
     (machineId: string, washGroupId: string | null, clockOffsetMs = 0): string => {
       const clientId = crypto.randomUUID();
       addPending(
-        store,
+        userStore(userId),
         newTap(machineId, washGroupId, clientId, new Date(Date.now() + clockOffsetMs)),
       );
-      refresh();
-      void flush(qc);
+      refresh(userId);
+      void flushTaps(userId, qc);
       return clientId;
     },
-    [qc],
+    [userId, qc],
   );
 
   /**
@@ -198,26 +194,31 @@ export function useTapSync() {
    */
   const undo = useCallback(
     async (clientId: string): Promise<void> => {
-      if (removePending(store, clientId)) {
-        refresh();
+      if (removePending(userStore(userId), clientId)) {
+        refresh(userId);
         return;
       }
-      const result = sent[clientId];
+      const s = state(userId);
+      const result = s.sent[clientId];
       if (!result?.cycle_id) return;
       unwrap(await supabase.rpc('undo_washer_load', { p_cycle_id: result.cycle_id }));
-      sent = Object.fromEntries(Object.entries(sent).filter(([k]) => k !== clientId));
-      refresh();
-      invalidateWashroom(qc);
+      s.sent = Object.fromEntries(Object.entries(s.sent).filter(([k]) => k !== clientId));
+      refresh(userId);
+      void qc.invalidateQueries({ queryKey: ['washroom-board'] });
+      void qc.invalidateQueries({ queryKey: ['queue'] });
     },
-    [qc],
+    [userId, qc],
   );
 
-  const dismiss = useCallback((clientId: string) => {
-    dismissRejected(store, clientId);
-    refresh();
-  }, []);
+  const dismiss = useCallback(
+    (clientId: string) => {
+      dismissRejected(userStore(userId), clientId);
+      refresh(userId);
+    },
+    [userId],
+  );
 
-  const retryNow = useCallback(() => flush(qc), [qc]);
+  const retryNow = useCallback(() => flushTaps(userId, qc), [userId, qc]);
 
   return { ...snap, tap, undo, dismiss, retryNow };
 }

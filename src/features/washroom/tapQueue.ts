@@ -1,3 +1,7 @@
+import type { KeyValueStore } from '../../lib/scopedStore';
+
+export type { KeyValueStore };
+
 // Offline-safe washer start-taps. A tap is written to device storage BEFORE the first send attempt
 // and removed only when the server has recorded it (or rejected it for good, in which case it moves to
 // a "rejected" list the screen keeps showing until someone dismisses it). The client_id is generated
@@ -22,14 +26,9 @@ export interface RejectedTap extends PendingTap {
   errorCode: string;
 }
 
-/** The subset of the Web Storage API we use; localStorage in the app, a Map in tests. */
-export interface KeyValueStore {
-  getItem(key: string): string | null;
-  setItem(key: string, value: string): void;
-}
-
-export const PENDING_KEY = 'plantboard.washerTaps.pending.v1';
-export const REJECTED_KEY = 'plantboard.washerTaps.rejected.v1';
+// Key names inside the signed-in user's scoped store (plantboard.<userId>.<name>).
+export const PENDING_KEY = 'washerTaps.pending.v1';
+export const REJECTED_KEY = 'washerTaps.rejected.v1';
 
 function isString(v: unknown): v is string {
   return typeof v === 'string';
@@ -195,13 +194,4 @@ export async function flushPending<R>(
   return result;
 }
 
-/** A Map-backed store for tests and as a fallback when localStorage is unavailable. */
-export function memoryStore(): KeyValueStore {
-  const map = new Map<string, string>();
-  return {
-    getItem: (k) => map.get(k) ?? null,
-    setItem: (k, v) => {
-      map.set(k, v);
-    },
-  };
-}
+export { memoryStore } from '../../lib/scopedStore';

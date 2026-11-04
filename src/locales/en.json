@@ -399,5 +399,13 @@
     "washerTime": "≈ {{time}} of washer time",
     "lastSaved": "Last saved: {{what}}",
     "done": "Done"
+  },
+  "signOut": {
+    "pending_one": "{{count}} entry or washer start hasn't been sent yet.",
+    "pending_other": "{{count}} entries or washer starts haven't been sent yet.",
+    "sendNow": "Send now",
+    "sending": "Sending…",
+    "keep": "Keep for next time",
+    "cantSendYet": "Change your password first to send them. They stay on this device for your account."
   }
 }

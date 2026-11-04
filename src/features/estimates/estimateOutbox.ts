@@ -32,8 +32,12 @@ export interface RejectedEstimate extends OutboxEntry {
   errorCode: string;
 }
 
-export const OUTBOX_KEY = 'plantboard.estimates.outbox.v1';
-export const REJECTED_ESTIMATES_KEY = 'plantboard.estimates.rejected.v1';
+// Key names inside the signed-in user's scoped store (plantboard.<userId>.<name>, security H1).
+export const OUTBOX_KEY = 'estimates.outbox.v1';
+export const REJECTED_ESTIMATES_KEY = 'estimates.rejected.v1';
+
+/** A stored PIN is wiped after this long; the entries stay and wait for the PIN (security M2). */
+export const PIN_MAX_AGE_MS = 72 * 60 * 60 * 1000;
 
 function isEntry(v: unknown): v is OutboxEntry {
   if (typeof v !== 'object' || v === null) return false;
@@ -158,7 +162,11 @@ export interface FlushReport {
  * every entry, so a crash mid-batch never sends an entry twice (client_id makes it harmless anyway)
  * and never loses one.
  */
-export async function flushOutbox(store: KeyValueStore, api: OutboxApi): Promise<FlushReport> {
+export async function flushOutbox(
+  store: KeyValueStore,
+  api: OutboxApi,
+  nowMs: number = Date.now(),
+): Promise<FlushReport> {
   const report: FlushReport = {
     saved: [],
     rejected: [],
@@ -173,15 +181,29 @@ export async function flushOutbox(store: KeyValueStore, api: OutboxApi): Promise
     replaceBatch(store, null, b.batchId);
   };
 
+  // Security M2: a PIN never stays on the device for more than 72 h, sent or not.
+  for (const b of readOutbox(store)) {
+    const created = Date.parse(b.createdAt);
+    if (b.pin && (Number.isNaN(created) || nowMs - created > PIN_MAX_AGE_MS)) {
+      replaceBatch(store, { ...b, pin: '', sessionId: null, lastError: 'PIN_EXPIRED' }, b.batchId);
+    }
+  }
+
   batches: for (const initial of readOutbox(store)) {
     let batch: OutboxBatch = { ...initial };
     let freshSession = false; // a session opened in this flush: don't open another on its refusal
     while (batch.entries.length > 0) {
       const entry = batch.entries[0] as OutboxEntry;
       if (!batch.sessionId) {
+        // No PIN on the device (wiped after a wrong PIN or after 72 h): wait for someone to enter it.
+        if (!batch.pin) {
+          report.needsPin = { staffId: batch.staffId, error: batch.lastError ?? 'PIN_NEEDED' };
+          continue batches;
+        }
         const s = await api.startSession(batch.staffId, batch.pin);
         if (s.kind === 'pin') {
-          batch = { ...batch, lastError: s.error };
+          // Security M1: drop the refused PIN so it is never retried (5 misses lock the person out).
+          batch = { ...batch, pin: '', lastError: s.error };
           replaceBatch(store, batch, batch.batchId);
           report.needsPin = { staffId: batch.staffId, error: s.error };
           continue batches;

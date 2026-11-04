@@ -1,10 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { memoryStore } from '../washroom/tapQueue';
+import { memoryStore, scopedStore } from '../../lib/scopedStore';
 import {
   addBatch,
   dismissRejectedEstimate,
   flushOutbox,
   OUTBOX_KEY,
+  PIN_MAX_AGE_MS,
   readOutbox,
   readRejectedEstimates,
   updatePin,
@@ -130,5 +131,73 @@ describe('estimate outbox', () => {
     const r = await flushOutbox(s, api);
     expect(r.rejected.map((e) => e.errorCode)).toEqual(['STAFF_SESSION_REQUIRED']);
     expect(readOutbox(s)).toEqual([]);
+  });
+
+  it('security M1: a wrong stored PIN reaches the server exactly once across many flushes', async () => {
+    const s = memoryStore();
+    addBatch(s, batch());
+    let calls = 0;
+    const api: OutboxApi = {
+      startSession: async () => {
+        calls += 1;
+        return { kind: 'pin', error: 'PIN_INVALID' };
+      },
+      record: async () => ({ kind: 'saved' }),
+    };
+    for (let i = 0; i < 5; i++) {
+      const r = await flushOutbox(s, api);
+      expect(r.needsPin?.staffId).toBe('s1');
+    }
+    expect(calls).toBe(1);
+    expect(readOutbox(s)[0]?.pin).toBe('');
+    expect(readOutbox(s)[0]?.entries).toHaveLength(3);
+  });
+
+  it('security M2: a PIN older than 72 h is wiped, the entries kept, and the batch needs a PIN', async () => {
+    const s = memoryStore();
+    const created = Date.parse('2026-11-01T00:00:00Z');
+    addBatch(s, batch({ createdAt: new Date(created).toISOString() }));
+    let calls = 0;
+    const api: OutboxApi = {
+      startSession: async () => {
+        calls += 1;
+        return { kind: 'ok', sessionId: 'x' };
+      },
+      record: async () => ({ kind: 'saved' }),
+    };
+    const r = await flushOutbox(s, api, created + PIN_MAX_AGE_MS + 1);
+    expect(calls).toBe(0);
+    expect(r.needsPin).toEqual({ staffId: 's1', error: 'PIN_EXPIRED' });
+    expect(readOutbox(s)[0]).toMatchObject({ pin: '', lastError: 'PIN_EXPIRED' });
+    expect(readOutbox(s)[0]?.entries).toHaveLength(3);
+    expect(s.getItem(OUTBOX_KEY)).not.toContain('1234');
+  });
+
+  it('a PIN inside 72 h is kept', async () => {
+    const s = memoryStore();
+    const created = Date.parse('2026-11-01T00:00:00Z');
+    addBatch(s, batch({ createdAt: new Date(created).toISOString() }));
+    await flushOutbox(s, fakeApi({ offlineAfter: 0 }).api, created + PIN_MAX_AGE_MS - 1000);
+    expect(readOutbox(s)[0]?.pin).toBe('1234');
+  });
+
+  it("security H1: user B's store can't see A's batch, and B's flush never uses A's staff or PIN", async () => {
+    const base = memoryStore();
+    const a = scopedStore(base, 'userA');
+    const b = scopedStore(base, 'userB');
+    addBatch(a, batch());
+    expect(readOutbox(b)).toEqual([]);
+    const seen: string[] = [];
+    const api: OutboxApi = {
+      startSession: async (staffId, pin) => {
+        seen.push(`${staffId}:${pin}`);
+        return { kind: 'ok', sessionId: 'x' };
+      },
+      record: async () => ({ kind: 'saved' }),
+    };
+    const r = await flushOutbox(b, api);
+    expect(seen).toEqual([]);
+    expect(r.saved).toEqual([]);
+    expect(readOutbox(a)).toHaveLength(1);
   });
 });
