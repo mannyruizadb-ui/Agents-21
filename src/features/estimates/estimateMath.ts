@@ -1,0 +1,138 @@
+// Estimate math for the soil-estimate screen (PRD B1; owner 2026-11-04 rounds 1–3). Pure module.
+// Loads per full container are owner estimates, so every converted number is approximate ("≈");
+// a missing factor gives null, never a guess (CLAUDE.md measurement model). The DB's app.to_loads is
+// authoritative; this is the live preview on the card.
+
+export type EstimateUnit = 'load' | 'basket' | 'bin';
+
+export interface GroupFactors {
+  allow_basket_estimates: boolean;
+  allow_bin_estimates: boolean;
+  loads_per_basket: number | null;
+  loads_per_bin: number | null;
+}
+
+/** Containers offered for a group: loads always; basket / bin only where allowed. */
+export function estimateUnits(g: GroupFactors): EstimateUnit[] {
+  return [
+    ...(g.allow_bin_estimates ? (['bin'] as const) : []),
+    ...(g.allow_basket_estimates ? (['basket'] as const) : []),
+    'load',
+  ];
+}
+
+/** The container a card starts on: the last estimate's unit if still allowed, else the first. */
+export function defaultUnit(g: GroupFactors, lastUnit: string | null | undefined): EstimateUnit {
+  const units = estimateUnits(g);
+  return (units as string[]).includes(lastUnit ?? '')
+    ? (lastUnit as EstimateUnit)
+    : (units[0] ?? 'load');
+}
+
+/** Loads for an amount; null when the container has no factor. */
+export function toLoads(qty: number, unit: EstimateUnit, g: GroupFactors): number | null {
+  if (unit === 'load') return qty;
+  const f = unit === 'bin' ? g.loads_per_bin : g.loads_per_basket;
+  return f ? round2(qty * f) : null;
+}
+
+/** Hours of washing on ONE washer: loads × the group's formula cycle minutes; null without either. */
+export function washHours(
+  loads: number | null,
+  cycleMinutes: number | null | undefined,
+): number | null {
+  if (loads === null || !cycleMinutes) return null;
+  return (loads * cycleMinutes) / 60;
+}
+
+export function round2(n: number): number {
+  return Math.round(n * 100) / 100;
+}
+
+/**
+ * Bin fill as "extra full containers + how full the last one is". Picks ¼ ½ ¾ Full set how full the
+ * last container is; "+1" adds another full one. 2 full + ½: tap +1, +1, +1, then ½.
+ */
+export interface Fill {
+  extraFull: number;
+  last: number; // 0, 0.25, 0.5, 0.75 or 1
+}
+
+export function fillAmount(f: Fill): number {
+  return f.extraFull + f.last;
+}
+
+/** A typed amount back to a fill: 2.5 → 2 full + ½; 3 → 2 full + a full last one. */
+export function splitAmount(qty: number): Fill {
+  if (qty <= 0) return { extraFull: 0, last: 0 };
+  const whole = Math.floor(qty);
+  const frac = round2(qty - whole);
+  return frac === 0 ? { extraFull: whole - 1, last: 1 } : { extraFull: whole, last: frac };
+}
+
+export function setLast(f: Fill, last: number): Fill {
+  return { ...f, last };
+}
+
+/** "+1 bin": one more full container. With nothing yet, it is the first full one. */
+export function addFull(f: Fill): Fill {
+  return f.last === 0 && f.extraFull === 0
+    ? { extraFull: 0, last: 1 }
+    : { ...f, extraFull: f.extraFull + 1 };
+}
+
+/**
+ * Parses a typed amount ("2.5", "2,5"): 0–10,000 with at most 2 decimals, mirroring the server's
+ * check_qty(qty, 0, 10000). 0 = nothing waiting. Null when invalid.
+ */
+export function parseAmount(input: string): number | null {
+  const s = input.trim().replace(',', '.');
+  if (!/^\d+(\.\d{1,2})?$/.test(s)) return null;
+  const n = Number(s);
+  return n <= 10000 ? n : null;
+}
+
+export interface SummaryInput {
+  loads: number | null;
+  cycleMinutes: number | null | undefined;
+}
+
+export interface Summary {
+  /** ≈ loads waiting across groups with a known number. */
+  loads: number;
+  /** Groups with an amount but no number (missing factor): left out of the total, said on screen. */
+  unknown: number;
+  /** ≈ hours to wash it all on the working washers; null when there's no capacity or no data. */
+  hours: number | null;
+}
+
+/**
+ * Totals for the top of the screen. Hours = Σ(loads × cycle minutes) / 60 / capacity, where capacity
+ * is the sum of the working (active, not down) washers' load factors (Washer 6 = 1.19).
+ */
+export function summarize(rows: readonly SummaryInput[], washerCapacity: number): Summary {
+  let loads = 0;
+  let unknown = 0;
+  let minutes = 0;
+  let minutesKnown = false;
+  for (const r of rows) {
+    if (r.loads === null) {
+      unknown += 1;
+      continue;
+    }
+    loads += r.loads;
+    if (r.cycleMinutes && r.loads > 0) {
+      minutes += r.loads * r.cycleMinutes;
+      minutesKnown = true;
+    }
+  }
+  const hours =
+    washerCapacity > 0 && minutesKnown ? minutes / 60 / washerCapacity : loads === 0 ? 0 : null;
+  return { loads: round2(loads), unknown, hours: hours === null ? null : round2(hours) };
+}
+
+/** 2.25 h → { h: 2, m: 15 }, rounded to 5 minutes (it's an estimate). */
+export function hoursMinutes(hours: number): { h: number; m: number } {
+  const total = Math.round((hours * 60) / 5) * 5;
+  return { h: Math.floor(total / 60), m: total % 60 };
+}
