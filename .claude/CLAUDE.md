@@ -103,7 +103,15 @@ Full context lives in these docs. Read the relevant one before non-trivial work;
     - Per-plant `client_id` uniqueness.
     - Throttle queue and estimate writes.
     - Record in PRD v1.6 §4.7 the display read of the washer board and the owner/manager-only estimates.
-  - Waiting on the owner: PIN reuse window, offline finished-goods session window, who enters estimates, setting `ships_next_morning` in the cloud.
+  - Waiting on the owner: who enters estimates, setting `ships_next_morning` in the cloud.
+- **Owner answers 2026-11-04 (not built yet):**
+  - **The M2 screens were lost.** They were never committed and the session container was reset. The server side survived (`d496d09`). Rebuild them, and push WIP at every checkpoint from now on.
+  - PIN reuse: 10 minutes on a phone, "for now".
+  - Offline entries: no second PIN when they finally send ("too much stuff"). Proposed: keep the pending entry plus its PIN on the device until it sends, then wipe it (PINs are attribution only). Needs security-reviewer sign-off.
+  - "Entered by <name>": the owner wants it, **on the owner's screens only**. Managers and others never see names. Reports never total by person.
+  - Managers should see only what they need, not all the owner's data. This is a role/RLS change: get the owner to confirm a screen-by-screen matrix before building.
+  - Pilot: for 2–3 weeks the owner is on site nightly and taps washer starts on their phone or the company tablet. Then a tablet at each of the 6 washers (pick the wash group; the formula follows; one green START) plus a removable tablet in finishing. The owner will pay for the tablets.
+  - Open: what estimates are, explained to the owner; the meaning of wash group colors, explained; pace with 3 cards.
 - **Next, M1 part 2:**
   - invite-user and pair-device/revoke-device Edge Functions (create the edge-engineer agent first);
   - Custom Access Token Hook, pg_cron schedule, languages data migration for the cloud;
