@@ -115,3 +115,93 @@
   color: #1f3a8a;
   text-decoration: underline;
 }
+
+/* Compact list (one row per group; one editor open at a time). */
+.estimate-list.compact {
+  gap: 0;
+  border-top: 1px solid #bbb;
+}
+.est-row {
+  border-bottom: 1px solid #bbb;
+}
+.est-row.changed {
+  background: #eef3ff;
+  box-shadow: inset 6px 0 0 #1f3a8a;
+}
+.est-row.open {
+  background: #f7f7f7;
+  box-shadow: inset 6px 0 0 #b45309;
+}
+.est-row-head {
+  display: flex;
+  align-items: stretch;
+  gap: 8px;
+  padding: 4px 0 4px 10px;
+}
+.form-page .est-toggle {
+  flex: 1 1 auto;
+  min-width: 0;
+  justify-content: space-between;
+  gap: 8px;
+  text-align: left;
+  background: transparent;
+  border: none;
+  color: #111;
+  padding: 6px 4px;
+  font-weight: 400;
+}
+.est-toggle-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.est-toggle .group-label {
+  font-weight: 700;
+  font-size: 1.0625rem;
+}
+.est-row-value {
+  font-size: 0.9375rem;
+  color: #333;
+}
+.est-changed {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-weight: 700;
+  color: #1f3a8a;
+}
+.est-toggle .chevron {
+  flex: none;
+}
+.form-page .est-nothing {
+  flex: none;
+  width: 6.5rem;
+  min-height: 56px;
+  padding: 4px 6px;
+  font-size: 0.875rem;
+  line-height: 1.15;
+}
+.est-editor {
+  padding: 0 10px 12px 16px;
+}
+.stepper {
+  display: grid;
+  grid-template-columns: 1fr 64px 3.5rem 64px;
+  align-items: center;
+  gap: 8px;
+  margin: 0.5rem 0;
+}
+.stepper .pick-label {
+  margin: 0;
+}
+.form-page .stepper button {
+  min-height: 56px;
+  font-size: 1.25rem;
+}
+.stepper-value {
+  text-align: center;
+  font-size: 1.5rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}

@@ -325,10 +325,10 @@
     "summaryTitle": "Esperando ahora",
     "totalLoads_one": "≈ {{n}} carga esperando",
     "totalLoads_other": "≈ {{n}} cargas esperando",
-    "totalHours_one": "≈ {{time}} de lavado en {{count}} lavadora funcionando",
-    "totalHours_other": "≈ {{time}} de lavado en {{count}} lavadoras funcionando",
-    "noWashers": "No hay lavadoras funcionando ahora, así que no hay tiempo de lavado.",
-    "noWashTime": "Tiempo de lavado: sin número",
+    "totalHours_one": "≈ {{time}} de tiempo de lavadora en {{count}} lavadora funcionando",
+    "totalHours_other": "≈ {{time}} de tiempo de lavadora repartido en {{count}} lavadoras funcionando",
+    "noWashers": "No hay lavadoras funcionando ahora, así que no hay tiempo de lavadora.",
+    "noWashTime": "Tiempo de lavadora: sin número",
     "unknownGroups_one": "{{count}} grupo no tiene número de cargas y no se cuenta.",
     "unknownGroups_other": "{{count}} grupos no tienen número de cargas y no se cuentan.",
     "groupsWithout_one": "{{count}} grupo no tiene estimado todavía.",
@@ -342,32 +342,16 @@
     "hoursValue": "{{h}} h {{m}} min",
     "minutesValue": "{{m}} min",
     "noEstimateYet": "Todavía no hay estimado.",
-    "minutesAgo_one": "hace {{count}} min",
-    "minutesAgo_other": "hace {{count}} min",
-    "hoursAgo_one": "hace {{count}} h",
-    "hoursAgo_other": "hace {{count}} h",
-    "lastValue": "Último: {{what}} a las {{at}} ({{ago}})",
     "old": "viejo, revisa otra vez",
     "countIn": "Contarlo en",
-    "unitOne": {
-      "bin": "contenedor",
-      "basket": "canasta"
-    },
-    "addOne": {
-      "load": "+1 carga",
-      "basket": "+1 canasta llena",
-      "bin": "+1 contenedor lleno"
-    },
     "noChange": "Sin cambio.",
     "badAmount": "Escribe un número de 0 a 10,000, con hasta 2 decimales.",
     "nothingWaiting": "No hay nada esperando",
     "approxLoads_one": "{{amount}} ≈ {{n}} carga",
     "approxLoads_other": "{{amount}} ≈ {{n}} cargas",
     "noNumber": "{{amount}} · cargas: sin número",
-    "washing": "≈ {{time}} de lavado",
     "nothingWaitingButton": "No hay nada",
     "undoChange": "Deshacer cambio",
-    "notSaved": "Cambiado, sin guardar",
     "review_one": "Revisar {{count}} cambio",
     "review_other": "Revisar {{count}} cambios",
     "reviewTitle_one": "Revisa {{count}} estimado",
@@ -398,8 +382,22 @@
       "wrongPin": "PIN equivocado. Intenta otra vez.",
       "locked": "Demasiados PIN equivocados. Espera 5 minutos e intenta otra vez."
     },
-    "howFullPart": "Los llenos con +1, y qué tan lleno está el otro {{unit}}",
-    "noTimeGroups_one": "{{count}} grupo no tiene tiempo de lavado, así que las horas no lo incluyen.",
-    "noTimeGroups_other": "{{count}} grupos no tienen tiempo de lavado, así que las horas no los incluyen."
+    "noTimeGroups_one": "{{count}} grupo no tiene tiempo de lavadora, así que el tiempo no lo incluye.",
+    "noTimeGroups_other": "{{count}} grupos no tienen tiempo de lavadora, así que el tiempo no los incluye.",
+    "lastShort": "{{what}}, {{at}}",
+    "changedTag": "cambiado",
+    "loadsCount": "Cargas",
+    "fullCount": {
+      "bin": "Contenedores llenos",
+      "basket": "Canastas llenas"
+    },
+    "partialLabel": {
+      "bin": "Más un contenedor a medias",
+      "basket": "Más una canasta a medias"
+    },
+    "partialNone": "Ninguno",
+    "washerTime": "≈ {{time}} de tiempo de lavadora",
+    "lastSaved": "Último guardado: {{what}}",
+    "done": "Listo"
   }
 }

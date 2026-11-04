@@ -1,12 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import {
-  addFull,
   defaultUnit,
   estimateUnits,
   fillAmount,
   hoursMinutes,
   parseAmount,
   setPart,
+  stepFull,
   splitAmount,
   summarize,
   toLoads,
@@ -62,25 +62,23 @@ describe('conversion', () => {
 });
 
 describe('bin fill', () => {
-  it('builds 2 full + ½ with +1, +1, ½ in any order', () => {
+  it('2 full + ½ with the stepper and a partial', () => {
     let f = { full: 0, part: 0 };
-    f = addFull(f);
-    f = addFull(f);
+    f = stepFull(stepFull(f, 1), 1);
     expect(fillAmount(f)).toBe(2);
     f = setPart(f, 0.5);
     expect(fillAmount(f)).toBe(2.5);
-    let g = setPart({ full: 0, part: 0 }, 0.5);
-    g = addFull(addFull(g));
-    expect(fillAmount(g)).toBe(2.5);
+    expect(fillAmount(setPart(f, 0))).toBe(2);
   });
-  it('Full is one more full container; tapping a pick again clears it', () => {
-    expect(fillAmount(setPart({ full: 0, part: 0 }, 1))).toBe(1);
-    expect(fillAmount(setPart({ full: 2, part: 0.5 }, 0.5))).toBe(2);
+  it('the stepper never goes below 0', () => {
+    expect(stepFull({ full: 0, part: 0.25 }, -1)).toEqual({ full: 0, part: 0.25 });
+    expect(stepFull({ full: 3, part: 0 }, -1)).toEqual({ full: 2, part: 0 });
   });
   it('splits a typed amount back into a fill', () => {
     expect(splitAmount(2.5)).toEqual({ full: 2, part: 0.5 });
     expect(splitAmount(3)).toEqual({ full: 3, part: 0 });
     expect(splitAmount(0.75)).toEqual({ full: 0, part: 0.75 });
+    expect(splitAmount(2.3)).toEqual({ full: 2, part: 0.3 });
     expect(splitAmount(0)).toEqual({ full: 0, part: 0 });
   });
   it('parses amounts like the server (0–10,000, 2 decimals)', () => {

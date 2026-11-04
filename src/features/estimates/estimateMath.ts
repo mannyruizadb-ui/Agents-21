@@ -50,33 +50,38 @@ export function round2(n: number): number {
 }
 
 /**
- * Bin fill = full containers + one partly full container. "+1" adds a full one; ¼ ½ ¾ Full set
- * how full the extra one is (Full = one more full). 2 full + ½: tap +1, +1, ½ (in any order).
+ * Bin fill = full containers + one partly full container (coordinator 2026-11-04 UX round):
+ * "Full bins: [−] 2 [+]" and "Plus a partial bin: none / ¼ / ½ / ¾". 2 full + ½ = 2½.
  */
 export interface Fill {
   full: number;
-  part: number; // 0, 0.25, 0.5, 0.75 or 1
+  part: number; // 0 (none), 0.25, 0.5 or 0.75
 }
+
+export const PARTIALS = [0, 0.25, 0.5, 0.75] as const;
 
 export function fillAmount(f: Fill): number {
   return f.full + f.part;
 }
 
-/** A typed amount back to a fill: 2.5 → 2 full + ½; 3 → 3 full. */
+/**
+ * A typed amount back to a fill: 2.5 → 2 full + ½; 3 → 3 full. A fraction that isn't a quarter
+ * (2.3) has no partial pick: `part` keeps the exact remainder and no partial button is pressed.
+ */
 export function splitAmount(qty: number): Fill {
   if (qty <= 0) return { full: 0, part: 0 };
   const full = Math.floor(qty);
   return { full, part: round2(qty - full) };
 }
 
-/** ¼ ½ ¾ Full: how full the extra container is (tapping the chosen one again clears it). */
+/** Plus a partial container: none / ¼ / ½ / ¾. */
 export function setPart(f: Fill, part: number): Fill {
-  return { ...f, part: f.part === part ? 0 : part };
+  return { ...f, part };
 }
 
-/** "+1 bin": one more full container. */
-export function addFull(f: Fill): Fill {
-  return { ...f, full: f.full + 1 };
+/** The full-container stepper: never below 0. */
+export function stepFull(f: Fill, delta: number): Fill {
+  return { ...f, full: Math.max(0, f.full + delta) };
 }
 
 /**

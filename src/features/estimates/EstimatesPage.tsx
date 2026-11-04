@@ -9,7 +9,7 @@ import { useLocalizedName } from '../washroom/localizedName';
 import { errorMessageKey } from '../washroom/rpcError';
 import { useAreas } from '../washroom/washroomData';
 import { useMyRoles } from '../washroom/useMyRoles';
-import { EstimateCard, type Draft } from './EstimateCard';
+import { EstimateRow, type Draft } from './EstimateRow';
 import { useAmountText } from './useAmountText';
 import { parseAmount, summarize, toLoads, type EstimateUnit } from './estimateMath';
 import type { OutboxBatch } from './estimateOutbox';
@@ -65,6 +65,7 @@ export function EstimatesPage() {
   const outbox = useEstimateOutbox(reuse.data ?? 0);
 
   const [drafts, setDrafts] = useState<Record<string, Draft>>({});
+  const [openId, setOpenId] = useState<string | null>(null);
   const [reviewing, setReviewing] = useState(false);
   const [staffId, setStaffId] = useState(readLastStaff);
   const [pin, setPin] = useState('');
@@ -296,16 +297,17 @@ export function EstimatesPage() {
       {(groups.isPending || areas.isPending) && <p role="status">{t('common.loading')}</p>}
       {groups.isError && <p className="error">{t(errorMessageKey(groups.error))}</p>}
 
-      <ul className="estimate-list">
+      <ul className="estimate-list compact">
         {(groups.data ?? []).map((g) => (
-          <EstimateCard
+          <EstimateRow
             key={g.id}
             group={g}
             cycleMinutes={cycleFor(g.wash_formula_id)}
             last={current.data?.get(g.id)}
             draft={drafts[g.id] ?? null}
+            open={openId === g.id}
+            onToggle={() => setOpenId((id) => (id === g.id ? null : g.id))}
             onDraft={(d) => setDraft(g.id, d)}
-            now={now}
           />
         ))}
       </ul>

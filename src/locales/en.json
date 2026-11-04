@@ -325,10 +325,10 @@
     "summaryTitle": "Waiting now",
     "totalLoads_one": "≈ {{n}} load waiting",
     "totalLoads_other": "≈ {{n}} loads waiting",
-    "totalHours_one": "≈ {{time}} of washing on {{count}} working washer",
-    "totalHours_other": "≈ {{time}} of washing on {{count}} working washers",
-    "noWashers": "No working washers right now, so no washing time.",
-    "noWashTime": "Washing time: no number set",
+    "totalHours_one": "≈ {{time}} of washer time on {{count}} working washer",
+    "totalHours_other": "≈ {{time}} of washer time spread over {{count}} working washers",
+    "noWashers": "No working washers right now, so no washer time.",
+    "noWashTime": "Washer time: no number set",
     "unknownGroups_one": "{{count}} group has no load number set and isn't counted.",
     "unknownGroups_other": "{{count}} groups have no load number set and aren't counted.",
     "groupsWithout_one": "{{count}} group has no estimate yet.",
@@ -342,32 +342,16 @@
     "hoursValue": "{{h}} h {{m}} min",
     "minutesValue": "{{m}} min",
     "noEstimateYet": "No estimate yet.",
-    "minutesAgo_one": "{{count}} min ago",
-    "minutesAgo_other": "{{count}} min ago",
-    "hoursAgo_one": "{{count}} h ago",
-    "hoursAgo_other": "{{count}} h ago",
-    "lastValue": "Last: {{what}} at {{at}} ({{ago}})",
     "old": "old, check again",
     "countIn": "Count it in",
-    "unitOne": {
-      "bin": "bin",
-      "basket": "basket"
-    },
-    "addOne": {
-      "load": "+1 load",
-      "basket": "+1 full basket",
-      "bin": "+1 full bin"
-    },
     "noChange": "No change.",
     "badAmount": "Type a number from 0 to 10,000, with up to 2 decimals.",
     "nothingWaiting": "Nothing waiting",
     "approxLoads_one": "{{amount}} ≈ {{n}} load",
     "approxLoads_other": "{{amount}} ≈ {{n}} loads",
     "noNumber": "{{amount}} · loads: no number set",
-    "washing": "≈ {{time}} of washing",
     "nothingWaitingButton": "Nothing waiting",
     "undoChange": "Undo change",
-    "notSaved": "Changed, not saved yet",
     "review_one": "Review {{count}} change",
     "review_other": "Review {{count}} changes",
     "reviewTitle_one": "Check {{count}} estimate",
@@ -398,8 +382,22 @@
       "wrongPin": "Wrong PIN. Try again.",
       "locked": "Too many wrong PINs. Wait 5 minutes and try again."
     },
-    "howFullPart": "Full ones with +1, and how full the other {{unit}} is",
-    "noTimeGroups_one": "{{count}} group has no washing time set, so the hours leave it out.",
-    "noTimeGroups_other": "{{count}} groups have no washing time set, so the hours leave them out."
+    "noTimeGroups_one": "{{count}} group has no washer time set, so the time leaves it out.",
+    "noTimeGroups_other": "{{count}} groups have no washer time set, so the time leaves them out.",
+    "lastShort": "{{what}}, {{at}}",
+    "changedTag": "changed",
+    "loadsCount": "Loads",
+    "fullCount": {
+      "bin": "Full bins",
+      "basket": "Full baskets"
+    },
+    "partialLabel": {
+      "bin": "Plus a partial bin",
+      "basket": "Plus a partial basket"
+    },
+    "partialNone": "None",
+    "washerTime": "≈ {{time}} of washer time",
+    "lastSaved": "Last saved: {{what}}",
+    "done": "Done"
   }
 }
