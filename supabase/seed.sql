@@ -48,7 +48,7 @@ select p.org_id, p.id, f.external_no, f.name, f.cycle_minutes
 -- ── Wash groups + item catalog (A2; owner 2026-11-01, 2026-11-02): 33 groups, 73 items ──
 -- The washroom works by WASH GROUP (what may share a washer); finishing counts ITEMS. Every item is in
 -- exactly one group. Spanish names are AI drafts, pending the separate AI review (H1).
--- Estimates: 'load' (catalog 🔸 assumed default); no baskets_per_load yet (null, TODO owner).
+-- Estimates: 'load' by default; container factors and chip colors are set below (owner 2026-11-04).
 -- pieces_per_load = pieces of the item in one full load of only that item in a standard washer
 -- (load_factor 1.00). Mats only, from
 -- the owner (2026-11-01), source 'counted' (the owner's own count, not derived from history):
@@ -114,6 +114,58 @@ update public.wash_groups g
    and g.name in ('Black mats', 'Colored mats', 'Charcoal mats', 'Scraper mats', 'City & Brito mats',
                   'Presidente logo mats', 'Logo mats', 'Old sheets', 'Regular sheets', 'New sheets',
                   'Coats (white)');
+
+-- Container factors and chip colors (owner 2026-11-04, round 3; same values as the data migration
+-- 20261104163718_set_wash_group_factors_and_colors.sql, which reaches the cloud). Loads per FULL
+-- container, approximate: mats 3.5 per basket; Kitchen towels 2 per basket, 2.5 per bin; sheets,
+-- napkins and tablecloths 2 per bin; everything else null (TODO owner). Colors follow the goods' color.
+with v(name, color_hex, loads_per_basket, loads_per_bin) as (values
+  ('Black mats',                          '#1F1F1F', 3.5::numeric, null::numeric),
+  ('Colored mats',                        '#B45309', 3.5, null),
+  ('Charcoal mats',                       '#52525B', 3.5, null),
+  ('Scraper mats',                        '#7C5A3C', 3.5, null),
+  ('City & Brito mats',                   '#0F766E', 3.5, null),
+  ('Presidente logo mats',                '#7C3AED', 3.5, null),
+  ('Logo mats',                           '#C026D3', 3.5, null),
+  ('Dust & wet mops',                     '#78716C', null, null),
+  ('Microfiber mops',                     '#0891B2', null, null),
+  ('Kitchen towels',                      '#EA580C', 2,    2.5),
+  ('Microfiber towels',                   '#6366F1', null, null),
+  ('Mechanic towels',                     '#65A30D', null, null),
+  ('White aprons',                        '#F8FAFC', null, null),
+  ('Black aprons',                        '#3F3F46', null, null),
+  ('Coats (white)',                       '#E2E8F0', null, null),
+  ('White tablecloths',                   '#FFFFFF', null, 2),
+  ('Black tablecloths',                   '#18181B', null, 2),
+  ('Red & blue tablecloths',              '#DC2626', null, 2),
+  ('Napkins – Green & Red',               '#16A34A', null, 2),
+  ('Napkins – Navy Blue w/ Stripe',       '#1D4ED8', null, 2),
+  ('Napkins – Dark Navy Blue w/ Stripe',  '#172554', null, 2),
+  ('Napkins – Navy Blue',                 '#1E3A8A', null, 2),
+  ('Napkins – Regular White',             '#F1F5F9', null, 2),
+  ('Napkins – New White',                 '#F4F4F5', null, 2),
+  ('Napkins – Bone & Chambray',           '#E7DCC4', null, 2),
+  ('Napkins – Black w/ Stripe',           '#27272A', null, 2),
+  ('Napkins – Black',                     '#0A0A0A', null, 2),
+  ('Napkins – Pink',                      '#DB2777', null, 2),
+  ('Napkins – Cotton White',              '#FAF7F0', null, 2),
+  ('Napkins – Cotton Black',              '#2E2E2E', null, 2),
+  ('Old sheets',                          '#CBD5E1', null, 2),
+  ('Regular sheets',                      '#DBEAFE', null, 2),
+  ('New sheets',                          '#F0F9FF', null, 2)
+)
+update public.wash_groups g
+   set color_hex              = case when g.color_hex = '#64748B' then v.color_hex else g.color_hex end,
+       loads_per_basket       = coalesce(g.loads_per_basket, v.loads_per_basket),
+       loads_per_bin          = coalesce(g.loads_per_bin, v.loads_per_bin),
+       allow_basket_estimates = g.allow_basket_estimates or (g.loads_per_basket is null and v.loads_per_basket is not null),
+       allow_bin_estimates    = g.allow_bin_estimates or (g.loads_per_bin is null and v.loads_per_bin is not null)
+  from v, public.plants p
+  join public.organizations o on o.id = p.org_id and o.slug = 'americas-dust-busters'
+ where g.plant_id = p.id and p.name = 'Miami' and g.name = v.name
+   and (g.color_hex = '#64748B'
+        or (g.loads_per_basket is null and v.loads_per_basket is not null)
+        or (g.loads_per_bin is null and v.loads_per_bin is not null));
 
 insert into public.item_types (org_id, plant_id, wash_group_id, name, name_i18n, category, count_mode, pack_size,
                                pieces_per_load, pieces_per_load_source, sort_order)
