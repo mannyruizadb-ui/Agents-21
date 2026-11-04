@@ -87,7 +87,9 @@
     "noUsername": "No username"
   },
   "control": {
-    "placeholder": "Control app: features arrive in Milestone 2."
+    "placeholder": "Control app: features arrive in Milestone 2.",
+    "washerBoard": "Washers",
+    "queue": "Queue"
   },
   "display": {
     "placeholder": "Wall display: arrives in Milestone 2."
@@ -96,6 +98,70 @@
     "placeholder": "Display pairing: arrives in Milestone 1."
   },
   "common": {
-    "loading": "Loading…"
+    "loading": "Loading…",
+    "back": "Back",
+    "tryAgain": "Try again",
+    "cancel": "Cancel"
+  },
+  "errors": {
+    "notAuthorized": "You can't do that with your account. Ask the owner.",
+    "validation": "The server didn't accept that. Check the values and try again.",
+    "queueChanged": "Someone changed the queue. It was refreshed. Check it and try again.",
+    "statusChanged": "That item already changed status. The list was refreshed.",
+    "tooLate": "Too late to undo. Ask a manager to correct it.",
+    "rateLimited": "Too many changes at once. Wait a few seconds and try again.",
+    "network": "Couldn't reach the server. Check the Wi-Fi and try again."
+  },
+  "units": {
+    "load_one": "{{n}} load",
+    "load_other": "{{n}} loads",
+    "basket_one": "{{n}} basket",
+    "basket_other": "{{n}} baskets",
+    "piece_one": "{{n}} piece",
+    "piece_other": "{{n}} pieces",
+    "pack_one": "{{n}} pack",
+    "pack_other": "{{n}} packs"
+  },
+  "washroom": {
+    "boardTitle": "Washers",
+    "areaLabel": "Washroom",
+    "noWashroom": "No washroom is set up for your plant.",
+    "noWashers": "No active washers in this washroom.",
+    "now": "Now",
+    "next": "Next",
+    "formula": "Formula",
+    "formulaValue": "No. {{no}} · {{minutes}} min",
+    "empty": "Empty",
+    "nothingQueued": "Nothing in the queue",
+    "status": {
+      "running": "Running",
+      "ready": "Done — unload",
+      "idle": "Empty",
+      "unknown": "Running, time unknown"
+    },
+    "minutesLeft_one": "{{count}} minute left",
+    "minutesLeft_other": "{{count}} minutes left",
+    "waitingMinutes_one": "waiting {{count}} min",
+    "waitingMinutes_other": "waiting {{count}} min",
+    "loadsLeft_one": "{{n}} load left",
+    "loadsLeft_other": "{{n}} loads left",
+    "pinnedHere": "For this washer",
+    "openStation": "Open {{washer}}",
+    "updatedSeconds_one": "Updated {{count}} second ago",
+    "updatedSeconds_other": "Updated {{count}} seconds ago",
+    "updatedMinutes_one": "Updated {{count}} minute ago",
+    "updatedMinutes_other": "Updated {{count}} minutes ago",
+    "mayBeOld": "may be out of date",
+    "refreshFailed": "couldn't refresh",
+    "refreshing": "Refreshing…"
+  },
+  "station": {
+    "pendingCount_one": "{{count}} start is waiting to send. It will send when the connection is back.",
+    "pendingCount_other": "{{count}} starts are waiting to send. They will send when the connection is back."
+  },
+  "queue": {
+    "rush": "RUSH",
+    "rewash": "Rewash",
+    "pinnedTo": "Washer: {{washer}}"
   }
 }

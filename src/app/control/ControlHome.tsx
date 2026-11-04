@@ -15,6 +15,9 @@ export function ControlHome() {
       <h1>{t('app.name')}</h1>
       <p>{t('control.placeholder')}</p>
       <div className="actions">
+        <Link className="button-link" to="/control/washers">
+          {t('control.washerBoard')}
+        </Link>
         {(ownerPlants.data?.length ?? 0) > 0 && (
           <Link className="button-link" to="/control/people">
             {t('people.title')}

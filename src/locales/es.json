@@ -87,7 +87,9 @@
     "noUsername": "Sin usuario"
   },
   "control": {
-    "placeholder": "App de control: las funciones llegan en el Hito 2."
+    "placeholder": "App de control: las funciones llegan en el Hito 2.",
+    "washerBoard": "Lavadoras",
+    "queue": "Cola de trabajo"
   },
   "display": {
     "placeholder": "Pantalla de pared: llega en el Hito 2."
@@ -96,6 +98,70 @@
     "placeholder": "Vincular pantalla: llega en el Hito 1."
   },
   "common": {
-    "loading": "Cargando…"
+    "loading": "Cargando…",
+    "back": "Atrás",
+    "tryAgain": "Intentar de nuevo",
+    "cancel": "Cancelar"
+  },
+  "errors": {
+    "notAuthorized": "Tu cuenta no puede hacer eso. Pregúntale al dueño.",
+    "validation": "El servidor no aceptó eso. Revisa los datos e intenta de nuevo.",
+    "queueChanged": "Alguien cambió la cola. Se actualizó. Revísala e intenta de nuevo.",
+    "statusChanged": "Ese trabajo ya cambió de estado. La lista se actualizó.",
+    "tooLate": "Ya es tarde para deshacer. Pídele a un gerente que lo corrija.",
+    "rateLimited": "Demasiados cambios a la vez. Espera unos segundos e intenta de nuevo.",
+    "network": "No hay conexión con el servidor. Revisa el Wi-Fi e intenta de nuevo."
+  },
+  "units": {
+    "load_one": "{{n}} carga",
+    "load_other": "{{n}} cargas",
+    "basket_one": "{{n}} canasta",
+    "basket_other": "{{n}} canastas",
+    "piece_one": "{{n}} pieza",
+    "piece_other": "{{n}} piezas",
+    "pack_one": "{{n}} paquete",
+    "pack_other": "{{n}} paquetes"
+  },
+  "washroom": {
+    "boardTitle": "Lavadoras",
+    "areaLabel": "Lavandería",
+    "noWashroom": "Tu planta no tiene un área de lavado configurada.",
+    "noWashers": "No hay lavadoras activas en esta área.",
+    "now": "Ahora",
+    "next": "Sigue",
+    "formula": "Fórmula",
+    "formulaValue": "N.º {{no}} · {{minutes}} min",
+    "empty": "Vacía",
+    "nothingQueued": "No hay nada en la cola",
+    "status": {
+      "running": "Lavando",
+      "ready": "Terminó — sacar",
+      "idle": "Vacía",
+      "unknown": "Lavando, tiempo desconocido"
+    },
+    "minutesLeft_one": "Falta {{count}} minuto",
+    "minutesLeft_other": "Faltan {{count}} minutos",
+    "waitingMinutes_one": "esperando {{count}} min",
+    "waitingMinutes_other": "esperando {{count}} min",
+    "loadsLeft_one": "falta {{n}} carga",
+    "loadsLeft_other": "faltan {{n}} cargas",
+    "pinnedHere": "Para esta lavadora",
+    "openStation": "Abrir {{washer}}",
+    "updatedSeconds_one": "Actualizado hace {{count}} segundo",
+    "updatedSeconds_other": "Actualizado hace {{count}} segundos",
+    "updatedMinutes_one": "Actualizado hace {{count}} minuto",
+    "updatedMinutes_other": "Actualizado hace {{count}} minutos",
+    "mayBeOld": "puede no estar al día",
+    "refreshFailed": "no se pudo actualizar",
+    "refreshing": "Actualizando…"
+  },
+  "station": {
+    "pendingCount_one": "{{count}} arranque está esperando para enviarse. Se enviará cuando vuelva la conexión.",
+    "pendingCount_other": "{{count}} arranques están esperando para enviarse. Se enviarán cuando vuelva la conexión."
+  },
+  "queue": {
+    "rush": "URGENTE",
+    "rewash": "Relavar",
+    "pinnedTo": "Lavadora: {{washer}}"
   }
 }

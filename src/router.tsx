@@ -24,6 +24,13 @@ export const router = createBrowserRouter([
           Component: (await import('./features/admin/PeoplePage')).PeoplePage,
         }),
       },
+      {
+        // Washer board (D1/G6 on phones): owner, managers, leads and viewers can read it.
+        path: 'washers',
+        lazy: async () => ({
+          Component: (await import('./features/washroom/WasherBoardPage')).WasherBoardPage,
+        }),
+      },
     ],
   },
   {

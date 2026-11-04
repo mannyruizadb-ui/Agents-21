@@ -1,0 +1,402 @@
+/* Washroom screens: washer board (phone), washer station (tablet at a washer), queue (owner phone).
+   Plain CSS in the style of src/lib/forms.css. Contrast: text pairs ≥ 7:1 on the dark station
+   (white on #0b0f14 = 19.2; black on #2fd16b START = 10.4; black on #ffd60a = 14.9); ≥ 4.5:1 on the
+   light control pages. Status is always icon + text, never color alone. */
+
+.icon {
+  flex: none;
+  vertical-align: -0.2em;
+}
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+.group-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 0;
+}
+.group-chip {
+  flex: none;
+  display: inline-block;
+  width: 1.1em;
+  height: 1.1em;
+  border-radius: 4px;
+  border: 2px solid currentColor;
+}
+.group-name {
+  overflow-wrap: anywhere;
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.1rem 0.5rem;
+  border-radius: 999px;
+  border: 2px solid currentColor;
+  font-weight: 700;
+  font-size: 0.9375rem;
+  white-space: nowrap;
+}
+.badge-rush {
+  color: #7a1500;
+  background: #fff1ec;
+}
+.badge-rewash {
+  color: #3b2a8c;
+  background: #f1eeff;
+}
+.badge-pin {
+  color: #1f3a8a;
+  background: #eef3ff;
+}
+
+.data-age {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.25rem;
+  margin: 0 0 0.75rem;
+  font-size: 0.9375rem;
+  color: #333;
+}
+.data-age-stale,
+.data-age-old {
+  color: #7a3e00;
+  font-weight: 700;
+}
+
+.status-line {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0;
+}
+
+/* ── Washer board (phone) ── */
+.washer-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  gap: 0.75rem;
+}
+.washer-card {
+  border: 3px solid #999;
+  border-left-width: 10px;
+  border-radius: 10px;
+  padding: 0.75rem 1rem;
+}
+.washer-card h2 {
+  margin: 0 0 0.25rem;
+  font-size: 1.375rem;
+}
+.washer-card.status-running {
+  border-color: #1f3a8a;
+}
+.washer-card.status-ready {
+  border-color: #b45309;
+  background: #fffaf0;
+}
+.washer-card.status-idle {
+  border-color: #6b7280;
+}
+.washer-card .status-line {
+  font-size: 1.125rem;
+  font-weight: 700;
+}
+.washer-card .countdown {
+  font-variant-numeric: tabular-nums;
+  font-size: 1.5rem;
+}
+.washer-card dl {
+  margin: 0.5rem 0;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.25rem 0.75rem;
+  align-items: start;
+}
+.washer-card dt {
+  font-weight: 700;
+  text-transform: uppercase;
+  font-size: 0.875rem;
+  padding-top: 0.2rem;
+  color: #333;
+}
+.washer-card dd {
+  margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 0.5rem;
+  align-items: center;
+}
+.washer-card .button-link {
+  width: 100%;
+  min-height: 56px;
+}
+
+/* ── Washer station (tablet at a washer; also works on a phone) ── */
+.station {
+  box-sizing: border-box;
+  min-height: 100vh;
+  min-height: 100dvh;
+  margin: 0;
+  padding: 16px;
+  font-family: system-ui, sans-serif;
+  color: #fff;
+  background: #0b0f14;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.station *,
+.station *::before,
+.station *::after {
+  box-sizing: inherit;
+}
+body:has(.station) {
+  margin: 0;
+  background: #0b0f14;
+}
+.station :focus-visible {
+  outline: 4px solid #ffd60a;
+  outline-offset: 3px;
+}
+.station-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+.station h1 {
+  margin: 0;
+  font-size: clamp(2.25rem, 7vw, 4rem);
+  line-height: 1.1;
+}
+.station .data-age {
+  color: #c9d1d9;
+  font-size: 1.125rem;
+  margin: 0;
+}
+.station .data-age-stale,
+.station .data-age-old {
+  color: #ffd60a;
+}
+.station-panel {
+  border: 3px solid #3a4250;
+  border-radius: 14px;
+  padding: 12px 16px;
+}
+.station-panel h2 {
+  margin: 0 0 4px;
+  font-size: 1.25rem;
+  letter-spacing: 0.08em;
+  color: #c9d1d9;
+}
+.station-now .group-label,
+.station-next .group-label {
+  font-size: clamp(1.75rem, 5vw, 3rem);
+  font-weight: 800;
+}
+.station .countdown {
+  font-variant-numeric: tabular-nums;
+  font-size: clamp(3rem, 12vw, 6.5rem);
+  font-weight: 800;
+  line-height: 1;
+  margin: 8px 0 0;
+}
+.station .status-line {
+  font-size: clamp(1.25rem, 3.5vw, 2rem);
+  font-weight: 700;
+}
+.station-ready {
+  border-color: #ffd60a;
+}
+.station-ready .status-line {
+  color: #ffd60a;
+}
+.station .meta {
+  font-size: 1.25rem;
+  color: #c9d1d9;
+  margin: 6px 0 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+.station .badge-rush {
+  color: #000;
+  background: #ffd60a;
+  border-color: #ffd60a;
+}
+.station .badge-rewash {
+  color: #000;
+  background: #c9b8ff;
+  border-color: #c9b8ff;
+}
+.station .badge-pin {
+  color: #fff;
+  background: transparent;
+}
+.station button {
+  font: inherit;
+  font-weight: 800;
+  border-radius: 14px;
+  cursor: pointer;
+  min-height: 56px;
+  padding: 8px 16px;
+  border: 3px solid #fff;
+  background: transparent;
+  color: #fff;
+  font-size: 1.25rem;
+}
+.station button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+.station .start-button {
+  width: 100%;
+  min-height: 120px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  font-size: clamp(2.5rem, 9vw, 4.5rem);
+  letter-spacing: 0.06em;
+  color: #000;
+  background: #2fd16b;
+  border-color: #2fd16b;
+}
+.station .start-sub {
+  display: block;
+  font-size: clamp(1.125rem, 3vw, 1.75rem);
+  letter-spacing: 0;
+  font-weight: 700;
+}
+.station .undo-button {
+  width: 100%;
+  min-height: 80px;
+  font-size: 1.75rem;
+  color: #000;
+  background: #ffd60a;
+  border-color: #ffd60a;
+}
+.station .row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.station .row > button {
+  flex: 1 1 14rem;
+}
+.station-message {
+  border-radius: 14px;
+  padding: 12px 16px;
+  font-size: 1.375rem;
+  font-weight: 700;
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  margin: 0;
+}
+.station-message.ok {
+  background: #0f3d22;
+  border: 3px solid #2fd16b;
+}
+.station-message.warn {
+  background: #3d3100;
+  border: 3px solid #ffd60a;
+}
+.station-message.bad {
+  background: #4a0f0f;
+  border: 3px solid #ff8a8a;
+}
+.station-message p {
+  margin: 0;
+}
+.group-picker {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 16rem), 1fr));
+  gap: 10px;
+}
+.group-picker button {
+  width: 100%;
+  min-height: 72px;
+  text-align: left;
+  font-size: 1.375rem;
+}
+.group-picker button[aria-pressed='true'] {
+  border-color: #ffd60a;
+  background: #2a2400;
+}
+.station a {
+  color: #ffd60a;
+  font-size: 1.125rem;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .station .start-button:active:not(:disabled) {
+    transform: scale(0.98);
+  }
+}
+
+/* ── Queue (owner phone) ── */
+.queue-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  gap: 0.75rem;
+}
+.queue-item {
+  border: 2px solid #999;
+  border-radius: 10px;
+  padding: 0.75rem;
+}
+.queue-item.rush {
+  border-color: #7a1500;
+  border-width: 3px;
+}
+.queue-item-head {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+  font-size: 1.125rem;
+  font-weight: 700;
+}
+.queue-item-pos {
+  font-variant-numeric: tabular-nums;
+  min-width: 2ch;
+}
+.queue-item p {
+  margin: 0.25rem 0;
+}
+.queue-item .actions button {
+  flex: 1 1 auto;
+  gap: 0.25rem;
+}
+.queue-item .field {
+  margin: 0.5rem 0 0;
+}
+.queue-section-title {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.form-page .notice {
+  border: 2px solid #1f3a8a;
+  border-radius: 8px;
+  padding: 0.5rem 0.75rem;
+  background: #eef3ff;
+}
