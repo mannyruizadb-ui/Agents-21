@@ -62,11 +62,15 @@ select is((select array[qty_loads::text, has_conversion::text, freshness] from p
   array['3.00000', 'true', 'red'], 'baskets converted via the group''s loads_per_basket; 5 h old → red');
 select is((select array[freshness, age_minutes::text] from public.current_soil_estimates where wash_group_id = pg_temp.id('gMat')),
   array['amber', '180'], '3 h old → amber; age in minutes');
-select is(array[pg_temp.run_as('lead', $$select 1 from public.current_soil_estimates where entered_by_name = 'Ana'$$, true),
-                pg_temp.run_as('viewer', $$select 1 from public.current_soil_estimates where wash_group_id = pg_temp.id('gMat') and entered_by_name is null$$, true)],
-  '{1,1}', 'who entered is visible to entry-staff readers only');
-select is(pg_temp.run_as('display', $$select 1 from public.current_soil_estimates where wash_group_id = pg_temp.id('gMat') and entered_by_name is null$$, true),
-  '1', 'entered_by_name is null for a display');
+select is((select coalesce(array_agg(attname::text), '{}') from pg_attribute
+            where attrelid = 'public.current_soil_estimates'::regclass and attnum > 0
+              and attname in ('entered_by', 'staff_id', 'entered_by_name')),
+  '{}'::text[], 'owner 2026-11-04: current_soil_estimates names nobody (no entered_by, staff_id, entered_by_name)');
+select is((select coalesce(array_agg(c.relname || '.' || a.attname order by 1), '{}') from pg_class c
+             join pg_attribute a on a.attrelid = c.oid and a.attnum > 0 and not a.attisdropped
+            where c.relnamespace = 'public'::regnamespace and c.relkind = 'v'
+              and (a.attname ~ '(^|_)(entered|created|updated|voided)_by' or a.attname in ('staff_id', 'entered_by_name', 'user_id', 'actor_user_id'))),
+  '{}'::text[], 'no public view exposes who entered, created, updated or voided a row');
 
 -- queue_board
 select is(pg_temp.reads($$select 1 from public.queue_board where plant_id = pg_temp.id('plantA')$$), '{2,2,2,2,1,0,0,42501}',

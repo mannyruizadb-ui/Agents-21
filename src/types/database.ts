@@ -912,7 +912,7 @@ isOneToOne: false
           Views: {
             "current_soil_estimates": {
                   Row: {
-                    "age_minutes": number | null,"entered_at": string,"entered_by": string,"entered_by_name": string | null,"estimate_id": string,"freshness": string | null,"has_conversion": boolean | null,"org_id": string,"plant_id": string,"qty": number,"qty_loads": number | null,"staff_id": string | null,"unit": "load"|"basket"|"bin"|"piece"|"pack","wash_group_id": string,"wash_group_name": string,"wash_group_name_i18n": NonNullable<Json>
+                    "age_minutes": number | null,"entered_at": string,"estimate_id": string,"freshness": string | null,"has_conversion": boolean | null,"org_id": string,"plant_id": string,"qty": number,"qty_loads": number | null,"unit": "load"|"basket"|"bin"|"piece"|"pack","wash_group_id": string,"wash_group_name": string,"wash_group_name_i18n": NonNullable<Json>
                   }
                   ComputedFields: never
                   Relationships: [
@@ -922,18 +922,6 @@ isOneToOne: false
 isOneToOne: false
       referencedRelation: "plants"
       referencedColumns: ["id","org_id"]
-    },{
-      foreignKeyName: "soil_estimates_staff_id_plant_id_fkey"
-      columns: ["staff_id","plant_id"]
-isOneToOne: false
-      referencedRelation: "entry_staff"
-      referencedColumns: ["id","plant_id"]
-    },{
-      foreignKeyName: "soil_estimates_staff_id_plant_id_fkey"
-      columns: ["staff_id","plant_id"]
-isOneToOne: false
-      referencedRelation: "entry_staff_public"
-      referencedColumns: ["id","plant_id"]
     },{
       foreignKeyName: "soil_estimates_wash_group_id_plant_id_fkey"
       columns: ["wash_group_id","plant_id"]
