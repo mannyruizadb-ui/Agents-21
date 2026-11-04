@@ -1432,7 +1432,7 @@ isOneToOne: false
                       },"pairing_code_result": {
                         "code": string | null,"expires_at": string | null
                       },"staff_session_result": {
-                        "staff_session_id": string | null,"error": string | null,"locked_until": string | null
+                        "staff_session_id": string | null,"error": string | null,"locked_until": string | null,"expires_at": string | null
                       },"washer_load_result": {
                         "cycle_id": string | null,"machine_id": string | null,"area_id": string | null,"wash_group_id": string | null,"wash_formula_id": string | null,"queue_item_id": string | null,"is_rewash": boolean | null,"started_at": string | null,"expected_end_at": string | null,"shift_instance_id": string | null,"production_date": string | null,"voided_at": string | null,"queue_status": "queued"|"in_progress"|"done"|"cancelled" | null,"queue_version": number | null,"loads_started": number | null,"loads_needed": number | null,"duplicate": boolean | null
                       }

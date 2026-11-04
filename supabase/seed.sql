@@ -16,8 +16,9 @@ on conflict (code) do nothing;
 insert into public.organizations (name, slug)
 values ('America''s Dust Busters', 'americas-dust-busters');
 
-insert into public.plants (org_id, name, timezone, default_language, enabled_languages)
-select o.id, 'Miami', 'America/New_York', 'en', '{en,es}'
+-- A confirmed PIN is good for 10 minutes (owner 2026-11-04; data migration 20261104195456 for the cloud).
+insert into public.plants (org_id, name, timezone, default_language, enabled_languages, staff_pin_reuse_minutes)
+select o.id, 'Miami', 'America/New_York', 'en', '{en,es}', 10
   from public.organizations o where o.slug = 'americas-dust-busters';
 
 insert into public.areas (org_id, plant_id, name, kind, sort_order)
