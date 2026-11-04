@@ -153,7 +153,14 @@
     "updatedMinutes_other": "Updated {{count}} minutes ago",
     "mayBeOld": "may be out of date",
     "refreshFailed": "couldn't refresh",
-    "refreshing": "Refreshing…"
+    "refreshing": "Refreshing…",
+    "nextFromQueue": "From the queue (see Next in queue)",
+    "nextInQueue": "Next in queue",
+    "nextInQueueHint": "Any free washer takes the top item. Loads pinned to a washer show on that washer.",
+    "noUnassigned": "Nothing waiting for a free washer.",
+    "moreInQueue_one": "…and {{count}} more",
+    "moreInQueue_other": "…and {{count}} more",
+    "seeQueue": "See the whole queue"
   },
   "station": {
     "pendingCount_one": "{{count}} start is waiting to send. It will send when the connection is back.",

@@ -400,3 +400,21 @@ body:has(.station) {
   padding: 0.5rem 0.75rem;
   background: #eef3ff;
 }
+
+/* Board: the queue's next unassigned work, listed once. */
+.next-panel h2 {
+  margin-top: 0;
+}
+.next-list {
+  margin: 0.5rem 0;
+  padding-left: 1.5rem;
+  display: grid;
+  gap: 0.5rem;
+}
+.next-list li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.25rem 0.5rem;
+  font-weight: 600;
+}

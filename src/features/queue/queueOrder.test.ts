@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { applyMove, canMove, moveAfterId, parseLoads, placeNumbers } from './queueOrder';
+import {
+  applyMove,
+  canMove,
+  moveAfterId,
+  nextUnassigned,
+  parseLoads,
+  placeNumbers,
+} from './queueOrder';
 
 // Board order: rush r1, r2, then normal a, b, c.
 const items = [
@@ -67,5 +74,21 @@ describe('parseLoads', () => {
     for (const bad of ['', '0', '-1', '1.234', '100000.01', 'abc', '1e3']) {
       expect(parseLoads(bad)).toBeNull();
     }
+  });
+});
+
+describe('nextUnassigned', () => {
+  const q = [
+    { id: 'r1', is_rush: true, assigned_machine_id: null },
+    { id: 'p', is_rush: true, assigned_machine_id: 'w2' },
+    { id: 'a', is_rush: false, assigned_machine_id: null },
+    { id: 'b', is_rush: false, assigned_machine_id: null },
+  ];
+  it('lists unassigned items once, in board order, with a count of the rest', () => {
+    const r = nextUnassigned(q, 2);
+    expect(ids(r.shown)).toEqual(['r1', 'a']);
+    expect(r.more).toBe(1);
+    expect(nextUnassigned(q, 5).more).toBe(0);
+    expect(nextUnassigned([], 3)).toEqual({ shown: [], more: 0 });
   });
 });

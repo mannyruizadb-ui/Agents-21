@@ -10,7 +10,15 @@ import { useQtyText } from './useQtyText';
 import { WashGroupLabel } from './WashGroupLabel';
 import { errorMessageKey } from './rpcError';
 import { formatCountdown, minutesLeftRoundedUp, washerNow, type WasherNow } from './washerTime';
-import { pickArea, useAreas, useWashroomBoard, type WasherBoardRow } from './washroomData';
+import {
+  pickArea,
+  useAreas,
+  useQueue,
+  useWashroomBoard,
+  type QueueRow,
+  type WasherBoardRow,
+} from './washroomData';
+import { nextUnassigned } from '../queue/queueOrder';
 import { useTapSync } from './useTapSync';
 import '../../lib/forms.css';
 import './washroom.css';
@@ -114,7 +122,9 @@ function WasherCard({
         )}
         <dt>{t('washroom.next')}</dt>
         <dd>
-          {row.next_queue_item_id ? (
+          {/* Only a load pinned to THIS washer is shown here; unassigned work is listed once in
+              the "Next in queue" panel (the board RPC repeats it on every free washer). */}
+          {row.next_queue_item_id && row.next_is_assigned ? (
             <>
               <WashGroupLabel
                 name={row.next_wash_group_name}
@@ -122,14 +132,10 @@ function WasherCard({
                 colorHex={row.next_wash_group_color_hex}
               />
               <span>{qtyText(row.next_loads_remaining, row.next_qty, row.next_unit)}</span>
-              <QueueBadges
-                rush={row.next_is_rush}
-                rewash={row.next_is_rewash}
-                pinnedTo={row.next_is_assigned ? true : null}
-              />
+              <QueueBadges rush={row.next_is_rush} rewash={row.next_is_rewash} pinnedTo />
             </>
           ) : (
-            <span>{t('washroom.nothingQueued')}</span>
+            <span>{t('washroom.nextFromQueue')}</span>
           )}
         </dd>
       </dl>
@@ -137,6 +143,40 @@ function WasherCard({
         {t('washroom.openStation', { washer: row.machine_name })}
       </Link>
     </li>
+  );
+}
+
+const NEXT_PANEL_LIMIT = 3;
+
+/** The queue's next unassigned work, shown ONCE (any free washer takes the top item). */
+function NextInQueue({ items }: { items: QueueRow[] }) {
+  const { t } = useTranslation();
+  const qtyText = useQtyText();
+  const { shown, more } = nextUnassigned(items, NEXT_PANEL_LIMIT);
+  return (
+    <section className="card next-panel" aria-labelledby="next-in-queue">
+      <h2 id="next-in-queue">{t('washroom.nextInQueue')}</h2>
+      <p className="hint">{t('washroom.nextInQueueHint')}</p>
+      {shown.length === 0 ? (
+        <p>{t('washroom.noUnassigned')}</p>
+      ) : (
+        <ol className="next-list">
+          {shown.map((item) => (
+            <li key={item.id}>
+              <WashGroupLabel
+                name={item.wash_group_name}
+                nameI18n={item.wash_group_name_i18n}
+                colorHex={item.wash_group_color_hex}
+              />
+              <span>{qtyText(item.loads_remaining, item.qty, item.unit)}</span>
+              <QueueBadges rush={item.is_rush} rewash={item.is_rewash} />
+            </li>
+          ))}
+        </ol>
+      )}
+      {more > 0 && <p>{t('washroom.moreInQueue', { count: more })}</p>}
+      <Link to="/control/queue">{t('washroom.seeQueue')}</Link>
+    </section>
   );
 }
 
@@ -149,6 +189,8 @@ export function WasherBoardPage() {
   const area = pickArea(washrooms, 'washroom', areaId);
   const board = useWashroomBoard(area?.id);
   useLiveRefetch(board.refetch, !!area);
+  const queue = useQueue(area?.id);
+  useLiveRefetch(queue.refetch, !!area);
   const taps = useTapSync();
 
   return (
@@ -190,6 +232,8 @@ export function WasherBoardPage() {
           </button>
         </div>
       )}
+      {queue.data && <NextInQueue items={queue.data} />}
+      {queue.isError && !queue.data && <p className="error">{t(errorMessageKey(queue.error))}</p>}
       {board.data && board.data.length === 0 && <p>{t('washroom.noWashers')}</p>}
       {board.data && board.data.length > 0 && (
         <ul className="washer-list">

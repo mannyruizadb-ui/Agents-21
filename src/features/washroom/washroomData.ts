@@ -51,6 +51,9 @@ export interface WasherBoardRow {
   server_time: string;
 }
 
+/** One row of get_queue (queue_board, board order: RUSH first, then position). */
+export type QueueRow = Database['public']['Functions']['get_queue']['Returns'][number];
+
 export interface AreaRow {
   id: string;
   plant_id: string;
@@ -178,4 +181,15 @@ export function pickArea(
 ): AreaRow | undefined {
   if (!areas) return undefined;
   return areas.find((a) => a.id === chosenId) ?? areas.find((a) => a.kind === kind);
+}
+
+/** The area's open queue in board order (live: refetch every 30 s plus useLiveRefetch). */
+export function useQueue(areaId: string | undefined) {
+  return useQuery({
+    queryKey: washroomKeys.queue(areaId ?? ''),
+    enabled: !!areaId,
+    queryFn: async (): Promise<QueueRow[]> =>
+      unwrap(await supabase.rpc('get_queue', { p_area_id: areaId ?? '' })) ?? [],
+    refetchInterval: LIVE_REFETCH_MS,
+  });
 }

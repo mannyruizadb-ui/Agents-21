@@ -153,7 +153,14 @@
     "updatedMinutes_other": "Actualizado hace {{count}} minutos",
     "mayBeOld": "puede no estar al día",
     "refreshFailed": "no se pudo actualizar",
-    "refreshing": "Actualizando…"
+    "refreshing": "Actualizando…",
+    "nextFromQueue": "De la cola (ver Sigue en la cola)",
+    "nextInQueue": "Sigue en la cola",
+    "nextInQueueHint": "Cualquier lavadora libre toma el primero. Las cargas asignadas a una lavadora salen en esa lavadora.",
+    "noUnassigned": "No hay nada esperando una lavadora libre.",
+    "moreInQueue_one": "…y {{count}} más",
+    "moreInQueue_other": "…y {{count}} más",
+    "seeQueue": "Ver toda la cola"
   },
   "station": {
     "pendingCount_one": "{{count}} arranque está esperando para enviarse. Se enviará cuando vuelva la conexión.",

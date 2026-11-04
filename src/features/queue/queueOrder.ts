@@ -78,3 +78,15 @@ export function parseLoads(input: string): number | null {
   const n = Number(s);
   return n >= 0.01 && n <= 100000 ? n : null;
 }
+
+/**
+ * The open items no washer is pinned to, in board order, for the board's single "Next in queue"
+ * panel (each appears once; get_washroom_board repeats the same one on every free washer).
+ */
+export function nextUnassigned<T extends Orderable & { assigned_machine_id: string | null }>(
+  items: readonly T[],
+  limit: number,
+): { shown: T[]; more: number } {
+  const free = items.filter((i) => i.assigned_machine_id === null);
+  return { shown: free.slice(0, limit), more: Math.max(0, free.length - limit) };
+}

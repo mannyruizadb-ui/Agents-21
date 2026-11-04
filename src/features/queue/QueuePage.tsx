@@ -1,11 +1,10 @@
 import { useRef, useState, type FormEvent } from 'react';
 import { Link } from 'react-router';
 import { useTranslation } from 'react-i18next';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../../lib/supabase';
 import { useLiveRefetch } from '../../lib/useLiveRefetch';
 import { useNow } from '../../lib/useNow';
-import type { Database } from '../../types/database';
 import { useRequiredSession } from '../../app/auth/sessionContext';
 import { useOwnerPlants } from '../admin/useOwnerPlants';
 import { DataAge } from '../washroom/DataAge';
@@ -16,12 +15,13 @@ import { useLocalizedName } from '../washroom/localizedName';
 import { appErrorCode, errorMessageKey, unwrap } from '../washroom/rpcError';
 import { useQtyText } from '../washroom/useQtyText';
 import {
-  LIVE_REFETCH_MS,
   pickArea,
   useAreas,
+  useQueue,
   useWashers,
   useWashGroups,
   washroomKeys,
+  type QueueRow,
   type WasherRow,
 } from '../washroom/washroomData';
 import {
@@ -39,18 +39,6 @@ import '../washroom/washroom.css';
 // assign a washer, RUSH, cancel); managers, leads and viewers see a read-only list. The server still
 // lets managers edit until a separate migration tightens it; this screen only offers what the owner
 // decided. Items are cancelled, never deleted.
-
-type QueueRow = Database['public']['Functions']['get_queue']['Returns'][number];
-
-function useQueue(areaId: string | undefined) {
-  return useQuery({
-    queryKey: washroomKeys.queue(areaId ?? ''),
-    enabled: !!areaId,
-    queryFn: async (): Promise<QueueRow[]> =>
-      unwrap(await supabase.rpc('get_queue', { p_area_id: areaId ?? '' })) ?? [],
-    refetchInterval: LIVE_REFETCH_MS,
-  });
-}
 
 /** Sends every editable field (update_queue_item is a full replacement). */
 function updateArgs(
