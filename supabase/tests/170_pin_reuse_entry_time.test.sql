@@ -1,6 +1,6 @@
 -- Owner decisions 2026-11-04: a PIN is good for 10 minutes (start_staff_session returns expires_at;
 -- ADB plant staff_pin_reuse_minutes = 10); record_soil_estimate keeps an offline entry's real time
--- (p_entered_at).
+-- (p_entered_at; 6 h window for estimates).
 begin;
 \ir _fixtures.psql
 select plan(15);
@@ -44,18 +44,18 @@ select is(pg_temp.run_as('manager', $$select public.record_soil_estimate(pg_temp
 select is((select entered_at from public.soil_estimates where client_id = pg_temp.cid(1)), now() - interval '20 minutes',
   'entered_at = the device time');
 select is(array[
-  pg_temp.run_as('manager', $$select public.record_soil_estimate(pg_temp.id('gTowel'), 4, 'load', gen_random_uuid(), pg_temp.ben(), p_entered_at => now() - interval '31 minutes')$$),
+  pg_temp.run_as('manager', $$select public.record_soil_estimate(pg_temp.id('gTowel'), 4, 'load', gen_random_uuid(), pg_temp.ben(), p_entered_at => now() - interval '6 hours 1 minute')$$),
   pg_temp.run_as('manager', $$select public.record_soil_estimate(pg_temp.id('gTowel'), 4, 'load', gen_random_uuid(), pg_temp.ben(), p_entered_at => now() + interval '2 minutes')$$)],
-  '{OUT_OF_RANGE_TIMESTAMP,OUT_OF_RANGE_TIMESTAMP}', 'p_entered_at outside [now − 30 min, now + 1 min] is rejected');
+  '{OUT_OF_RANGE_TIMESTAMP,OUT_OF_RANGE_TIMESTAMP}', 'p_entered_at outside [now − 6 h, now + 1 min] is rejected');
 select is(pg_temp.run_as('manager', $$select public.record_soil_estimate(pg_temp.id('gTowel'), 6, 'load', pg_temp.cid(2), pg_temp.ben(), p_entered_at => now() + interval '30 seconds')$$),
   '1', 'up to 1 minute ahead is accepted (device clock skew)');
-select is(pg_temp.val_as('manager', $$select (public.record_soil_estimate(pg_temp.id('gTowel'), 4, 'load', pg_temp.cid(1), null, p_entered_at => now() - interval '3 hours')).id::text$$),
+select is(pg_temp.val_as('manager', $$select (public.record_soil_estimate(pg_temp.id('gTowel'), 4, 'load', pg_temp.cid(1), null, p_entered_at => now() - interval '9 hours')).id::text$$),
   (select id::text from public.soil_estimates where client_id = pg_temp.cid(1)),
   'idempotency comes first: a late retry of a saved estimate returns it (no window, no session needed)');
 select is(pg_temp.run_as('ownerB', $$select public.record_soil_estimate(pg_temp.id('gTowel'), 4, 'load', gen_random_uuid(), null, p_entered_at => now() - interval '3 hours')$$),
   'NOT_AUTHORIZED', 'role check first: another tenant learns nothing');
-select is(pg_temp.run_as('manager', $$select public.record_soil_estimate(pg_temp.id('gTowel'), 1, 'load', pg_temp.cid(3), pg_temp.ben(), p_entered_at => now() - interval '25 minutes')$$),
-  '1', 'a late-syncing older estimate is saved …');
+select is(pg_temp.run_as('manager', $$select public.record_soil_estimate(pg_temp.id('gTowel'), 1, 'load', pg_temp.cid(3), pg_temp.ben(), p_entered_at => now() - interval '5 hours 59 minutes')$$),
+  '1', 'an estimate from an offline phone almost 6 hours ago is saved …');
 select is((select qty from public.current_soil_estimates where wash_group_id = pg_temp.id('gTowel')), 6.00::numeric,
   '… but does not override a newer one (current = latest entered_at)');
 
