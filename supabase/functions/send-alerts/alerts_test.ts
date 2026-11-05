@@ -283,3 +283,34 @@ Deno.test('reason labels match the app (src/locales machines.reasons)', async ()
     assertEquals(REASONS[lang], locale.machines.reasons, `${lang}.json machines.reasons`);
   }
 });
+
+Deno.test('buildPayload: plant reason labels (data) win, with fallbacks', () => {
+  const labels = { en: 'Belt broke', es: 'Se rompió la correa' };
+  const custom = { ...base, reason_code: 'belt', reason_label_i18n: labels };
+  assertEquals(buildPayload(custom).body, 'Belt broke · since 9:42 PM');
+  assert(buildPayload({ ...custom, language: 'es' }).body.startsWith('Se rompió la correa · '));
+  // no es label: Spanish built-in preset first, then the plant's English label
+  const enOnly = { en: 'Pump (edited)' };
+  assert(
+    buildPayload({ ...base, language: 'es', reason_label_i18n: enOnly }).body.startsWith(
+      'Bomba de agua · ',
+    ),
+  );
+  assert(
+    buildPayload({
+      ...custom,
+      language: 'es',
+      reason_label_i18n: { en: 'Belt broke' },
+    }).body.startsWith('Belt broke · '),
+  );
+  // junk in the jsonb is ignored; control characters stripped; length capped
+  assertEquals(
+    buildPayload({ ...custom, reason_label_i18n: { en: 42 } as Record<string, unknown> }).body,
+    'Since 9:42 PM',
+  );
+  assertEquals(
+    buildPayload({ ...custom, reason_label_i18n: { en: 'A\nB' } }).body,
+    'A B · since 9:42 PM',
+  );
+  assert(buildPayload({ ...custom, reason_label_i18n: { en: 'y'.repeat(300) } }).body.length < 90);
+});

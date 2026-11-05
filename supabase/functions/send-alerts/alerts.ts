@@ -8,6 +8,8 @@ export interface ClaimedRow {
   machine_id: string;
   machine_name: string;
   reason_code: string | null;
+  /** The plant's label for reason_code, per language ({"en": …, "es": …}); owner-edited data. */
+  reason_label_i18n?: Record<string, unknown> | null;
   down_since: string;
   still_down: boolean;
   subscription_id: string;
@@ -54,6 +56,7 @@ export interface RunCounts {
 export const PLANT_TIME_ZONE = 'America/New_York';
 export const ALERT_URL = '/control/washers';
 const MAX_NAME_CHARS = 60;
+const MAX_REASON_CHARS = 60;
 const SEND_CONCURRENCY = 8;
 
 // ---------------------------------------------------------------------------------------------
@@ -107,7 +110,9 @@ export function isAllowedPushEndpoint(endpoint: string): boolean {
 }
 
 // ---------------------------------------------------------------------------------------------
-// Message text (preset reason codes only; matches src/locales machines.reasons.*)
+// Message text. Reasons are per-plant data (machine_down_reasons.label_i18n, owner-edited, clean
+// 1–60 chars); the built-in labels below (= src/locales machines.reasons.*) are only the fallback.
+// The free-text details (machine_status_events.reason) never reach this function.
 
 type Lang = 'en' | 'es';
 
@@ -132,22 +137,46 @@ export function pickLanguage(language: string | null): Lang {
   return language?.toLowerCase().split(/[-_]/)[0] === 'es' ? 'es' : 'en';
 }
 
-/** Translated preset reason, or null for an unknown code (never echo the code or free text). */
-export function reasonLabel(code: string | null, lang: Lang): string | null {
+function labelFrom(labels: Record<string, unknown> | null | undefined, key: string): string | null {
+  if (!labels || typeof labels !== 'object' || !Object.hasOwn(labels, key)) return null;
+  const v = labels[key];
+  if (typeof v !== 'string') return null;
+  const clean = cleanText(v, MAX_REASON_CHARS);
+  return clean || null;
+}
+
+/**
+ * The reason in the recipient's language: the plant's label for that language, else the built-in
+ * preset in that language, else the plant's English label; null when none exists (never echo the
+ * code or the free-text details).
+ */
+export function reasonLabel(
+  code: string | null,
+  lang: Lang,
+  labels?: Record<string, unknown> | null,
+): string | null {
   if (code === null) return null;
-  return Object.hasOwn(REASONS[lang], code) ? REASONS[lang][code] : null;
+  return (
+    labelFrom(labels, lang) ??
+    (Object.hasOwn(REASONS[lang], code) ? REASONS[lang][code] : null) ??
+    labelFrom(labels, 'en')
+  );
 }
 
 function cleanName(name: string): string {
-  // Strip control characters and cap the length; machine names are setup data.
-  const flat = Array.from(name, (ch) => {
+  return cleanText(name, MAX_NAME_CHARS);
+}
+
+/** Control characters to spaces, spaces collapsed, length capped. Names and labels are setup data. */
+function cleanText(text: string, max: number): string {
+  const flat = Array.from(text, (ch) => {
     const c = ch.charCodeAt(0);
     return c < 0x20 || c === 0x7f ? ' ' : ch;
   })
     .join('')
     .replace(/ {2,}/g, ' ')
     .trim();
-  return flat.length > MAX_NAME_CHARS ? `${flat.slice(0, MAX_NAME_CHARS - 1)}…` : flat;
+  return flat.length > max ? `${flat.slice(0, max - 1)}…` : flat;
 }
 
 /** "9:42 PM" / "9:42 p. m." in the plant's time zone; null when the timestamp is unreadable. */
@@ -169,13 +198,16 @@ function hourIsOne(iso: string, timeZone: string): boolean {
 }
 
 export function buildPayload(
-  row: Pick<ClaimedRow, 'machine_id' | 'machine_name' | 'reason_code' | 'down_since' | 'language'>,
+  row: Pick<
+    ClaimedRow,
+    'machine_id' | 'machine_name' | 'reason_code' | 'reason_label_i18n' | 'down_since' | 'language'
+  >,
   timeZone = PLANT_TIME_ZONE,
 ): PushPayload {
   const lang = pickLanguage(row.language);
   const name = cleanName(row.machine_name) || (lang === 'es' ? 'Una máquina' : 'A machine');
   const title = lang === 'es' ? `${name} está fuera de servicio` : `${name} is down`;
-  const reason = reasonLabel(row.reason_code, lang);
+  const reason = reasonLabel(row.reason_code, lang, row.reason_label_i18n);
   const time = formatTime(row.down_since, lang, timeZone);
   let since: string | null = null;
   if (time !== null) {
