@@ -269,8 +269,11 @@ body:has(.station) {
   align-items: center;
   justify-content: center;
   gap: 16px;
-  font-size: clamp(2.5rem, 9vw, 4.5rem);
+  /* Capped by the screen width so it never overflows, even at 200% text (it stays ≥ 40 px). */
+  font-size: min(4.5rem, max(2.5rem, 9vw), 12vw);
   letter-spacing: 0.06em;
+  flex-wrap: wrap;
+  overflow-wrap: anywhere;
   color: #000;
   background: #2fd16b;
   border-color: #2fd16b;

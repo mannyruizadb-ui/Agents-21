@@ -134,12 +134,13 @@
 }
 .est-row-head {
   display: flex;
+  flex-wrap: wrap; /* at large text the "Nothing waiting" button drops below the name */
   align-items: stretch;
   gap: 8px;
   padding: 4px 0 4px 10px;
 }
 .form-page .est-toggle {
-  flex: 1 1 auto;
+  flex: 1 1 12rem;
   min-width: 0;
   justify-content: space-between;
   gap: 8px;
@@ -175,8 +176,9 @@
   flex: none;
 }
 .form-page .est-nothing {
-  flex: none;
+  flex: 0 0 auto;
   width: 6.5rem;
+  max-width: 100%;
   min-height: 56px;
   padding: 4px 6px;
   font-size: 0.875rem;
@@ -187,7 +189,7 @@
 }
 .stepper {
   display: grid;
-  grid-template-columns: 1fr 64px 3.5rem 64px;
+  grid-template-columns: minmax(0, 1fr) 64px minmax(3.5rem, auto) 64px;
   align-items: center;
   gap: 8px;
   margin: 0.5rem 0;
