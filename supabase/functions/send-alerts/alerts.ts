@@ -122,7 +122,7 @@ const REASONS: Record<Lang, Record<string, string>> = {
   es: {
     water_pump: 'Bomba de agua',
     soap_dispenser: 'Dosificador de jabón',
-    wont_start: 'No arranca',
+    wont_start: 'No empieza',
     leaking: 'Gotea',
     other: 'Otro (ver la app)',
   },
