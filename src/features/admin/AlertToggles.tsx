@@ -38,6 +38,7 @@ export function AlertToggles({
 }) {
   const { t } = useTranslation();
   const qc = useQueryClient();
+  const key = ['alert-memberships', plant.id];
   const rows = alertRowsFor(memberships, userId, plant).filter((r) => r.canEnable || r.on);
 
   const set = useMutation({
@@ -48,10 +49,22 @@ export function AlertToggles({
           p_notify: v.on,
         }),
       ),
+    // Optimistic: the box moves at once; it goes back if the server refuses.
+    onMutate: async (v) => {
+      await qc.cancelQueries({ queryKey: key });
+      const previous = qc.getQueryData<AlertMembership[]>(key);
+      qc.setQueryData<AlertMembership[]>(key, (list) =>
+        list?.map((m) => (m.id === v.membershipId ? { ...m, notify_machine_down: v.on } : m)),
+      );
+      return { previous };
+    },
     onSuccess: (_r, v) =>
       onStatus(v.on ? t('people.alertsOn', { name }) : t('people.alertsOff', { name })),
-    onError: (e) => onStatus(t(errorMessageKey(e))),
-    onSettled: () => void qc.invalidateQueries({ queryKey: ['alert-memberships', plant.id] }),
+    onError: (e, _v, ctx) => {
+      if (ctx?.previous) qc.setQueryData(key, ctx.previous);
+      onStatus(t(errorMessageKey(e)));
+    },
+    onSettled: () => void qc.invalidateQueries({ queryKey: key }),
   });
 
   if (rows.length === 0) return null;
