@@ -21,7 +21,7 @@ select is(array[has_function_privilege('authenticated', 'app.dispatch_send_alert
 
 -- A pending alert: the owner subscribed, Washer 1 goes down.
 select is(array[
-  pg_temp.run_as('owner', $$select public.save_push_subscription(pg_temp.id('plantA'), 'https://push.example/owner', pg_temp.k(), pg_temp.a())$$),
+  pg_temp.run_as('owner', $$select public.save_push_subscription(pg_temp.id('plantA'), 'https://fcm.googleapis.com/fcm/send/owner', pg_temp.k(), pg_temp.a())$$),
   pg_temp.run_as('manager', $$select public.set_machine_status(pg_temp.id('machine'), 'down', gen_random_uuid(), p_reason_code => 'water_pump')$$)],
   '{1,1}', 'a pending machine-down alert with one recipient');
 

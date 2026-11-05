@@ -14,12 +14,12 @@ insert into public.machines (id, org_id, plant_id, area_id, name, kind, active) 
 
 -- Subscriptions: owner (alerts on by default), manager (off), owner B; a lead and a revoked one by hand.
 select is(array[
-  pg_temp.run_as('owner', $$select public.save_push_subscription(pg_temp.id('plantA'), 'https://push.example/owner', pg_temp.k(), pg_temp.a())$$),
-  pg_temp.run_as('owner', $$select public.save_push_subscription(pg_temp.id('plantA2'), 'https://push.example/owner-a2', pg_temp.k(), pg_temp.a())$$),
-  pg_temp.run_as('manager', $$select public.save_push_subscription(pg_temp.id('plantA'), 'https://push.example/manager', pg_temp.k(), pg_temp.a())$$),
-  pg_temp.run_as('ownerB', $$select public.save_push_subscription(pg_temp.id('plantB'), 'https://push.example/ownerB', pg_temp.k(), pg_temp.a())$$),
-  pg_temp.as_service($$insert into public.push_subscriptions (org_id, plant_id, user_id, endpoint, p256dh, auth) values (pg_temp.id('orgA'), pg_temp.id('plantA'), pg_temp.id('lead'), 'https://push.example/lead', pg_temp.k(), pg_temp.a())$$),
-  pg_temp.as_service($$insert into public.push_subscriptions (org_id, plant_id, user_id, endpoint, p256dh, auth, revoked_at) values (pg_temp.id('orgA'), pg_temp.id('plantA'), pg_temp.id('owner'), 'https://push.example/old', pg_temp.k(), pg_temp.a(), now())$$)],
+  pg_temp.run_as('owner', $$select public.save_push_subscription(pg_temp.id('plantA'), 'https://fcm.googleapis.com/fcm/send/owner', pg_temp.k(), pg_temp.a())$$),
+  pg_temp.run_as('owner', $$select public.save_push_subscription(pg_temp.id('plantA2'), 'https://fcm.googleapis.com/fcm/send/owner-a2', pg_temp.k(), pg_temp.a())$$),
+  pg_temp.run_as('manager', $$select public.save_push_subscription(pg_temp.id('plantA'), 'https://fcm.googleapis.com/fcm/send/manager', pg_temp.k(), pg_temp.a())$$),
+  pg_temp.run_as('ownerB', $$select public.save_push_subscription(pg_temp.id('plantB'), 'https://fcm.googleapis.com/fcm/send/ownerB', pg_temp.k(), pg_temp.a())$$),
+  pg_temp.as_service($$insert into public.push_subscriptions (org_id, plant_id, user_id, endpoint, p256dh, auth) values (pg_temp.id('orgA'), pg_temp.id('plantA'), pg_temp.id('lead'), 'https://fcm.googleapis.com/fcm/send/lead', pg_temp.k(), pg_temp.a())$$),
+  pg_temp.as_service($$insert into public.push_subscriptions (org_id, plant_id, user_id, endpoint, p256dh, auth, revoked_at) values (pg_temp.id('orgA'), pg_temp.id('plantA'), pg_temp.id('owner'), 'https://fcm.googleapis.com/fcm/send/old', pg_temp.k(), pg_temp.a(), now())$$)],
   '{1,1,1,1,1,1}', 'subscriptions set up');
 update public.memberships set notify_machine_down = true where user_id = pg_temp.id('lead');   -- even if forced on, a lead never receives
 
@@ -30,7 +30,7 @@ select is(array[
 
 select is((select array_agg(endpoint || ':' || machine_name || ':' || reason_code || ':' || still_down || ':' || coalesce(language, '-') order by endpoint)
              from app.pending_machine_down_alerts()),
-  array['https://push.example/owner:Washer 1:leaking:true:en', 'https://push.example/ownerB:Washer B:wont_start:true:en'],
+  array['https://fcm.googleapis.com/fcm/send/owner:Washer 1:leaking:true:en', 'https://fcm.googleapis.com/fcm/send/ownerB:Washer B:wont_start:true:en'],
   'recipients: the owner''s plant A subscription only (manager off, lead never, revoked and other-plant subscriptions excluded); plant B to owner B');
 select is((select array_agg(distinct (p256dh = pg_temp.k() and auth = pg_temp.a() and area_name = 'Washroom' and plant_name = 'Plant A')::text)
              from app.pending_machine_down_alerts() where plant_id = pg_temp.id('plantA')),

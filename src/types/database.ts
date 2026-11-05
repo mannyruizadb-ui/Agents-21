@@ -523,14 +523,14 @@ isOneToOne: false
                   ]
                 },"push_subscriptions": {
                   Row: {
-                    "auth": string,"created_at": string,"endpoint": string,"id": string,"org_id": string,"p256dh": string,"plant_id": string,"revoked_at": string | null,"user_agent": string | null,"user_id": string
+                    "auth": string,"created_at": string,"endpoint": string,"id": string,"org_id": string,"p256dh": string,"plant_id": string,"revoked_at": string | null,"updated_at": string,"user_agent": string | null,"user_id": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "auth": string,"created_at"?: string,"endpoint": string,"id"?: string,"org_id": string,"p256dh": string,"plant_id": string,"revoked_at"?: string | null,"user_agent"?: string | null,"user_id": string
+                    "auth": string,"created_at"?: string,"endpoint": string,"id"?: string,"org_id": string,"p256dh": string,"plant_id": string,"revoked_at"?: string | null,"updated_at"?: string,"user_agent"?: string | null,"user_id": string
                   }
                   Update: {
-                    "auth"?: string,"created_at"?: string,"endpoint"?: string,"id"?: string,"org_id"?: string,"p256dh"?: string,"plant_id"?: string,"revoked_at"?: string | null,"user_agent"?: string | null,"user_id"?: string
+                    "auth"?: string,"created_at"?: string,"endpoint"?: string,"id"?: string,"org_id"?: string,"p256dh"?: string,"plant_id"?: string,"revoked_at"?: string | null,"updated_at"?: string,"user_agent"?: string | null,"user_id"?: string
                   }
                   Relationships: [
                     {
@@ -1310,7 +1310,7 @@ isOneToOne: false
         isSetofReturn: false
       } },
 "save_push_subscription":
-{ Args: { "p_auth": string,"p_endpoint": string,"p_p256dh": string,"p_plant_id": string,"p_user_agent"?: string }; Returns: string
+{ Args: { "p_auth": string,"p_endpoint": string,"p_p256dh": string,"p_plant_id": string,"p_user_agent"?: string }; Returns: undefined
                            },
 "set_alert_recipient":
 { Args: { "p_membership_id": string,"p_notify": boolean }; Returns: {
