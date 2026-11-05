@@ -22,6 +22,7 @@ select is(array[
   pg_temp.as_service($$insert into public.push_subscriptions (org_id, plant_id, user_id, endpoint, p256dh, auth, revoked_at) values (pg_temp.id('orgA'), pg_temp.id('plantA'), pg_temp.id('owner'), 'https://fcm.googleapis.com/fcm/send/old', pg_temp.k(), pg_temp.a(), now())$$)],
   '{1,1,1,1,1,1}', 'subscriptions set up');
 update public.memberships set notify_machine_down = true where user_id = pg_temp.id('lead');   -- even if forced on, a lead never receives
+update public.memberships set notify_machine_down = false where user_id = pg_temp.id('manager');   -- the owner turned this manager off (default is on)
 
 select is(array[
   pg_temp.run_as('manager', $$select public.set_machine_status(pg_temp.id('machine'), 'down', gen_random_uuid(), 'Ana slipped near the drain', 'leaking')$$),

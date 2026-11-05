@@ -16,12 +16,13 @@ insert into public.memberships (user_id, org_id, plant_id, role) values
   (pg_temp.id('a2viewer'), pg_temp.id('orgA'), pg_temp.id('plantA2'), 'manager');
 
 select is((select array_agg(role::text || ':' || notify_machine_down order by role, user_id) from public.memberships where org_id = pg_temp.id('orgA')),
-  array['owner:true', 'owner:true', 'manager:false', 'manager:false', 'lead:false', 'viewer:false', 'display:false', 'display:false'],
-  'default: owners get alerts, every other role does not');
+  array['owner:true', 'owner:true', 'manager:true', 'manager:true', 'lead:false', 'viewer:false', 'display:false', 'display:false'],
+  'default (owner 2026-11-05): owners and managers get alerts, every other role does not');
 select is(pg_temp.as_service($$insert into public.memberships (user_id, org_id, plant_id, role, notify_machine_down) values (pg_temp.id('nobody'), pg_temp.id('orgA'), pg_temp.id('plantA'), 'manager', true)$$),
   '1', 'an explicit value on insert is kept');
 select is((select notify_machine_down from public.memberships where user_id = pg_temp.id('nobody')), true, 'manager inserted with alerts on');
 
+update public.memberships set notify_machine_down = false where id = pg_temp.mid('manager');   -- start from off
 select is(pg_temp.writes($$select public.set_alert_recipient(pg_temp.mid('manager'), true)$$),
   '{1,NOT_AUTHORIZED,NOT_AUTHORIZED,NOT_AUTHORIZED,NOT_AUTHORIZED,NOT_AUTHORIZED,NOT_AUTHORIZED,42501}',
   'set_alert_recipient: owner only (manager, lead, viewer, display, other tenant: NOT_AUTHORIZED; anon: no EXECUTE)');
