@@ -2,13 +2,8 @@
 // VAPID keys come from env in the common web-push format: VAPID_PUBLIC_KEY = base64url of the
 // 65-byte uncompressed P-256 point (the same value the browser gets as VITE_VAPID_PUBLIC_KEY),
 // VAPID_PRIVATE_KEY = base64url of the 32-byte private scalar.
-import {
-  ApplicationServer,
-  decodeBase64Url,
-  encodeBase64Url,
-  PushMessageError,
-  Urgency,
-} from '@negrel/webpush';
+import { ApplicationServer, PushMessageError, Urgency } from '@negrel/webpush';
+import { decodeBase64Url, encodeBase64Url } from '@std/encoding/base64url';
 import type { PushPayload, PushTarget, SendResult } from './alerts.ts';
 
 export const PUSH_TTL_SECONDS = 3600;

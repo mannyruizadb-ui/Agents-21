@@ -111,20 +111,20 @@ export function isAllowedPushEndpoint(endpoint: string): boolean {
 
 type Lang = 'en' | 'es';
 
-const REASONS: Record<Lang, Record<string, string>> = {
+export const REASONS: Record<Lang, Record<string, string>> = {
   en: {
     water_pump: 'Water pump',
     soap_dispenser: 'Soap dispenser',
     wont_start: "Won't start",
     leaking: 'Leaking',
-    other: 'Other (see the app)',
+    other: 'Other',
   },
   es: {
     water_pump: 'Bomba de agua',
     soap_dispenser: 'Dosificador de jabón',
-    wont_start: 'No empieza',
+    wont_start: 'No arranca',
     leaking: 'Gotea',
-    other: 'Otro (ver la app)',
+    other: 'Otro',
   },
 };
 
@@ -140,9 +140,13 @@ export function reasonLabel(code: string | null, lang: Lang): string | null {
 
 function cleanName(name: string): string {
   // Strip control characters and cap the length; machine names are setup data.
-  // deno-lint-ignore no-control-regex
-  // eslint-disable-next-line no-control-regex -- stripping control characters is the point here
-  const flat = name.replace(/[\u0000-\u001f\u007f]+/g, ' ').trim();
+  const flat = Array.from(name, (ch) => {
+    const c = ch.charCodeAt(0);
+    return c < 0x20 || c === 0x7f ? ' ' : ch;
+  })
+    .join('')
+    .replace(/ {2,}/g, ' ')
+    .trim();
   return flat.length > MAX_NAME_CHARS ? `${flat.slice(0, MAX_NAME_CHARS - 1)}…` : flat;
 }
 
