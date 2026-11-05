@@ -15,8 +15,8 @@ create function pg_temp.cid(n int) returns uuid language sql immutable as $$
 $$;
 grant execute on function pg_temp.cid(int) to authenticated, anon;
 
-select enum_has_labels('app', 'machine_down_reason', array['water_pump','soap_dispenser','wont_start','leaking','other'],
-  'preset reasons: water pump, soap dispenser, won''t start, leaking, other');
+select is((select array_agg(code order by sort_order) from public.machine_down_reasons where plant_id = pg_temp.id('plantA')),
+  array['water_pump','soap_dispenser','wont_start','leaking','other'], 'default reasons (data since 2026-11-05): water pump, soap dispenser, won''t start, leaking, other');
 select is((select array_agg(attname::text order by attnum) from pg_attribute
             where attrelid = 'public.machine_status_result'::regclass and attnum > 0 and not attisdropped),
   array['event_id','machine_id','status','reason','since','changed','reason_code'], 'result type: reason_code added last');
