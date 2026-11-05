@@ -163,7 +163,7 @@ export function EstimateRow({
               <p id={`${idBase}-unit`} className="pick-label">
                 {t('estimates.countIn')}
               </p>
-              <ul className="pick-list">
+              <ul className="pick-list unit-picks">
                 {units.map((u) => (
                   <li key={u}>
                     <button

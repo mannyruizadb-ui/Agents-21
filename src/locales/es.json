@@ -92,7 +92,7 @@
     "alertsOff": "Alertas de máquina dañada desactivadas para {{name}}."
   },
   "control": {
-    "placeholder": "App de control: las funciones llegan en el Hito 2.",
+    "placeholder": "Elige una pantalla.",
     "washerBoard": "Lavadoras",
     "queue": "Cola de trabajo",
     "estimates": "Estimados"

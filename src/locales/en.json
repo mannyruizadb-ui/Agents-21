@@ -92,7 +92,7 @@
     "alertsOff": "Machine down alerts off for {{name}}."
   },
   "control": {
-    "placeholder": "Control app: features arrive in Milestone 2.",
+    "placeholder": "Choose a screen.",
     "washerBoard": "Washers",
     "queue": "Queue",
     "estimates": "Estimates"
