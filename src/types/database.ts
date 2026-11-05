@@ -1135,6 +1135,11 @@ isOneToOne: false
         isOneToOne: true
         isSetofReturn: false
       } },
+"claim_push_alerts":
+{ Args: Record<PropertyKey, never>; Returns: {
+              "alert_created": string,"alert_id": string,"area_name": string,"auth": string,"down_since": string,"endpoint": string,"language": string,"machine_id": string,"machine_kind": "washer"|"dryer"|"ironer"|"folder"|"other","machine_name": string,"org_id": string,"p256dh": string,"plant_id": string,"plant_name": string,"reason_code": "water_pump"|"soap_dispenser"|"wont_start"|"leaking"|"other","still_down": boolean,"subscription_id": string,"user_id": string
+            }[]
+                           },
 "create_pairing_code":
 { Args: { "p_area_id": string,"p_device_name": string }; Returns: Database["public"]['CompositeTypes']["pairing_code_result"]
                           SetofOptions: {

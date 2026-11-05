@@ -1,10 +1,10 @@
 -- Security review 2026-11-04 (push layer BLOCK) fixes: H1 audit_log never holds push endpoints or keys;
 -- M2 allow-listed push hosts and at most 5 active subscriptions per user; M3 no rebind of another
--- user's endpoint without its keys.
+-- user's endpoint without its keys; M1 at-most-once delivery (claim_push_alerts).
 -- Matrix arrays: [owner, manager, lead, viewer, display, display-without-device, owner of B, anon].
 begin;
 \ir _fixtures.psql
-select plan(22);
+select plan(31);
 
 create function pg_temp.k() returns text language sql immutable as $$ select repeat('B', 86) || 'A' $$;
 create function pg_temp.k2() returns text language sql immutable as $$ select repeat('C', 86) || 'A' $$;
@@ -81,6 +81,27 @@ select is((select user_id from public.push_subscriptions where endpoint = 'https
 select is(pg_temp.run_as('owner', $$select public.save_push_subscription(pg_temp.id('plantA'), 'https://fcm.googleapis.com/fcm/send/m5', pg_temp.k2(), pg_temp.a())$$),
   '1', 'the owner rotates the keys of their own endpoint');
 select is((select p256dh = pg_temp.k2() from public.push_subscriptions where endpoint = 'https://fcm.googleapis.com/fcm/send/m5'), true, 'own keys rotate');
+
+-- ══ M1: claim, then mark (at most once) ══════════════════════════════════
+select is(pg_temp.run_as('owner', $$select public.set_machine_status(pg_temp.id('machine'), 'down', gen_random_uuid(), 'Ana: secret note', 'leaking')$$),
+  '1', 'Washer 1 goes down: one pending alert for the owner''s subscription');
+select set_config('test.claim1', (select coalesce(string_agg(alert_id::text || '/' || subscription_id::text, ','), '') from public.claim_push_alerts()), true);
+select ok(current_setting('test.claim1') <> '', 'the first claim gets the rows');
+select is((select count(*)::int from public.claim_push_alerts()), 0, 'a second claim gets nothing (already claimed)');
+select is((select recipients from public.alert_events where kind = 'machine_down' and plant_id = pg_temp.id('plantA')), array['claimed'],
+  'the alert is marked claimed in the same transaction');
+select is((select count(*)::int from public.get_pending_push_alerts() where plant_id = pg_temp.id('plantA')), 0, 'and is no longer pending');
+select is(array[public.mark_push_alert_delivered(split_part(current_setting('test.claim1'), '/', 1)::uuid, array[split_part(split_part(current_setting('test.claim1'), ',', 1), '/', 2)]),
+                public.mark_push_alert_delivered(split_part(current_setting('test.claim1'), '/', 1)::uuid, array['again'])],
+  array[true, false], 'mark records the final recipients once; a retry changes nothing');
+select is(array[has_function_privilege('authenticated', 'public.claim_push_alerts()', 'execute'),
+                has_function_privilege('anon', 'public.claim_push_alerts()', 'execute'),
+                has_function_privilege('authenticated', 'app.claim_machine_down_alerts()', 'execute'),
+                has_function_privilege('service_role', 'public.claim_push_alerts()', 'execute')],
+  array[false, false, false, true], 'claim: service_role only');
+select is(pg_temp.run_as('owner', $$select * from public.claim_push_alerts()$$), '42501', 'the owner cannot claim (or read keys)');
+select is((select count(*)::int from pg_proc p where p.proname in ('claim_push_alerts', 'claim_machine_down_alerts')
+             and pg_get_function_result(p.oid) ~ '(\(|, )reason text'), 0, 'claimed rows never carry the free-text reason');
 
 select * from finish();
 rollback;
