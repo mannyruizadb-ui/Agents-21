@@ -84,7 +84,12 @@
       "nameRequired": "Escriba el nombre de la persona.",
       "usernameInvalid": "Use de 3 a 32 letras minúsculas, números, punto, guion bajo o guion."
     },
-    "noUsername": "Sin usuario"
+    "noUsername": "Sin usuario",
+    "alertsLabel": "Alertas de máquina dañada",
+    "alertsLabelRole": "Alertas de máquina dañada ({{role}} {{scope}})",
+    "alertsHint": "Le manda un aviso a los teléfonos de esta persona cuando una máquina se marca como dañada. También tiene que activar las notificaciones en cada teléfono.",
+    "alertsOn": "Alertas de máquina dañada activadas para {{name}}.",
+    "alertsOff": "Alertas de máquina dañada desactivadas para {{name}}."
   },
   "control": {
     "placeholder": "App de control: las funciones llegan en el Hito 2.",

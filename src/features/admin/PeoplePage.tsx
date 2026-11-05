@@ -13,6 +13,8 @@ import {
   type TempPasswordResult,
 } from './manageUsers';
 import { useOwnerPlants } from './useOwnerPlants';
+import { AlertToggles, useAlertMemberships } from './AlertToggles';
+import type { AlertMembership } from './alertRecipients';
 import '../../lib/forms.css';
 
 // Owner "People" screen (PRD A4, owner decision 2026-11-03): owner-created username + password
@@ -79,11 +81,15 @@ function SecretBox({ secret, onDone }: { secret: Secret; onDone: () => void }) {
 function PersonCard({
   person,
   plantId,
+  plant,
+  alertMemberships,
   onSecret,
   onStatus,
 }: {
   person: Person;
   plantId: string;
+  plant: { id: string; org_id: string };
+  alertMemberships: AlertMembership[];
   onSecret: (s: Secret) => void;
   onStatus: (message: string) => void;
 }) {
@@ -134,6 +140,13 @@ function PersonCard({
       </h3>
       <p>{t('people.usernameValue', { username: person.username ?? t('people.noUsername') })}</p>
       <p>{t('people.roleValue', { roles })}</p>
+      <AlertToggles
+        userId={person.user_id}
+        name={name}
+        plant={plant}
+        memberships={alertMemberships}
+        onStatus={onStatus}
+      />
       {!person.is_self && !person.manageable && <p className="hint">{t('people.notManageable')}</p>}
       {person.manageable && !confirming && (
         <div className="actions">
@@ -293,6 +306,8 @@ export function PeoplePage() {
   const plants = ownerPlants.data ?? [];
   const plantId = chosenPlant ?? plants[0]?.id ?? null;
 
+  const plant = plants.find((p) => p.id === plantId);
+  const alertMemberships = useAlertMemberships(plant);
   const people = useQuery({
     queryKey: ['people', plantId],
     enabled: plantId !== null,
@@ -352,6 +367,8 @@ export function PeoplePage() {
                   key={p.user_id}
                   person={p}
                   plantId={plantId}
+                  plant={plant ?? { id: plantId, org_id: '' }}
+                  alertMemberships={alertMemberships.data ?? []}
                   onSecret={(s) => {
                     setStatus('');
                     setSecret(s);

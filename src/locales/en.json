@@ -84,7 +84,12 @@
       "nameRequired": "Enter the person's name.",
       "usernameInvalid": "Use 3 to 32 lowercase letters, numbers, dot, underscore or hyphen."
     },
-    "noUsername": "No username"
+    "noUsername": "No username",
+    "alertsLabel": "Machine down alerts",
+    "alertsLabelRole": "Machine down alerts ({{role}} {{scope}})",
+    "alertsHint": "Sends a notification to this person's phones when a machine is marked down. They must also turn on notifications on each phone.",
+    "alertsOn": "Machine down alerts on for {{name}}.",
+    "alertsOff": "Machine down alerts off for {{name}}."
   },
   "control": {
     "placeholder": "Control app: features arrive in Milestone 2.",
