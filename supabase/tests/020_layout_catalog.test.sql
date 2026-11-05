@@ -22,7 +22,7 @@ select is(pg_temp.writes($$insert into public.stations (org_id, plant_id, area_i
   '{1,1,42501,42501,42501,42501,42501,42501}', 'stations C');
 select is(pg_temp.writes($$insert into public.machines (org_id, plant_id, area_id, name, kind)
   values (pg_temp.id('orgA'), pg_temp.id('plantA'), pg_temp.id('wash'), 'M-' || substr(md5(random()::text), 1, 8), 'dryer')$$),
-  '{1,1,42501,42501,42501,42501,42501,42501}', 'machines C');
+  '{1,42501,42501,42501,42501,42501,42501,42501}', 'machines C: owner only (owner 2026-11-05)');
 select is(pg_temp.writes($$insert into public.wash_groups (org_id, plant_id, name)
   values (pg_temp.id('orgA'), pg_temp.id('plantA'), 'G-' || substr(md5(random()::text), 1, 8))$$),
   '{1,1,42501,42501,42501,42501,42501,42501}', 'wash_groups C');
@@ -36,7 +36,7 @@ select is(pg_temp.writes($$insert into public.wash_formulas (org_id, plant_id, e
 -- U: owner/manager only.
 select is(pg_temp.writes($$update public.areas set sort_order = 1 where plant_id = pg_temp.id('plantA')$$), '{5,5,0,0,0,0,0,0}', 'areas U');
 select is(pg_temp.writes($$update public.stations set active = true where plant_id = pg_temp.id('plantA')$$), '{3,3,0,0,0,0,0,0}', 'stations U');
-select is(pg_temp.writes($$update public.machines set active = true where plant_id = pg_temp.id('plantA')$$), '{3,3,0,0,0,0,0,0}', 'machines U');
+select is(pg_temp.writes($$update public.machines set active = true where plant_id = pg_temp.id('plantA')$$), '{2,0,0,0,0,0,0,0}', 'machines U: owner only (owner 2026-11-05)');
 select is(pg_temp.writes($$update public.wash_groups set sort_order = 1 where plant_id = pg_temp.id('plantA')$$), '{5,5,0,0,0,0,0,0}', 'wash_groups U');
 select is(pg_temp.writes($$update public.item_types set sort_order = 1 where plant_id = pg_temp.id('plantA')$$), '{5,5,0,0,0,0,0,0}', 'item_types U');
 select is(pg_temp.writes($$delete from public.wash_groups where plant_id = pg_temp.id('plantA')$$), '{0,0,0,0,0,0,0,0}',

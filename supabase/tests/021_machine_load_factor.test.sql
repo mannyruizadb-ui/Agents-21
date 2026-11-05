@@ -18,12 +18,12 @@ select is(array[pg_temp.run_as('owner', $$update public.machines set load_factor
 select is(pg_temp.reads($$select load_factor from public.machines where plant_id = pg_temp.id('plantA')$$),
   '{1,1,1,1,1,0,0,0}', 'load_factor R like machines (display own plant; no cross-tenant)');
 select is(pg_temp.writes($$update public.machines set load_factor = 1.19 where id = pg_temp.id('machine')$$),
-  '{1,1,0,0,0,0,0,0}', 'load_factor U owner/manager only');
+  '{1,0,0,0,0,0,0,0}', 'load_factor U: owner only (machines setup, owner 2026-11-05)');
 select is(pg_temp.run_as('ownerB', $$update public.machines set load_factor = 2 where plant_id = pg_temp.id('plantA')$$),
   '0', 'another tenant cannot change plant A factors');
 select is(pg_temp.writes($$insert into public.machines (org_id, plant_id, area_id, name, kind, load_factor)
   values (pg_temp.id('orgA'), pg_temp.id('plantA'), pg_temp.id('wash'), 'W-' || substr(md5(random()::text), 1, 6), 'washer', 1.19)$$),
-  '{1,1,42501,42501,42501,42501,42501,42501}', 'machines C with a factor: owner/manager only');
+  '{1,42501,42501,42501,42501,42501,42501,42501}', 'machines C with a factor: owner only');
 select ok((select count(*) from public.audit_log where action = 'machines.update' and entity_id = pg_temp.id('machine')
             and before ->> 'load_factor' = '4.00' and after ->> 'load_factor' = '1.19') = 1,
   'a load_factor change is audited (before/after)');

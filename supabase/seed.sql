@@ -297,6 +297,22 @@ select a.org_id, a.plant_id, a.id, m.name, m.kind::app.machine_kind, m.vendor, m
  ) as m(name, kind, vendor, model, load_factor)
  where a.kind = 'washroom';
 
+-- Plant utilities and finishing machines (owner 2026-11-05; data migration 20261105170550 for the cloud).
+-- The utilities serve the whole plant and sit in the washroom area; they can be marked down like washers.
+insert into public.machines (org_id, plant_id, area_id, name, kind)
+select a.org_id, a.plant_id, a.id, m.name, m.kind::app.machine_kind
+  from public.areas a
+  join public.plants p on p.id = a.plant_id and p.name = 'Miami'
+  join public.organizations o on o.id = p.org_id and o.slug = 'americas-dust-busters'
+  join (values
+   ('Compressor',       'utility', 'washroom'),
+   ('Soap machine',     'utility', 'washroom'),
+   ('Boiler',           'utility', 'washroom'),
+   ('Water pump',       'utility', 'washroom'),
+   ('Ironer',           'ironer',  'finishing'),
+   ('Folder',           'folder',  'finishing'),
+   ('Wrapping machine', 'wrapper', 'finishing')) as m(name, kind, area_kind) on a.kind = m.area_kind::app.area_kind;
+
 -- ── Shifts (A6), per area; days = the day a shift STARTS (0 = Sun … 6 = Sat) ──
 -- Thursday variants are separate rows with the same name. No washroom midday shift (owner).
 insert into public.shifts (org_id, plant_id, area_id, name, start_local, end_local, days_of_week)

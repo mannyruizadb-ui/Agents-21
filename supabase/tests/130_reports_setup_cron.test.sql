@@ -119,10 +119,10 @@ select is(array[pg_temp.run_as('owner', $$update public.machines set plant_id = 
 select is(pg_temp.writes($$update public.wash_groups set ships_next_morning = true, loads_per_basket = 3, allow_basket_estimates = true, loads_per_bin = 2, allow_bin_estimates = true where id = pg_temp.id('gNapkin')$$),
   '{1,1,0,0,0,0,0,0}', 'wash group settings (next-morning, loads per basket / bin): owner/manager');
 select is(pg_temp.writes($$update public.machines set load_factor = 1.10, name = name where id = '60000000-0000-0000-0000-0000000000a7'$$),
-  '{1,1,0,0,0,0,0,0}', 'machine edits: owner/manager');
-select is(array[pg_temp.run_as('manager', $$update public.machines set kind = 'dryer' where id = pg_temp.id('machine')$$),
-                pg_temp.run_as('manager', $$update public.machines set area_id = pg_temp.id('spare') where id = '60000000-0000-0000-0000-0000000000a6'$$),
-                pg_temp.run_as('manager', $$update public.machines set kind = 'dryer' where id = '60000000-0000-0000-0000-0000000000a7'$$)],
+  '{1,0,0,0,0,0,0,0}', 'machine edits: owner only (owner 2026-11-05)');
+select is(array[pg_temp.run_as('owner', $$update public.machines set kind = 'dryer' where id = pg_temp.id('machine')$$),
+                pg_temp.run_as('owner', $$update public.machines set area_id = pg_temp.id('spare') where id = '60000000-0000-0000-0000-0000000000a6'$$),
+                pg_temp.run_as('owner', $$update public.machines set kind = 'dryer' where id = '60000000-0000-0000-0000-0000000000a7'$$)],
   '{VALIDATION_FAILED,VALIDATION_FAILED,1}', 'a machine with washer loads keeps its kind and area; an unused one can change');
 select is(array[pg_temp.run_as('owner', $$update public.areas set kind = 'finishing' where id = pg_temp.id('wash')$$),
                 pg_temp.run_as('owner', $$update public.areas set kind = 'packing' where id = pg_temp.id('spare')$$)],
