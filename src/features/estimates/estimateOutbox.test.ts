@@ -270,6 +270,7 @@ describe('estimate outbox', () => {
 
   it('passes each entry with its own entered-at time to the server', async () => {
     const s = memoryStore();
+    const enteredAt = new Date(Date.now() - 60_000).toISOString();
     addBatch(
       s,
       batch({
@@ -280,7 +281,7 @@ describe('estimate outbox', () => {
             washGroupId: 'g',
             qty: 1,
             unit: 'load',
-            enteredAt: '2026-11-04T22:00:00.000Z',
+            enteredAt,
           },
         ],
       }),
@@ -293,6 +294,6 @@ describe('estimate outbox', () => {
         return { kind: 'saved' };
       },
     });
-    expect(seen).toEqual(['2026-11-04T22:00:00.000Z']);
+    expect(seen).toEqual([enteredAt]);
   });
 });

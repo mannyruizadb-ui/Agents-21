@@ -85,11 +85,11 @@
       "usernameInvalid": "Use de 3 a 32 letras minúsculas, números, punto, guion bajo o guion."
     },
     "noUsername": "Sin usuario",
-    "alertsLabel": "Alertas de máquina dañada",
-    "alertsLabelRole": "Alertas de máquina dañada ({{role}} {{scope}})",
-    "alertsHint": "Le manda un aviso a los teléfonos de esta persona cuando una máquina se marca como dañada. También tiene que activar las notificaciones en cada teléfono.",
-    "alertsOn": "Alertas de máquina dañada activadas para {{name}}.",
-    "alertsOff": "Alertas de máquina dañada desactivadas para {{name}}."
+    "alertsLabel": "Alertas de máquina fuera de servicio",
+    "alertsLabelRole": "Alertas de máquina fuera de servicio ({{role}} {{scope}})",
+    "alertsHint": "Le manda un aviso a los teléfonos de esta persona cuando una máquina se marca fuera de servicio. También tiene que activar las notificaciones en cada teléfono.",
+    "alertsOn": "Alertas de máquina fuera de servicio activadas para {{name}}.",
+    "alertsOff": "Alertas de máquina fuera de servicio desactivadas para {{name}}."
   },
   "control": {
     "placeholder": "Elige una pantalla.",
@@ -117,7 +117,7 @@
     "tooLate": "Ya es tarde para deshacer. Pídele a un gerente que lo corrija.",
     "rateLimited": "Demasiados cambios a la vez. Espera unos segundos e intenta de nuevo.",
     "network": "No hay conexión con el servidor. Revisa el Wi-Fi e intenta de nuevo.",
-    "machineDown": "Esa lavadora está marcada como dañada. Elige otra, o márcala como arreglada primero.",
+    "machineDown": "Esa lavadora está fuera de servicio. Elige otra, o márcala como arreglada primero.",
     "pinAgain": "Hay que poner el PIN otra vez. Escríbelo y guarda."
   },
   "units": {
@@ -129,8 +129,8 @@
     "piece_other": "{{n}} piezas",
     "pack_one": "{{n}} paquete",
     "pack_other": "{{n}} paquetes",
-    "bin_one": "{{n}} contenedor",
-    "bin_other": "{{n}} contenedores"
+    "bin_one": "{{n}} bin",
+    "bin_other": "{{n}} bins"
   },
   "washroom": {
     "boardTitle": "Lavadoras",
@@ -138,7 +138,7 @@
     "noWashroom": "Tu planta no tiene un área de lavado configurada.",
     "noWashers": "No hay lavadoras activas en esta área.",
     "now": "Ahora",
-    "next": "Sigue",
+    "next": "Próximo",
     "formula": "Fórmula",
     "formulaValue": "N.º {{no}} · {{minutes}} min",
     "empty": "Vacía",
@@ -164,8 +164,8 @@
     "mayBeOld": "puede no estar al día",
     "refreshFailed": "no se pudo actualizar",
     "refreshing": "Actualizando…",
-    "nextFromQueue": "De la cola (ver Sigue en la cola)",
-    "nextInQueue": "Sigue en la cola",
+    "nextFromQueue": "De la cola (ver Próximo en la cola)",
+    "nextInQueue": "Próximo en la cola",
     "nextInQueueHint": "Cualquier lavadora libre toma el primero. Las cargas asignadas a una lavadora salen en esa lavadora.",
     "noUnassigned": "No hay nada esperando una lavadora libre.",
     "moreInQueue_one": "…y {{count}} más",
@@ -181,16 +181,16 @@
     "title": "Estación de lavadora",
     "notAWasher": "Esta pantalla es para una lavadora y este enlace no lleva a una que puedas usar. Ábrela desde el tablero de lavadoras.",
     "toBoard": "Todas las lavadoras",
-    "inactive": "Esta lavadora está desactivada en la configuración. No se puede arrancar.",
+    "inactive": "Esta lavadora está desactivada en la configuración. No se puede empezar.",
     "offline": "Sin conexión. Los arranques se guardan en esta tableta y se envían cuando vuelva la conexión.",
-    "start": "ARRANCAR",
-    "startedShort": "ARRANCÓ",
-    "willStart": "Arranca: {{group}} (lo que sigue en la cola)",
-    "willStartOther": "Arranca: {{group}} (elegido a mano)",
+    "start": "EMPEZAR",
+    "startedShort": "EMPEZÓ",
+    "willStart": "Empieza: {{group}} (lo próximo en la cola)",
+    "willStartOther": "Empieza: {{group}} (elegido a mano)",
     "chooseGroup": "No hay nada en la cola para esta lavadora. Toca \"Otro grupo de lavado\" y elige uno.",
     "otherGroup": "Otro grupo de lavado",
     "useQueue": "Usar la cola",
-    "started": "Arrancó {{group}} en {{washer}}.",
+    "started": "Empezó {{group}} en {{washer}}.",
     "savedNotSent": "{{group}} guardado en esta tableta. Esperando conexión para enviarlo.",
     "undone": "Deshecho. {{group}} no se contó.",
     "undo": "DESHACER",
@@ -200,8 +200,8 @@
     "dismiss": "Entendido, quitar",
     "noStorage": "Este equipo no puede guardar arranques si se cierra la página. Deja esta página abierta hasta que vuelva la conexión.",
     "rejectTooLate": "Llegó al servidor más de 30 minutos tarde y no se puede contar. Avísale al gerente para que agregue la carga.",
-    "rejectDown": "La lavadora estaba marcada como dañada a esa hora. Si de verdad lavó, avísale al gerente.",
-    "downNoStart": "ARRANCAR está apagado mientras esta lavadora esté dañada. Márcala como arreglada cuando funcione."
+    "rejectDown": "La lavadora estaba fuera de servicio a esa hora. Si de verdad lavó, avísale al gerente.",
+    "downNoStart": "EMPEZAR está apagado mientras esta lavadora esté fuera de servicio. Márcala como arreglada cuando funcione."
   },
   "queue": {
     "rush": "URGENTE",
@@ -214,7 +214,7 @@
     "empty": "La cola está vacía.",
     "noArea": "Tu planta no tiene áreas configuradas.",
     "place": "{{n}}.",
-    "inProgress": "{{started}} arrancadas",
+    "inProgress": "{{started}} empezadas",
     "note": "Nota: {{note}}",
     "addTitle": "Agregar trabajo",
     "groupLabel": "Grupo de lavado",
@@ -243,32 +243,32 @@
       "chooseGroup": "Elige un grupo de lavado.",
       "loads": "Escribe un número de cargas de 0.01 a 100,000, con hasta 2 decimales."
     },
-    "washerDown": "{{name}} (dañada)",
-    "assignedDown": "Asignada a {{name}}, que está dañada.",
+    "washerDown": "{{name}} (fuera de servicio)",
+    "assignedDown": "Asignada a {{name}}, que está fuera de servicio.",
     "moveOffLabel": "Pasar esta carga a",
     "moveOff": "Sacar de esta lavadora",
-    "managerNotice": "Puedes ver la cola, agregar relavado y sacar cargas de una lavadora dañada. Solo el dueño cambia el orden."
+    "managerNotice": "Puedes ver la cola, agregar relavado y sacar cargas de una lavadora fuera de servicio. Solo el dueño cambia el orden."
   },
   "machines": {
-    "title": "Máquina dañada / arreglada",
-    "linkLabel": "Máquina dañada / arreglada",
+    "title": "Fuera de servicio / Arreglada",
+    "linkLabel": "Fuera de servicio / Arreglada",
     "toBoard": "Todas las lavadoras",
-    "down": "Dañada",
-    "isDownNamed": "{{name}} está DAÑADA",
+    "down": "Fuera de servicio",
+    "isDownNamed": "{{name}} está FUERA DE SERVICIO",
     "reasonValue": "Motivo: {{reason}}",
-    "since": "Dañada desde las {{time}} ({{duration}})",
+    "since": "Fuera de servicio desde las {{time}} ({{duration}})",
     "minutesShort_one": "{{count}} min",
     "minutesShort_other": "{{count}} min",
     "hoursShort_one": "{{count}} h {{m}} min",
     "hoursShort_other": "{{count}} h {{m}} min",
-    "downNow": "Dañadas ahora",
+    "downNow": "Fuera de servicio ahora",
     "noneDown": "Todas las máquinas funcionan.",
-    "otherDown": "Otras máquinas dañadas",
-    "readOnly": "Solo el dueño o un gerente puede marcar una máquina como dañada o arreglada.",
+    "otherDown": "Otras máquinas fuera de servicio",
+    "readOnly": "Solo el dueño o un gerente puede marcar una máquina fuera de servicio o arreglada.",
     "changeTitle": "Cambiar una máquina",
     "machineLabel": "Máquina",
     "choose": "Elegir…",
-    "optionDown": "{{name}} ({{area}}) — DAÑADA",
+    "optionDown": "{{name}} ({{area}}) — FUERA DE SERVICIO",
     "optionUp": "{{name}} ({{area}})",
     "backUp": "Arreglada",
     "confirmUp": "¿Marcar {{name}} como arreglada? Se puede usar otra vez.",
@@ -277,18 +277,18 @@
     "reasons": {
       "water_pump": "Bomba de agua",
       "soap_dispenser": "Dosificador de jabón",
-      "wont_start": "No arranca",
+      "wont_start": "No empieza",
       "leaking": "Gotea",
       "other": "Otro"
     },
     "detailsRequired": "Describe el problema",
     "detailsOptional": "Más detalles (opcional)",
     "detailsHint": "Describe el problema, no a la persona. Hasta {{max}} caracteres. Se ve en las pantallas de lavandería.",
-    "markDown": "Marcar dañada",
-    "confirmDown": "¿Marcar {{name}} como DAÑADA?",
-    "downEffect": "Su botón ARRANCAR se apaga y las cargas se pueden pasar a otra lavadora.",
-    "yesDown": "Sí, marcar dañada",
-    "markedDown": "{{name}} quedó marcada como dañada.",
+    "markDown": "Marcar fuera de servicio",
+    "confirmDown": "¿Marcar {{name}} FUERA DE SERVICIO?",
+    "downEffect": "Su botón EMPEZAR se apaga y las cargas se pueden pasar a otra lavadora.",
+    "yesDown": "Sí, fuera de servicio",
+    "markedDown": "{{name}} quedó fuera de servicio.",
     "markedUp": "{{name}} ya está arreglada.",
     "markUpNamed": "Marcar {{name}} como arreglada",
     "errors": {
@@ -304,14 +304,14 @@
     "unit": {
       "load": "Cargas",
       "basket": "Canasta",
-      "bin": "Contenedor"
+      "bin": "Bin"
     },
     "howFull": "¿Qué tan lleno?",
     "full": "Lleno",
     "amountLabel": {
       "load": "Cargas",
       "basket": "Canastas",
-      "bin": "Contenedores"
+      "bin": "Bins"
     },
     "loadHint": "Número de cargas, por ejemplo 1 o 1.5.",
     "noFactor": "Este grupo no tiene conversión a cargas todavía; se cuenta a mano.",
@@ -394,11 +394,11 @@
     "changedTag": "cambiado",
     "loadsCount": "Cargas",
     "fullCount": {
-      "bin": "Contenedores llenos",
+      "bin": "Bins llenos",
       "basket": "Canastas llenas"
     },
     "partialLabel": {
-      "bin": "Más un contenedor a medias",
+      "bin": "Más un bin a medias",
       "basket": "Más una canasta a medias"
     },
     "partialNone": "Ninguno",
@@ -416,7 +416,7 @@
   },
   "notifications": {
     "title": "Notificaciones",
-    "what": "Alertas de máquina dañada: este teléfono muestra un aviso cuando alguien marca una máquina como dañada (por ejemplo \"Washer 4 está dañada: Bomba de agua\").",
+    "what": "Alertas de máquina fuera de servicio: este teléfono muestra un aviso cuando alguien marca una máquina fuera de servicio (por ejemplo \"Washer 4 fuera de servicio: Bomba de agua\").",
     "notSetUp": "Las notificaciones todavía no están configuradas.",
     "iosInstallTitle": "Primero agrega PlantBoard a tu pantalla de inicio",
     "iosStep1": "En Safari, toca el botón Compartir (el cuadro con una flecha).",
