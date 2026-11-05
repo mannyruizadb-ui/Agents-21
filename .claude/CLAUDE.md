@@ -121,10 +121,14 @@ Full context lives in these docs. Read the relevant one before non-trivial work;
     - PIN reuse 10 minutes;
     - `p_entered_at` (6 h) and `p_tapped_at` (30 min);
     - who-entered columns hidden from client reads (column grants).
-  - Checks: **946 pgTAP** and **117 Vitest** tests pass. Security-reviewer, latest round: PASS WITH NOTES; its notes are fixed.
+  - Push notifications (2026-11-05):
+    - DB: `push_subscriptions` (host allow-list, max 5 per user, rebind only with matching keys, kept out of audit), `memberships.notify_machine_down` + `set_alert_recipient` (owner only), `claim_push_alerts` (at most once), and a pg_cron `send-alerts` job every minute via pg_net + Vault (`send_alerts_url`, `send_alerts_secret`).
+    - Client: `public/sw.js`, web manifest + icons, a notifications card with iOS Home Screen steps, and the People alert toggle.
+    - L1: grants on the `net` schema can't be revoked as postgres; confirm in the cloud that the API exposes only `public` and `graphql_public`.
+  - Spanish pass, plus an accessibility check at 200% text on the station and estimates: done. Owner to check the wording (Estimados, Contenedor/Canasta, ARRANCAR, Dañada/arreglada).
+  - Checks: **1037 pgTAP** and **128 Vitest** tests pass. Security-reviewer, latest round (push layer): PASS WITH NOTES.
   - Left before the Monday pilot:
-    - Web Push for machine_down (an Edge Function plus VAPID secrets);
-    - a Spanish pass in the browser;
+    - the `send-alerts` Edge Function; it needs the owner's OK for a Web Push library, plus VAPID keys (the private key as a function secret, `VITE_VAPID_PUBLIC_KEY` in Netlify);
     - checking Realtime with the column grants;
     - the owner's OK to run deploy-db on the cloud, then the PR and merge, in that order;
     - the owner creates the father's account.
