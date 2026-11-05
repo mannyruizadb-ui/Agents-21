@@ -138,6 +138,26 @@ Full context lives in these docs. Read the relevant one before non-trivial work;
     - tablecloths at 2 per bin;
     - the missing bin/basket numbers;
     - AA Linen questions.
+- **Owner answers 2026-11-05 (one-shot list; supersede earlier where they conflict):**
+  - Web Push library: **approved**.
+  - **Upload to the cloud as soon as it's ready.** The owner wants to try every screen live and then request changes. Open the PR: yes.
+  - Monday accounts: owner, father, Denise. **All managers** get accounts, entry-staff PINs and machine-down alerts (`notify_machine_down` default true for managers too).
+  - **Machines to add:** compressor, soap machine, boiler, ironer, folder, wrapping machine, water pump. Machines and down reasons must be **editable in the app** (Setup); reasons become data, not an enum.
+  - **Spanish wording:** EMPEZAR, Estimados, "bin" (keep the English word), Fuera de servicio / Arreglada, Mapos, Próximo / Relavar / Urgente. Spanish only, no Creole.
+  - Monday scope: OK (taps, board, queue, machine down, estimates, alerts). Finished goods, reports and TVs come later; the TVs go up when the app is fully ready.
+  - **Managers: current shift totals only, NOT the previous shift.** Everything else per the matrix: confirmed. Lock it server side.
+  - **Load factors:** editable by owners only, plus anyone the owner grants (a new grantable permission like `can_manage_staff`).
+  - 30-minute late tap: the owner wants it "alarmed". Interpretation pending (late tap vs. load behind schedule).
+  - Tablecloths: 2 loads per bin, confirmed. **Mats: 4 loads per full bin** (AA Linen mats).
+  - Napkin colors, pieces per load and the remaining factors: the owner wants **one fill-in sheet** covering every wash group and item.
+  - **AA Linen:** washed separately, processed about midnight to midday. The owner wants to see **washing time spent on AA Linen**. That needs a customer tag on queue items and washer cycles; for now its loads go in the queue.
+  - Ship next morning: carpets, sheets, butcher coats. Truck times vary.
+  - Production day 12:00→12:00: confirmed (this closes the old business-day question). **Holidays: closed only on the day of Christmas, New Year's and Thanksgiving.**
+  - Washer tablets: undecided.
+  - **New feature requests:**
+    1. **Tasks:** the owner sends a job to a named manager ("check all parked trucks"). She gets a push immediately, it stays open until she confirms it's done, and then the owner and father are notified. This is per-person work direction, not output data. No completion-time stats or ranking per person (HR/legal note).
+    2. **Driver load-out list:** from midnight to midday, Denise sees what each driver needs (sheets, butcher coats, plus special items the owner adds). The source of the quantities is undecided (owner entry vs. LinenTrack par levels).
+  - Not yet answered: #29 Diamond export sample, #30 call tally, #31 Supabase net-grant fix, #32 GitHub branch protection, #33 password length.
 - **Owner answers 2026-11-04 (now built, see above):**
   - **The M2 screens were lost.** They were never committed and the session container was reset. The server side survived (`d496d09`). Rebuild them, and push WIP at every checkpoint from now on.
   - PIN reuse: 10 minutes on a phone, "for now".
