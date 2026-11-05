@@ -6,6 +6,7 @@ import { useOwnerPlants } from '../../features/admin/useOwnerPlants';
 import { NotificationsCard } from '../../features/notifications/NotificationsCard';
 import { useMyRoles } from '../../features/washroom/useMyRoles';
 import { useAreas } from '../../features/washroom/washroomData';
+import { TapAlarmBanner } from '../../features/washroom/TapAlarmBanner';
 import '../../lib/forms.css';
 
 export function ControlHome() {
@@ -21,6 +22,7 @@ export function ControlHome() {
   return (
     <main className="form-page">
       <h1>{t('app.name')}</h1>
+      <TapAlarmBanner />
       <p>{t('control.placeholder')}</p>
       <div className="actions">
         <Link className="button-link" to="/control/washers">

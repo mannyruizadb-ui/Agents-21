@@ -13,6 +13,7 @@ import { UNDO_WINDOW_MS, useTapSync } from './useTapSync';
 import { useQtyText } from './useQtyText';
 import { estimateServerNow, formatCountdown, minutesLeftRoundedUp, washerNow } from './washerTime';
 import { DownBanner } from './DownBanner';
+import { TapAlarmBanner } from './TapAlarmBanner';
 import { useMachine, useWashGroups, useWashroomBoard, type WashGroupRow } from './washroomData';
 import './washroom.css';
 
@@ -95,10 +96,10 @@ export function WasherStationPage() {
   const undoLeftMs = lastTap ? UNDO_WINDOW_MS - (now - lastTap.at) : 0;
   const lastPending = lastTap ? taps.pending.some((p) => p.clientId === lastTap.clientId) : false;
   const lastSent = lastTap ? taps.sent[lastTap.clientId] : undefined;
-  const lastRejected = lastTap
-    ? taps.rejected.find((r) => r.clientId === lastTap.clientId)
-    : undefined;
-  const otherRejected = taps.rejected.filter(
+  // Too-late taps are shown by the loud TapAlarmBanner instead (owner 2026-11-05).
+  const refused = taps.rejected.filter((r) => r.errorCode !== 'OUT_OF_RANGE_TIMESTAMP');
+  const lastRejected = lastTap ? refused.find((r) => r.clientId === lastTap.clientId) : undefined;
+  const otherRejected = refused.filter(
     (r) => r.machineId === machineId && r.clientId !== lastTap?.clientId,
   );
   const showUndo =
@@ -164,6 +165,7 @@ export function WasherStationPage() {
           isError={board.isError && !!board.data}
         />
       </header>
+      <TapAlarmBanner variant="dark" />
 
       {isDown && row && (
         <div role="alert">

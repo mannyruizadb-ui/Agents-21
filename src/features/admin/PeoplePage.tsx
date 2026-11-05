@@ -13,7 +13,8 @@ import {
   type TempPasswordResult,
 } from './manageUsers';
 import { useOwnerPlants } from './useOwnerPlants';
-import { AlertToggles, useAlertMemberships } from './AlertToggles';
+import { AlertToggles } from './AlertToggles';
+import { useAlertMemberships } from './useAlertMemberships';
 import type { AlertMembership } from './alertRecipients';
 import '../../lib/forms.css';
 

@@ -438,5 +438,14 @@
     "saveFailed": "Couldn't turn on notifications. Check the connection and try again.",
     "offFailed": "Couldn't turn off notifications. Check the connection and try again.",
     "subscribeFailed": "This phone couldn't reach its notification service. Check the Wi-Fi or data and try again."
+  },
+  "tapAlarm": {
+    "title": "Tap not recorded: tell the owner",
+    "aWasher": "A washer",
+    "tappedAt": "tapped at {{time}}",
+    "late": "It reached the server more than 30 minutes late, so the load wasn't counted.",
+    "stuck_one": "Not sent for {{count}} minute. Check the Wi-Fi: after 30 minutes it can't be counted.",
+    "stuck_other": "Not sent for {{count}} minutes. Check the Wi-Fi: after 30 minutes it can't be counted.",
+    "dismiss": "Dismiss"
   }
 }

@@ -17,6 +17,7 @@ import {
   type WasherNow,
 } from './washerTime';
 import { DownBanner } from './DownBanner';
+import { TapAlarmBanner } from './TapAlarmBanner';
 import {
   pickArea,
   useAreas,
@@ -242,6 +243,7 @@ export function WasherBoardPage() {
         <Link to="/control">{t('common.back')}</Link>
       </p>
       <h1>{t('washroom.boardTitle')}</h1>
+      <TapAlarmBanner />
       {washrooms.length > 1 && (
         <div className="field">
           <label htmlFor="area">{t('washroom.areaLabel')}</label>

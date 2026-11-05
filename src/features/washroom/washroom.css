@@ -493,3 +493,60 @@ body:has(.station) {
   border: 2px solid #555;
   border-radius: 6px;
 }
+
+/* Late / unsent tap alarm: loud on purpose (icon + text + thick border), never color alone. */
+.tap-alarm {
+  border: 4px solid #8b0000;
+  border-radius: 12px;
+  padding: 12px 14px;
+  margin: 0 0 12px;
+  background: #fff0f0;
+  color: #3d0000;
+}
+.tap-alarm ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 10px;
+}
+.tap-alarm li {
+  border-top: 2px solid currentColor;
+  padding-top: 8px;
+}
+.tap-alarm p {
+  margin: 0 0 4px;
+}
+.tap-alarm-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 1.25rem;
+  text-transform: uppercase;
+}
+.tap-alarm button {
+  min-height: 56px;
+  padding: 8px 16px;
+  font: inherit;
+  font-weight: 700;
+  border-radius: 8px;
+  border: 3px solid #8b0000;
+  background: #fff;
+  color: #8b0000;
+  cursor: pointer;
+}
+.tap-alarm-dark {
+  background: #4a0f0f;
+  border-color: #ff8a8a;
+  color: #fff;
+  font-size: 1.25rem;
+}
+.tap-alarm-dark .tap-alarm-title {
+  color: #ff8a8a;
+  font-size: clamp(1.5rem, 5vw, 2.25rem);
+}
+.station .tap-alarm-dark button {
+  background: transparent;
+  color: #fff;
+  border-color: #fff;
+}

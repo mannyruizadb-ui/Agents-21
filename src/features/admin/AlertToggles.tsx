@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { supabase } from '../../lib/supabase';
 import { errorMessageKey, unwrap } from '../washroom/rpcError';
@@ -7,21 +7,6 @@ import { alertRowsFor, type AlertMembership } from './alertRecipients';
 // "Machine down alerts" on/off per person (owner only: PeoplePage is reachable only by owners, and
 // set_alert_recipient re-checks the owner role). The flag is read from memberships directly (RLS:
 // owners and managers can read their plant's memberships), not from the manage-users function.
-
-export function useAlertMemberships(plant: { id: string; org_id: string } | undefined) {
-  return useQuery({
-    queryKey: ['alert-memberships', plant?.id ?? ''],
-    enabled: !!plant,
-    queryFn: async (): Promise<AlertMembership[]> =>
-      unwrap(
-        await supabase
-          .from('memberships')
-          .select('id, user_id, org_id, plant_id, role, notify_machine_down')
-          .eq('org_id', plant?.org_id ?? '')
-          .is('revoked_at', null),
-      ) ?? [],
-  });
-}
 
 export function AlertToggles({
   userId,

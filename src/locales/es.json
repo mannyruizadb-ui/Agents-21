@@ -438,5 +438,14 @@
     "saveFailed": "No se pudieron activar las notificaciones. Revisa la conexión e intenta otra vez.",
     "offFailed": "No se pudieron desactivar las notificaciones. Revisa la conexión e intenta otra vez.",
     "subscribeFailed": "Este teléfono no pudo conectarse a su servicio de notificaciones. Revisa el Wi-Fi o los datos e intenta otra vez."
+  },
+  "tapAlarm": {
+    "title": "Carga no registrada: avísale al dueño",
+    "aWasher": "Una lavadora",
+    "tappedAt": "empezada a las {{time}}",
+    "late": "Llegó al servidor más de 30 minutos tarde, así que la carga no se contó.",
+    "stuck_one": "Sin enviar hace {{count}} minuto. Revisa el Wi-Fi: después de 30 minutos ya no se puede contar.",
+    "stuck_other": "Sin enviar hace {{count}} minutos. Revisa el Wi-Fi: después de 30 minutos ya no se puede contar.",
+    "dismiss": "Quitar aviso"
   }
 }
