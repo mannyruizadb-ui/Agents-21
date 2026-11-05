@@ -437,14 +437,14 @@ isOneToOne: false
                   ]
                 },"memberships": {
                   Row: {
-                    "can_manage_staff": boolean,"created_at": string,"id": string,"notify_machine_down": boolean,"org_id": string,"plant_id": string | null,"revoked_at": string | null,"role": "owner"|"manager"|"lead"|"viewer"|"display","user_id": string
+                    "can_edit_load_factors": boolean,"can_manage_staff": boolean,"created_at": string,"id": string,"notify_machine_down": boolean,"org_id": string,"plant_id": string | null,"revoked_at": string | null,"role": "owner"|"manager"|"lead"|"viewer"|"display","user_id": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "can_manage_staff"?: boolean,"created_at"?: string,"id"?: string,"notify_machine_down": boolean,"org_id": string,"plant_id"?: string | null,"revoked_at"?: string | null,"role": "owner"|"manager"|"lead"|"viewer"|"display","user_id": string
+                    "can_edit_load_factors"?: boolean,"can_manage_staff"?: boolean,"created_at"?: string,"id"?: string,"notify_machine_down": boolean,"org_id": string,"plant_id"?: string | null,"revoked_at"?: string | null,"role": "owner"|"manager"|"lead"|"viewer"|"display","user_id": string
                   }
                   Update: {
-                    "can_manage_staff"?: boolean,"created_at"?: string,"id"?: string,"notify_machine_down"?: boolean,"org_id"?: string,"plant_id"?: string | null,"revoked_at"?: string | null,"role"?: "owner"|"manager"|"lead"|"viewer"|"display","user_id"?: string
+                    "can_edit_load_factors"?: boolean,"can_manage_staff"?: boolean,"created_at"?: string,"id"?: string,"notify_machine_down"?: boolean,"org_id"?: string,"plant_id"?: string | null,"revoked_at"?: string | null,"role"?: "owner"|"manager"|"lead"|"viewer"|"display","user_id"?: string
                   }
                   Relationships: [
                     {
@@ -1345,7 +1345,8 @@ isOneToOne: false
                            },
 "set_alert_recipient":
 { Args: { "p_membership_id": string,"p_notify": boolean }; Returns: {
-              "can_manage_staff": boolean,
+              "can_edit_load_factors": boolean,
+"can_manage_staff": boolean,
 "created_at": string,
 "id": string,
 "notify_machine_down": boolean,

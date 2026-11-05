@@ -116,11 +116,11 @@ select is((select array[actor_user_id::text, before ->> 'pack_size', after ->> '
               and after ->> 'pack_size' = '50'),
   array[pg_temp.id('manager')::text, '100', '50'], 'item_types change audited with before/after');
 update public.item_types set pack_size = 100 where id = pg_temp.id('napkin');
-select is(pg_temp.run_as('manager', $$update public.wash_groups set loads_per_basket = 0.75 where id = pg_temp.id('gTowel')$$), '1', 'manager edits loads per basket');
+select is(pg_temp.run_as('owner', $$update public.wash_groups set loads_per_basket = 0.75 where id = pg_temp.id('gTowel')$$), '1', 'owner edits loads per basket (owner-only since 2026-11-05)');
 select is((select array[actor_user_id::text, before ->> 'loads_per_basket', after ->> 'loads_per_basket'] from public.audit_log
             where entity = 'wash_groups' and entity_id = pg_temp.id('gTowel') and action = 'wash_groups.update'
               and after ->> 'loads_per_basket' is distinct from before ->> 'loads_per_basket'),
-  array[pg_temp.id('manager')::text, '0.500', '0.750'], 'wash_groups change audited with before/after');
+  array[pg_temp.id('owner')::text, '0.500', '0.750'], 'wash_groups change audited with before/after');
 update public.wash_groups set loads_per_basket = 0.5 where id = pg_temp.id('gTowel');
 
 -- §4.6 app.to_loads(group, item, qty, unit): one function; estimates via the group, pieces via the item.

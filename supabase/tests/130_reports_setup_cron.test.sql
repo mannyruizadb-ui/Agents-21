@@ -117,7 +117,7 @@ select is(array[pg_temp.run_as('owner', $$update public.machines set plant_id = 
                 pg_temp.run_as('owner', $$update public.wash_groups set id = gen_random_uuid() where id = pg_temp.id('gMat')$$)],
   '{42501,42501,42501,42501}', 'tenant, id and shift-area columns are not updatable by clients');
 select is(pg_temp.writes($$update public.wash_groups set ships_next_morning = true, loads_per_basket = 3, allow_basket_estimates = true, loads_per_bin = 2, allow_bin_estimates = true where id = pg_temp.id('gNapkin')$$),
-  '{1,1,0,0,0,0,0,0}', 'wash group settings (next-morning, loads per basket / bin): owner/manager');
+  '{1,1,0,0,0,0,0,0}', 'wash group settings (next-morning, loads per basket / bin): owner sets them; the manager re-sending the same values changes no factor (factor edits: see 192)');
 select is(pg_temp.writes($$update public.machines set load_factor = 1.10, name = name where id = '60000000-0000-0000-0000-0000000000a7'$$),
   '{1,0,0,0,0,0,0,0}', 'machine edits: owner only (owner 2026-11-05)');
 select is(array[pg_temp.run_as('owner', $$update public.machines set kind = 'dryer' where id = pg_temp.id('machine')$$),
