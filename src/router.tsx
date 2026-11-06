@@ -12,10 +12,13 @@ export const router = createBrowserRouter([
     path: '/control',
     lazy: async () => ({ Component: (await import('./app/control/ControlRoute')).ControlRoute }),
     children: [
-      // The washer board is the home tab (owner-approved design 2026-11-06).
-      { index: true, element: <Navigate to="washers" replace /> },
+      // Home dashboard (owner 2026-11-06, round 2): live tiles that tap through to each screen.
       {
-        // "More": everything that isn't a bottom-nav tab (the former Control home).
+        index: true,
+        lazy: async () => ({ Component: (await import('./app/control/HomePage')).HomePage }),
+      },
+      {
+        // "More": a grid of every screen the user can open, plus notifications, language, sign-out.
         path: 'more',
         lazy: async () => ({ Component: (await import('./app/control/ControlHome')).ControlHome }),
       },

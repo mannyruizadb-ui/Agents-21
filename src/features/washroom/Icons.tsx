@@ -161,3 +161,34 @@ export const IconTasks = (p: IconProps) => (
     <path d="m8 9 2 2 4-4M8 16h8" />
   </Svg>
 );
+export const IconHome = (p: IconProps) => (
+  <Svg {...p}>
+    <path d="M3 11 12 4l9 7" />
+    <path d="M5 10v10h5v-6h4v6h5V10" />
+  </Svg>
+);
+export const IconGear = (p: IconProps) => (
+  <Svg {...p}>
+    <circle cx="12" cy="12" r="3" />
+    <path d="M12 2v3M12 19v3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M2 12h3M19 12h3M4.9 19.1 7 17M17 7l2.1-2.1" />
+  </Svg>
+);
+export const IconPeople = (p: IconProps) => (
+  <Svg {...p}>
+    <circle cx="9" cy="8" r="3.5" />
+    <path d="M2.5 20a6.5 6.5 0 0 1 13 0" />
+    <path d="M16 4.5a3.5 3.5 0 0 1 0 7M18 14a6.5 6.5 0 0 1 3.5 6" />
+  </Svg>
+);
+export const IconEdit = (p: IconProps) => (
+  <Svg {...p}>
+    <path d="M4 20h4L19 9l-4-4L4 16z" />
+    <path d="m13 7 4 4" />
+  </Svg>
+);
+export const IconList = (p: IconProps) => (
+  <Svg {...p}>
+    <rect x="4" y="3" width="16" height="18" rx="2" />
+    <path d="M8 8h8M8 12h8M8 16h5" />
+  </Svg>
+);
