@@ -22,7 +22,7 @@ select is(pg_temp.writes($$insert into public.stations (org_id, plant_id, area_i
   '{1,1,42501,42501,42501,42501,42501,42501}', 'stations C');
 select is(pg_temp.writes($$insert into public.machines (org_id, plant_id, area_id, name, kind)
   values (pg_temp.id('orgA'), pg_temp.id('plantA'), pg_temp.id('wash'), 'M-' || substr(md5(random()::text), 1, 8), 'dryer')$$),
-  '{1,1,42501,42501,42501,42501,42501,42501}', 'machines C');
+  '{1,42501,42501,42501,42501,42501,42501,42501}', 'machines C: owner only (owner 2026-11-05)');
 select is(pg_temp.writes($$insert into public.wash_groups (org_id, plant_id, name)
   values (pg_temp.id('orgA'), pg_temp.id('plantA'), 'G-' || substr(md5(random()::text), 1, 8))$$),
   '{1,1,42501,42501,42501,42501,42501,42501}', 'wash_groups C');
@@ -36,7 +36,7 @@ select is(pg_temp.writes($$insert into public.wash_formulas (org_id, plant_id, e
 -- U: owner/manager only.
 select is(pg_temp.writes($$update public.areas set sort_order = 1 where plant_id = pg_temp.id('plantA')$$), '{5,5,0,0,0,0,0,0}', 'areas U');
 select is(pg_temp.writes($$update public.stations set active = true where plant_id = pg_temp.id('plantA')$$), '{3,3,0,0,0,0,0,0}', 'stations U');
-select is(pg_temp.writes($$update public.machines set active = true where plant_id = pg_temp.id('plantA')$$), '{3,3,0,0,0,0,0,0}', 'machines U');
+select is(pg_temp.writes($$update public.machines set active = true where plant_id = pg_temp.id('plantA')$$), '{2,0,0,0,0,0,0,0}', 'machines U: owner only (owner 2026-11-05)');
 select is(pg_temp.writes($$update public.wash_groups set sort_order = 1 where plant_id = pg_temp.id('plantA')$$), '{5,5,0,0,0,0,0,0}', 'wash_groups U');
 select is(pg_temp.writes($$update public.item_types set sort_order = 1 where plant_id = pg_temp.id('plantA')$$), '{5,5,0,0,0,0,0,0}', 'item_types U');
 select is(pg_temp.writes($$delete from public.wash_groups where plant_id = pg_temp.id('plantA')$$), '{0,0,0,0,0,0,0,0}',
@@ -79,13 +79,13 @@ select throws_ok($$insert into public.areas (org_id, plant_id, name, kind) value
 select throws_ok($$insert into public.item_types (org_id, plant_id, wash_group_id, name, category, count_mode)
   values (pg_temp.id('orgA'), pg_temp.id('plantA'), pg_temp.id('gMat'), 'P1', 'linen', 'pack')$$, '23514', null, 'pack item needs pack_size');
 select throws_ok($$insert into public.wash_groups (org_id, plant_id, name, allow_basket_estimates)
-  values (pg_temp.id('orgA'), pg_temp.id('plantA'), 'G2', true)$$, '23514', null, 'baskets need baskets_per_load (wash group)');
+  values (pg_temp.id('orgA'), pg_temp.id('plantA'), 'G2', true)$$, '23514', null, 'baskets need loads_per_basket (wash group)');
 select throws_ok($$insert into public.wash_groups (org_id, plant_id, name, default_estimate_unit)
   values (pg_temp.id('orgA'), pg_temp.id('plantA'), 'G3', 'basket')$$, '23514', null, 'basket default needs baskets allowed (wash group)');
 select throws_ok($$insert into public.wash_groups (org_id, plant_id, name, default_estimate_unit)
-  values (pg_temp.id('orgA'), pg_temp.id('plantA'), 'G4', 'piece')$$, '23514', null, 'group estimate unit is load or basket');
-select throws_ok($$insert into public.wash_groups (org_id, plant_id, name, baskets_per_load)
-  values (pg_temp.id('orgA'), pg_temp.id('plantA'), 'G5', 0)$$, '23514', null, 'baskets_per_load > 0');
+  values (pg_temp.id('orgA'), pg_temp.id('plantA'), 'G4', 'piece')$$, '23514', null, 'group estimate unit is load, basket or bin');
+select throws_ok($$insert into public.wash_groups (org_id, plant_id, name, loads_per_basket)
+  values (pg_temp.id('orgA'), pg_temp.id('plantA'), 'G5', 0)$$, '23514', null, 'loads_per_basket > 0');
 select throws_ok($$insert into public.wash_groups (org_id, plant_id, name)
   values (pg_temp.id('orgA'), pg_temp.id('plantA'), 'Mats')$$, '23505', null, 'wash group names are unique per plant');
 select throws_ok($$insert into public.wash_groups (org_id, plant_id, name, name_i18n)
@@ -116,23 +116,23 @@ select is((select array[actor_user_id::text, before ->> 'pack_size', after ->> '
               and after ->> 'pack_size' = '50'),
   array[pg_temp.id('manager')::text, '100', '50'], 'item_types change audited with before/after');
 update public.item_types set pack_size = 100 where id = pg_temp.id('napkin');
-select is(pg_temp.run_as('manager', $$update public.wash_groups set baskets_per_load = 3 where id = pg_temp.id('gTowel')$$), '1', 'manager edits baskets per load');
-select is((select array[actor_user_id::text, before ->> 'baskets_per_load', after ->> 'baskets_per_load'] from public.audit_log
+select is(pg_temp.run_as('owner', $$update public.wash_groups set loads_per_basket = 0.75 where id = pg_temp.id('gTowel')$$), '1', 'owner edits loads per basket (owner-only since 2026-11-05)');
+select is((select array[actor_user_id::text, before ->> 'loads_per_basket', after ->> 'loads_per_basket'] from public.audit_log
             where entity = 'wash_groups' and entity_id = pg_temp.id('gTowel') and action = 'wash_groups.update'
-              and after ->> 'baskets_per_load' is distinct from before ->> 'baskets_per_load'),
-  array[pg_temp.id('manager')::text, '2.000', '3.000'], 'wash_groups change audited with before/after');
-update public.wash_groups set baskets_per_load = 2 where id = pg_temp.id('gTowel');
+              and after ->> 'loads_per_basket' is distinct from before ->> 'loads_per_basket'),
+  array[pg_temp.id('owner')::text, '0.500', '0.750'], 'wash_groups change audited with before/after');
+update public.wash_groups set loads_per_basket = 0.5 where id = pg_temp.id('gTowel');
 
 -- §4.6 app.to_loads(group, item, qty, unit): one function; estimates via the group, pieces via the item.
 select is(app.to_loads(pg_temp.id('gNapkin'), null, 3, 'load'), 3::numeric, 'to_loads load = qty');
-select is(app.to_loads(pg_temp.id('gTowel'), null, 3, 'basket'), 1.5, 'to_loads basket = qty / group baskets_per_load');
+select is(app.to_loads(pg_temp.id('gTowel'), null, 3, 'basket'), 1.5, 'to_loads basket = qty × group loads_per_basket');
 select is(app.to_loads(null, pg_temp.id('napkin'), 1000, 'piece'), 2::numeric, 'to_loads piece = qty / item pieces_per_load');
 select is(app.to_loads(pg_temp.id('gNapkin'), pg_temp.id('napkin'), 10, 'pack'), 2::numeric, 'to_loads pack = qty * pack_size / pieces_per_load');
 select is(array[app.to_loads(pg_temp.id('gNapkin'), null, 3, 'basket'), app.to_loads(null, pg_temp.id('mat'), 10, 'piece'),
                 app.to_loads(null, pg_temp.id('towel'), 1, 'pack'), app.to_loads(gen_random_uuid(), null, 1, 'load'),
                 app.to_loads(pg_temp.id('gNapkin'), null, 10, 'piece')],
   array[null, null, null, null, null]::numeric[],
-  'to_loads is null when baskets_per_load / pieces_per_load / pack_size / group / item is missing');
+  'to_loads is null when loads_per_basket / pieces_per_load / pack_size / group / item is missing');
 select is(app.to_loads(pg_temp.id('gMat'), pg_temp.id('napkin'), 1000, 'piece'), null::numeric, 'to_loads is null when the item is not in the group');
 select is(pg_temp.run_as('ownerB', $$select 1 where app.to_loads(pg_temp.id('gNapkin'), null, 3, 'load') is null
                                         and app.to_loads(null, pg_temp.id('napkin'), 1000, 'piece') is null$$, true), '1',

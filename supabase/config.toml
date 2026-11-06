@@ -391,6 +391,11 @@ allow_dynamic_registration = false
 # The gateway verifies the caller's JWT; the function verifies it again and checks the role.
 verify_jwt = true
 
+[functions.send-alerts]
+# Called only by pg_cron (pg_net) with `Authorization: Bearer <SEND_ALERTS_SECRET>`, not a JWT; the
+# function compares that secret in constant time before doing anything. Deploy with --no-verify-jwt.
+verify_jwt = false
+
 [edge_runtime]
 enabled = true
 # Supported request policies: `oneshot`, `per_worker`.

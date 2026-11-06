@@ -12,7 +12,7 @@ on:
         type: boolean
         default: false
       deploy_functions:
-        description: 'Also deploy Edge Functions (manage-users) and set ALLOWED_ORIGINS'
+        description: 'Also deploy Edge Functions (manage-users, send-alerts) and their secrets'
         type: boolean
         default: false
       include_seed:
@@ -53,3 +53,49 @@ jobs:
         run: |
           npx supabase secrets set ALLOWED_ORIGINS=https://adb-plantboard.netlify.app --project-ref "$PROJECT_REF" </dev/null
           npx supabase functions deploy manage-users --project-ref "$PROJECT_REF" </dev/null
+
+      # send-alerts (machine-down Web Push). Secrets are generated here only when missing, are never
+      # printed, and are masked. Rotating the VAPID pair would break every saved subscription, so an
+      # existing pair is always kept. The VAPID PUBLIC key is printed to the job summary: it is not a
+      # secret, and Netlify needs it as VITE_VAPID_PUBLIC_KEY.
+      - name: Deploy send-alerts and its secrets
+        if: ${{ inputs.apply && inputs.deploy_functions }}
+        run: |
+          set -euo pipefail
+          sql() {
+            jq -n --arg q "$1" '{query: $q}' > /tmp/q.json
+            curl -sS --fail-with-body -X POST "https://api.supabase.com/v1/projects/$PROJECT_REF/database/query" \
+              -H "Authorization: Bearer $SUPABASE_ACCESS_TOKEN" -H 'Content-Type: application/json' \
+              --data @/tmp/q.json
+            rm -f /tmp/q.json
+          }
+          names=$(npx supabase secrets list --project-ref "$PROJECT_REF" -o json </dev/null | jq -r '.[].name')
+          if ! grep -qx VAPID_PRIVATE_KEY <<<"$names" || ! grep -qx VAPID_PUBLIC_KEY <<<"$names"; then
+            keys=$(node scripts/generate-vapid-keys.ts)
+            pub=$(sed -n 's/^VAPID_PUBLIC_KEY=//p' <<<"$keys")
+            priv=$(sed -n 's/^VAPID_PRIVATE_KEY=//p' <<<"$keys")
+            echo "::add-mask::$priv"
+            npx supabase secrets set "VAPID_PUBLIC_KEY=$pub" "VAPID_PRIVATE_KEY=$priv" \
+              VAPID_SUBJECT=https://adb-plantboard.netlify.app --project-ref "$PROJECT_REF" </dev/null >/dev/null
+            echo "New VAPID pair created. Set Netlify VITE_VAPID_PUBLIC_KEY to: \`$pub\`" >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "VAPID pair already set (kept). Netlify VITE_VAPID_PUBLIC_KEY must match it." >> "$GITHUB_STEP_SUMMARY"
+          fi
+          vault_count=$(sql "select count(*)::int as n from vault.secrets where name in ('send_alerts_url','send_alerts_secret')" | jq -r '.[0].n')
+          if ! grep -qx SEND_ALERTS_SECRET <<<"$names" || [ "$vault_count" != "2" ]; then
+            secret=$(openssl rand -hex 32)
+            echo "::add-mask::$secret"
+            npx supabase secrets set "SEND_ALERTS_SECRET=$secret" --project-ref "$PROJECT_REF" </dev/null >/dev/null
+            url="https://$PROJECT_REF.supabase.co/functions/v1/send-alerts"
+            sql "do \$\$ declare v_id uuid; begin
+                   select id into v_id from vault.secrets where name = 'send_alerts_url';
+                   if v_id is null then perform vault.create_secret('$url', 'send_alerts_url');
+                   else perform vault.update_secret(v_id, '$url'); end if;
+                   select id into v_id from vault.secrets where name = 'send_alerts_secret';
+                   if v_id is null then perform vault.create_secret('$secret', 'send_alerts_secret');
+                   else perform vault.update_secret(v_id, '$secret'); end if;
+                 end \$\$" >/dev/null
+            echo "send-alerts secret set in function secrets and Vault." >> "$GITHUB_STEP_SUMMARY"
+          fi
+          npx supabase functions deploy send-alerts --no-verify-jwt --project-ref "$PROJECT_REF" </dev/null
+          sql "select jobname, schedule, active from cron.job order by jobname" >> "$GITHUB_STEP_SUMMARY"

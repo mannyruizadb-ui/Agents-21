@@ -71,7 +71,9 @@ Full context lives in these docs. Read the relevant one before non-trivial work;
     - Forced password change is enforced in the DB (`app.password_ok()` gates has_role/has_org_role/can_manage_staff).
     - 592 pgTAP tests pass; security-reviewer PASS WITH NOTES (2 rounds).
     - Cloud: the owner account (`mannyruiz.adb@gmail.com`) has an org-wide owner membership; `profiles.full_name` = 'Manny Ruiz'.
-    - Before the pilot: cloud Auth settings (signups off, confirm email ON, secure email change ON, leaked-password protection, minimum length 10), a null MX record on `accounts.adbheadquarters.com`, and deploying the function with `ALLOWED_ORIGINS` (deploy-db workflow, `deploy_functions` input).
+    - **LIVE 2026-11-03:** PR #4 merged; deploy-db run 3 applied the migration (20 in the cloud, latest 20261103202156) and deployed `manage-users` (ACTIVE, verify_jwt). CORS answers only https://adb-plantboard.netlify.app.
+    - The owner set the cloud minimum password length to **6**; I recommended 10. The function still enforces ≥ 10 on change_own_password.
+    - The null MX record was skipped. `accounts.adbheadquarters.com` is NXDOMAIN with no wildcard (checked), so mail to it can't be delivered.
     - Carry-forward: the Custom Access Token Hook must keep `app_metadata` in the JWT, or the password gate silently passes.
   - **Displays (PRD D1 v1.6):** screens are configurable data (machine or area layout), so TVs can be added anywhere without code. Launch: washroom TV A = washers 1–3, TV B = washers 4–6, finishing 1 TV. No dryer TV (dryers are 5 steps away). NOW + NEXT only. **The washman taps** each washer start, one tap, PIN once per shift.
   - Security notes to carry forward:
@@ -79,6 +81,115 @@ Full context lives in these docs. Read the relevant one before non-trivial work;
     - store `production_date` on off-shift rows in the M2 RPCs;
     - invite-user must gate the `can_manage_staff` and owner role grants;
     - duplicate-PIN errors reveal which PINs are in use (accepted for now; PINs are attribution only).
+- **Launch scope (owner 2026-11-03): build the whole app and release it all at once; TVs last.**
+  - Day-one screens:
+    - queue + washer control (start taps from managers' phones);
+    - dirty-work estimates;
+    - finished goods (name + PIN);
+    - reports: shift report, day report, pace screen.
+  - In-app setup: items + wash groups, people + entry staff, washers + formulas, shifts.
+  - First users are the owner and managers only. The washroom tablet and TVs come later.
+  - Build order: server RPCs + pg_cron → setup screens → queue/washer → estimates → finished goods → reports/pace. Merge in PRs; the owner starts using it when all are done.
+- **M2 server side BUILT (2026-11-04; 791 pgTAP tests pass; security-reviewer PASS WITH NOTES):** 8 migrations `20261103212038…212055`.
+  - Queue RPCs: create / reorder / update / cancel / set_status / get_queue.
+  - Washer taps: `start_washer_load` / `undo_washer_load` / `get_washroom_board` (no PIN).
+  - Entries: `record_soil_estimate` and `record_finished_goods` (staff session), `void_finished_goods`.
+  - Reports: `get_shift_report` / `get_day_report` / `get_wash_group_pace`. Totals only; crew hours removed pending HR/legal review.
+  - Direct operational writes revoked. Setup tables are editable through column grants and history guards; shift edits regenerate instances.
+  - pg_cron nightly `generate-shift-instances`; after the cloud deploy, check `cron.job`.
+  - Follow-ups:
+    - L3: revoke anon table grants.
+    - L4: column grants on `shift_crew_hours`, `display_messages` and `shift_instances`.
+    - Per-plant `client_id` uniqueness.
+    - Throttle queue and estimate writes.
+    - Record in PRD v1.6 §4.7 the display read of the washer board and the owner/manager-only estimates.
+  - Waiting on the owner: who enters estimates, setting `ships_next_morning` in the cloud.
+- **Pilot build progress (2026-11-04, branch `claude/amazing-planck-k88ki3`, NOT yet in the cloud; no PR yet):**
+  - Screens:
+    - washer board `/control/washers`, with "Next in queue" shown once;
+    - washer station `/station/washer/:machineId` (one-tap START, undo, offline tap queue with real tap time);
+    - queue `/control/queue` (owner edits; managers can add rewash and move loads off a down washer);
+    - machine down `/control/machines` (preset reason codes, translated);
+    - estimates `/control/estimates` (compact list, bin/basket stepper, one PIN per batch, 10-minute reuse, offline outbox up to 6 h).
+  - Device storage is scoped per account, with a guarded sign-out ("Send now / Keep for next time").
+  - DB migrations `20261104163703…201022`:
+    - machine_status_events and the `alert_events` `machine_down` rows (10-minute cooldown);
+    - owner-only queue with the 2 manager exceptions;
+    - loads_per_basket/bin and the 'bin' unit, seeded with the owner's numbers;
+    - 33 group colors;
+    - owner-only day report and pace;
+    - PIN reuse 10 minutes;
+    - `p_entered_at` (6 h) and `p_tapped_at` (30 min);
+    - who-entered columns hidden from client reads (column grants).
+  - Push notifications (2026-11-05):
+    - DB: `push_subscriptions` (host allow-list, max 5 per user, rebind only with matching keys, kept out of audit), `memberships.notify_machine_down` + `set_alert_recipient` (owner only), `claim_push_alerts` (at most once), and a pg_cron `send-alerts` job every minute via pg_net + Vault (`send_alerts_url`, `send_alerts_secret`).
+    - Client: `public/sw.js`, web manifest + icons, a notifications card with iOS Home Screen steps, and the People alert toggle.
+    - L1: grants on the `net` schema can't be revoked as postgres; confirm in the cloud that the API exposes only `public` and `graphql_public`.
+  - Spanish pass, plus an accessibility check at 200% text on the station and estimates: done. Owner to check the wording (Estimados, Contenedor/Canasta, ARRANCAR, Dañada/arreglada).
+  - Checks: **1037 pgTAP** and **128 Vitest** tests pass. Security-reviewer, latest round (push layer): PASS WITH NOTES.
+  - Left before the Monday pilot:
+    - the `send-alerts` Edge Function; it needs the owner's OK for a Web Push library, plus VAPID keys (the private key as a function secret, `VITE_VAPID_PUBLIC_KEY` in Netlify);
+    - checking Realtime with the column grants;
+    - the owner's OK to run deploy-db on the cloud, then the PR and merge, in that order;
+    - the owner creates the father's account.
+  - Still waiting on the owner:
+    - the manager screen matrix (then lock the views/reports server side);
+    - who edits load factors;
+    - tablecloths at 2 per bin;
+    - the missing bin/basket numbers;
+    - AA Linen questions.
+- **Owner answers 2026-11-05 (one-shot list; supersede earlier where they conflict):**
+  - Web Push library: **approved**.
+  - **Upload to the cloud as soon as it's ready.** The owner wants to try every screen live and then request changes. Open the PR: yes.
+  - Monday accounts: owner, father, Denise. **All managers** get accounts, entry-staff PINs and machine-down alerts (`notify_machine_down` default true for managers too).
+  - **Machines to add:** compressor, soap machine, boiler, ironer, folder, wrapping machine, water pump. Machines and down reasons must be **editable in the app** (Setup); reasons become data, not an enum.
+  - **Spanish wording:** EMPEZAR, Estimados, "bin" (keep the English word), Fuera de servicio / Arreglada, Mapos, Próximo / Relavar / Urgente. Spanish only, no Creole.
+  - Monday scope: OK (taps, board, queue, machine down, estimates, alerts). Finished goods, reports and TVs come later; the TVs go up when the app is fully ready.
+  - **Managers: current shift totals only, NOT the previous shift.** Everything else per the matrix: confirmed. Lock it server side.
+  - **Load factors:** editable by owners only, plus anyone the owner grants (a new grantable permission like `can_manage_staff`).
+  - 30-minute late tap: the owner wants it "alarmed". Interpretation pending (late tap vs. load behind schedule).
+  - Tablecloths: 2 loads per bin, confirmed. **Mats: 4 loads per full bin** (AA Linen mats).
+  - Napkin colors, pieces per load and the remaining factors: the owner wants **one fill-in sheet** covering every wash group and item.
+  - **AA Linen:** washed separately, processed about midnight to midday. The owner wants to see **washing time spent on AA Linen**. That needs a customer tag on queue items and washer cycles; for now its loads go in the queue.
+  - Ship next morning: carpets, sheets, butcher coats. Truck times vary.
+  - Production day 12:00→12:00: confirmed (this closes the old business-day question). **Holidays: closed only on the day of Christmas, New Year's and Thanksgiving.**
+  - Washer tablets: undecided.
+  - **New feature requests:**
+    1. **Tasks:** the owner sends a job to a named manager ("check all parked trucks"). She gets a push immediately, it stays open until she confirms it's done, and then the owner and father are notified. This is per-person work direction, not output data. No completion-time stats or ranking per person (HR/legal note).
+    2. **Driver load-out list:** from midnight to midday, Denise sees what each driver needs (sheets, butcher coats, plus special items the owner adds). The source of the quantities is undecided (owner entry vs. LinenTrack par levels).
+  - Not yet answered: #29 Diamond export sample, #30 call tally, #31 Supabase net-grant fix, #32 GitHub branch protection, #33 password length.
+- **Owner answers 2026-11-04 (now built, see above):**
+  - **The M2 screens were lost.** They were never committed and the session container was reset. The server side survived (`d496d09`). Rebuild them, and push WIP at every checkpoint from now on.
+  - PIN reuse: 10 minutes on a phone, "for now".
+  - Offline entries: no second PIN when they finally send ("too much stuff"). Proposed: keep the pending entry plus its PIN on the device until it sends, then wipe it (PINs are attribution only). Needs security-reviewer sign-off.
+  - "Entered by <name>": the owner wants it, **on the owner's screens only**. Managers and others never see names. Reports never total by person.
+  - Managers should see only what they need, not all the owner's data. This is a role/RLS change: get the owner to confirm a screen-by-screen matrix before building.
+  - Pilot: for 2–3 weeks the owner is on site nightly and taps washer starts on their phone or the company tablet. Then a tablet at each of the 6 washers (pick the wash group; the formula follows; one green START) plus a removable tablet in finishing. The owner will pay for the tablets.
+  - Open: what estimates are, explained to the owner; the meaning of wash group colors, explained; pace with 3 cards.
+- **Owner answers 2026-11-04, round 2 (these supersede round 1 where they conflict):**
+  - **Pilot target: Monday 2026-11-09.** The owner is tallying baseline calls this week.
+  - The owner's father gets his own account with owner access.
+  - **No "entered by" names anywhere, the owner's screens included.** Finished goods are entered by the shift manager only, one person per shift.
+  - **Estimates ship from day one.** Denise enters them; train while the owner is on site. The owner wants a clear, well-designed screen, not just +/− buttons.
+  - Wash group colors: preset them, yes.
+  - **Machine breakdowns:** a "machine down" status, shown on the owner boards. Add **automatic notifications** to selected owners and managers (e.g. "Washer 4 down"). The owner asked for text messages; SMS is a paid service, so get approval first.
+  - **Washroom TVs stay** (above the washers; the whole crew sees them). Washer tablets come later, maybe iPads with Guided Access. Build the per-washer station screen now so a tablet only has to open its URL.
+  - **Queue: managers can only view it; editing is owner-only.** Today the server lets `{owner,manager}` call create/reorder/update/cancel (`20261103212040`), so a migration must restrict them to owner. Open: may managers still move a load off a broken washer (2026-11-02 decision), and who creates rewash items from finishing?
+  - **Owner 2026-11-04, round 3 (queue exceptions, containers, a second customer):**
+    - Managers may move a load off a washer that broke down.
+    - Shift managers may add **rewash** items at the bottom of the queue (wash group + how full a basket/bin). Every other queue edit is owner-only.
+    - **Two containers:** *bins* (tall, 5–6 ft; mostly linen) and *baskets* (half the height, longer; mats, sometimes linen). Loads per full container are estimates, not rules:
+      - mats per basket 3.5;
+      - kitchen towels per basket 2, per bin 2.5;
+      - sheets per bin 2;
+      - napkins (all colors) per bin 2;
+      - tablecloths per bin 2 (confirm).
+      - This needs a per-group factor for each container, so it **is** a schema change (`research/estimate-bins.md`).
+    - **AA Linen:** a second customer whose volume varies. Kitchen towels, aprons, mats, napkins and tablecloths arrive, always in bins. Not modeled yet; ask the owner whether it must be tracked separately.
+  - **Pace screen: deferred (not for Monday), and owner-only when built.** Its layout and the ship-next-morning groups are still undecided.
+  - **Alerts: push notifications approved (free Web Push to the installed app), not SMS.**
+  - **Estimates by bin fill** (¼ / ½ / ¾ / full, several bins allowed) × loads per full bin per wash group. No schema change: `unit='basket'`, `baskets_per_load = 1/loads_per_bin`. Numbers are pending in `research/estimate-bins.md` (owner examples: mats 5–6, kitchen towels 2–3, linens ≈ 2).
+  - Accu-Flow lags about 10 minutes, so it is for cross-checking reports only, not the live source. The owner offered the CloudView login: still **never scrape the portal**; ask for exported files instead.
 - **Next, M1 part 2:**
   - invite-user and pair-device/revoke-device Edge Functions (create the edge-engineer agent first);
   - Custom Access Token Hook, pg_cron schedule, languages data migration for the cloud;

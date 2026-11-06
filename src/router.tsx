@@ -24,6 +24,48 @@ export const router = createBrowserRouter([
           Component: (await import('./features/admin/PeoplePage')).PeoplePage,
         }),
       },
+      {
+        // Washer board (D1/G6 on phones): owner, managers, leads and viewers can read it.
+        path: 'washers',
+        lazy: async () => ({
+          Component: (await import('./features/washroom/WasherBoardPage')).WasherBoardPage,
+        }),
+      },
+      {
+        // Soil estimates (B1): owner and managers, one name + PIN per batch (owner 2026-11-04).
+        path: 'estimates',
+        lazy: async () => ({
+          Component: (await import('./features/estimates/EstimatesPage')).EstimatesPage,
+        }),
+      },
+      {
+        // Machine down / back up (owner 2026-11-04): owner and managers change; others read.
+        path: 'machines',
+        lazy: async () => ({
+          Component: (await import('./features/washroom/MachineStatusPage')).MachineStatusPage,
+        }),
+      },
+      {
+        // Work queue (C1–C4). Everyone with a role reads it; only the owner gets edit controls
+        // (owner decision 2026-11-04).
+        path: 'queue',
+        lazy: async () => ({
+          Component: (await import('./features/queue/QueuePage')).QueuePage,
+        }),
+      },
+    ],
+  },
+  {
+    // Washer station: a tablet at one washer opens this URL in kiosk mode (stable per machine).
+    path: '/station',
+    lazy: async () => ({ Component: (await import('./app/station/StationRoute')).StationRoute }),
+    children: [
+      {
+        path: 'washer/:machineId',
+        lazy: async () => ({
+          Component: (await import('./features/washroom/WasherStationPage')).WasherStationPage,
+        }),
+      },
     ],
   },
   {

@@ -7,7 +7,7 @@
 --   areas  c..a1 washroom A · c..a2 finishing A · c..a3 spare A (kind other) · c..b1 washroom B
 --          c..c1 washroom A2
 --   wash groups (owner 2026-11-01: washroom data is per group) g..a1 Napkins · g..a2 Mats
---          g..a3 Towels (baskets allowed, 2/load) · g..b1 group B · g..c1 group A2
+--          g..a3 Towels (baskets allowed, 0.5 loads/basket = 2 baskets/load) · g..b1 group B · g..c1 group A2
 --   items  d..a1 Napkin (pack 100, 500 pcs/load; Napkins) · d..a2 Mat (unit, no pcs/load; Mats)
 --          d..a3 Towel (unit, 200 pcs/load; Towels) · d..b1 item B · d..c1 item A2
 
@@ -70,13 +70,13 @@ insert into public.machines (id, org_id, plant_id, area_id, name, kind, external
   ('60000000-0000-0000-0000-0000000000a1', '10000000-0000-0000-0000-00000000000a', '20000000-0000-0000-0000-00000000000a',
    '30000000-0000-0000-0000-0000000000a1', 'Washer 1', 'washer', 'W1');
 
-insert into public.wash_groups (id, org_id, plant_id, name, name_i18n, allow_basket_estimates, baskets_per_load) values
+insert into public.wash_groups (id, org_id, plant_id, name, name_i18n, allow_basket_estimates, loads_per_basket) values
   ('71000000-0000-0000-0000-0000000000a1', '10000000-0000-0000-0000-00000000000a', '20000000-0000-0000-0000-00000000000a',
    'Napkins', '{"es":"Servilletas"}', false, null),
   ('71000000-0000-0000-0000-0000000000a2', '10000000-0000-0000-0000-00000000000a', '20000000-0000-0000-0000-00000000000a',
    'Mats', '{}', false, null),
   ('71000000-0000-0000-0000-0000000000a3', '10000000-0000-0000-0000-00000000000a', '20000000-0000-0000-0000-00000000000a',
-   'Towels', '{}', true, 2),
+   'Towels', '{}', true, 0.5),
   ('71000000-0000-0000-0000-0000000000b1', '10000000-0000-0000-0000-00000000000b', '20000000-0000-0000-0000-00000000000b',
    'Group B', '{}', false, null),
   ('71000000-0000-0000-0000-0000000000c1', '10000000-0000-0000-0000-00000000000a', '20000000-0000-0000-0000-00000000000c',
@@ -174,7 +174,8 @@ end;
 $$;
 
 -- Runs p_sql as the named fixture user ('anon' = anon role) in a subtransaction, then returns to
--- postgres. Result: row count (p_count: rows the query returns; else rows affected), or on error
+-- postgres with the JWT claims cleared, so statements run directly in a test always have service-role
+-- semantics (auth.uid() null), whatever the previous call did. Result: row count (p_count: rows the query returns; else rows affected), or on error
 -- the app code (P0001 message, e.g. VALIDATION_FAILED) or the SQLSTATE (e.g. 42501, 23514).
 create function pg_temp.run_as(p_user text, p_sql text, p_count boolean default false)
 returns text language plpgsql as $$
@@ -193,6 +194,45 @@ begin
     get diagnostics n = row_count;
   end if;
   reset role;
+  perform set_config('request.jwt.claims', '', true);   -- back to service-role semantics (auth.uid() null)
+  return n::text;
+exception when others then
+  perform set_config('request.jwt.claims', '', true);
+  return case when sqlstate = 'P0001' then sqlerrm else sqlstate end;
+end;
+$$;
+
+-- Like run_as, but returns the first column of the first row as text (or the error code).
+create function pg_temp.val_as(p_user text, p_sql text)
+returns text language plpgsql as $$
+declare
+  v text;
+begin
+  if p_user = 'anon' then
+    perform pg_temp.login_anon();
+  else
+    perform pg_temp.login(pg_temp.id(p_user));
+  end if;
+  execute p_sql into v;
+  reset role;
+  perform set_config('request.jwt.claims', '', true);
+  return v;
+exception when others then
+  perform set_config('request.jwt.claims', '', true);
+  return case when sqlstate = 'P0001' then sqlerrm else sqlstate end;
+end;
+$$;
+
+-- Runs p_sql as the service role (postgres, no JWT claims) in a subtransaction. Same result format as
+-- run_as: row count, app error code, or SQLSTATE. For trigger/FK rules now that clients write via RPCs.
+create function pg_temp.as_service(p_sql text)
+returns text language plpgsql as $$
+declare
+  n bigint;
+begin
+  perform set_config('request.jwt.claims', '', true);
+  execute p_sql;
+  get diagnostics n = row_count;
   return n::text;
 exception when others then
   return case when sqlstate = 'P0001' then sqlerrm else sqlstate end;
