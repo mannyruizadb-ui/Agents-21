@@ -36,3 +36,10 @@ They are not specs. The rules below win wherever the mockups disagree.
 - Never truncate the wash group name on primary tiles: wrap to 2 lines instead.
 - Green means running/OK only. Don't use it decoratively.
 - WCAG 2.2 AA contrast, ≥ 56 px targets on entry screens, and never color alone.
+
+## Owner 2026-11-06 (round 2)
+- Replace the button-list ("bubble") home with a **Home dashboard** of live summary tiles, plus a way to choose
+  which screens/tiles to see (Customize on Home, the bottom nav, and a More grid of every screen).
+- Everything dark, sign-in included, with the **ADB logo** at the top. The logo file is pending from the owner and goes in
+  `public/brand/`.
+
