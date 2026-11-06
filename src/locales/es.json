@@ -632,7 +632,18 @@
     "pinned_other": "Tienes {{count}} tareas abiertas",
     "errors": {
       "text": "Escribe la tarea (de 1 a {{max}} caracteres)."
-    }
+    },
+    "newButton": "Nueva tarea",
+    "openPill": "Abierta",
+    "donePill": "Terminada",
+    "reminderEvery": "Recordatorio cada 10 minutos hasta que esté terminada.",
+    "filterLabel": "Mostrar",
+    "filterOpen_one": "Abiertas ({{count}})",
+    "filterOpen_other": "Abiertas ({{count}})",
+    "filterDone_one": "Terminadas ({{count}})",
+    "filterDone_other": "Terminadas ({{count}})",
+    "addNote": "Agregar una nota (opcional)",
+    "justSent": "Recién mandada"
   },
   "nav": {
     "label": "Principal",
@@ -646,7 +657,7 @@
     "home": "Inicio"
   },
   "alerts": {
-    "unavailable": "La lista de alertas todavía no está disponible. Las alertas siguen llegando como notificaciones a este teléfono (actívelas en Más).",
+    "unavailable": "La lista de alertas todavía no está disponible. Las alertas siguen llegando como notificaciones a este teléfono (actívalas en Más).",
     "openCount_one": "{{count}} abierta",
     "openCount_other": "{{count}} abiertas",
     "openNow": "Abiertas ahora",
@@ -723,8 +734,8 @@
     "andMore_other": "+ {{count}} más",
     "tasksOpen_one": "tarea abierta",
     "tasksOpen_other": "tareas abiertas",
-    "myTasksOpen_one": "abierta para usted",
-    "myTasksOpen_other": "abiertas para usted",
+    "myTasksOpen_one": "abierta para ti",
+    "myTasksOpen_other": "abiertas para ti",
     "dirtyWork": "Trabajo sucio esperando",
     "loadsWaiting_one": "carga esperando",
     "loadsWaiting_other": "cargas esperando",
@@ -738,12 +749,12 @@
     "bellLabel_other": "Alertas ({{count}} nuevas)",
     "customize": "Personalizar",
     "customizeTitle": "Personalizar Inicio",
-    "customizeHint": "Marque los cuadros que quiere ver. Use las flechas para cambiar el orden. Se guarda en este teléfono para su cuenta.",
+    "customizeHint": "Marca los cuadros que quieres ver. Usa las flechas para cambiar el orden. Se guarda en este teléfono para tu cuenta.",
     "moveUp": "Subir {{name}}",
     "moveDown": "Bajar {{name}}",
     "customizeDone": "Listo",
     "customizeReset": "Volver a lo normal",
-    "noTiles": "Todos los cuadros están ocultos. Toque Personalizar para mostrar algunos.",
+    "noTiles": "Todos los cuadros están ocultos. Toca Personalizar para mostrar algunos.",
     "ageSec_one": "Hace {{count}} s",
     "ageSec_other": "Hace {{count}} s",
     "ageMin_one": "Hace {{count}} min",

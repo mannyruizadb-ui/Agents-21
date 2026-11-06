@@ -632,7 +632,18 @@
     "pinned_other": "You have {{count}} open tasks",
     "errors": {
       "text": "Type the task (1 to {{max}} characters)."
-    }
+    },
+    "newButton": "New task",
+    "openPill": "Open",
+    "donePill": "Done",
+    "reminderEvery": "Reminder every 10 minutes until it's done.",
+    "filterLabel": "Show",
+    "filterOpen_one": "Open ({{count}})",
+    "filterOpen_other": "Open ({{count}})",
+    "filterDone_one": "Done ({{count}})",
+    "filterDone_other": "Done ({{count}})",
+    "addNote": "Add a note (optional)",
+    "justSent": "Just sent"
   },
   "nav": {
     "label": "Main",
