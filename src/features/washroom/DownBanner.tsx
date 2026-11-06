@@ -2,6 +2,7 @@ import { useTranslation } from 'react-i18next';
 import { IconMachineDown } from './Icons';
 import { minutesSinceEnd } from './washerTime';
 import { reasonText } from './machineReason';
+import { useReasonLabeler } from './downReasons';
 
 /**
  * "DOWN" notice for a machine: wrench icon + the word DOWN + reason + since when. Never color alone.
@@ -10,6 +11,7 @@ import { reasonText } from './machineReason';
 export function DownBanner({
   name,
   reasonCode,
+  reasonLabelI18n,
   reason,
   since,
   serverNowMs,
@@ -18,6 +20,8 @@ export function DownBanner({
   name?: string;
   /** Preset reason code, shown in the viewer's language. */
   reasonCode?: string | null;
+  /** The plant's label for the code (label_i18n), from the board / machine-status RPCs. */
+  reasonLabelI18n?: unknown;
   /** Free-text details (or the whole reason, for rows from before reason codes). */
   reason: string | null | undefined;
   since: string | null | undefined;
@@ -26,7 +30,8 @@ export function DownBanner({
 }) {
   const { t, i18n } = useTranslation();
   const minutes = minutesSinceEnd(since, serverNowMs);
-  const why = reasonText(reasonCode, reason, (c) => t(`machines.reasons.${c}`));
+  const labeler = useReasonLabeler();
+  const why = reasonText(reasonCode, reason, (c) => labeler(c, reasonLabelI18n));
   const sinceText = since
     ? t('machines.since', {
         time: new Intl.DateTimeFormat(i18n.language, { hour: 'numeric', minute: '2-digit' }).format(

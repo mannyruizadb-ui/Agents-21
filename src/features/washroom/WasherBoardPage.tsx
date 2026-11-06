@@ -109,6 +109,7 @@ function WasherCard({
       {isDown ? (
         <DownBanner
           reasonCode={row.down_reason_code}
+          reasonLabelI18n={row.down_reason_label_i18n}
           reason={row.down_reason}
           since={row.down_since}
           serverNowMs={estimateServerNow(row.server_time, fetchedAt, now)}
@@ -290,6 +291,7 @@ export function WasherBoardPage() {
               key={m.machine_id}
               name={`${m.machine_name} (${m.area_name})`}
               reasonCode={m.reason_code}
+              reasonLabelI18n={m.reason_label_i18n}
               reason={m.reason}
               since={m.since}
               serverNowMs={machinesServerNow}

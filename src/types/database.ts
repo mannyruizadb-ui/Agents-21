@@ -435,6 +435,38 @@ isOneToOne: false
       referencedColumns: ["id","org_id"]
     }
                   ]
+                },"manager_shift_assignments": {
+                  Row: {
+                    "active": boolean,"created_at": string,"id": string,"membership_id": string,"org_id": string,"plant_id": string,"shift_id": string,"updated_at": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "active"?: boolean,"created_at"?: string,"id"?: string,"membership_id": string,"org_id": string,"plant_id": string,"shift_id": string,"updated_at"?: string
+                  }
+                  Update: {
+                    "active"?: boolean,"created_at"?: string,"id"?: string,"membership_id"?: string,"org_id"?: string,"plant_id"?: string,"shift_id"?: string,"updated_at"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "manager_shift_assignments_membership_id_fkey"
+      columns: ["membership_id"]
+isOneToOne: false
+      referencedRelation: "memberships"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "manager_shift_assignments_plant_id_org_id_fkey"
+      columns: ["plant_id","org_id"]
+isOneToOne: false
+      referencedRelation: "plants"
+      referencedColumns: ["id","org_id"]
+    },{
+      foreignKeyName: "manager_shift_assignments_shift_id_plant_id_fkey"
+      columns: ["shift_id","plant_id"]
+isOneToOne: false
+      referencedRelation: "shifts"
+      referencedColumns: ["id","plant_id"]
+    }
+                  ]
                 },"memberships": {
                   Row: {
                     "can_edit_load_factors": boolean,"can_manage_staff": boolean,"created_at": string,"id": string,"notify_machine_down": boolean,"org_id": string,"plant_id": string | null,"revoked_at": string | null,"role": "owner"|"manager"|"lead"|"viewer"|"display","user_id": string
@@ -495,6 +527,26 @@ isOneToOne: false
       referencedColumns: ["id","plant_id"]
     },{
       foreignKeyName: "pairing_codes_plant_id_org_id_fkey"
+      columns: ["plant_id","org_id"]
+isOneToOne: false
+      referencedRelation: "plants"
+      referencedColumns: ["id","org_id"]
+    }
+                  ]
+                },"plant_holidays": {
+                  Row: {
+                    "active": boolean,"created_at": string,"day": number | null,"id": string,"month": number,"name": string,"name_i18n": NonNullable<Json>,"nth": number | null,"org_id": string,"plant_id": string,"updated_at": string,"weekday": number | null
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "active"?: boolean,"created_at"?: string,"day"?: number | null,"id"?: string,"month": number,"name": string,"name_i18n"?: NonNullable<Json>,"nth"?: number | null,"org_id": string,"plant_id": string,"updated_at"?: string,"weekday"?: number | null
+                  }
+                  Update: {
+                    "active"?: boolean,"created_at"?: string,"day"?: number | null,"id"?: string,"month"?: number,"name"?: string,"name_i18n"?: NonNullable<Json>,"nth"?: number | null,"org_id"?: string,"plant_id"?: string,"updated_at"?: string,"weekday"?: number | null
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "plant_holidays_plant_id_org_id_fkey"
       columns: ["plant_id","org_id"]
 isOneToOne: false
       referencedRelation: "plants"

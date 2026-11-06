@@ -36,7 +36,7 @@ select is(array[
   pg_temp.run_as('viewer', $$select * from public.finished_by_shift$$, true),
   pg_temp.run_as('viewer', $$select * from public.daily_reconciliation$$, true),
   pg_temp.run_as('display', $$select * from public.queue_board$$, true)],
-  '{1,0,0,0,0,1}', 'every reporting view still works for readers (security_invoker over the column grants)');
+  '{1,0,42501,42501,42501,1}', 'queue_board and current_soil_estimates still work for readers; the history views are owner-RPC-only since 2026-11-05');
 select is(pg_temp.run_as('lead', $$select * from public.get_washroom_board(pg_temp.id('wash'))$$, true), '1',
   'definer RPCs are unaffected');
 

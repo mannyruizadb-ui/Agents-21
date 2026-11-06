@@ -171,6 +171,7 @@ export function WasherStationPage() {
         <div role="alert">
           <DownBanner
             reasonCode={row.down_reason_code}
+            reasonLabelI18n={row.down_reason_label_i18n}
             reason={row.down_reason}
             since={row.down_since}
             serverNowMs={estimateServerNow(row.server_time, board.dataUpdatedAt, now)}

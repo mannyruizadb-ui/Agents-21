@@ -38,11 +38,11 @@ update public.queue_items set status = 'done', completed_at = pg_temp.ny('2026-1
 
 -- ══ get_shift_report ═════════════════════════════════════════════════════
 select is(pg_temp.writes($$select public.get_shift_report(pg_temp.si(pg_temp.id('wash'), 'Night', '2026-11-03'))$$),
-  '{1,1,1,1,NOT_AUTHORIZED,NOT_AUTHORIZED,NOT_AUTHORIZED,42501}', 'get_shift_report: owner/manager/lead/viewer; display, other tenant denied; anon no EXECUTE');
+  '{1,NOT_AUTHORIZED,NOT_AUTHORIZED,NOT_AUTHORIZED,NOT_AUTHORIZED,NOT_AUTHORIZED,NOT_AUTHORIZED,42501}', 'get_shift_report on a past shift: owner only (owner 2026-11-05); others NOT_AUTHORIZED; anon no EXECUTE');
 select is(array[pg_temp.run_as('ownerB', $$select public.get_shift_report(pg_temp.si(pg_temp.id('wash'), 'Night', '2026-11-03'))$$),
                 pg_temp.run_as('ownerB', $$select public.get_shift_report(gen_random_uuid())$$)],
   '{NOT_AUTHORIZED,NOT_AUTHORIZED}', 'no oracle: another tenant''s shift vs a missing id');
-select set_config('test.wr', pg_temp.val_as('viewer', $$select public.get_shift_report(pg_temp.si(pg_temp.id('wash'), 'Night', '2026-11-03'))::text$$), true);
+select set_config('test.wr', pg_temp.val_as('owner', $$select public.get_shift_report(pg_temp.si(pg_temp.id('wash'), 'Night', '2026-11-03'))::text$$), true);
 select is((current_setting('test.wr')::jsonb #>> '{shift,name}') || '/' || (current_setting('test.wr')::jsonb #>> '{shift,production_date}') || '/' || (current_setting('test.wr')::jsonb #>> '{shift,area_kind}'),
   'Night/2026-11-02/washroom', 'shift header: Tue Night belongs to Monday''s production day');
 select is((current_setting('test.wr')::jsonb -> 'washroom' -> 0) - 'wash_group_name_i18n' - 'wash_group_id',
@@ -51,7 +51,7 @@ select is((current_setting('test.wr')::jsonb -> 'washroom' -> 0) - 'wash_group_n
 select is(current_setting('test.wr')::jsonb -> 'totals', '{"loads_run":4,"standard_loads":3.00,"rewash_loads":1,"pieces":0}'::jsonb, 'washroom totals');
 select is(current_setting('test.wr')::jsonb -> 'queue', '{"completed":1,"remaining":1}'::jsonb, 'queue at shift end: 1 completed in the window, 1 remaining');
 select is(current_setting('test.wr')::jsonb -> 'finishing', '[]'::jsonb, 'a washroom shift has no finishing rows');
-select set_config('test.fr', pg_temp.val_as('lead', $$select public.get_shift_report(pg_temp.si(pg_temp.id('fin'), 'Day', '2026-11-03'))::text$$), true);
+select set_config('test.fr', pg_temp.val_as('owner', $$select public.get_shift_report(pg_temp.si(pg_temp.id('fin'), 'Day', '2026-11-03'))::text$$), true);
 select is((select array_agg(x ->> 'item_name' || ':' || (x ->> 'pieces') || ':' || coalesce(x ->> 'loads_approx', 'null') order by x ->> 'item_name')
              from jsonb_array_elements(current_setting('test.fr')::jsonb -> 'finishing') x),
   array['Mat:12:null', 'Napkin:734:1.4680000000000000'], 'finishing: pieces per item; ≈ loads via pieces_per_load, null without one');

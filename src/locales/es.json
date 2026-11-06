@@ -447,5 +447,67 @@
     "stuck_one": "Sin enviar hace {{count}} minuto. Revisa el Wi-Fi: después de 30 minutos ya no se puede contar.",
     "stuck_other": "Sin enviar hace {{count}} minutos. Revisa el Wi-Fi: después de 30 minutos ya no se puede contar.",
     "dismiss": "Quitar aviso"
+  },
+  "setup": {
+    "ownerOnly": "Solo un dueño puede cambiar la configuración.",
+    "inactive": "Desactivada",
+    "edit": "Editar",
+    "save": "Guardar",
+    "saved": "Guardado.",
+    "deactivate": "Desactivar",
+    "reactivate": "Activar otra vez",
+    "required": "obligatorio",
+    "kinds": {
+      "washer": "Lavadora",
+      "dryer": "Secadora",
+      "ironer": "Planchadora",
+      "folder": "Dobladora",
+      "wrapper": "Empacadora",
+      "utility": "Servicio (compresor, caldera, bomba…)",
+      "other": "Otra"
+    },
+    "languages": {
+      "en": "inglés",
+      "es": "español"
+    },
+    "machines": {
+      "title": "Configuración: máquinas",
+      "intro": "Agrega las máquinas de la planta para poder marcarlas fuera de servicio. Desactiva una máquina que ya no se usa; nunca se borra.",
+      "name": "Nombre",
+      "kind": "Tipo",
+      "area": "Área",
+      "none": "Todavía no hay máquinas en esta área.",
+      "addTitle": "Agregar una máquina",
+      "add": "Agregar máquina",
+      "added": "Se agregó {{name}}.",
+      "deactivated": "Se desactivó {{name}}.",
+      "reactivated": "{{name}} está activa otra vez.",
+      "lockedHint": "Esta máquina tiene historial (cargas o trabajo en la cola), así que su tipo y área no se pueden cambiar. Para cambiarlos, desactívala y agrega una máquina nueva.",
+      "unlockedHint": "Todavía no tiene historial, así que puedes cambiar su tipo y área.",
+      "deactivateHint": "Una máquina desactivada desaparece de los tableros y listas, pero su historial se queda."
+    },
+    "reasons": {
+      "title": "Configuración: motivos de fuera de servicio",
+      "intro": "Los motivos que la gente escoge al marcar una máquina fuera de servicio. Ordénalos con los más comunes primero.",
+      "labelIn": "Texto en {{language}}",
+      "fixed": "Fijo",
+      "fixedHint": "\"Otro\" siempre está y siempre pide una descripción.",
+      "needsDetails": "pide descripción",
+      "requireDetails": "Pedir una descripción cuando se escoja este motivo",
+      "addTitle": "Agregar un motivo",
+      "add": "Agregar motivo",
+      "added": "Se agregó \"{{name}}\".",
+      "deactivateHint": "Un motivo desactivado ya no se ofrece; los registros anteriores lo mantienen."
+    },
+    "errors": {
+      "ownerOnly": "Solo un dueño puede cambiar esto.",
+      "duplicate": "Eso ya existe. Usa otro nombre.",
+      "invalid": "El servidor no aceptó eso. Revisa los campos e intenta de nuevo.",
+      "machineInUse": "Esta máquina tiene historial, así que su tipo y área no se pueden cambiar. Desactívala y agrega una máquina nueva.",
+      "labels": "Cada texto debe tener de 1 a 60 caracteres.",
+      "name": "Escribe un nombre de 1 a 60 caracteres.",
+      "area": "Escoge un área.",
+      "englishLabel": "Escribe el texto en inglés (de 1 a 60 caracteres)."
+    }
   }
 }

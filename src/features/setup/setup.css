@@ -1,0 +1,42 @@
+/* Owner Setup screens (machines, down reasons). Targets ≥ 48 px from forms.css; status is text. */
+.form-page .setup-list {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 1rem;
+  display: grid;
+  gap: 0.5rem;
+}
+.form-page .setup-row {
+  border: 2px solid #999;
+  border-radius: 8px;
+  padding: 0.5rem 0.75rem;
+}
+.form-page .setup-row.inactive {
+  border-style: dashed;
+  background: #f4f4f4;
+}
+.setup-row-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+.setup-row-head p {
+  margin: 0;
+}
+.setup-editor {
+  margin-top: 0.5rem;
+  border-top: 1px solid #bbb;
+  padding-top: 0.5rem;
+}
+.badge.setup-off {
+  margin-left: 0.5rem;
+  color: #333;
+  background: #e8e8e8;
+}
+.badge.setup-fixed {
+  margin-left: 0.5rem;
+  color: #1f3a8a;
+  background: #eef3ff;
+}

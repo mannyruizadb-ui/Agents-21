@@ -75,7 +75,7 @@ select is(pg_temp.flags('owner', $$select 1 from public.memberships where org_id
   array['0', (select count(*)::text from public.memberships where org_id = pg_temp.id('orgA')),
               (select count(*)::text from public.memberships where org_id = pg_temp.id('orgA'))],
   'memberships: 0 rows while flagged, all of org A otherwise');
-select is(pg_temp.flags('manager', $$select 1 from public.finished_goods_entries$$), '{0,1,1}',
+select is(pg_temp.flags('owner', $$select 1 from public.finished_goods_entries where plant_id = pg_temp.id('plantA')$$), '{0,1,1}',
   'finished_goods_entries: 0 rows while flagged');
 select is(pg_temp.flags('manager', $$select public.create_queue_item(pg_temp.id('wash'), 1, 'load', gen_random_uuid(), pg_temp.id('gNapkin'), p_is_rewash => true)$$, false),
   '{NOT_AUTHORIZED,1,1}', 'M2 write RPCs (create_queue_item) are denied while flagged');

@@ -53,6 +53,7 @@ export interface WasherBoardRow {
   is_down: boolean | null;
   down_reason: string | null;
   down_reason_code: string | null;
+  down_reason_label_i18n: I18nJson | null;
   down_since: string | null;
 }
 

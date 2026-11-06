@@ -315,6 +315,18 @@ select a.org_id, a.plant_id, a.id, m.name, m.kind::app.machine_kind
 
 -- ── Shifts (A6), per area; days = the day a shift STARTS (0 = Sun … 6 = Sat) ──
 -- Thursday variants are separate rows with the same name. No washroom midday shift (owner).
+-- Holidays (owner 2026-11-05; data migration 20261106022343_add_plant_holidays for the cloud): closed only on
+-- Christmas Day, New Year's Day and Thanksgiving Day (4th Thursday of November). No shift instances then.
+insert into public.plant_holidays (org_id, plant_id, name, name_i18n, month, day, weekday, nth)
+select p.org_id, p.id, v.name, v.name_i18n, v.month, v.day, v.weekday, v.nth
+  from public.plants p
+  join public.organizations o on o.id = p.org_id and o.slug = 'americas-dust-busters'
+ cross join (values
+   ('Christmas Day',    '{"es":"Navidad"}'::jsonb,            12::smallint, 25::smallint, null::smallint, null::smallint),
+   ('New Year''s Day',  '{"es":"Año Nuevo"}'::jsonb,           1,           1,            null,           null),
+   ('Thanksgiving Day', '{"es":"Día de Acción de Gracias"}'::jsonb, 11,     null,         4,              4)) as v(name, name_i18n, month, day, weekday, nth)
+ where p.name = 'Miami';
+
 insert into public.shifts (org_id, plant_id, area_id, name, start_local, end_local, days_of_week)
 select a.org_id, a.plant_id, a.id, s.name, s.start_local::time, s.end_local::time, s.days::smallint[]
   from public.areas a

@@ -447,5 +447,67 @@
     "stuck_one": "Not sent for {{count}} minute. Check the Wi-Fi: after 30 minutes it can't be counted.",
     "stuck_other": "Not sent for {{count}} minutes. Check the Wi-Fi: after 30 minutes it can't be counted.",
     "dismiss": "Dismiss"
+  },
+  "setup": {
+    "ownerOnly": "Only an owner can change the setup.",
+    "inactive": "Inactive",
+    "edit": "Edit",
+    "save": "Save",
+    "saved": "Saved.",
+    "deactivate": "Deactivate",
+    "reactivate": "Turn back on",
+    "required": "required",
+    "kinds": {
+      "washer": "Washer",
+      "dryer": "Dryer",
+      "ironer": "Ironer",
+      "folder": "Folder",
+      "wrapper": "Wrapping machine",
+      "utility": "Utility (compressor, boiler, pump…)",
+      "other": "Other"
+    },
+    "languages": {
+      "en": "English",
+      "es": "Spanish"
+    },
+    "machines": {
+      "title": "Setup: machines",
+      "intro": "Add the plant's machines so they can be marked out of service. Deactivate a machine you no longer use; it is never deleted.",
+      "name": "Name",
+      "kind": "Kind",
+      "area": "Area",
+      "none": "No machines in this area yet.",
+      "addTitle": "Add a machine",
+      "add": "Add machine",
+      "added": "{{name}} was added.",
+      "deactivated": "{{name}} was deactivated.",
+      "reactivated": "{{name}} is back on.",
+      "lockedHint": "This machine has history (loads or queue work), so its kind and area are fixed. To change them, deactivate it and add a new machine.",
+      "unlockedHint": "No history yet, so you can still change its kind and area.",
+      "deactivateHint": "A deactivated machine disappears from the boards and lists, but its history stays."
+    },
+    "reasons": {
+      "title": "Setup: down reasons",
+      "intro": "The reasons people pick when they mark a machine out of service. Reorder them so the most common are first.",
+      "labelIn": "Label in {{language}}",
+      "fixed": "Fixed",
+      "fixedHint": "\"Other\" is always there and always asks for a description.",
+      "needsDetails": "asks for a description",
+      "requireDetails": "Ask for a description when this reason is picked",
+      "addTitle": "Add a reason",
+      "add": "Add reason",
+      "added": "\"{{name}}\" was added.",
+      "deactivateHint": "A deactivated reason is no longer offered; past records keep it."
+    },
+    "errors": {
+      "ownerOnly": "Only an owner can change this.",
+      "duplicate": "That already exists. Use a different name.",
+      "invalid": "The server didn't accept that. Check the fields and try again.",
+      "machineInUse": "This machine has history, so its kind and area can't change. Deactivate it and add a new machine.",
+      "labels": "Each label must be 1 to 60 characters.",
+      "name": "Type a name of 1 to 60 characters.",
+      "area": "Choose an area.",
+      "englishLabel": "Type the English label (1 to 60 characters)."
+    }
   }
 }

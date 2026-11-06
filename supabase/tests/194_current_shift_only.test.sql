@@ -1,0 +1,65 @@
+-- Owner 2026-11-05: managers (and leads, viewers) see only the CURRENT shift's totals; the owner sees
+-- every shift. get_shift_report, the history views, the raw washer_cycles / finished_goods_entries, and
+-- queue_items (open items + items completed in the current shift; security review 2026-11-06 M1).
+-- Matrix arrays: [owner, manager, lead, viewer, display, display-without-device, owner of B, anon].
+begin;
+\ir _fixtures.psql
+select plan(11);
+
+-- A shift running now in the spare area, one that ended an hour ago, and one later today.
+insert into public.shifts (id, org_id, plant_id, area_id, name, start_local, end_local, days_of_week, active) values
+  ('90000000-0000-0000-0000-0000000000d1', pg_temp.id('orgA'), pg_temp.id('plantA'), pg_temp.id('spare'), 'Now', '00:00', '01:00', '{0}', false),
+  ('90000000-0000-0000-0000-0000000000d2', pg_temp.id('orgA'), pg_temp.id('plantA'), pg_temp.id('spare'), 'Past', '00:00', '01:00', '{0}', false),
+  ('90000000-0000-0000-0000-0000000000d3', pg_temp.id('orgA'), pg_temp.id('plantA'), pg_temp.id('spare'), 'Later', '00:00', '01:00', '{0}', false);
+insert into public.shift_instances (id, org_id, plant_id, area_id, shift_id, business_date, starts_at, ends_at) values
+  ('91000000-0000-0000-0000-0000000000d1', pg_temp.id('orgA'), pg_temp.id('plantA'), pg_temp.id('spare'), '90000000-0000-0000-0000-0000000000d1', '2000-01-01', now() - interval '1 hour', now() + interval '1 hour'),
+  ('91000000-0000-0000-0000-0000000000d2', pg_temp.id('orgA'), pg_temp.id('plantA'), pg_temp.id('spare'), '90000000-0000-0000-0000-0000000000d2', '2000-01-01', now() - interval '3 hours', now() - interval '1 hour'),
+  ('91000000-0000-0000-0000-0000000000d3', pg_temp.id('orgA'), pg_temp.id('plantA'), pg_temp.id('spare'), '90000000-0000-0000-0000-0000000000d3', '2000-01-01', now() + interval '1 hour', now() + interval '3 hours');
+
+select is(pg_temp.writes($$select public.get_shift_report('91000000-0000-0000-0000-0000000000d1')$$),
+  '{1,1,1,1,NOT_AUTHORIZED,NOT_AUTHORIZED,NOT_AUTHORIZED,42501}', 'the CURRENT shift: owner, manager, lead, viewer (display, other tenant denied)');
+select is(pg_temp.writes($$select public.get_shift_report('91000000-0000-0000-0000-0000000000d2')$$),
+  '{1,NOT_AUTHORIZED,NOT_AUTHORIZED,NOT_AUTHORIZED,NOT_AUTHORIZED,NOT_AUTHORIZED,NOT_AUTHORIZED,42501}', 'the previous shift: owner only');
+select is(pg_temp.writes($$select public.get_shift_report('91000000-0000-0000-0000-0000000000d3')$$),
+  '{1,NOT_AUTHORIZED,NOT_AUTHORIZED,NOT_AUTHORIZED,NOT_AUTHORIZED,NOT_AUTHORIZED,NOT_AUTHORIZED,42501}', 'a later shift: owner only');
+update public.shift_instances set skipped_at = now() where id = '91000000-0000-0000-0000-0000000000d1';
+select is(pg_temp.run_as('manager', $$select public.get_shift_report('91000000-0000-0000-0000-0000000000d1')$$), 'NOT_AUTHORIZED',
+  'a skipped instance is not "current"');
+update public.shift_instances set skipped_at = null where id = '91000000-0000-0000-0000-0000000000d1';
+
+-- Raw rows: finished goods in the spare area, one in the current shift, one in the previous shift.
+insert into public.finished_goods_entries (org_id, plant_id, area_id, item_type_id, loose_pieces, occurred_at, entered_by, client_id, shift_instance_id)
+values (pg_temp.id('orgA'), pg_temp.id('plantA'), pg_temp.id('spare'), pg_temp.id('mat'), 3, now() - interval '30 minutes', pg_temp.id('owner'), gen_random_uuid(), '91000000-0000-0000-0000-0000000000d1'),
+       (pg_temp.id('orgA'), pg_temp.id('plantA'), pg_temp.id('spare'), pg_temp.id('mat'), 5, now() - interval '2 hours', pg_temp.id('owner'), gen_random_uuid(), '91000000-0000-0000-0000-0000000000d2');
+select is(pg_temp.reads($$select 1 from public.finished_goods_entries where area_id = pg_temp.id('spare')$$),
+  '{2,1,1,1,0,0,0,42501}', 'finished goods rows: the owner sees both shifts; manager/lead/viewer only the current one');
+select is(pg_temp.val_as('manager', $$select sum(pieces)::text from public.finished_goods_entries where area_id = pg_temp.id('spare')$$), '3',
+  'a manager''s totals are the current shift''s');
+
+-- History views: no client grant (the owner reads them through RPCs).
+select is(array[
+  pg_temp.run_as('owner', $$select 1 from public.daily_reconciliation$$),
+  pg_temp.run_as('owner', $$select 1 from public.washroom_by_shift$$),
+  pg_temp.run_as('manager', $$select 1 from public.finished_by_shift$$)],
+  '{42501,42501,42501}', 'daily_reconciliation, washroom_by_shift, finished_by_shift: no direct client reads');
+select is(array[
+  pg_temp.run_as('manager', $$select 1 from public.queue_board$$),
+  pg_temp.run_as('manager', $$select 1 from public.current_soil_estimates$$)],
+  '{0,0}', 'the manager screens'' views (queue_board, current_soil_estimates) still work');
+select is(pg_temp.run_as('manager', $$select public.get_day_report(pg_temp.id('plantA'), current_date)$$), 'NOT_AUTHORIZED',
+  'the day report stays owner-only');
+
+-- ══ queue_items (security review M1) ═════════════════════════════════════
+insert into public.queue_items (org_id, plant_id, area_id, wash_group_id, qty, unit, position, created_by, client_id, status, started_at, completed_at) values
+  (pg_temp.id('orgA'), pg_temp.id('plantA'), pg_temp.id('spare'), pg_temp.id('gMat'), 1, 'load', 1, pg_temp.id('owner'), gen_random_uuid(), 'queued', null, null),
+  (pg_temp.id('orgA'), pg_temp.id('plantA'), pg_temp.id('spare'), pg_temp.id('gMat'), 1, 'load', 2, pg_temp.id('owner'), gen_random_uuid(), 'done', now() - interval '40 minutes', now() - interval '20 minutes'),
+  (pg_temp.id('orgA'), pg_temp.id('plantA'), pg_temp.id('spare'), pg_temp.id('gMat'), 1, 'load', 3, pg_temp.id('owner'), gen_random_uuid(), 'done', now() - interval '150 minutes', now() - interval '2 hours'),
+  (pg_temp.id('orgA'), pg_temp.id('plantA'), pg_temp.id('spare'), pg_temp.id('gMat'), 1, 'load', 4, pg_temp.id('owner'), gen_random_uuid(), 'cancelled', null, null);
+select is(pg_temp.reads($$select 1 from public.queue_items where area_id = pg_temp.id('spare')$$),
+  array['4', '2', '2', '2', '0', '0', '0', pg_temp.run_as('anon', $$select 1 from public.queue_items$$, true)],
+  'queue_items: the owner sees all; manager/lead/viewer see open items + those done in the current shift (not the previous shift, not cancelled)');
+select is(pg_temp.run_as('manager', $$select * from public.get_queue(pg_temp.id('spare'))$$, true), '1',
+  'get_queue still returns the open queue to managers');
+
+select * from finish();
+rollback;

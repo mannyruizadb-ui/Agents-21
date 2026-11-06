@@ -104,7 +104,38 @@ Full context lives in these docs. Read the relevant one before non-trivial work;
     - Throttle queue and estimate writes.
     - Record in PRD v1.6 §4.7 the display read of the washer board and the owner/manager-only estimates.
   - Waiting on the owner: who enters estimates, setting `ships_next_morning` in the cloud.
-- **Pilot build progress (2026-11-04, branch `claude/amazing-planck-k88ki3`, NOT yet in the cloud; no PR yet):**
+- **PILOT VERSION LIVE (2026-11-06): PR #5 merged by the owner.**
+  - deploy-db run 5 applied 36 migrations (latest `20261105171442`) and deployed `send-alerts` (ACTIVE, verify_jwt off) plus its secrets.
+  - Security advisors: by-design items only.
+  - Still owed: the owner pastes the VAPID public key from the run 42138682577 job summary, then set Netlify `VITE_VAPID_PUBLIC_KEY` and redeploy. Until then the alerts card says "not set up".
+  - Next:
+    - Setup screens for machines and down reasons;
+    - managers limited to the current shift only (the views are still readable);
+    - holiday closures;
+    - then tasks, AA Linen time, the load-out list.
+  - Owner 2026-11-06:
+    - Tasks re-notify every **10 minutes** until done.
+    - **4 routes.** The office prints a daily route + master load sheet with each route's products and quantities. A **different manager** is on duty when the drivers load, so tasks and the load-out go to the manager on duty, not to a fixed person.
+    - "30 minutes behind": **both**: the late/unsent tap alarm (built) AND a load running behind (a washer done with no next load started while work waits). Threshold TBD.
+  - **Load-out (owner 2026-11-06):** the office manager or the owner types each day's numbers into the app; it must be simple. Items that matter to the supervisor, shown on the pace/load-out board: **sheets, butcher coats, soil bags, special items (as needed)**. 4 routes.
+  - VAPID public key is in `netlify.toml` (`VITE_VAPID_PUBLIC_KEY`; public by design). The Netlify MCP can't set env vars (403).
+  - Owner 2026-11-06 (round 2):
+    - Load sheets are printed by **Fulcrum** (export unknown; the owner checks for Excel/CSV).
+    - Trucks load at **03:30, 04:30, 05:00, 05:30** (4 routes).
+    - **Manager on duty = the shift schedule.**
+    - Washer idle with work waiting: alarm after **15 min**.
+    - Sheets are entered in **packs of 10**; butcher coats by size **M/L/XL**.
+  - **Routes (owner 2026-11-06):**
+    - Route 21: 03:30 daily.
+    - Route 11 (Mon/Thu) and Route 5 (Tue/Fri): 04:30.
+    - Route 2: 05:00.
+    - Route 4: 05:30.
+    - Routes need a weekday schedule.
+  - **Soil bags:** empty bags dropped off to customers, in packs of 5 (counted, not washed).
+  - The owner dislikes the Setup → Machines layout; ask what to change.
+  - **Route days:** Route 21 and Route 4 run Mon/Tue/Thu/Fri; Route 2 runs Mon–Fri; Route 11 Mon/Thu; Route 5 Tue/Fri. On Wednesday only Route 2 runs.
+  - Open: pieces per load for sheets and coats (fill-in sheet).
+- **Pilot build progress (2026-11-04…05, now merged in PR #5):**
   - Screens:
     - washer board `/control/washers`, with "Next in queue" shown once;
     - washer station `/station/washer/:machineId` (one-tap START, undo, offline tap queue with real tap time);
