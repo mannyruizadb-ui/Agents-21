@@ -125,7 +125,15 @@ Full context lives in these docs. Read the relevant one before non-trivial work;
     - **Manager on duty = the shift schedule.**
     - Washer idle with work waiting: alarm after **15 min**.
     - Sheets are entered in **packs of 10**; butcher coats by size **M/L/XL**.
-  - Open: route names/order vs load times; soil bags (a new non-washed item?); pieces per load for sheets and coats (fill-in sheet).
+  - **Routes (owner 2026-11-06):**
+    - Route 21: 03:30 daily.
+    - Route 11 (Mon/Thu) and Route 5 (Tue/Fri): 04:30.
+    - Route 2: 05:00.
+    - Route 4: 05:30.
+    - Routes need a weekday schedule.
+  - **Soil bags:** empty bags dropped off to customers, in packs of 5 (counted, not washed).
+  - The owner dislikes the Setup → Machines layout; ask what to change.
+  - Open: which days routes 21/2/4 run; pieces per load for sheets and coats (fill-in sheet).
 - **Pilot build progress (2026-11-04…05, now merged in PR #5):**
   - Screens:
     - washer board `/control/washers`, with "Next in queue" shown once;
