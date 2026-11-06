@@ -348,11 +348,9 @@ export function WasherStationPage() {
             onClick={() => void onUndo()}
             disabled={undoState === 'busy'}
           >
-            {t('station.undo')}
+            {t('station.undoCountdown', { count: Math.max(0, Math.ceil(undoLeftMs / 1000)) })}
           </button>
-          <p className="meta">
-            {t('station.undoFor', { count: Math.max(0, Math.ceil(undoLeftMs / 1000)) })}
-          </p>
+
           {undoState === 'error' && (
             <p className="station-message bad" role="alert">
               <IconWarning />

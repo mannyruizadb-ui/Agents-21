@@ -203,14 +203,13 @@
     "savedNotSent": "Saved {{group}} on this tablet. Waiting for the connection to send it.",
     "undone": "Undone. {{group}} was not counted.",
     "undo": "UNDO",
-    "undoFor_one": "Undo is available for {{count}} more second.",
-    "undoFor_other": "Undo is available for {{count}} more seconds.",
     "rejected": "The start from {{time}} was not recorded.",
     "dismiss": "OK, dismiss",
     "noStorage": "This device can't save starts if the page is closed. Keep this page open until the connection is back.",
     "rejectTooLate": "It reached the server more than 30 minutes late, so it can't be counted. Tell the manager so they can add the load.",
     "rejectDown": "The washer was marked down at that time. If it really ran, tell the manager.",
-    "downNoStart": "START is off while this washer is down. Mark it back up when it's fixed."
+    "downNoStart": "START is off while this washer is down. Mark it back up when it's fixed.",
+    "undoCountdown": "UNDO · {{count}} s"
   },
   "queue": {
     "rush": "RUSH",

@@ -203,14 +203,13 @@
     "savedNotSent": "{{group}} guardado en esta tableta. Esperando conexión para enviarlo.",
     "undone": "Deshecho. {{group}} no se contó.",
     "undo": "DESHACER",
-    "undoFor_one": "Puedes deshacer durante {{count}} segundo más.",
-    "undoFor_other": "Puedes deshacer durante {{count}} segundos más.",
     "rejected": "El arranque de las {{time}} no se registró.",
     "dismiss": "Entendido, quitar",
     "noStorage": "Este equipo no puede guardar arranques si se cierra la página. Deja esta página abierta hasta que vuelva la conexión.",
     "rejectTooLate": "Llegó al servidor más de 30 minutos tarde y no se puede contar. Avísale al gerente para que agregue la carga.",
     "rejectDown": "La lavadora estaba fuera de servicio a esa hora. Si de verdad lavó, avísale al gerente.",
-    "downNoStart": "EMPEZAR está apagado mientras esta lavadora esté fuera de servicio. Márcala como arreglada cuando funcione."
+    "downNoStart": "EMPEZAR está apagado mientras esta lavadora esté fuera de servicio. Márcala como arreglada cuando funcione.",
+    "undoCountdown": "DESHACER · {{count}} s"
   },
   "queue": {
     "rush": "URGENTE",

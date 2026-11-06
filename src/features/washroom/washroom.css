@@ -550,3 +550,129 @@ body:has(.station) {
   color: #fff;
   border-color: #fff;
 }
+
+/* ── Station on the design tokens (owner-approved Stitch style 2026-11-06). Overrides the rules above.
+   Giant green EMPEZAR (starting a cycle = running), amber DESHACER with its 60 s countdown,
+   monospace washer name and countdown, Barlow headings. ── */
+.station {
+  font-family: var(--font-body);
+  color: var(--c-text);
+  background: var(--c-bg);
+}
+body:has(.station) {
+  background: var(--c-bg);
+}
+.station :focus-visible {
+  outline-color: var(--c-focus);
+}
+.station h1 {
+  font-family: var(--font-mono);
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+.station .data-age {
+  color: var(--c-text-muted);
+}
+.station .data-age-stale,
+.station .data-age-old {
+  color: var(--c-warn);
+}
+.station-panel {
+  border: 1px solid var(--c-seam);
+  border-radius: var(--radius-lg);
+  background: var(--c-surface);
+}
+.station-panel h2 {
+  font-family: var(--font-mono);
+  color: var(--c-text-muted);
+  text-transform: uppercase;
+}
+.station-now .group-label,
+.station-next .group-label {
+  font-family: var(--font-head);
+  font-weight: 700;
+  letter-spacing: 0.01em;
+}
+.station .countdown {
+  font-family: var(--font-mono);
+  font-weight: 700;
+  color: var(--c-ok);
+}
+.station-ready {
+  border: 3px solid var(--c-warn);
+}
+.station-ready .status-line {
+  color: var(--c-warn);
+}
+.station .meta {
+  color: var(--c-text-muted);
+}
+.station .badge-rush {
+  color: var(--c-text-inverse);
+  background: var(--c-warn);
+  border-color: var(--c-warn);
+}
+.station .badge-rewash {
+  color: var(--c-text-inverse);
+  background: var(--c-info-text);
+  border-color: var(--c-info-text);
+}
+.station button {
+  font-family: var(--font-body);
+  border-radius: var(--radius);
+  border-color: var(--c-outline);
+  border-bottom-width: 5px;
+  background: var(--c-surface-high);
+  color: var(--c-text);
+}
+.station button:active:not(:disabled) {
+  transform: translateY(3px);
+}
+.station .start-button {
+  min-height: 140px;
+  font-family: var(--font-head);
+  letter-spacing: 0.04em;
+  color: var(--c-text-inverse);
+  background: var(--c-ok);
+  border-color: #00b35c;
+}
+.station .undo-button {
+  min-height: var(--target-floor);
+  font-family: var(--font-head);
+  font-size: 2rem;
+  letter-spacing: 0.04em;
+  color: var(--c-text-inverse);
+  background: var(--c-warn);
+  border-color: #c98d00;
+}
+.station-message {
+  border-radius: var(--radius-lg);
+}
+.station-message.ok {
+  background: var(--c-info-container);
+  border-color: var(--c-info);
+}
+.station-message.warn {
+  background: var(--c-warn-container);
+  border-color: var(--c-warn);
+}
+.station-message.bad {
+  background: var(--c-danger-container);
+  border-color: var(--c-danger);
+}
+.group-picker button[aria-pressed='true'] {
+  border-color: var(--c-focus);
+  background: var(--c-surface-highest);
+}
+.station a {
+  color: var(--c-info-text);
+}
+.station .down-banner {
+  background-color: var(--c-danger-container);
+  border-color: var(--c-danger);
+  color: var(--c-text);
+}
+.station .down-title {
+  color: var(--c-danger-text);
+  font-family: var(--font-head);
+}
