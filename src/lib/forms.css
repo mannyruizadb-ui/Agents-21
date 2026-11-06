@@ -210,26 +210,20 @@
   margin-right: var(--sp-sm);
 }
 .brand {
-  display: flex;
-  align-items: center;
-  gap: var(--sp-md);
-  padding-bottom: var(--sp-md);
-  border-bottom: 2px solid var(--c-warn);
+  display: grid;
+  justify-items: center;
+  gap: var(--sp-sm);
+  text-align: center;
+  padding: var(--sp-md) 0;
+  border-bottom: 1px solid var(--c-seam);
   margin-bottom: var(--sp-md);
 }
-.brand-logo-slot {
-  flex: none;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 72px;
-  height: 72px;
-  border: 2px dashed var(--c-warn);
-  border-radius: var(--radius-lg);
-  color: var(--c-warn);
-  font-family: var(--font-head);
-  font-weight: 700;
-  font-size: var(--fs-h-md);
+.brand-logo {
+  display: block;
+  width: min(100%, 18rem);
+  height: auto;
+  max-height: 6rem;
+  object-fit: contain;
 }
 .brand p {
   margin: 0;
@@ -243,7 +237,7 @@
 .brand-product {
   font-family: var(--font-mono);
   font-size: var(--fs-md);
-  color: var(--c-warn);
+  color: var(--c-text-muted);
   font-weight: 700;
   letter-spacing: 0.06em;
 }
