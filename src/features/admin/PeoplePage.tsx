@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
-import { Link } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useRequiredSession } from '../../app/auth/sessionContext';
@@ -140,8 +139,8 @@ function PersonCard({
     .join('; ');
 
   return (
-    <li className="card">
-      <h3>
+    <li className="card person-card">
+      <h3 className="head">
         {name}
         {person.is_self && ` ${t('people.you')}`}
       </h3>
@@ -337,11 +336,6 @@ export function PeoplePage() {
 
   return (
     <main className="form-page">
-      <p>
-        <Link className="button-link secondary" to="/control">
-          {t('people.back')}
-        </Link>
-      </p>
       <h1>{t('people.title')}</h1>
 
       {plantId === null ? (

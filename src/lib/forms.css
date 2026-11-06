@@ -247,3 +247,15 @@
 body:has(.form-page) {
   margin: 0;
 }
+
+/* People cards (redesign 2026-11-06) */
+.form-page .person-card {
+  border-radius: var(--radius-lg);
+}
+.form-page .person-card h3 {
+  margin-top: 0;
+  font-size: var(--fs-h-md);
+}
+.form-page .person-card > p {
+  margin: 0.2rem 0;
+}

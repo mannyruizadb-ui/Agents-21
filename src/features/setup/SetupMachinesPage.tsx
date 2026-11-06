@@ -1,5 +1,4 @@
 import { useState, type FormEvent } from 'react';
-import { Link } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import { useLocalNames } from '../../lib/seededNames';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -182,9 +181,12 @@ function MachineRow({
   return (
     <li className={machine.active ? 'setup-row' : 'setup-row inactive'}>
       <div className="setup-row-head">
-        <p>
-          <strong>{names.machine(machine.name)}</strong> · {t(`setup.kinds.${machine.kind}`)}
-          {!machine.active && <span className="badge setup-off">{t('setup.inactive')}</span>}
+        <p className="setup-row-text">
+          <strong className="head">{names.machine(machine.name)}</strong>
+          <span className="setup-kind">
+            {t(`setup.kinds.${machine.kind}`)}
+            {!machine.active && <span className="badge setup-off">{t('setup.inactive')}</span>}
+          </span>
         </p>
         {!editing && (
           <button type="button" className="secondary" onClick={() => setEditing(true)}>
@@ -357,9 +359,6 @@ export function SetupMachinesPage() {
   if (!plant) {
     return (
       <main className="form-page">
-        <p>
-          <Link to="/control">{t('common.back')}</Link>
-        </p>
         <h1>{t('setup.machines.title')}</h1>
         <p className="notice">{t('setup.ownerOnly')}</p>
       </main>
@@ -370,9 +369,6 @@ export function SetupMachinesPage() {
 
   return (
     <main className="form-page">
-      <p>
-        <Link to="/control">{t('common.back')}</Link>
-      </p>
       <h1>{t('setup.machines.title')}</h1>
       <p className="hint">{t('setup.machines.intro')}</p>
       <div role="status" aria-live="polite">

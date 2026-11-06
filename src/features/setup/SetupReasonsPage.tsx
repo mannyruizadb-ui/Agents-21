@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { Link } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../../lib/supabase';
@@ -91,41 +90,50 @@ function ReasonRow({
     () => ({ ...(asLabelMap(reason.label_i18n) ?? {}) }) as Labels,
   );
   const fixed = reason.code === 'other';
+  const name = labelOf(reason.code, reason.label_i18n);
 
   return (
     <li className={reason.active ? 'setup-row' : 'setup-row inactive'}>
       <div className="setup-row-head">
-        <p>
-          <strong>{labelOf(reason.code, reason.label_i18n)}</strong>
-          {fixed && <span className="badge setup-fixed">{t('setup.reasons.fixed')}</span>}
-          {!reason.active && <span className="badge setup-off">{t('setup.inactive')}</span>}
-          {reason.requires_details && (
-            <span className="hint"> · {t('setup.reasons.needsDetails')}</span>
-          )}
+        <p className="setup-row-text">
+          <strong className="head">{name}</strong>
+          <span className="setup-kind">
+            {fixed && <span className="badge setup-fixed">{t('setup.reasons.fixed')}</span>}
+            {!reason.active && <span className="badge setup-off">{t('setup.inactive')}</span>}
+            {reason.requires_details && t('setup.reasons.needsDetails')}
+          </span>
         </p>
-      </div>
-      <div className="actions">
-        <button
-          type="button"
-          className="secondary"
-          disabled={busy || fixed || isFirst}
-          onClick={() => onMove('up')}
-        >
-          <IconUp /> {t('queue.moveUp')}
-        </button>
-        <button
-          type="button"
-          className="secondary"
-          disabled={busy || fixed || isLast}
-          onClick={() => onMove('down')}
-        >
-          <IconDown /> {t('queue.moveDown')}
-        </button>
-        {!fixed && !editing && (
-          <button type="button" className="secondary" onClick={() => setEditing(true)}>
-            {t('setup.edit')}
-          </button>
-        )}
+        <span className="setup-row-actions">
+          {!fixed && (
+            <>
+              <button
+                type="button"
+                className="secondary setup-icon"
+                disabled={busy || isFirst}
+                aria-label={t('home.moveUp', { name })}
+                title={t('home.moveUp', { name })}
+                onClick={() => onMove('up')}
+              >
+                <IconUp />
+              </button>
+              <button
+                type="button"
+                className="secondary setup-icon"
+                disabled={busy || isLast}
+                aria-label={t('home.moveDown', { name })}
+                title={t('home.moveDown', { name })}
+                onClick={() => onMove('down')}
+              >
+                <IconDown />
+              </button>
+            </>
+          )}
+          {!fixed && !editing && (
+            <button type="button" className="secondary" onClick={() => setEditing(true)}>
+              {t('setup.edit')}
+            </button>
+          )}
+        </span>
       </div>
       {fixed && <p className="hint">{t('setup.reasons.fixedHint')}</p>}
       {editing && !fixed && (
@@ -311,9 +319,6 @@ export function SetupReasonsPage() {
   if (!plant) {
     return (
       <main className="form-page">
-        <p>
-          <Link to="/control">{t('common.back')}</Link>
-        </p>
         <h1>{t('setup.reasons.title')}</h1>
         <p className="notice">{t('setup.ownerOnly')}</p>
       </main>
@@ -322,9 +327,6 @@ export function SetupReasonsPage() {
 
   return (
     <main className="form-page">
-      <p>
-        <Link to="/control">{t('common.back')}</Link>
-      </p>
       <h1>{t('setup.reasons.title')}</h1>
       <p className="hint">{t('setup.reasons.intro')}</p>
       <div role="status" aria-live="polite">

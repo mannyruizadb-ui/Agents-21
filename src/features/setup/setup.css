@@ -7,9 +7,10 @@
   gap: 0.5rem;
 }
 .form-page .setup-row {
-  border: 2px solid var(--c-outline);
-  border-radius: 8px;
-  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--c-seam);
+  border-radius: var(--radius-lg);
+  padding: var(--sp-sm) var(--sp-md);
+  background: var(--c-surface);
 }
 .form-page .setup-row.inactive {
   border-style: dashed;
@@ -17,7 +18,7 @@
 }
 .setup-row-head {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: wrap; /* at large text the button drops below the name */
   align-items: center;
   justify-content: space-between;
   gap: 0.5rem;
@@ -39,4 +40,39 @@
   margin-left: 0.5rem;
   color: var(--c-info-text);
   background: var(--c-info-container);
+}
+
+/* Redesign 2026-11-06: name on top (head font), kind/badges under it; Edit stays on the right. */
+.form-page .setup-row-text {
+  flex: 1 1 6rem;
+  min-width: 0;
+  display: grid;
+  gap: 0.15rem;
+}
+.setup-row-text .head {
+  font-size: var(--fs-lg);
+  overflow-wrap: anywhere;
+}
+.setup-kind {
+  color: var(--c-text-muted);
+  font-size: var(--fs-sm);
+}
+.form-page h2 {
+  scroll-margin-top: var(--sp-md);
+}
+.setup-row-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.form-page .setup-icon {
+  width: var(--target);
+  min-height: var(--target);
+  padding: 0;
+  display: grid;
+  place-items: center;
+}
+.setup-kind .badge {
+  margin-left: 0;
+  margin-right: 0.4rem;
 }
