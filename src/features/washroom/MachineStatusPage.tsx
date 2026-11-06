@@ -1,19 +1,19 @@
 import { useRef, useState } from 'react';
-import { Link, useSearchParams } from 'react-router';
+import { useSearchParams } from 'react-router';
 import { useTranslation } from 'react-i18next';
+import { useLocalNames } from '../../lib/seededNames';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../../lib/supabase';
 import { useLiveRefetch } from '../../lib/useLiveRefetch';
 import { useNow } from '../../lib/useNow';
 import { useRequiredSession } from '../../app/auth/sessionContext';
 import { DataAge } from './DataAge';
-import { DownBanner } from './DownBanner';
-import { useReasonOptions } from './downReasons';
+import { useReasonLabeler, useReasonOptions } from './downReasons';
 import { IconMachineDown, IconReady } from './Icons';
 import { buildDownReason, REASON_MAX, reasonText, type ReasonCode } from './machineReason';
 import { errorMessageKey, unwrap } from './rpcError';
 import { useMyRoles } from './useMyRoles';
-import { estimateServerNow } from './washerTime';
+import { estimateServerNow, minutesSinceEnd } from './washerTime';
 import { useAreas, useMachineStatus, type MachineStatusRow } from './washroomData';
 import '../../lib/forms.css';
 import './washroom.css';
@@ -23,7 +23,8 @@ import './washroom.css';
 // Reachable from the washer board and every station screen (?machine=<id> preselects).
 
 export function MachineStatusPage() {
-  const { t } = useTranslation();
+  const names = useLocalNames();
+  const { t, i18n } = useTranslation();
   const session = useRequiredSession();
   const qc = useQueryClient();
   const now = useNow(1000);
@@ -41,6 +42,8 @@ export function MachineStatusPage() {
   const [pick, setPick] = useState<ReasonCode | null>(null);
   const [details, setDetails] = useState('');
   const [confirming, setConfirming] = useState(false);
+  const [confirmingUp, setConfirmingUp] = useState<string | null>(null);
+  const reasonLabeler = useReasonLabeler();
   const [formError, setFormError] = useState<string | null>(null);
   const [done, setDone] = useState<string | null>(null);
   const clientId = useRef<string | null>(null);
@@ -51,6 +54,7 @@ export function MachineStatusPage() {
     setPick(null);
     setDetails('');
     setConfirming(false);
+    setConfirmingUp(null);
     setFormError(null);
     clientId.current = null;
   }
@@ -76,8 +80,8 @@ export function MachineStatusPage() {
     onSuccess: (_r, v) => {
       setDone(
         v.to === 'down'
-          ? t('machines.markedDown', { name: v.m.machine_name })
-          : t('machines.markedUp', { name: v.m.machine_name }),
+          ? t('machines.markedDown', { name: names.machine(v.m.machine_name) })
+          : t('machines.markedUp', { name: names.machine(v.m.machine_name) }),
       );
       reset();
     },
@@ -109,13 +113,61 @@ export function MachineStatusPage() {
     setConfirming(true);
   }
 
+  const areaSummary = (areas.data ?? []).map((a) => ({
+    id: a.id,
+    name: names.area(a.name),
+    down: down.filter((m) => m.area_id === a.id).length,
+  }));
+  const upByArea = (areas.data ?? [])
+    .map((a) => ({
+      area: a,
+      machines: (status.data ?? []).filter(
+        (m) => m.area_id === a.id && m.status === 'up' && m.active,
+      ),
+    }))
+    .filter((g) => g.machines.length > 0);
+  const outFor = (since: string | null) => {
+    const mins = minutesSinceEnd(since, serverNow);
+    if (mins === null) return null;
+    if (mins < 1) return t('common.justNow');
+    return mins >= 60
+      ? t('home.hm', { h: Math.floor(mins / 60), m: mins % 60 })
+      : t('home.m', { m: mins });
+  };
+  const clock = (iso: string | null) =>
+    iso
+      ? new Intl.DateTimeFormat(i18n.language, { hour: 'numeric', minute: '2-digit' }).format(
+          new Date(iso),
+        )
+      : '';
+
   return (
-    <main className="form-page">
-      <p>
-        <Link to="/control/washers">{t('machines.toBoard')}</Link>
-      </p>
-      <h1>{t('machines.title')}</h1>
+    <main className="form-page md-page">
+      <div className="md-head">
+        <h1>{t('machines.title')}</h1>
+        {status.data && (
+          <span className={down.length > 0 ? 'status-pill danger' : 'status-pill ok'}>
+            {down.length > 0 ? <IconMachineDown /> : <IconReady />}{' '}
+            {down.length > 0
+              ? t('machines.downCount', { count: down.length })
+              : t('machines.allUp')}
+          </span>
+        )}
+      </div>
       <DataAge updatedAt={status.dataUpdatedAt} now={now} isFetching={status.isFetching} />
+      {areaSummary.length > 0 && status.data && (
+        <ul className="md-areas">
+          {areaSummary.map((a) => (
+            <li key={a.id} className={a.down > 0 ? 'down' : undefined}>
+              <span className="md-area-name">{a.name}</span>
+              <span className={a.down > 0 ? 'md-area-state danger' : 'md-area-state'}>
+                {a.down > 0 ? <IconMachineDown /> : <IconReady />}{' '}
+                {a.down > 0 ? t('machines.downCount', { count: a.down }) : t('machines.allUp')}
+              </span>
+            </li>
+          ))}
+        </ul>
+      )}
       <div role="status" aria-live="polite">
         {done && (
           <p className="notice">
@@ -126,28 +178,98 @@ export function MachineStatusPage() {
       {status.isError && <p className="error">{t(errorMessageKey(status.error))}</p>}
 
       <h2>{t('machines.downNow')}</h2>
-      {status.data && down.length === 0 && <p>{t('machines.noneDown')}</p>}
-      {down.map((m) => (
-        <DownBanner
-          key={m.machine_id}
-          name={`${m.machine_name} (${m.area_name})`}
-          reasonCode={m.reason_code}
-          reasonLabelI18n={m.reason_label_i18n}
-          reason={m.reason}
-          since={m.since}
-          serverNowMs={serverNow}
-        />
-      ))}
+      {status.data && down.length === 0 && (
+        <p className="md-none">
+          <IconReady /> {t('machines.noneDown')}
+        </p>
+      )}
+      <ul className="md-list">
+        {down.map((m) => {
+          const why = m.reason_code ? reasonLabeler(m.reason_code, m.reason_label_i18n) : null;
+          const fixing = canEdit && confirmingUp === m.machine_id;
+          return (
+            <li
+              key={m.machine_id}
+              id={`md-${m.machine_id}`}
+              className={
+                m.machine_id === machineId
+                  ? 'md-card stripes-danger focus'
+                  : 'md-card stripes-danger'
+              }
+            >
+              <div className="md-card-head">
+                <div>
+                  <h3 className="head">{names.machine(m.machine_name)}</h3>
+                  <p className="md-area">{names.area(m.area_name)}</p>
+                </div>
+                <span className="status-pill danger">
+                  <IconMachineDown /> {t('board.pill.down')}
+                </span>
+              </div>
+              <div className="md-out">
+                <span className="md-out-label">{t('machines.outFor')}</span>
+                <span className="md-out-time mono">{outFor(m.since)}</span>
+              </div>
+              {why && <p className="md-reason">{why}</p>}
+              {m.reason && m.reason !== why && <p className="md-detail">{m.reason}</p>}
+              {m.since && (
+                <p className="md-since">{t('machines.downSinceTime', { time: clock(m.since) })}</p>
+              )}
+              {canEdit &&
+                (fixing ? (
+                  <div className="confirm-box" role="group" aria-labelledby={`up-${m.machine_id}`}>
+                    <p id={`up-${m.machine_id}`}>
+                      <strong>
+                        {t('machines.confirmUp', { name: names.machine(m.machine_name) })}
+                      </strong>
+                    </p>
+                    <div className="actions">
+                      <button
+                        type="button"
+                        className="md-fixed"
+                        disabled={setStatus.isPending}
+                        onClick={() => setStatus.mutate({ m, to: 'up' })}
+                      >
+                        {t('machines.yesUp')}
+                      </button>
+                      <button
+                        type="button"
+                        className="secondary"
+                        onClick={() => setConfirmingUp(null)}
+                      >
+                        {t('common.back')}
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    className="md-fixed"
+                    onClick={() => {
+                      setConfirmingUp(m.machine_id);
+                      clientId.current = null;
+                      setDone(null);
+                    }}
+                  >
+                    <IconReady /> {t('machines.backUp')}
+                  </button>
+                ))}
+            </li>
+          );
+        })}
+      </ul>
 
       {!canEdit && roles.isSuccess && <p className="notice">{t('machines.readOnly')}</p>}
       {canEdit && (
-        <section className="card" aria-labelledby="change-title">
-          <h2 id="change-title">{t('machines.changeTitle')}</h2>
+        <section className="md-report" aria-labelledby="change-title">
+          <h2 id="change-title">
+            <IconMachineDown /> {t('machines.reportTitle')}
+          </h2>
           <div className="field">
             <label htmlFor="m-machine">{t('machines.machineLabel')}</label>
             <select
               id="m-machine"
-              value={machineId}
+              value={machine?.status === 'up' ? machineId : ''}
               onChange={(e) => {
                 setParams(e.target.value ? { machine: e.target.value } : {}, { replace: true });
                 reset();
@@ -155,54 +277,17 @@ export function MachineStatusPage() {
               }}
             >
               <option value="">{t('machines.choose')}</option>
-              {(status.data ?? []).map((m) => (
-                <option key={m.machine_id} value={m.machine_id}>
-                  {m.status === 'down'
-                    ? t('machines.optionDown', { name: m.machine_name, area: m.area_name })
-                    : t('machines.optionUp', { name: m.machine_name, area: m.area_name })}
-                </option>
+              {upByArea.map((g) => (
+                <optgroup key={g.area.id} label={names.area(g.area.name)}>
+                  {g.machines.map((m) => (
+                    <option key={m.machine_id} value={m.machine_id}>
+                      {names.machine(m.machine_name)}
+                    </option>
+                  ))}
+                </optgroup>
               ))}
             </select>
           </div>
-
-          {machine?.status === 'down' && (
-            <>
-              <DownBanner
-                reasonCode={machine.reason_code}
-                reasonLabelI18n={machine.reason_label_i18n}
-                reason={machine.reason}
-                since={machine.since}
-                serverNowMs={serverNow}
-              />
-              {!confirming ? (
-                <button type="button" onClick={() => setConfirming(true)}>
-                  <IconReady /> {t('machines.backUp')}
-                </button>
-              ) : (
-                <div className="confirm-box" role="group" aria-labelledby="confirm-up">
-                  <p id="confirm-up">
-                    <strong>{t('machines.confirmUp', { name: machine.machine_name })}</strong>
-                  </p>
-                  <div className="actions">
-                    <button
-                      type="button"
-                      disabled={setStatus.isPending}
-                      onClick={() => setStatus.mutate({ m: machine, to: 'up' })}
-                    >
-                      {t('machines.yesUp')}
-                    </button>
-                    <button
-                      type="button"
-                      className="secondary"
-                      onClick={() => setConfirming(false)}
-                    >
-                      {t('common.back')}
-                    </button>
-                  </div>
-                </div>
-              )}
-            </>
-          )}
 
           {machine?.status === 'up' && !confirming && (
             <>
@@ -210,7 +295,7 @@ export function MachineStatusPage() {
                 <legend>
                   <strong>{t('machines.reasonLabel')}</strong>
                 </legend>
-                <ul className="pick-list">
+                <ul className="pick-list md-reasons">
                   {reasonOptions.options.map(({ code: p, label: pLabel }) => (
                     <li key={p}>
                       <button
@@ -245,7 +330,7 @@ export function MachineStatusPage() {
                 <p className="hint">{t('machines.detailsHint', { max: REASON_MAX })}</p>
               </div>
               <div role="alert">{formError && <p className="error">{formError}</p>}</div>
-              <button type="button" className="danger" onClick={onReview}>
+              <button type="button" className="danger md-mark" onClick={onReview}>
                 <IconMachineDown /> {t('machines.markDown')}
               </button>
             </>
@@ -254,7 +339,9 @@ export function MachineStatusPage() {
           {machine?.status === 'up' && confirming && built.ok && (
             <div className="confirm-box" role="group" aria-labelledby="confirm-down">
               <p id="confirm-down">
-                <strong>{t('machines.confirmDown', { name: machine.machine_name })}</strong>
+                <strong>
+                  {t('machines.confirmDown', { name: names.machine(machine.machine_name) })}
+                </strong>
               </p>
               <p>
                 {t('machines.reasonValue', {
@@ -284,11 +371,11 @@ export function MachineStatusPage() {
               </div>
             </div>
           )}
-          <div role="alert">
-            {setStatus.isError && <p className="error">{t(errorMessageKey(setStatus.error))}</p>}
-          </div>
         </section>
       )}
+      <div role="alert">
+        {setStatus.isError && <p className="error">{t(errorMessageKey(setStatus.error))}</p>}
+      </div>
     </main>
   );
 }

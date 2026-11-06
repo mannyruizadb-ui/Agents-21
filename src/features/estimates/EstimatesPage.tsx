@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
-import { Link } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import { useRequiredSession } from '../../app/auth/sessionContext';
 import { useNow, useOnline } from '../../lib/useNow';
@@ -54,9 +53,6 @@ export function EstimatesPage() {
   if (!allowed) {
     return (
       <main className="form-page">
-        <p>
-          <Link to="/control">{t('common.back')}</Link>
-        </p>
         <h1>{t('estimates.title')}</h1>
         <p className="notice">{t('estimates.notAllowed')}</p>
       </main>
@@ -66,7 +62,7 @@ export function EstimatesPage() {
 }
 
 function EstimatesScreen({ userId, plantId }: { userId: string; plantId: string }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const now = useNow(15_000);
   const online = useOnline();
   const localized = useLocalizedName();
@@ -121,9 +117,20 @@ function EstimatesScreen({ userId, plantId }: { userId: string; plantId: string 
     }),
     capacity.data?.capacity ?? 0,
   );
-  const withoutEstimate = (groups.data ?? []).filter(
-    (g) => !current.data?.has(g.id) && !changes.some((c) => c.group.id === g.id),
-  ).length;
+  const totalGroups = groups.data?.length ?? 0;
+  const estimatedGroups = (groups.data ?? []).filter((g) => current.data?.has(g.id)).length;
+  const needsCount = totalGroups - estimatedGroups;
+  const [filter, setFilter] = useState<'all' | 'needs'>('all');
+  // "Needs estimate" keeps a row until it is saved, so editing it doesn't make it vanish.
+  const shownGroups = (groups.data ?? []).filter(
+    (g) => filter === 'all' || !current.data?.has(g.id) || g.id === openId,
+  );
+  const doneAround =
+    summary.hours !== null && summary.loads > 0
+      ? new Intl.DateTimeFormat(i18n.language, { hour: 'numeric', minute: '2-digit' }).format(
+          new Date(now + Math.round(summary.hours * 60) * 60_000),
+        )
+      : null;
 
   const cached = outbox.cachedSession(staffId || null, now);
   const needPin = !cached || usePinAnyway;
@@ -216,18 +223,23 @@ function EstimatesScreen({ userId, plantId }: { userId: string; plantId: string 
 
   return (
     <main className="form-page estimates-page">
-      <p>
-        <Link to="/control">{t('common.back')}</Link>
-      </p>
       <h1>{t('estimates.title')}</h1>
       <p className="hint">{t('estimates.intro')}</p>
 
-      <section className="card estimate-summary" aria-labelledby="sum-title">
-        <h2 id="sum-title">{t('estimates.summaryTitle')}</h2>
-        <p className="big">
-          {t('estimates.totalLoads', { count: pluralize(summary.loads), n: fmt(summary.loads) })}
+      <section className="est-hero" aria-labelledby="sum-title">
+        <h2 id="sum-title" className="est-hero-label">
+          {t('estimates.summaryTitle')}
+        </h2>
+        <p className="est-hero-big">
+          <span className="mono">≈ {fmt(summary.loads)}</span>{' '}
+          <span className="est-hero-unit">
+            {t('estimates.loadsWord', { count: pluralize(summary.loads) })}
+          </span>
         </p>
-        <p>
+        {doneAround && (
+          <p className="est-hero-done">{t('home.doneAround', { time: doneAround })}</p>
+        )}
+        <p className="hint">
           {summary.hours === null
             ? capacity.data && capacity.data.washers === 0
               ? t('estimates.noWashers')
@@ -237,6 +249,24 @@ function EstimatesScreen({ userId, plantId }: { userId: string; plantId: string 
                 count: capacity.data?.washers ?? 0,
               })}
         </p>
+        {totalGroups > 0 && (
+          <div className="est-progress">
+            <div
+              className="est-progress-bar"
+              role="progressbar"
+              aria-valuemin={0}
+              aria-valuemax={totalGroups}
+              aria-valuenow={estimatedGroups}
+              aria-label={t('estimates.groupsEstimated', {
+                done: estimatedGroups,
+                total: totalGroups,
+              })}
+            >
+              <span style={{ width: `${(estimatedGroups / totalGroups) * 100}%` }} />
+            </div>
+            <p>{t('estimates.groupsEstimated', { done: estimatedGroups, total: totalGroups })}</p>
+          </div>
+        )}
         {summary.unknown > 0 && (
           <p className="hint">
             <IconWarning /> {t('estimates.unknownGroups', { count: summary.unknown })}
@@ -246,9 +276,6 @@ function EstimatesScreen({ userId, plantId }: { userId: string; plantId: string 
           <p className="hint">
             <IconWarning /> {t('estimates.noTimeGroups', { count: summary.noTime })}
           </p>
-        )}
-        {withoutEstimate > 0 && (
-          <p className="hint">{t('estimates.groupsWithout', { count: withoutEstimate })}</p>
         )}
         {changes.length > 0 && (
           <p className="hint">{t('estimates.includesUnsaved', { count: changes.length })}</p>
@@ -304,8 +331,21 @@ function EstimatesScreen({ userId, plantId }: { userId: string; plantId: string 
       {groups.isPending && <p role="status">{t('common.loading')}</p>}
       {groups.isError && <p className="error">{t(errorMessageKey(groups.error))}</p>}
 
+      <div className="est-filter" role="group" aria-label={t('estimates.filterLabel')}>
+        <button type="button" aria-pressed={filter === 'all'} onClick={() => setFilter('all')}>
+          {t('estimates.filterAll', { count: totalGroups })}
+        </button>
+        <button type="button" aria-pressed={filter === 'needs'} onClick={() => setFilter('needs')}>
+          {t('estimates.filterNeeds', { count: needsCount })}
+        </button>
+      </div>
+      {filter === 'needs' && needsCount === 0 && groups.isSuccess && (
+        <p className="hint">
+          <IconReady /> {t('estimates.allEstimated')}
+        </p>
+      )}
       <ul className="estimate-list compact">
-        {(groups.data ?? []).map((g) => (
+        {shownGroups.map((g) => (
           <EstimateRow
             key={g.id}
             group={g}

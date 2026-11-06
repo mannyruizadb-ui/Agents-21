@@ -1,6 +1,16 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { RouterProvider } from 'react-router';
+// Self-hosted fonts (owner 2026-11-06: no Google Fonts request; works on bad Wi-Fi). Latin subset only
+// (covers Spanish), and only the weights the design uses.
+import '@fontsource/inter/latin-400.css';
+import '@fontsource/inter/latin-600.css';
+import '@fontsource/inter/latin-700.css';
+import '@fontsource/barlow-condensed/latin-600.css';
+import '@fontsource/barlow-condensed/latin-700.css';
+import '@fontsource/jetbrains-mono/latin-600.css';
+import '@fontsource/jetbrains-mono/latin-700.css';
+import './lib/theme.css';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { initI18n } from './lib/i18n';
 import { supabase } from './lib/supabase';

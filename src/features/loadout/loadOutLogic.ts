@@ -1,3 +1,5 @@
+import { localName } from '../../lib/seededNames';
+
 // Load-out logic (owner 2026-11-06): load dates, routes per weekday, the countdown to the next truck,
 // and which items are rows on the sheet. Times are the PLANT's local time (America/New_York for ADB).
 // Pure module.
@@ -138,13 +140,68 @@ export function parseQty(input: string): number | null {
   return n <= 100000 ? n : null;
 }
 
-/**
- * Spanish for the seeded route names ("Route 21" → "Ruta 21"), the same rule as the push sender
- * (supabase/functions/send-alerts localRouteName); other names are kept as entered.
- */
+/** Spanish for the seeded route names ("Route 21" → "Ruta 21"); see src/lib/seededNames.ts. */
 export function localRouteName(name: string, lang: string): string {
-  const clean = name.replace(/\s+/g, ' ').trim();
-  if (!lang.toLowerCase().startsWith('es')) return clean;
-  const m = /^Route (\w{1,10})$/i.exec(clean);
-  return m ? `Ruta ${m[1]}` : clean;
+  return localName('route', name, lang);
+}
+
+/** Minutes from now until a route's truck time on the load date (negative = late). */
+export function minutesUntil(
+  loadDate: string,
+  loadTime: string,
+  nowMs: number,
+  timeZone: string,
+): number {
+  return Math.round((zonedToEpoch(loadDate, loadTime, timeZone) - nowMs) / 60000);
+}
+
+/** A plant wall-clock time ("03:30" / "03:30:00") as "3:30 AM" / "3:30 a. m."; the raw text if unreadable. */
+export function wallClock(hhmm: string, lang: string): string {
+  const m = /^(\d{2}):(\d{2})/.exec(hhmm);
+  if (!m || Number(m[1]) > 23 || Number(m[2]) > 59) return hhmm;
+  return new Intl.DateTimeFormat(lang, {
+    hour: 'numeric',
+    minute: '2-digit',
+    timeZone: 'UTC',
+  }).format(new Date(Date.UTC(2000, 0, 1, Number(m[1]), Number(m[2]))));
+}
+
+const SIZE_SUFFIX = /^(.+?)\s+(XXS|XS|S|M|L|XL|XXL|2XL|3XL|4XL)$/i;
+
+/** "Butcher coat XL" → { base: "Butcher coat", size: "XL" }; null when the name has no size. */
+export function splitSize(name: string): { base: string; size: string } | null {
+  const m = SIZE_SUFFIX.exec(name.trim());
+  return m?.[1] && m[2] ? { base: m[1], size: m[2].toUpperCase() } : null;
+}
+
+export type RowGroup<I> =
+  { kind: 'single'; item: I } | { kind: 'sizes'; base: string; items: { item: I; size: string }[] };
+
+/**
+ * Sheet rows with sized items of the same base ("Butcher coat M / L / XL") under one heading, at the
+ * first one's place. A base with one size stays a single row. Order inside a group = row order.
+ */
+export function groupSizes<I extends { name: string }>(rows: readonly I[]): RowGroup<I>[] {
+  const byBase = new Map<string, { item: I; size: string }[]>();
+  for (const item of rows) {
+    const s = splitSize(item.name);
+    if (!s) continue;
+    const key = s.base.toLowerCase();
+    byBase.set(key, [...(byBase.get(key) ?? []), { item, size: s.size }]);
+  }
+  const out: RowGroup<I>[] = [];
+  const placed = new Set<string>();
+  for (const item of rows) {
+    const s = splitSize(item.name);
+    const group = s ? byBase.get(s.base.toLowerCase()) : undefined;
+    if (!s || !group || group.length < 2) {
+      out.push({ kind: 'single', item });
+      continue;
+    }
+    const key = s.base.toLowerCase();
+    if (placed.has(key)) continue;
+    placed.add(key);
+    out.push({ kind: 'sizes', base: s.base, items: group });
+  }
+  return out;
 }

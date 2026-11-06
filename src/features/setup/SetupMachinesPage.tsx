@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from 'react';
-import { Link } from 'react-router';
 import { useTranslation } from 'react-i18next';
+import { useLocalNames } from '../../lib/seededNames';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../../lib/supabase';
 import type { Database } from '../../types/database';
@@ -109,11 +109,12 @@ function AreaSelect({
   onChange: (a: string) => void;
   disabled?: boolean;
 }) {
+  const names = useLocalNames();
   return (
     <select id={id} value={value} disabled={disabled} onChange={(e) => onChange(e.target.value)}>
       {areas.map((a) => (
         <option key={a.id} value={a.id}>
-          {a.name}
+          {names.area(a.name)}
         </option>
       ))}
     </select>
@@ -130,6 +131,7 @@ function MachineRow({
   onStatus: (ok: boolean, text: string) => void;
 }) {
   const { t } = useTranslation();
+  const names = useLocalNames();
   const qc = useQueryClient();
   const [editing, setEditing] = useState(false);
   const [name, setName] = useState(machine.name);
@@ -149,9 +151,9 @@ function MachineRow({
       onStatus(
         true,
         patch.active === false
-          ? t('setup.machines.deactivated', { name: machine.name })
+          ? t('setup.machines.deactivated', { name: names.machine(machine.name) })
           : patch.active === true
-            ? t('setup.machines.reactivated', { name: machine.name })
+            ? t('setup.machines.reactivated', { name: names.machine(machine.name) })
             : t('setup.saved'),
       );
     },
@@ -179,9 +181,12 @@ function MachineRow({
   return (
     <li className={machine.active ? 'setup-row' : 'setup-row inactive'}>
       <div className="setup-row-head">
-        <p>
-          <strong>{machine.name}</strong> · {t(`setup.kinds.${machine.kind}`)}
-          {!machine.active && <span className="badge setup-off">{t('setup.inactive')}</span>}
+        <p className="setup-row-text">
+          <strong className="head">{names.machine(machine.name)}</strong>
+          <span className="setup-kind">
+            {t(`setup.kinds.${machine.kind}`)}
+            {!machine.active && <span className="badge setup-off">{t('setup.inactive')}</span>}
+          </span>
         </p>
         {!editing && (
           <button type="button" className="secondary" onClick={() => setEditing(true)}>
@@ -341,6 +346,7 @@ function AddMachine({
 
 export function SetupMachinesPage() {
   const { t } = useTranslation();
+  const names = useLocalNames();
   const session = useRequiredSession();
   const ownerPlants = useOwnerPlants(session.user.id);
   const plant = ownerPlants.data?.[0];
@@ -353,9 +359,6 @@ export function SetupMachinesPage() {
   if (!plant) {
     return (
       <main className="form-page">
-        <p>
-          <Link to="/control">{t('common.back')}</Link>
-        </p>
         <h1>{t('setup.machines.title')}</h1>
         <p className="notice">{t('setup.ownerOnly')}</p>
       </main>
@@ -366,9 +369,6 @@ export function SetupMachinesPage() {
 
   return (
     <main className="form-page">
-      <p>
-        <Link to="/control">{t('common.back')}</Link>
-      </p>
       <h1>{t('setup.machines.title')}</h1>
       <p className="hint">{t('setup.machines.intro')}</p>
       <div role="status" aria-live="polite">
@@ -379,7 +379,7 @@ export function SetupMachinesPage() {
         const list = (machines.data ?? []).filter((m) => m.area_id === area.id);
         return (
           <section key={area.id} aria-labelledby={`area-${area.id}`}>
-            <h2 id={`area-${area.id}`}>{area.name}</h2>
+            <h2 id={`area-${area.id}`}>{names.area(area.name)}</h2>
             {list.length === 0 ? (
               <p className="hint">{t('setup.machines.none')}</p>
             ) : (

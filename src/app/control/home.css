@@ -1,0 +1,207 @@
+/* Home dashboard (owner 2026-11-06, round 2). Tiles: icon + title, a big mono number, a sub line and
+   the data age. Signal = border + text color + icon + words (never color alone); green = running/OK. */
+.home-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-sm);
+}
+.home-header h1 {
+  margin: 0;
+}
+.home-header-actions {
+  display: flex;
+  gap: var(--sp-sm);
+}
+.form-page .home-icon-button {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 3.25rem;
+  height: 3.25rem;
+  min-height: 0;
+  padding: 0;
+  border: 1px solid var(--c-seam);
+  border-radius: var(--radius-lg);
+  background: var(--c-surface);
+  color: var(--c-text);
+}
+.form-page .home-icon-button[aria-pressed='true'] {
+  border-color: var(--c-info);
+  color: var(--c-info-text);
+  background: var(--c-info-container);
+}
+.home-icon-button .nav-badge {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+}
+.home-grid {
+  list-style: none;
+  margin: var(--sp-md) 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 10rem), 1fr));
+  gap: var(--sp-sm);
+}
+.home-tile {
+  border: 2px solid var(--c-seam);
+  border-radius: var(--radius-lg);
+  background-color: var(--c-surface);
+  min-width: 0;
+}
+.home-tile.wide {
+  grid-column: 1 / -1;
+}
+.home-tile.tone-ok {
+  border-color: var(--c-ok);
+}
+.home-tile.tone-warn {
+  border-color: var(--c-warn);
+}
+.home-tile.tone-info {
+  border-color: var(--c-info);
+}
+.home-tile.tone-danger {
+  border-color: var(--c-danger);
+  border-style: dashed;
+  background-color: var(--c-danger-container);
+}
+.form-page .home-tile-link {
+  display: grid;
+  gap: 0.35rem;
+  height: 100%;
+  min-height: var(--target-floor);
+  padding: var(--sp-sm) var(--sp-md) var(--sp-sm);
+  color: var(--c-text);
+  text-decoration: none;
+  align-content: start;
+}
+.form-page .home-tile-link:focus-visible {
+  outline: 3px solid var(--c-focus);
+  outline-offset: 2px;
+  border-radius: var(--radius-lg);
+}
+.home-tile-head {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-sm);
+}
+.home-tile-icon {
+  flex: none;
+  color: var(--c-text-muted);
+  display: inline-flex;
+}
+.home-tile-title {
+  flex: 1;
+  min-width: 0;
+  font-size: var(--fs-lg);
+  line-height: 1.15;
+  overflow-wrap: anywhere;
+}
+.home-tile-chevron {
+  color: var(--c-text-muted);
+  font-size: 1.4rem;
+}
+.home-tile-body {
+  display: grid;
+  gap: 0.3rem;
+  justify-items: start;
+}
+.home-big {
+  white-space: nowrap;
+  font-size: var(--fs-timer);
+  font-weight: 700;
+  line-height: 1.05;
+}
+.home-mid {
+  font-size: var(--fs-h-md);
+  line-height: 1.1;
+}
+.home-ok {
+  color: var(--c-ok);
+}
+.home-warn {
+  color: var(--c-warn);
+}
+.home-danger {
+  color: var(--c-danger-text);
+}
+.home-info {
+  color: var(--c-info-text);
+}
+.home-sub {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3em;
+  color: var(--c-text-muted);
+}
+.home-list {
+  display: grid;
+  gap: 0.2rem;
+}
+.home-age {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3em;
+  font-size: var(--fs-sm);
+  color: var(--c-text-muted);
+}
+.home-age.data-age-stale,
+.home-age.data-age-old {
+  color: var(--c-warn);
+}
+
+/* Customize */
+.home-customize {
+  margin: var(--sp-md) 0;
+  padding: var(--sp-md);
+  border: 2px solid var(--c-info);
+  border-radius: var(--radius-lg);
+  background: var(--c-surface);
+}
+.home-customize h2 {
+  margin-top: 0;
+}
+.home-custom-list {
+  list-style: none;
+  margin: 0 0 var(--sp-md);
+  padding: 0;
+}
+.home-custom-list li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-sm);
+  padding: 0.35rem 0;
+  border-top: 1px solid var(--c-seam);
+}
+.home-custom-list li.off .home-custom-check span {
+  color: var(--c-text-muted);
+}
+.form-page .home-custom-check {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-sm);
+  min-height: var(--target);
+  margin: 0;
+  flex: 1;
+  font-weight: 600;
+  font-size: var(--fs-lg);
+}
+.home-custom-check input {
+  width: 1.75rem;
+  height: 1.75rem;
+  flex: none;
+}
+.home-custom-move {
+  display: flex;
+  gap: 6px;
+}
+.form-page .home-custom-move button {
+  width: var(--target);
+  min-height: var(--target);
+  padding: 0;
+  display: grid;
+  place-items: center;
+}

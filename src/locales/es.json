@@ -116,7 +116,8 @@
     "loading": "Cargando…",
     "back": "Atrás",
     "tryAgain": "Intentar de nuevo",
-    "cancel": "Cancelar"
+    "cancel": "Cancelar",
+    "justNow": "recién"
   },
   "errors": {
     "notAuthorized": "Tu cuenta no puede hacer eso. Pregúntale al dueño.",
@@ -203,14 +204,13 @@
     "savedNotSent": "{{group}} guardado en esta tableta. Esperando conexión para enviarlo.",
     "undone": "Deshecho. {{group}} no se contó.",
     "undo": "DESHACER",
-    "undoFor_one": "Puedes deshacer durante {{count}} segundo más.",
-    "undoFor_other": "Puedes deshacer durante {{count}} segundos más.",
     "rejected": "El arranque de las {{time}} no se registró.",
     "dismiss": "Entendido, quitar",
     "noStorage": "Este equipo no puede guardar arranques si se cierra la página. Deja esta página abierta hasta que vuelva la conexión.",
     "rejectTooLate": "Llegó al servidor más de 30 minutos tarde y no se puede contar. Avísale al gerente para que agregue la carga.",
     "rejectDown": "La lavadora estaba fuera de servicio a esa hora. Si de verdad lavó, avísale al gerente.",
-    "downNoStart": "EMPEZAR está apagado mientras esta lavadora esté fuera de servicio. Márcala como arreglada cuando funcione."
+    "downNoStart": "EMPEZAR está apagado mientras esta lavadora esté fuera de servicio. Márcala como arreglada cuando funcione.",
+    "undoCountdown": "DESHACER · {{count}} s"
   },
   "queue": {
     "rush": "URGENTE",
@@ -222,8 +222,7 @@
     "listTitle": "En orden",
     "empty": "La cola está vacía.",
     "noArea": "Tu planta no tiene áreas configuradas.",
-    "place": "{{n}}.",
-    "inProgress": "{{started}} empezadas",
+    "place": "#{{n}}",
     "note": "Nota: {{note}}",
     "addTitle": "Agregar trabajo",
     "groupLabel": "Grupo de lavado",
@@ -256,7 +255,18 @@
     "assignedDown": "Asignada a {{name}}, que está fuera de servicio.",
     "moveOffLabel": "Pasar esta carga a",
     "moveOff": "Sacar de esta lavadora",
-    "managerNotice": "Puedes ver la cola, agregar relavado y sacar cargas de una lavadora fuera de servicio. Solo el dueño cambia el orden."
+    "managerNotice": "Puedes ver la cola, agregar relavado y sacar cargas de una lavadora fuera de servicio. Solo el dueño cambia el orden.",
+    "summary_one": "{{count}} trabajo · {{loads}} cargas por lavar",
+    "summary_other": "{{count}} trabajos · {{loads}} cargas por lavar",
+    "addOpen": "+ Agregar trabajo",
+    "filterLabel": "Mostrar",
+    "filter": {
+      "all": "Todos ({{count}})",
+      "rush": "Urgentes ({{count}})",
+      "rewash": "Relavar ({{count}})"
+    },
+    "inProgress_one": "{{count}} empezada",
+    "inProgress_other": "{{count}} empezadas"
   },
   "machines": {
     "title": "Fuera de servicio / Arreglada",
@@ -304,7 +314,13 @@
       "pick": "Elige qué le pasa.",
       "details": "Describe el problema en el cuadro.",
       "tooLong": "Muy largo. Usa como máximo {{max}} caracteres."
-    }
+    },
+    "downCount_one": "{{count}} fuera",
+    "downCount_other": "{{count}} fuera",
+    "allUp": "Todo funciona",
+    "outFor": "Fuera desde hace",
+    "downSinceTime": "Fuera de servicio desde las {{time}}",
+    "reportTitle": "Reportar una máquina fuera de servicio"
   },
   "rewash": {
     "title": "Agregar relavado",
@@ -330,7 +346,8 @@
       "amount": "Escribe una cantidad de 0.01 a 100,000, con hasta 2 decimales."
     },
     "preview_one": "≈ {{n}} carga (estimado)",
-    "preview_other": "≈ {{n}} cargas (estimado)"
+    "preview_other": "≈ {{n}} cargas (estimado)",
+    "open": "+ Agregar relavado"
   },
   "estimates": {
     "title": "Ropa sucia esperando",
@@ -345,8 +362,6 @@
     "noWashTime": "Tiempo de lavadora: sin número",
     "unknownGroups_one": "{{count}} grupo no tiene número de cargas y no se cuenta.",
     "unknownGroups_other": "{{count}} grupos no tienen número de cargas y no se cuentan.",
-    "groupsWithout_one": "{{count}} grupo no tiene estimado todavía.",
-    "groupsWithout_other": "{{count}} grupos no tienen estimado todavía.",
     "includesUnsaved_one": "Incluye {{count}} cambio sin guardar.",
     "includesUnsaved_other": "Incluye {{count}} cambios sin guardar.",
     "waitingToSend_one": "{{count}} estimado está guardado en este teléfono y se enviará cuando vuelva la conexión.",
@@ -413,7 +428,16 @@
     "partialNone": "Ninguno",
     "washerTime": "≈ {{time}} de tiempo de lavadora",
     "lastSaved": "Último guardado: {{what}}",
-    "done": "Listo"
+    "done": "Listo",
+    "loadsWord_one": "carga esperando",
+    "loadsWord_other": "cargas esperando",
+    "groupsEstimated": "{{done}} de {{total}} grupos de lavado estimados",
+    "filterLabel": "Mostrar",
+    "filterAll_one": "Todos ({{count}})",
+    "filterAll_other": "Todos ({{count}})",
+    "filterNeeds_one": "Falta estimar ({{count}})",
+    "filterNeeds_other": "Falta estimar ({{count}})",
+    "allEstimated": "Todos los grupos de lavado tienen estimado."
   },
   "signOut": {
     "pending_one": "{{count}} dato o arranque de lavadora no se ha enviado todavía.",
@@ -544,25 +568,46 @@
     "pieces_one": "{{count}} pieza",
     "pieces_other": "{{count}} piezas",
     "nothingForRoute": "Todavía no hay nada anotado para esta ruta.",
-    "loadedButton": "Cargado ✓",
-    "loadedAt": "Cargado ✓ a las {{time}}",
+    "loadedButton": "Cargada ✓",
+    "loadedAt": "Cargada ✓ a las {{time}}",
     "undo": "Deshacer",
     "markedLoaded": "{{route}} marcada como cargada.",
     "undone": "{{route}} está abierta otra vez.",
     "onlyOnDuty": "Solo el gerente de turno o un dueño puede marcarla cargada.",
     "onlyOnDutyNotice": "Puedes ver la carga. Solo el gerente de turno (según el horario) o un dueño marca las rutas cargadas.",
     "allLoaded": "Todas las rutas cargadas.",
-    "nextTruck": "Próximo camión: {{route}} a las {{time}}, {{when}}",
-    "inMinutes_one": "en {{count}} minuto",
-    "inMinutes_other": "en {{count}} minutos",
-    "inHours": "en {{h}} h {{m}} min",
-    "late_one": "{{route}} va {{count}} minuto tarde",
-    "late_other": "{{route}} va {{count}} minutos tarde",
     "totals": "Totales de esta noche",
     "errors": {
       "qty": "Escribe un número entero de 0 a 100,000.",
       "special": "Escribe el artículo especial (hasta 80 caracteres)."
-    }
+    },
+    "minutes_one": "{{count}} min",
+    "minutes_other": "{{count}} min",
+    "hoursMin": "{{h}} h {{m}} min",
+    "pill": {
+      "loaded": "Cargada",
+      "late": "Tarde {{when}}",
+      "in": "En {{when}}"
+    },
+    "showItems_one": "Ver {{count}} artículo",
+    "showItems_other": "Ver {{count}} artículos",
+    "loadedCount": "{{done}}/{{total}} cargadas",
+    "progress": "{{done}} de {{total}} rutas cargadas",
+    "nextLabel": "Próximo camión",
+    "truckAt": "Camión de las {{time}}",
+    "lateWord": "de retraso",
+    "leftWord": "para salir",
+    "routesTitle": "Rutas",
+    "packsShort_one": "{{count}} paquete",
+    "packsShort_other": "{{count}} paquetes",
+    "piecesShort_one": "{{count}} pza",
+    "piecesShort_other": "{{count}} pzas",
+    "empty": "Nada aún",
+    "groupTotal": "Total {{count}}",
+    "size": "Talla {{size}}",
+    "routesFilled": "{{filled}} de {{total}} rutas llenas",
+    "allSaved": "Todo guardado",
+    "someNotSaved": "Algunas casillas no se guardaron. Revise los mensajes en rojo."
   },
   "tasks": {
     "title": "Tareas",
@@ -600,6 +645,136 @@
     "pinned_other": "Tienes {{count}} tareas abiertas",
     "errors": {
       "text": "Escribe la tarea (de 1 a {{max}} caracteres)."
+    },
+    "newButton": "Nueva tarea",
+    "openPill": "Abierta",
+    "donePill": "Terminada",
+    "reminderEvery": "Recordatorio cada 10 minutos hasta que esté terminada.",
+    "filterLabel": "Mostrar",
+    "filterOpen_one": "Abiertas ({{count}})",
+    "filterOpen_other": "Abiertas ({{count}})",
+    "filterDone_one": "Terminadas ({{count}})",
+    "filterDone_other": "Terminadas ({{count}})",
+    "addNote": "Agregar una nota (opcional)",
+    "justSent": "Recién mandada"
+  },
+  "nav": {
+    "label": "Principal",
+    "washers": "Lavadoras",
+    "queue": "Cola",
+    "loadOut": "Carga",
+    "alerts": "Alertas",
+    "estimates": "Estimados",
+    "tasks": "Tareas",
+    "more": "Más",
+    "home": "Inicio"
+  },
+  "alerts": {
+    "unavailable": "La lista de alertas todavía no está disponible. Las alertas siguen llegando como notificaciones a este teléfono (actívalas en Más).",
+    "openCount_one": "{{count}} abierta",
+    "openCount_other": "{{count}} abiertas",
+    "openNow": "Abiertas ahora",
+    "earlier": "Últimos 7 días",
+    "noneOpen": "Nada abierto ahora.",
+    "noneEarlier": "No hay otras alertas en los últimos 7 días.",
+    "pushHint": "Las mismas alertas llegan como notificaciones a este teléfono cuando están activadas en Más.",
+    "minAgo_one": "hace {{count}} min",
+    "minAgo_other": "hace {{count}} min",
+    "aMachine": "Una máquina",
+    "aWasher": "Una lavadora",
+    "aRoute": "Una ruta",
+    "truckAt": "Camión de las {{time}}",
+    "title": {
+      "machineDown": "{{name}} está fuera de servicio",
+      "washerIdle": "{{name}} parada — hay trabajo",
+      "taskNew": "Nueva tarea",
+      "taskDone": "Tarea hecha",
+      "routeLoaded": "{{name}} cargada"
+    },
+    "state": {
+      "open": {
+        "machine_down": "Fuera",
+        "washer_idle": "Parada",
+        "task_assigned": "Abierta",
+        "task_done": "Hecha",
+        "route_loaded": "Cargada"
+      },
+      "resolved": {
+        "machine_down": "Arreglada",
+        "washer_idle": "Empezada",
+        "task_assigned": "Hecha",
+        "task_done": "Hecha",
+        "route_loaded": "Desmarcada"
+      },
+      "done": {
+        "machine_down": "Arreglada",
+        "washer_idle": "Empezada",
+        "task_assigned": "Hecha",
+        "task_done": "Hecha",
+        "route_loaded": "Cargada"
+      }
     }
+  },
+  "board": {
+    "pill": {
+      "running": "Lavando",
+      "ready": "Sacar",
+      "idle": "Vacía",
+      "unknown": "Revisar",
+      "down": "Fuera"
+    },
+    "minLeft": "min faltan",
+    "unload": "Terminó: sacar",
+    "open": "Abrir",
+    "running": "{{n}}/{{total}} lavando",
+    "thenMore_one": "y {{count}} más",
+    "thenMore_other": "y {{count}} más",
+    "forMinutes_one": "{{count}} min",
+    "forMinutes_other": "{{count}} min",
+    "forHours": "{{h}} h {{m}} min"
+  },
+  "home": {
+    "title": "Inicio",
+    "running_one": "lavando",
+    "running_other": "lavando",
+    "toUnload_one": "{{count}} para sacar",
+    "toUnload_other": "{{count}} para sacar",
+    "down_one": "{{count}} fuera",
+    "down_other": "{{count}} fuera",
+    "machinesDown": "Máquinas fuera de servicio",
+    "allWorking": "Todas las máquinas funcionan",
+    "andMore_one": "+ {{count}} más",
+    "andMore_other": "+ {{count}} más",
+    "tasksOpen_one": "tarea abierta",
+    "tasksOpen_other": "tareas abiertas",
+    "myTasksOpen_one": "abierta para ti",
+    "myTasksOpen_other": "abiertas para ti",
+    "dirtyWork": "Trabajo sucio esperando",
+    "loadsWaiting_one": "carga esperando",
+    "loadsWaiting_other": "cargas esperando",
+    "doneAround": "Listo hacia las {{time}}",
+    "queueItems_one": "trabajo · ≈ {{loads}} cargas",
+    "queueItems_other": "trabajos · ≈ {{loads}} cargas",
+    "rush_one": "{{count}} urgente",
+    "rush_other": "{{count}} urgentes",
+    "alertsUnavailable": "Todavía no disponible",
+    "bellLabel_one": "Alertas ({{count}} nueva)",
+    "bellLabel_other": "Alertas ({{count}} nuevas)",
+    "customize": "Personalizar",
+    "customizeTitle": "Personalizar Inicio",
+    "customizeHint": "Marca los cuadros que quieres ver. Usa las flechas para cambiar el orden. Se guarda en este teléfono para tu cuenta.",
+    "moveUp": "Subir {{name}}",
+    "moveDown": "Bajar {{name}}",
+    "customizeDone": "Listo",
+    "customizeReset": "Volver a lo normal",
+    "noTiles": "Todos los cuadros están ocultos. Toca Personalizar para mostrar algunos.",
+    "ageSec_one": "Hace {{count}} s",
+    "ageSec_other": "Hace {{count}} s",
+    "ageMin_one": "Hace {{count}} min",
+    "ageMin_other": "Hace {{count}} min",
+    "hm": "{{h}}h {{m}}m",
+    "m": "{{m}}m",
+    "alertsNew_one": "nueva desde la última vez",
+    "alertsNew_other": "nuevas desde la última vez"
   }
 }

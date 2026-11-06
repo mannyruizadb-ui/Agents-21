@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
+import { useLocalNames } from '../../lib/seededNames';
 import { useRequiredSession } from '../../app/auth/sessionContext';
 import { userStore } from '../../lib/scopedStore';
 import { supabase } from '../../lib/supabase';
@@ -28,6 +29,7 @@ function useMachineNames(ids: readonly string[]) {
 
 export function TapAlarmBanner({ variant = 'light' }: { variant?: 'light' | 'dark' }) {
   const { t, i18n } = useTranslation();
+  const local = useLocalNames();
   const userId = useRequiredSession().user.id;
   const taps = useTapSync();
   const now = useNow(15_000);
@@ -55,7 +57,9 @@ export function TapAlarmBanner({ variant = 'light' }: { variant?: 'light' | 'dar
         {alarms.map((a) => (
           <li key={a.clientId}>
             <p>
-              <strong>{names.data?.get(a.machineId) ?? t('tapAlarm.aWasher')}</strong>
+              <strong>
+                {local.machine(names.data?.get(a.machineId)) || t('tapAlarm.aWasher')}
+              </strong>
               {' · '}
               {t('tapAlarm.tappedAt', { time: time(a.tappedAt) })}
             </p>

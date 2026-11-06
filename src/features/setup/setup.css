@@ -7,17 +7,18 @@
   gap: 0.5rem;
 }
 .form-page .setup-row {
-  border: 2px solid #999;
-  border-radius: 8px;
-  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--c-seam);
+  border-radius: var(--radius-lg);
+  padding: var(--sp-sm) var(--sp-md);
+  background: var(--c-surface);
 }
 .form-page .setup-row.inactive {
   border-style: dashed;
-  background: #f4f4f4;
+  background: var(--c-surface-high);
 }
 .setup-row-head {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: wrap; /* at large text the button drops below the name */
   align-items: center;
   justify-content: space-between;
   gap: 0.5rem;
@@ -27,16 +28,51 @@
 }
 .setup-editor {
   margin-top: 0.5rem;
-  border-top: 1px solid #bbb;
+  border-top: 1px solid var(--c-seam);
   padding-top: 0.5rem;
 }
 .badge.setup-off {
   margin-left: 0.5rem;
-  color: #333;
-  background: #e8e8e8;
+  color: var(--c-text-muted);
+  background: var(--c-surface-high);
 }
 .badge.setup-fixed {
   margin-left: 0.5rem;
-  color: #1f3a8a;
-  background: #eef3ff;
+  color: var(--c-info-text);
+  background: var(--c-info-container);
+}
+
+/* Redesign 2026-11-06: name on top (head font), kind/badges under it; Edit stays on the right. */
+.form-page .setup-row-text {
+  flex: 1 1 6rem;
+  min-width: 0;
+  display: grid;
+  gap: 0.15rem;
+}
+.setup-row-text .head {
+  font-size: var(--fs-lg);
+  overflow-wrap: anywhere;
+}
+.setup-kind {
+  color: var(--c-text-muted);
+  font-size: var(--fs-sm);
+}
+.form-page h2 {
+  scroll-margin-top: var(--sp-md);
+}
+.setup-row-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.form-page .setup-icon {
+  width: var(--target);
+  min-height: var(--target);
+  padding: 0;
+  display: grid;
+  place-items: center;
+}
+.setup-kind .badge {
+  margin-left: 0;
+  margin-right: 0.4rem;
 }

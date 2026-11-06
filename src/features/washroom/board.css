@@ -1,0 +1,242 @@
+/* Washer board (owner-approved Stitch style 2026-11-06). Tokens from src/lib/theme.css.
+   Status = pill (icon + word) + tile border; out of service adds red stripes; green = running only. */
+.form-page.wb-page {
+  max-width: 48rem;
+}
+.wb-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--sp-sm);
+}
+.wb-header h1 {
+  margin-bottom: 0;
+  text-transform: none;
+}
+.wb-count {
+  color: var(--c-ok);
+  font-weight: 700;
+  font-size: var(--fs-lg);
+}
+.form-page .wb-section {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-sm);
+  font-size: var(--fs-h-md);
+}
+
+/* NEXT IN QUEUE banner */
+.form-page .wb-next-banner {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin: 0 0 var(--sp-md);
+  padding: 0.75rem;
+  border: 2px solid var(--c-outline);
+  border-radius: var(--radius-lg);
+  background-color: var(--c-surface);
+  color: var(--c-text);
+  text-decoration: none;
+}
+.form-page .wb-next-banner.rush {
+  border: 3px solid var(--c-warn);
+}
+.wb-next-icon {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  border-radius: var(--radius);
+  background: var(--c-warn);
+  color: var(--c-text-inverse);
+}
+.wb-next-body {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-xs);
+}
+.wb-next-title {
+  font-size: var(--fs-h-md);
+  color: var(--c-warn);
+  line-height: 1.1;
+}
+.wb-next-line {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-xs);
+}
+.wb-chevron {
+  font-size: var(--fs-h-lg);
+  color: var(--c-text-muted);
+}
+
+/* Group chip: color stripe + name; wraps to 2 lines, never truncated. */
+.wb-chip {
+  display: block;
+  padding: 0.35rem 0.6rem;
+  border: 1px solid var(--c-seam);
+  border-left: 6px solid;
+  border-radius: var(--radius);
+  background: var(--c-surface-lowest);
+  font-size: var(--fs-lg);
+  font-weight: 700;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+}
+
+/* Tiles */
+.form-page .wb-grid {
+  list-style: none;
+  margin: 0 0 var(--sp-md);
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--sp-sm);
+}
+@media (max-width: 340px) {
+  .form-page .wb-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+.form-page .wb-tile {
+  border: 2px solid var(--c-seam);
+  border-radius: var(--radius-lg);
+  background-color: var(--c-surface);
+  min-width: 0;
+}
+.form-page .wb-tile.running {
+  border-color: var(--c-ok);
+}
+.form-page .wb-tile.ready {
+  border: 3px solid var(--c-warn);
+}
+.form-page .wb-tile.down {
+  border: 3px dashed var(--c-danger);
+  background-color: var(--c-danger-container);
+}
+.form-page .wb-tile-link {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-sm);
+  height: 100%;
+  min-height: 11rem;
+  padding: 0.6rem;
+  color: var(--c-text);
+  text-decoration: none;
+}
+.wb-tile-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-xs);
+}
+.wb-name {
+  font-family: var(--font-mono);
+  font-weight: 700;
+  font-size: var(--fs-lg);
+}
+.wb-empty {
+  font-family: var(--font-head);
+  font-size: var(--fs-h-md);
+  font-weight: 700;
+  color: var(--c-text-muted);
+}
+.wb-timer {
+  display: flex;
+  align-items: baseline;
+  gap: var(--sp-sm);
+  color: var(--c-ok);
+}
+.wb-big {
+  font-size: var(--fs-timer-lg);
+  font-weight: 700;
+  line-height: 1;
+}
+.wb-unit {
+  font-family: var(--font-mono);
+  font-size: var(--fs-sm);
+  font-weight: 700;
+  text-transform: uppercase;
+}
+.wb-bar {
+  display: block;
+  height: 8px;
+  border-radius: 4px;
+  background: var(--c-surface-highest);
+  overflow: hidden;
+}
+.wb-bar > span {
+  display: block;
+  height: 100%;
+  background: var(--c-ok);
+}
+.wb-ready {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-xs);
+  color: var(--c-warn);
+}
+.wb-ready .head {
+  font-size: var(--fs-h-md);
+}
+.wb-meta {
+  font-size: var(--fs-sm);
+  color: var(--c-text-muted);
+}
+.wb-next {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-xs);
+  border-top: 1px solid var(--c-seam);
+  padding-top: var(--sp-sm);
+}
+.wb-next-label {
+  font-family: var(--font-mono);
+  font-size: var(--fs-sm);
+  font-weight: 700;
+  color: var(--c-text-muted);
+  text-transform: uppercase;
+}
+.wb-open {
+  margin-top: auto;
+  font-weight: 700;
+  color: var(--c-info-text);
+}
+.wb-down-title {
+  font-size: var(--fs-h-md);
+  color: var(--c-danger-text);
+}
+.wb-down-why {
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+/* Other machines down */
+.form-page .wb-strip {
+  list-style: none;
+  margin: 0 0 var(--sp-md);
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 10rem), 1fr));
+  gap: var(--sp-sm);
+}
+.form-page .wb-strip-card {
+  border: 2px solid var(--c-danger);
+  border-radius: var(--radius-lg);
+  background-color: var(--c-danger-container);
+}
+.form-page .wb-strip-card a {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-xs);
+  padding: 0.6rem;
+  min-height: var(--target);
+  color: var(--c-text);
+  text-decoration: none;
+}

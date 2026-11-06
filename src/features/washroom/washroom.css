@@ -46,16 +46,16 @@
   white-space: nowrap;
 }
 .badge-rush {
-  color: #7a1500;
-  background: #fff1ec;
+  color: var(--c-warn);
+  background: var(--c-warn-container);
 }
 .badge-rewash {
-  color: #3b2a8c;
-  background: #f1eeff;
+  color: var(--c-info-text);
+  background: var(--c-info-container);
 }
 .badge-pin {
-  color: #1f3a8a;
-  background: #eef3ff;
+  color: var(--c-info-text);
+  background: var(--c-info-container);
 }
 
 .data-age {
@@ -65,11 +65,11 @@
   gap: 0.25rem;
   margin: 0 0 0.75rem;
   font-size: 0.9375rem;
-  color: #333;
+  color: var(--c-text-muted);
 }
 .data-age-stale,
 .data-age-old {
-  color: #7a3e00;
+  color: var(--c-warn);
   font-weight: 700;
 }
 
@@ -89,7 +89,7 @@
   gap: 0.75rem;
 }
 .washer-card {
-  border: 3px solid #999;
+  border: 3px solid var(--c-outline);
   border-left-width: 10px;
   border-radius: 10px;
   padding: 0.75rem 1rem;
@@ -99,14 +99,14 @@
   font-size: 1.375rem;
 }
 .washer-card.status-running {
-  border-color: #1f3a8a;
+  border-color: var(--c-info);
 }
 .washer-card.status-ready {
-  border-color: #b45309;
-  background: #fffaf0;
+  border-color: var(--c-warn);
+  background: var(--c-warn-container);
 }
 .washer-card.status-idle {
-  border-color: #6b7280;
+  border-color: var(--c-outline);
 }
 .washer-card .status-line {
   font-size: 1.125rem;
@@ -128,7 +128,7 @@
   text-transform: uppercase;
   font-size: 0.875rem;
   padding-top: 0.2rem;
-  color: #333;
+  color: var(--c-text-muted);
 }
 .washer-card dd {
   margin: 0;
@@ -182,7 +182,7 @@ body:has(.station) {
   line-height: 1.1;
 }
 .station .data-age {
-  color: #c9d1d9;
+  color: var(--c-text-muted);
   font-size: 1.125rem;
   margin: 0;
 }
@@ -199,7 +199,7 @@ body:has(.station) {
   margin: 0 0 4px;
   font-size: 1.25rem;
   letter-spacing: 0.08em;
-  color: #c9d1d9;
+  color: var(--c-text-muted);
 }
 .station-now .group-label,
 .station-next .group-label {
@@ -225,7 +225,7 @@ body:has(.station) {
 }
 .station .meta {
   font-size: 1.25rem;
-  color: #c9d1d9;
+  color: var(--c-text-muted);
   margin: 6px 0 0;
   display: flex;
   flex-wrap: wrap;
@@ -362,7 +362,7 @@ body:has(.station) {
   gap: 0.75rem;
 }
 .queue-item {
-  border: 2px solid #999;
+  border: 2px solid var(--c-outline);
   border-radius: 10px;
   padding: 0.75rem;
 }
@@ -398,10 +398,10 @@ body:has(.station) {
   gap: 0.5rem;
 }
 .form-page .notice {
-  border: 2px solid #1f3a8a;
+  border: 2px solid var(--c-info);
   border-radius: 8px;
   padding: 0.5rem 0.75rem;
-  background: #eef3ff;
+  background: var(--c-info-container);
 }
 
 /* Board: the queue's next unassigned work, listed once. */
@@ -424,10 +424,10 @@ body:has(.station) {
 
 /* Machine down: wrench icon + "DOWN" text + reason; the striped border is extra, never the only cue. */
 .down-banner {
-  border: 3px dashed #8b0000;
+  border: 3px dashed var(--c-danger);
   border-radius: 10px;
-  background: #fff0f0;
-  color: #5c0000;
+  background: var(--c-danger-container);
+  color: var(--c-danger-text);
   padding: 0.5rem 0.75rem;
   margin: 0.5rem 0;
 }
@@ -439,10 +439,12 @@ body:has(.station) {
   align-items: center;
   gap: 0.5rem;
   font-size: 1.125rem;
+}
+.station .down-title {
   text-transform: uppercase;
 }
 .washer-card.status-down {
-  border-color: #8b0000;
+  border-color: var(--c-danger);
   border-style: dashed;
 }
 .station .down-banner {
@@ -469,20 +471,20 @@ body:has(.station) {
   min-height: 56px;
 }
 .form-page .pick-list button[aria-pressed='true'] {
-  background: #1f3a8a;
+  background: var(--c-info-container);
   color: #fff;
-  outline: 3px solid #b45309;
+  outline: 3px solid var(--c-warn);
   outline-offset: 1px;
 }
 .form-page .pick-list button[aria-pressed='false'] {
-  background: #fff;
-  color: #1f3a8a;
+  background: var(--c-surface);
+  color: var(--c-info-text);
 }
 .form-page .confirm-box {
-  border: 3px solid #b45309;
+  border: 3px solid var(--c-warn);
   border-radius: 8px;
   padding: 0.75rem 1rem;
-  background: #fff8eb;
+  background: var(--c-warn-container);
 }
 .form-page textarea {
   width: 100%;
@@ -490,18 +492,18 @@ body:has(.station) {
   padding: 0.5rem 0.75rem;
   font: inherit;
   font-size: 1.125rem;
-  border: 2px solid #555;
+  border: 2px solid var(--c-outline);
   border-radius: 6px;
 }
 
 /* Late / unsent tap alarm: loud on purpose (icon + text + thick border), never color alone. */
 .tap-alarm {
-  border: 4px solid #8b0000;
+  border: 4px solid var(--c-danger);
   border-radius: 12px;
   padding: 12px 14px;
   margin: 0 0 12px;
-  background: #fff0f0;
-  color: #3d0000;
+  background: var(--c-danger-container);
+  color: var(--c-danger-text);
 }
 .tap-alarm ul {
   list-style: none;
@@ -530,9 +532,9 @@ body:has(.station) {
   font: inherit;
   font-weight: 700;
   border-radius: 8px;
-  border: 3px solid #8b0000;
-  background: #fff;
-  color: #8b0000;
+  border: 3px solid var(--c-danger);
+  background: var(--c-surface);
+  color: var(--c-danger-text);
   cursor: pointer;
 }
 .tap-alarm-dark {
@@ -549,4 +551,281 @@ body:has(.station) {
   background: transparent;
   color: #fff;
   border-color: #fff;
+}
+
+/* ── Station on the design tokens (owner-approved Stitch style 2026-11-06). Overrides the rules above.
+   Giant green EMPEZAR (starting a cycle = running), amber DESHACER with its 60 s countdown,
+   monospace washer name and countdown, Barlow headings. ── */
+.station {
+  font-family: var(--font-body);
+  color: var(--c-text);
+  background: var(--c-bg);
+}
+body:has(.station) {
+  background: var(--c-bg);
+}
+.station :focus-visible {
+  outline-color: var(--c-focus);
+}
+.station h1 {
+  font-family: var(--font-mono);
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+.station .data-age {
+  color: var(--c-text-muted);
+}
+.station .data-age-stale,
+.station .data-age-old {
+  color: var(--c-warn);
+}
+.station-panel {
+  border: 1px solid var(--c-seam);
+  border-radius: var(--radius-lg);
+  background: var(--c-surface);
+}
+.station-panel h2 {
+  font-family: var(--font-mono);
+  color: var(--c-text-muted);
+  text-transform: uppercase;
+}
+.station-now .group-label,
+.station-next .group-label {
+  font-family: var(--font-head);
+  font-weight: 700;
+  letter-spacing: 0.01em;
+}
+.station .countdown {
+  font-family: var(--font-mono);
+  font-weight: 700;
+  color: var(--c-ok);
+}
+.station-ready {
+  border: 3px solid var(--c-warn);
+}
+.station-ready .status-line {
+  color: var(--c-warn);
+}
+.station .meta {
+  color: var(--c-text-muted);
+}
+.station .badge-rush {
+  color: var(--c-text-inverse);
+  background: var(--c-warn);
+  border-color: var(--c-warn);
+}
+.station .badge-rewash {
+  color: var(--c-text-inverse);
+  background: var(--c-info-text);
+  border-color: var(--c-info-text);
+}
+.station button {
+  font-family: var(--font-body);
+  border-radius: var(--radius);
+  border-color: var(--c-outline);
+  border-bottom-width: 5px;
+  background: var(--c-surface-high);
+  color: var(--c-text);
+}
+.station button:active:not(:disabled) {
+  transform: translateY(3px);
+}
+.station .start-button {
+  min-height: 140px;
+  font-family: var(--font-head);
+  letter-spacing: 0.04em;
+  color: var(--c-text-inverse);
+  background: var(--c-ok);
+  border-color: #00b35c;
+}
+.station .undo-button {
+  min-height: var(--target-floor);
+  font-family: var(--font-head);
+  font-size: 2rem;
+  letter-spacing: 0.04em;
+  color: var(--c-text-inverse);
+  background: var(--c-warn);
+  border-color: #c98d00;
+}
+.station-message {
+  border-radius: var(--radius-lg);
+}
+.station-message.ok {
+  background: var(--c-info-container);
+  border-color: var(--c-info);
+}
+.station-message.warn {
+  background: var(--c-warn-container);
+  border-color: var(--c-warn);
+}
+.station-message.bad {
+  background: var(--c-danger-container);
+  border-color: var(--c-danger);
+}
+.group-picker button[aria-pressed='true'] {
+  border-color: var(--c-focus);
+  background: var(--c-surface-highest);
+}
+.station a {
+  color: var(--c-info-text);
+}
+.station .down-banner {
+  background-color: var(--c-danger-container);
+  border-color: var(--c-danger);
+  color: var(--c-text);
+}
+.station .down-title {
+  color: var(--c-danger-text);
+  font-family: var(--font-head);
+}
+
+/* Machine down screen (redesign 2026-11-06): per-area chips, one striped card per down machine with
+   an "out for" timer, then the report form. Real data only: no severity, technician, ETA or orders. */
+.md-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-sm);
+}
+.md-head h1 {
+  margin: 0;
+}
+.form-page .md-areas {
+  list-style: none;
+  padding: 0;
+  margin: var(--sp-sm) 0 var(--sp-md);
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 9.5rem), 1fr));
+  gap: var(--sp-sm);
+}
+.form-page .md-areas li {
+  display: grid;
+  gap: 0.2rem;
+  padding: var(--sp-sm) var(--sp-md);
+  border: 1px solid var(--c-seam);
+  border-radius: var(--radius);
+  background: var(--c-surface);
+}
+.form-page .md-areas li.down {
+  border: 2px solid var(--c-danger);
+}
+.md-area-name {
+  font-family: var(--font-head);
+  font-weight: 700;
+  font-size: var(--fs-lg);
+}
+.md-area-state {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3em;
+  color: var(--c-text-muted);
+  font-size: var(--fs-sm);
+}
+.md-area-state.danger {
+  color: var(--c-danger-text);
+  font-weight: 700;
+}
+.md-none {
+  display: flex;
+  align-items: center;
+  gap: 0.4em;
+  color: var(--c-text-muted);
+}
+.form-page .md-list {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 var(--sp-lg);
+  display: grid;
+  gap: var(--sp-md);
+}
+.form-page .md-card {
+  padding: var(--sp-md);
+  border: 3px dashed var(--c-danger);
+  border-radius: var(--radius-lg);
+  background-color: var(--c-danger-container);
+}
+.form-page .md-card.focus {
+  outline: 3px solid var(--c-focus);
+  outline-offset: 2px;
+}
+.md-card-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--sp-sm);
+}
+.form-page .md-card h3 {
+  margin: 0;
+  font-size: var(--fs-h-lg);
+  line-height: 1.1;
+}
+.form-page .md-card p {
+  margin: 0.2rem 0;
+}
+.form-page .md-area {
+  color: var(--c-text-muted);
+}
+.md-out {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.25rem var(--sp-sm);
+  margin: var(--sp-sm) 0;
+  padding: var(--sp-sm) var(--sp-md);
+  border-radius: var(--radius);
+  background: var(--c-surface-lowest);
+}
+.md-out-label {
+  color: var(--c-text-muted);
+  font-weight: 600;
+}
+.md-out-time {
+  font-size: var(--fs-timer);
+  font-weight: 700;
+  color: var(--c-danger-text);
+}
+.form-page .md-reason {
+  font-weight: 700;
+  font-size: var(--fs-lg);
+  color: var(--c-danger-text);
+}
+.form-page .md-detail {
+  overflow-wrap: anywhere;
+}
+.form-page .md-since {
+  color: var(--c-text-muted);
+  font-size: var(--fs-sm);
+}
+.form-page .md-fixed {
+  width: 100%;
+  min-height: var(--target);
+  margin-top: var(--sp-sm);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  color: var(--c-info-text);
+  background: var(--c-info-container);
+  border: 2px solid var(--c-info);
+}
+.form-page .md-card .confirm-box .actions .md-fixed {
+  width: auto;
+}
+.md-report {
+  margin: var(--sp-md) 0;
+  padding: var(--sp-md);
+  border: 2px solid var(--c-seam);
+  border-radius: var(--radius-lg);
+  background: var(--c-surface);
+}
+.form-page .md-report h2 {
+  margin-top: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.4em;
+}
+.form-page .md-mark {
+  width: 100%;
+  min-height: 64px;
 }

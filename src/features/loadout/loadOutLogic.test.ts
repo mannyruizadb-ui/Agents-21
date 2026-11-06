@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import {
   addDays,
+  groupSizes,
+  splitSize,
+  minutesUntil,
+  wallClock,
   localRouteName,
   loadOutRows,
   nextLoadDate,
@@ -121,5 +125,39 @@ describe('localRouteName', () => {
     expect(localRouteName('Route 21', 'en')).toBe('Route 21');
     expect(localRouteName('Hialeah run', 'es')).toBe('Hialeah run');
     expect(localRouteName('Route 21 extra', 'es')).toBe('Route 21 extra');
+  });
+});
+
+describe('truck times', () => {
+  it('minutesUntil counts down in plant time and goes negative when late', () => {
+    const tz = 'America/New_York';
+    const at = Date.parse('2026-11-06T08:12:00Z'); // 03:12 EST
+    expect(minutesUntil('2026-11-06', '03:30:00', at, tz)).toBe(18);
+    expect(minutesUntil('2026-11-06', '03:00:00', at, tz)).toBe(-12);
+  });
+  it('wallClock formats HH:MM for the language and keeps unreadable text', () => {
+    expect(wallClock('03:30:00', 'en-US')).toBe('3:30 AM');
+    expect(wallClock('15:05', 'en-US')).toBe('3:05 PM');
+    expect(wallClock('nope', 'en-US')).toBe('nope');
+  });
+});
+
+describe('size groups', () => {
+  it('splits a size suffix', () => {
+    expect(splitSize('Butcher coat XL')).toEqual({ base: 'Butcher coat', size: 'XL' });
+    expect(splitSize('Bata de carnicero m')).toEqual({ base: 'Bata de carnicero', size: 'M' });
+    expect(splitSize('Sheet – regular')).toBeNull();
+    expect(splitSize('XL')).toBeNull();
+  });
+  it('groups sized items of one base at the first one, keeps singles', () => {
+    const rows = ['Butcher coat M', 'Sheet', 'Butcher coat L', 'Butcher coat XL', 'Apron L'].map(
+      (name) => ({ name }),
+    );
+    const g = groupSizes(rows);
+    expect(
+      g.map((x) =>
+        x.kind === 'single' ? x.item.name : `${x.base}:${x.items.map((i) => i.size).join('/')}`,
+      ),
+    ).toEqual(['Butcher coat:M/L/XL', 'Sheet', 'Apron L']);
   });
 });

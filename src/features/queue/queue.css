@@ -1,0 +1,83 @@
+/* Work queue (owner-approved Stitch style 2026-11-06): numbered cards, RUSH / Rewash / washer tags,
+   big up/down buttons. Tokens from src/lib/theme.css. */
+.q-summary {
+  margin: -0.5rem 0 var(--sp-sm);
+  color: var(--c-text-muted);
+  font-weight: 600;
+}
+.form-page .q-add-button {
+  width: 100%;
+  min-height: var(--target);
+  margin: 0 0 var(--sp-sm);
+  font-family: var(--font-head);
+  font-size: var(--fs-h-md);
+  letter-spacing: 0.02em;
+}
+.form-page .q-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-sm);
+  margin: var(--sp-sm) 0;
+}
+.form-page .q-filters button {
+  flex: 1 1 auto;
+}
+.form-page .q-filters button[aria-pressed='true'] {
+  color: var(--c-text-inverse);
+  background: var(--c-info-text);
+  border-color: var(--c-info-text);
+}
+.form-page .queue-list {
+  gap: var(--sp-sm);
+}
+.form-page .queue-item {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-sm);
+  border: 1px solid var(--c-seam);
+  border-radius: var(--radius-lg);
+  background: var(--c-surface);
+  padding: 0.75rem;
+}
+.form-page .queue-item:nth-child(even) {
+  background: var(--c-surface-low);
+}
+.form-page .queue-item.rush {
+  border: 3px solid var(--c-warn);
+}
+.q-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--sp-sm);
+}
+.q-place {
+  font-size: var(--fs-h-lg);
+  font-weight: 700;
+  line-height: 1;
+  padding: 0.15rem 0.4rem;
+  border: 2px solid var(--c-outline);
+  border-radius: var(--radius);
+}
+.q-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-xs);
+}
+.form-page .q-qty {
+  margin: 0;
+  font-weight: 600;
+}
+.form-page .queue-item .actions button {
+  min-height: var(--target);
+}
+.form-page .queue-item p {
+  margin: 0;
+}
+
+/* Long tags stay in sentence case (ALL-CAPS only for short badges). */
+.status-pill.q-washer {
+  text-transform: none;
+  font-family: var(--font-body);
+  letter-spacing: 0;
+}

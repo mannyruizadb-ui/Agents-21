@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import { supabase } from '../../lib/supabase';
 import { toLoginEmail } from '../../lib/loginId';
+import { BRAND_LOGO_SRC } from '../../lib/brand';
 import { LanguageSwitch } from './LanguageSwitch';
 import '../../lib/forms.css';
 
@@ -41,12 +42,8 @@ export function SignInPage() {
   return (
     <main className="form-page theme-dark">
       <header className="brand">
-        {/* LOGO SLOT: no logo file exists yet. Replace this box with
-            <img src="/logo.svg" alt="" width="72" height="72" />. The company name below stays
-            as the accessible text, so the logo is decorative (alt=""). */}
-        <div className="brand-logo-slot" aria-hidden="true">
-          ADB
-        </div>
+        {/* The plant logo (one place: src/lib/brand.ts). Decorative: the names below are the text. */}
+        <img className="brand-logo" src={BRAND_LOGO_SRC} alt="" width="360" height="84" />
         <div>
           <p className="brand-company">{t('brand.company')}</p>
           <p className="brand-product">{t('app.name')}</p>

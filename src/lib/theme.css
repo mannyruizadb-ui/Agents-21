@@ -1,0 +1,150 @@
+/* PlantBoard design tokens (owner-approved 2026-11-06, research/design/README.md: the Stitch
+   "Industrial Telemetry" dark palette, with the project's readability rules on top):
+   - dark theme everywhere; minimum text 14 px on phones; ALL-CAPS only for short badges;
+   - green = running/OK only, amber = rush/warning, red (+ stripes) = out of service, blue = done/info;
+   - every status pairs color with an icon and a word; WCAG 2.2 AA contrast.
+   Contrast (computed) on --c-bg / --c-surface-high: --c-text 14.3 / 11.1, --c-text-muted 10.4 / 8.0,
+   --c-ok 11.1 / 8.6, --c-warn 10.3 / 8.0, --c-danger-text 10.9 / 8.4, --c-info-text 10.8 / 8.4; every
+   signal on its own container ≥ 7.4; control borders (--c-outline) ≥ 4.6. */
+
+:root {
+  /* Surfaces (Stitch surface tiers) */
+  --c-bg: #0b1326;
+  --c-surface-lowest: #060e20;
+  --c-surface-low: #131b2e;
+  --c-surface: #171f33;
+  --c-surface-high: #222a3d;
+  --c-surface-highest: #2d3449;
+  --c-seam: #3b4660; /* 1px panel borders */
+  --c-outline: #8792ad; /* control borders: 5.9:1 on --c-surface */
+
+  /* Text */
+  --c-text: #dae2fd;
+  --c-text-muted: #b7c2de;
+  --c-text-inverse: #060e20;
+
+  /* Signals (color is never alone: always with an icon and a word) */
+  --c-ok: #00e676; /* running / OK */
+  --c-ok-container: #063d24;
+  --c-warn: #feb300; /* rush / warning */
+  --c-warn-container: #3d2c00;
+  --c-danger: #ef4444; /* out of service */
+  --c-danger-text: #ffb4ab;
+  --c-danger-container: #4a0f14;
+  --c-info: #3b82f6; /* done / info */
+  --c-info-text: #adc6ff;
+  --c-info-container: #0f2a5c;
+  --c-focus: #ffd60a;
+
+  /* Type */
+  --font-head: 'Barlow Condensed', 'Arial Narrow', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, Menlo, Consolas, monospace;
+  --font-body: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --fs-sm: 0.875rem; /* 14 px: the minimum */
+  --fs-md: 1rem;
+  --fs-lg: 1.125rem;
+  --fs-h-md: 1.5rem;
+  --fs-h-lg: 1.75rem;
+  --fs-h-xl: 2.25rem;
+  --fs-timer: 2rem;
+  --fs-timer-lg: 2.5rem;
+
+  /* Space and shape */
+  --sp-xs: 0.25rem;
+  --sp-sm: 0.5rem;
+  --sp-md: 1rem;
+  --sp-lg: 1.5rem;
+  --sp-xl: 2.5rem;
+  --radius: 0.25rem;
+  --radius-lg: 0.5rem;
+  --target: 56px; /* entry targets */
+  --target-floor: 96px; /* primary floor actions */
+  --nav-h: 72px;
+
+  color-scheme: dark;
+}
+
+html {
+  background: var(--c-bg);
+}
+body {
+  margin: 0;
+  background: var(--c-bg);
+  color: var(--c-text);
+  font-family: var(--font-body);
+  font-size: var(--fs-md);
+  line-height: 1.5;
+  -webkit-text-size-adjust: 100%;
+}
+:focus-visible {
+  outline: 3px solid var(--c-focus);
+  outline-offset: 2px;
+}
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+
+/* Reusable pieces */
+.head {
+  font-family: var(--font-head);
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+.mono {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+.status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3em;
+  padding: 0.1em 0.5em;
+  border: 2px solid currentColor;
+  border-radius: var(--radius);
+  font-family: var(--font-mono);
+  font-size: var(--fs-sm);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.status-pill.ok {
+  color: var(--c-ok);
+  background: var(--c-ok-container);
+}
+.status-pill.warn {
+  color: var(--c-warn);
+  background: var(--c-warn-container);
+}
+.status-pill.danger {
+  color: var(--c-danger-text);
+  background: var(--c-danger-container);
+}
+.status-pill.info {
+  color: var(--c-info-text);
+  background: var(--c-info-container);
+}
+.status-pill.idle {
+  color: var(--c-text-muted);
+  background: var(--c-surface-high);
+}
+/* Out of service: red with diagonal stripes (plus the icon and the word). */
+.stripes-danger {
+  background-image: repeating-linear-gradient(
+    -45deg,
+    rgba(239, 68, 68, 0.18) 0 10px,
+    transparent 10px 20px
+  );
+}
+.stripes-warn {
+  background-image: repeating-linear-gradient(
+    -45deg,
+    rgba(254, 179, 0, 0.14) 0 10px,
+    transparent 10px 20px
+  );
+}

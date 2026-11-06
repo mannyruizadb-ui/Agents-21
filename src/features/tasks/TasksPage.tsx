@@ -1,12 +1,11 @@
 import { useRef, useState } from 'react';
-import { Link } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useRequiredSession } from '../../app/auth/sessionContext';
 import { supabase } from '../../lib/supabase';
 import { useLiveRefetch } from '../../lib/useLiveRefetch';
 import { useNow } from '../../lib/useNow';
-import { IconReady, IconWarning } from '../washroom/Icons';
+import { IconBell, IconReady, IconTasks, IconWarning } from '../washroom/Icons';
 import { errorMessageKey, RpcError, unwrap } from '../washroom/rpcError';
 import { useMyRoles } from '../washroom/useMyRoles';
 import { useAreas } from '../washroom/washroomData';
@@ -15,9 +14,11 @@ import { useManagers, useTasks, type Task } from './tasksData';
 import '../../lib/forms.css';
 import './tasks.css';
 
-// Tasks (owner 2026-11-06): the owner sends a short job to a named manager or to the manager on duty;
-// the assignee is pushed at once and every 10 minutes until they mark it done (optional note), then the
-// owners are told. Work direction only: no per-person statistics, counts or rankings anywhere.
+// Tasks (owner 2026-11-06; redesign 2026-11-06): the owner sends a short job to a named manager or to
+// the manager on duty; the assignee is pushed at once and every 10 minutes until they mark it done
+// (optional note), then the owners are told. Open = amber card, done = blue. Open / Done filter.
+// Work direction only: no per-person statistics, counts or rankings anywhere; no snooze, no
+// signatures or photo proof (design README).
 
 function useAgo() {
   const { t } = useTranslation();
@@ -44,7 +45,6 @@ function OwnerTasks({ plantId }: { plantId: string }) {
   const qc = useQueryClient();
   const now = useNow(30_000);
   const ago = useAgo();
-  const clock = useClock();
   const tasks = useTasks(plantId, true);
   useLiveRefetch(tasks.refetch, true);
   const managers = useManagers(plantId, true);
@@ -87,99 +87,162 @@ function OwnerTasks({ plantId }: { plantId: string }) {
 
   const open = (tasks.data ?? []).filter((x) => !x.done_at);
   const done = (tasks.data ?? []).filter((x) => x.done_at);
+  const [composing, setComposing] = useState(false);
+  const [filter, setFilter] = useState<'open' | 'done'>('open');
+  const showForm = composing || (tasks.isSuccess && open.length === 0 && done.length === 0);
 
   return (
     <>
-      <section className="card" aria-labelledby="new-task">
-        <h2 id="new-task">{t('tasks.newTitle')}</h2>
-        <form
-          noValidate
-          onSubmit={(e) => {
-            e.preventDefault();
-            const text = cleanTaskText(body);
-            if (!text)
-              return setMessage({ ok: false, text: t('tasks.errors.text', { max: TASK_MAX }) });
-            send.mutate(text);
-          }}
-        >
-          <div className="field">
-            <label htmlFor="task-body">{t('tasks.textLabel')}</label>
-            <textarea
-              id="task-body"
-              maxLength={TASK_MAX}
-              value={body}
-              onChange={(e) => {
-                setBody(e.target.value);
-                clientId.current = null;
-              }}
-              aria-describedby="task-body-count"
-            />
-            <p id="task-body-count" className="hint">
-              {t('tasks.count', { n: body.length, max: TASK_MAX })}
+      {!showForm && (
+        <button type="button" className="task-new" onClick={() => setComposing(true)}>
+          <IconTasks size="1.4em" /> {t('tasks.newButton')}
+        </button>
+      )}
+      {showForm && (
+        <section className="task-compose" aria-labelledby="new-task">
+          <h2 id="new-task">{t('tasks.newTitle')}</h2>
+          <form
+            noValidate
+            onSubmit={(e) => {
+              e.preventDefault();
+              const text = cleanTaskText(body);
+              if (!text)
+                return setMessage({ ok: false, text: t('tasks.errors.text', { max: TASK_MAX }) });
+              send.mutate(text);
+            }}
+          >
+            <div className="field">
+              <label htmlFor="task-body">{t('tasks.textLabel')}</label>
+              <textarea
+                id="task-body"
+                maxLength={TASK_MAX}
+                value={body}
+                onChange={(e) => {
+                  setBody(e.target.value);
+                  clientId.current = null;
+                }}
+                aria-describedby="task-body-count"
+              />
+              <p id="task-body-count" className="hint">
+                {t('tasks.count', { n: body.length, max: TASK_MAX })}
+              </p>
+            </div>
+            <div className="field">
+              <label htmlFor="task-to">{t('tasks.sendTo')}</label>
+              <select
+                id="task-to"
+                value={to}
+                onChange={(e) => {
+                  setTo(e.target.value);
+                  clientId.current = null;
+                }}
+              >
+                <option value="">{t('tasks.onDuty')}</option>
+                {(managers.data ?? []).map((m) => (
+                  <option key={m.user_id} value={m.user_id}>
+                    {m.name}
+                  </option>
+                ))}
+              </select>
+              {managers.isError && <p className="hint">{t('tasks.namesUnavailable')}</p>}
+            </div>
+            <p className="task-reminder">
+              <IconBell /> {t('tasks.reminderEvery')}
             </p>
-          </div>
-          <div className="field">
-            <label htmlFor="task-to">{t('tasks.sendTo')}</label>
-            <select
-              id="task-to"
-              value={to}
-              onChange={(e) => {
-                setTo(e.target.value);
-                clientId.current = null;
-              }}
-            >
-              <option value="">{t('tasks.onDuty')}</option>
-              {(managers.data ?? []).map((m) => (
-                <option key={m.user_id} value={m.user_id}>
-                  {m.name}
-                </option>
-              ))}
-            </select>
-            {managers.isError && <p className="hint">{t('tasks.namesUnavailable')}</p>}
-          </div>
-          <div role="status" aria-live="polite">
-            {message && <p className={message.ok ? 'notice' : 'error'}>{message.text}</p>}
-          </div>
-          <button type="submit" className="task-big" disabled={send.isPending}>
-            {send.isPending ? t('tasks.sending') : t('tasks.send')}
-          </button>
-        </form>
-      </section>
+            <div className="actions">
+              <button type="submit" className="task-big" disabled={send.isPending}>
+                {send.isPending ? t('tasks.sending') : t('tasks.send')}
+              </button>
+              {composing && (
+                <button type="button" className="secondary" onClick={() => setComposing(false)}>
+                  {t('common.cancel')}
+                </button>
+              )}
+            </div>
+          </form>
+        </section>
+      )}
+      <div role="status" aria-live="polite">
+        {message && <p className={message.ok ? 'notice' : 'error'}>{message.text}</p>}
+      </div>
 
-      <h2>{t('tasks.openTitle')}</h2>
+      <div className="task-filter" role="group" aria-label={t('tasks.filterLabel')}>
+        <button type="button" aria-pressed={filter === 'open'} onClick={() => setFilter('open')}>
+          {t('tasks.filterOpen', { count: open.length })}
+        </button>
+        <button type="button" aria-pressed={filter === 'done'} onClick={() => setFilter('done')}>
+          {t('tasks.filterDone', { count: done.length })}
+        </button>
+      </div>
       {tasks.isPending && <p role="status">{t('common.loading')}</p>}
-      {tasks.isSuccess && open.length === 0 && <p>{t('tasks.noneOpen')}</p>}
-      <ul className="task-list">
-        {open.map((x) => (
-          <li key={x.task_id ?? ''} className="task-card open">
-            <p className="task-body">{x.body}</p>
-            <p className="hint">
-              {x.to_on_duty
-                ? t('tasks.toOnDuty', { names: nameOf(x.assignee_user_ids) })
-                : t('tasks.toNamed', { names: nameOf(x.assignee_user_ids) })}
-            </p>
-            <p>
-              <IconWarning />{' '}
-              {t('tasks.openFor', { time: ago(minutesBetween(x.created_at ?? '', now)) })}
-            </p>
-          </li>
-        ))}
-      </ul>
+      {tasks.isError && <p className="error">{t(errorMessageKey(tasks.error))}</p>}
 
-      <h2>{t('tasks.doneTitle')}</h2>
-      {tasks.isSuccess && done.length === 0 && <p className="hint">{t('tasks.noneDone')}</p>}
-      <ul className="task-list">
-        {done.map((x) => (
-          <li key={x.task_id ?? ''} className="task-card done">
-            <p className="task-body">{x.body}</p>
-            <p>
-              <IconReady /> {t('tasks.doneAt', { time: clock(x.done_at) })}
+      {filter === 'open' && (
+        <>
+          {tasks.isSuccess && open.length === 0 && (
+            <p className="task-empty">
+              <IconReady /> {t('tasks.noneOpen')}
             </p>
-            {x.done_note && <p className="hint">{t('tasks.note', { note: x.done_note })}</p>}
-          </li>
-        ))}
-      </ul>
+          )}
+          <ul className="task-list">
+            {open.map((x) => (
+              <li key={x.task_id ?? ''} className="task-card open">
+                <div className="task-card-head">
+                  <span className="status-pill warn">
+                    <IconWarning /> {t('tasks.openPill')}
+                  </span>
+                  <span className="mono task-age">
+                    {minutesBetween(x.created_at ?? '', now) < 1
+                      ? t('tasks.justSent')
+                      : t('tasks.openFor', { time: ago(minutesBetween(x.created_at ?? '', now)) })}
+                  </span>
+                </div>
+                <p className="task-body">{x.body}</p>
+                <p className="task-meta">
+                  {x.to_on_duty
+                    ? t('tasks.toOnDuty', { names: nameOf(x.assignee_user_ids) })
+                    : t('tasks.toNamed', { names: nameOf(x.assignee_user_ids) })}
+                </p>
+                <p className="task-meta">
+                  <IconBell /> {t('tasks.reminderEvery')}
+                </p>
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
+      {filter === 'done' && (
+        <>
+          {tasks.isSuccess && done.length === 0 && (
+            <p className="task-empty">{t('tasks.noneDone')}</p>
+          )}
+          <ul className="task-list">
+            {done.map((x) => (
+              <DoneCard key={x.task_id ?? ''} task={x} showNote />
+            ))}
+          </ul>
+        </>
+      )}
     </>
+  );
+}
+
+function DoneCard({ task, showNote = false }: { task: Task; showNote?: boolean }) {
+  const { t } = useTranslation();
+  const clock = useClock();
+  return (
+    <li className="task-card done">
+      <div className="task-card-head">
+        <span className="status-pill info">
+          <IconReady /> {t('tasks.donePill')}
+        </span>
+        <span className="mono task-age">{clock(task.done_at)}</span>
+      </div>
+      <p className="task-body">{task.body}</p>
+      {showNote && task.done_note && (
+        <p className="task-meta">{t('tasks.note', { note: task.done_note })}</p>
+      )}
+    </li>
   );
 }
 
@@ -205,17 +268,25 @@ function MyTaskCard({ task }: { task: Task }) {
   });
   return (
     <li className="task-card open mine">
-      <p className="task-body">{task.body}</p>
-      <p className="hint">{t('tasks.sentAt', { time: clock(task.created_at) })}</p>
-      <div className="field">
-        <label htmlFor={`note-${id}`}>{t('tasks.noteLabel')}</label>
-        <textarea
-          id={`note-${id}`}
-          maxLength={TASK_MAX}
-          value={note}
-          onChange={(e) => setNote(e.target.value)}
-        />
+      <div className="task-card-head">
+        <span className="status-pill warn">
+          <IconWarning /> {t('tasks.openPill')}
+        </span>
+        <span className="mono task-age">{t('tasks.sentAt', { time: clock(task.created_at) })}</span>
       </div>
+      <p className="task-body">{task.body}</p>
+      <details className="task-note">
+        <summary>{t('tasks.addNote')}</summary>
+        <div className="field">
+          <label htmlFor={`note-${id}`}>{t('tasks.noteLabel')}</label>
+          <textarea
+            id={`note-${id}`}
+            maxLength={TASK_MAX}
+            value={note}
+            onChange={(e) => setNote(e.target.value)}
+          />
+        </div>
+      </details>
       {error && (
         <p className="error" role="alert">
           {error}
@@ -223,7 +294,7 @@ function MyTaskCard({ task }: { task: Task }) {
       )}
       <button
         type="button"
-        className="task-big"
+        className="task-big task-done-button"
         disabled={done.isPending}
         onClick={() => done.mutate()}
       >
@@ -235,7 +306,6 @@ function MyTaskCard({ task }: { task: Task }) {
 
 function MyTasks({ plantId }: { plantId: string }) {
   const { t } = useTranslation();
-  const clock = useClock();
   const tasks = useTasks(plantId, true);
   useLiveRefetch(tasks.refetch, true);
   const open = (tasks.data ?? []).filter((x) => !x.done_at);
@@ -244,13 +314,13 @@ function MyTasks({ plantId }: { plantId: string }) {
     <>
       {open.length > 0 && (
         <p className="task-banner" role="status">
-          <IconWarning /> {t('tasks.reminderBanner')}
+          <IconWarning size="1.4em" /> {t('tasks.reminderBanner')}
         </p>
       )}
       {tasks.isPending && <p role="status">{t('common.loading')}</p>}
       {tasks.isError && <p className="error">{t(errorMessageKey(tasks.error))}</p>}
       {tasks.isSuccess && open.length === 0 && (
-        <p className="notice">
+        <p className="task-empty">
           <IconReady /> {t('tasks.allDone')}
         </p>
       )}
@@ -264,12 +334,7 @@ function MyTasks({ plantId }: { plantId: string }) {
           <h2>{t('tasks.doneTitle')}</h2>
           <ul className="task-list">
             {done.map((x) => (
-              <li key={x.task_id ?? ''} className="task-card done">
-                <p className="task-body">{x.body}</p>
-                <p>
-                  <IconReady /> {t('tasks.doneAt', { time: clock(x.done_at) })}
-                </p>
-              </li>
+              <DoneCard key={x.task_id ?? ''} task={x} />
             ))}
           </ul>
         </>
@@ -287,10 +352,7 @@ export function TasksPage() {
   const isOwner = roles.has('owner');
   const isManager = roles.has('manager');
   return (
-    <main className="form-page">
-      <p>
-        <Link to="/control">{t('common.back')}</Link>
-      </p>
+    <main className="form-page task-page">
       <h1>{isOwner ? t('tasks.title') : t('tasks.myTitle')}</h1>
       {plantId && isOwner && <OwnerTasks plantId={plantId} />}
       {plantId && !isOwner && isManager && <MyTasks plantId={plantId} />}

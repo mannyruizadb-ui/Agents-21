@@ -1,0 +1,74 @@
+.form-page .more-menu {
+  list-style: none;
+  margin: 0 0 var(--sp-md);
+  padding: 0;
+  border: 1px solid var(--c-seam);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+.form-page .more-menu li + li {
+  border-top: 1px solid var(--c-seam);
+}
+.form-page .more-menu a {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: var(--target);
+  padding: 0 var(--sp-md);
+  color: var(--c-text);
+  background: var(--c-surface);
+  text-decoration: none;
+  font-size: var(--fs-lg);
+  font-weight: 600;
+}
+.form-page .more-menu li:nth-child(even) a {
+  background: var(--c-surface-low);
+}
+
+/* Screen grid (round 2): big icon tiles, 2+ columns; one column at large text. */
+.form-page .more-grid {
+  list-style: none;
+  margin: 0 0 var(--sp-lg);
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 9.5rem), 1fr));
+  gap: var(--sp-sm);
+}
+.form-page .more-grid a {
+  display: grid;
+  justify-items: start;
+  align-content: space-between;
+  gap: var(--sp-sm);
+  min-height: var(--target-floor);
+  height: 100%;
+  padding: var(--sp-md);
+  border: 1px solid var(--c-seam);
+  border-radius: var(--radius-lg);
+  background: var(--c-surface);
+  color: var(--c-text);
+  text-decoration: none;
+}
+.form-page .more-grid a:hover {
+  background: var(--c-surface-high);
+}
+.form-page .more-grid a:focus-visible {
+  outline: 3px solid var(--c-focus);
+  outline-offset: 2px;
+}
+.more-icon {
+  display: grid;
+  place-items: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  border-radius: var(--radius);
+  background: var(--c-info-container);
+  color: var(--c-info-text);
+  font-size: 1.5rem;
+}
+.more-label {
+  font-family: var(--font-head);
+  font-weight: 700;
+  font-size: var(--fs-lg);
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+}

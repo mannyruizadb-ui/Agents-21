@@ -116,7 +116,8 @@
     "loading": "Loading…",
     "back": "Back",
     "tryAgain": "Try again",
-    "cancel": "Cancel"
+    "cancel": "Cancel",
+    "justNow": "just now"
   },
   "errors": {
     "notAuthorized": "You can't do that with your account. Ask the owner.",
@@ -203,14 +204,13 @@
     "savedNotSent": "Saved {{group}} on this tablet. Waiting for the connection to send it.",
     "undone": "Undone. {{group}} was not counted.",
     "undo": "UNDO",
-    "undoFor_one": "Undo is available for {{count}} more second.",
-    "undoFor_other": "Undo is available for {{count}} more seconds.",
     "rejected": "The start from {{time}} was not recorded.",
     "dismiss": "OK, dismiss",
     "noStorage": "This device can't save starts if the page is closed. Keep this page open until the connection is back.",
     "rejectTooLate": "It reached the server more than 30 minutes late, so it can't be counted. Tell the manager so they can add the load.",
     "rejectDown": "The washer was marked down at that time. If it really ran, tell the manager.",
-    "downNoStart": "START is off while this washer is down. Mark it back up when it's fixed."
+    "downNoStart": "START is off while this washer is down. Mark it back up when it's fixed.",
+    "undoCountdown": "UNDO · {{count}} s"
   },
   "queue": {
     "rush": "RUSH",
@@ -222,8 +222,7 @@
     "listTitle": "In order",
     "empty": "The queue is empty.",
     "noArea": "No area is set up for your plant.",
-    "place": "{{n}}.",
-    "inProgress": "{{started}} started",
+    "place": "#{{n}}",
     "note": "Note: {{note}}",
     "addTitle": "Add work",
     "groupLabel": "Wash group",
@@ -256,7 +255,18 @@
     "assignedDown": "Assigned to {{name}}, which is down.",
     "moveOffLabel": "Move this load to",
     "moveOff": "Move off this washer",
-    "managerNotice": "You can see the queue, add rewash, and move loads off a washer that is down. Only the owner can change the order."
+    "managerNotice": "You can see the queue, add rewash, and move loads off a washer that is down. Only the owner can change the order.",
+    "summary_one": "{{count}} item · {{loads}} loads to wash",
+    "summary_other": "{{count}} items · {{loads}} loads to wash",
+    "addOpen": "+ Add work",
+    "filterLabel": "Show",
+    "filter": {
+      "all": "All ({{count}})",
+      "rush": "Rush ({{count}})",
+      "rewash": "Rewash ({{count}})"
+    },
+    "inProgress_one": "{{count}} started",
+    "inProgress_other": "{{count}} started"
   },
   "machines": {
     "title": "Machine down / back up",
@@ -304,7 +314,13 @@
       "pick": "Choose what's wrong.",
       "details": "Describe the problem in the box.",
       "tooLong": "Too long. Use at most {{max}} characters."
-    }
+    },
+    "downCount_one": "{{count}} down",
+    "downCount_other": "{{count}} down",
+    "allUp": "All working",
+    "outFor": "Out for",
+    "downSinceTime": "Down since {{time}}",
+    "reportTitle": "Report a machine out of service"
   },
   "rewash": {
     "title": "Add rewash",
@@ -330,7 +346,8 @@
       "amount": "Type an amount from 0.01 to 100,000, with up to 2 decimals."
     },
     "preview_one": "≈ {{n}} load (estimate)",
-    "preview_other": "≈ {{n}} loads (estimate)"
+    "preview_other": "≈ {{n}} loads (estimate)",
+    "open": "+ Add rewash"
   },
   "estimates": {
     "title": "Dirty work waiting",
@@ -345,8 +362,6 @@
     "noWashTime": "Washer time: no number set",
     "unknownGroups_one": "{{count}} group has no load number set and isn't counted.",
     "unknownGroups_other": "{{count}} groups have no load number set and aren't counted.",
-    "groupsWithout_one": "{{count}} group has no estimate yet.",
-    "groupsWithout_other": "{{count}} groups have no estimate yet.",
     "includesUnsaved_one": "Includes {{count}} change not saved yet.",
     "includesUnsaved_other": "Includes {{count}} changes not saved yet.",
     "waitingToSend_one": "{{count}} estimate is saved on this phone and will send when the connection is back.",
@@ -413,7 +428,16 @@
     "partialNone": "None",
     "washerTime": "≈ {{time}} of washer time",
     "lastSaved": "Last saved: {{what}}",
-    "done": "Done"
+    "done": "Done",
+    "loadsWord_one": "load waiting",
+    "loadsWord_other": "loads waiting",
+    "groupsEstimated": "{{done}} of {{total}} wash groups estimated",
+    "filterLabel": "Show",
+    "filterAll_one": "All ({{count}})",
+    "filterAll_other": "All ({{count}})",
+    "filterNeeds_one": "Needs estimate ({{count}})",
+    "filterNeeds_other": "Needs estimate ({{count}})",
+    "allEstimated": "Every wash group has an estimate."
   },
   "signOut": {
     "pending_one": "{{count}} entry or washer start hasn't been sent yet.",
@@ -552,17 +576,38 @@
     "onlyOnDuty": "Only the manager on duty or an owner can mark it loaded.",
     "onlyOnDutyNotice": "You can see the load-out. Only the manager on duty (by the shift schedule) or an owner marks routes loaded.",
     "allLoaded": "All routes loaded.",
-    "nextTruck": "Next truck: {{route}} at {{time}}, {{when}}",
-    "inMinutes_one": "in {{count}} minute",
-    "inMinutes_other": "in {{count}} minutes",
-    "inHours": "in {{h}} h {{m}} min",
-    "late_one": "{{route}} is {{count}} minute late",
-    "late_other": "{{route}} is {{count}} minutes late",
     "totals": "Tonight's totals",
     "errors": {
       "qty": "Type a whole number from 0 to 100,000.",
       "special": "Type the special item (up to 80 characters)."
-    }
+    },
+    "minutes_one": "{{count}} min",
+    "minutes_other": "{{count}} min",
+    "hoursMin": "{{h}} h {{m}} min",
+    "pill": {
+      "loaded": "Loaded",
+      "late": "Late {{when}}",
+      "in": "In {{when}}"
+    },
+    "showItems_one": "Show {{count}} item",
+    "showItems_other": "Show {{count}} items",
+    "loadedCount": "{{done}}/{{total}} loaded",
+    "progress": "{{done}} of {{total}} routes loaded",
+    "nextLabel": "Next truck",
+    "truckAt": "Truck at {{time}}",
+    "lateWord": "late",
+    "leftWord": "to go",
+    "routesTitle": "Routes",
+    "packsShort_one": "{{count}} pack",
+    "packsShort_other": "{{count}} packs",
+    "piecesShort_one": "{{count}} pc",
+    "piecesShort_other": "{{count}} pcs",
+    "empty": "Nothing yet",
+    "groupTotal": "Total {{count}}",
+    "size": "Size {{size}}",
+    "routesFilled": "{{filled}} of {{total}} routes filled",
+    "allSaved": "All changes saved",
+    "someNotSaved": "Some boxes were not saved. Check the red messages."
   },
   "tasks": {
     "title": "Tasks",
@@ -600,6 +645,136 @@
     "pinned_other": "You have {{count}} open tasks",
     "errors": {
       "text": "Type the task (1 to {{max}} characters)."
+    },
+    "newButton": "New task",
+    "openPill": "Open",
+    "donePill": "Done",
+    "reminderEvery": "Reminder every 10 minutes until it's done.",
+    "filterLabel": "Show",
+    "filterOpen_one": "Open ({{count}})",
+    "filterOpen_other": "Open ({{count}})",
+    "filterDone_one": "Done ({{count}})",
+    "filterDone_other": "Done ({{count}})",
+    "addNote": "Add a note (optional)",
+    "justSent": "Just sent"
+  },
+  "nav": {
+    "label": "Main",
+    "washers": "Washers",
+    "queue": "Queue",
+    "loadOut": "Load-out",
+    "alerts": "Alerts",
+    "estimates": "Estimates",
+    "tasks": "Tasks",
+    "more": "More",
+    "home": "Home"
+  },
+  "alerts": {
+    "unavailable": "The alerts list isn't available yet. Alerts still arrive as notifications on this phone (turn them on under More).",
+    "openCount_one": "{{count}} open",
+    "openCount_other": "{{count}} open",
+    "openNow": "Open now",
+    "earlier": "Last 7 days",
+    "noneOpen": "Nothing open right now.",
+    "noneEarlier": "No other alerts in the last 7 days.",
+    "pushHint": "The same alerts arrive as notifications on this phone when they are turned on under More.",
+    "minAgo_one": "{{count}} min ago",
+    "minAgo_other": "{{count}} min ago",
+    "aMachine": "A machine",
+    "aWasher": "A washer",
+    "aRoute": "A route",
+    "truckAt": "{{time}} truck",
+    "title": {
+      "machineDown": "{{name}} is down",
+      "washerIdle": "{{name}} idle — work waiting",
+      "taskNew": "New task",
+      "taskDone": "Task done",
+      "routeLoaded": "{{name}} loaded"
+    },
+    "state": {
+      "open": {
+        "machine_down": "Down",
+        "washer_idle": "Idle",
+        "task_assigned": "Open",
+        "task_done": "Done",
+        "route_loaded": "Loaded"
+      },
+      "resolved": {
+        "machine_down": "Fixed",
+        "washer_idle": "Started",
+        "task_assigned": "Done",
+        "task_done": "Done",
+        "route_loaded": "Unmarked"
+      },
+      "done": {
+        "machine_down": "Fixed",
+        "washer_idle": "Started",
+        "task_assigned": "Done",
+        "task_done": "Done",
+        "route_loaded": "Loaded"
+      }
     }
+  },
+  "board": {
+    "pill": {
+      "running": "Running",
+      "ready": "Unload",
+      "idle": "Empty",
+      "unknown": "Check",
+      "down": "Down"
+    },
+    "minLeft": "min left",
+    "unload": "Done: unload",
+    "open": "Open",
+    "running": "{{n}}/{{total}} running",
+    "thenMore_one": "then {{count}} more",
+    "thenMore_other": "then {{count}} more",
+    "forMinutes_one": "{{count}} min",
+    "forMinutes_other": "{{count}} min",
+    "forHours": "{{h}} h {{m}} min"
+  },
+  "home": {
+    "title": "Home",
+    "running_one": "running",
+    "running_other": "running",
+    "toUnload_one": "{{count}} to unload",
+    "toUnload_other": "{{count}} to unload",
+    "down_one": "{{count}} down",
+    "down_other": "{{count}} down",
+    "machinesDown": "Machines down",
+    "allWorking": "All machines working",
+    "andMore_one": "+ {{count}} more",
+    "andMore_other": "+ {{count}} more",
+    "tasksOpen_one": "open task",
+    "tasksOpen_other": "open tasks",
+    "myTasksOpen_one": "open for you",
+    "myTasksOpen_other": "open for you",
+    "dirtyWork": "Dirty work waiting",
+    "loadsWaiting_one": "load waiting",
+    "loadsWaiting_other": "loads waiting",
+    "doneAround": "Done around {{time}}",
+    "queueItems_one": "item · ≈ {{loads}} loads",
+    "queueItems_other": "items · ≈ {{loads}} loads",
+    "rush_one": "{{count}} rush",
+    "rush_other": "{{count}} rush",
+    "alertsUnavailable": "Not available yet",
+    "bellLabel_one": "Alerts ({{count}} new)",
+    "bellLabel_other": "Alerts ({{count}} new)",
+    "customize": "Customize",
+    "customizeTitle": "Customize Home",
+    "customizeHint": "Check the tiles to show. Use the arrows to change the order. Saved on this phone for your account.",
+    "moveUp": "Move {{name}} up",
+    "moveDown": "Move {{name}} down",
+    "customizeDone": "Done",
+    "customizeReset": "Back to the default",
+    "noTiles": "All tiles are hidden. Tap Customize to show some.",
+    "ageSec_one": "Updated {{count}} s ago",
+    "ageSec_other": "Updated {{count}} s ago",
+    "ageMin_one": "Updated {{count}} min ago",
+    "ageMin_other": "Updated {{count}} min ago",
+    "hm": "{{h}}h {{m}}m",
+    "m": "{{m}}m",
+    "alertsNew_one": "new since you last looked",
+    "alertsNew_other": "new since you last looked"
   }
 }

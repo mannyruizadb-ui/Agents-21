@@ -12,9 +12,19 @@ export const router = createBrowserRouter([
     path: '/control',
     lazy: async () => ({ Component: (await import('./app/control/ControlRoute')).ControlRoute }),
     children: [
+      // Home dashboard (owner 2026-11-06, round 2): live tiles that tap through to each screen.
       {
         index: true,
+        lazy: async () => ({ Component: (await import('./app/control/HomePage')).HomePage }),
+      },
+      {
+        // "More": a grid of every screen the user can open, plus notifications, language, sign-out.
+        path: 'more',
         lazy: async () => ({ Component: (await import('./app/control/ControlHome')).ControlHome }),
+      },
+      {
+        path: 'alerts',
+        lazy: async () => ({ Component: (await import('./app/control/AlertsPage')).AlertsPage }),
       },
       {
         // Owner only (PRD A4). The page shows nothing manageable to others, and manage-users
