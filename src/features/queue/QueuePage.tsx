@@ -1,5 +1,6 @@
 import { useRef, useState, type FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useLocalNames } from '../../lib/seededNames';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../../lib/supabase';
 import { useLiveRefetch } from '../../lib/useLiveRefetch';
@@ -44,9 +45,10 @@ import './queue.css';
 /** A washer <option>: a down washer says so in its text and can't be chosen. */
 function WasherOption({ w, down }: { w: WasherRow; down: boolean }) {
   const { t } = useTranslation();
+  const names = useLocalNames();
   return (
     <option value={w.id} disabled={down}>
-      {down ? t('queue.washerDown', { name: w.name }) : w.name}
+      {down ? t('queue.washerDown', { name: names.machine(w.name) }) : names.machine(w.name)}
     </option>
   );
 }
@@ -266,6 +268,7 @@ function QueueItemCard({
   onCancel: () => void;
 }) {
   const { t } = useTranslation();
+  const names = useLocalNames();
   const qtyText = useQtyText();
   const localized = useLocalizedName();
   const [confirming, setConfirming] = useState(false);
@@ -296,7 +299,10 @@ function QueueItemCard({
             </span>
           )}
           <span className="status-pill idle q-washer">
-            <IconPin /> {item.assigned_machine_name ?? t('queue.nextFreeWasher')}
+            <IconPin />{' '}
+            {item.assigned_machine_name
+              ? names.machine(item.assigned_machine_name)
+              : t('queue.nextFreeWasher')}
           </span>
         </span>
       </div>
@@ -314,7 +320,9 @@ function QueueItemCard({
       {item.note && <p className="hint">{t('queue.note', { note: item.note })}</p>}
       {assignedDown && (
         <p className="down-banner">
-          <strong>{t('queue.assignedDown', { name: item.assigned_machine_name ?? '?' })}</strong>
+          <strong>
+            {t('queue.assignedDown', { name: names.machine(item.assigned_machine_name) || '?' })}
+          </strong>
         </p>
       )}
 
@@ -361,7 +369,7 @@ function QueueItemCard({
                 {item.assigned_machine_id &&
                   !washers.some((w) => w.id === item.assigned_machine_id) && (
                     <option value={item.assigned_machine_id}>
-                      {item.assigned_machine_name ?? '?'}
+                      {names.machine(item.assigned_machine_name) || '?'}
                     </option>
                   )}
                 {washers.map((w) => (
@@ -429,6 +437,7 @@ function QueueItemCard({
 
 export function QueuePage() {
   const { t } = useTranslation();
+  const names = useLocalNames();
   const session = useRequiredSession();
   const qc = useQueryClient();
   const now = useNow(1000);
@@ -540,7 +549,7 @@ export function QueuePage() {
           <select id="q-area" value={area?.id ?? ''} onChange={(e) => setAreaId(e.target.value)}>
             {(areas.data ?? []).map((a) => (
               <option key={a.id} value={a.id}>
-                {a.name}
+                {names.area(a.name)}
               </option>
             ))}
           </select>

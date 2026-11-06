@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react';
 import { Link, useSearchParams } from 'react-router';
 import { useTranslation } from 'react-i18next';
+import { useLocalNames } from '../../lib/seededNames';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../../lib/supabase';
 import { useLiveRefetch } from '../../lib/useLiveRefetch';
@@ -23,6 +24,7 @@ import './washroom.css';
 // Reachable from the washer board and every station screen (?machine=<id> preselects).
 
 export function MachineStatusPage() {
+  const names = useLocalNames();
   const { t } = useTranslation();
   const session = useRequiredSession();
   const qc = useQueryClient();
@@ -76,8 +78,8 @@ export function MachineStatusPage() {
     onSuccess: (_r, v) => {
       setDone(
         v.to === 'down'
-          ? t('machines.markedDown', { name: v.m.machine_name })
-          : t('machines.markedUp', { name: v.m.machine_name }),
+          ? t('machines.markedDown', { name: names.machine(v.m.machine_name) })
+          : t('machines.markedUp', { name: names.machine(v.m.machine_name) }),
       );
       reset();
     },
@@ -130,7 +132,7 @@ export function MachineStatusPage() {
       {down.map((m) => (
         <DownBanner
           key={m.machine_id}
-          name={`${m.machine_name} (${m.area_name})`}
+          name={`${names.machine(m.machine_name)} (${names.area(m.area_name)})`}
           reasonCode={m.reason_code}
           reasonLabelI18n={m.reason_label_i18n}
           reason={m.reason}
@@ -158,8 +160,14 @@ export function MachineStatusPage() {
               {(status.data ?? []).map((m) => (
                 <option key={m.machine_id} value={m.machine_id}>
                   {m.status === 'down'
-                    ? t('machines.optionDown', { name: m.machine_name, area: m.area_name })
-                    : t('machines.optionUp', { name: m.machine_name, area: m.area_name })}
+                    ? t('machines.optionDown', {
+                        name: names.machine(m.machine_name),
+                        area: names.area(m.area_name),
+                      })
+                    : t('machines.optionUp', {
+                        name: names.machine(m.machine_name),
+                        area: names.area(m.area_name),
+                      })}
                 </option>
               ))}
             </select>
@@ -181,7 +189,9 @@ export function MachineStatusPage() {
               ) : (
                 <div className="confirm-box" role="group" aria-labelledby="confirm-up">
                   <p id="confirm-up">
-                    <strong>{t('machines.confirmUp', { name: machine.machine_name })}</strong>
+                    <strong>
+                      {t('machines.confirmUp', { name: names.machine(machine.machine_name) })}
+                    </strong>
                   </p>
                   <div className="actions">
                     <button
@@ -254,7 +264,9 @@ export function MachineStatusPage() {
           {machine?.status === 'up' && confirming && built.ok && (
             <div className="confirm-box" role="group" aria-labelledby="confirm-down">
               <p id="confirm-down">
-                <strong>{t('machines.confirmDown', { name: machine.machine_name })}</strong>
+                <strong>
+                  {t('machines.confirmDown', { name: names.machine(machine.machine_name) })}
+                </strong>
               </p>
               <p>
                 {t('machines.reasonValue', {

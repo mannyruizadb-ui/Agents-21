@@ -116,7 +116,8 @@
     "loading": "Loading…",
     "back": "Back",
     "tryAgain": "Try again",
-    "cancel": "Cancel"
+    "cancel": "Cancel",
+    "justNow": "just now"
   },
   "errors": {
     "notAuthorized": "You can't do that with your account. Ask the owner.",

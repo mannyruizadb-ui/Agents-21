@@ -40,9 +40,11 @@ export function DownBanner({
         duration:
           minutes === null
             ? ''
-            : minutes < 60
-              ? t('machines.minutesShort', { count: minutes })
-              : t('machines.hoursShort', { count: Math.floor(minutes / 60), m: minutes % 60 }),
+            : minutes < 1
+              ? t('common.justNow')
+              : minutes < 60
+                ? t('machines.minutesShort', { count: minutes })
+                : t('machines.hoursShort', { count: Math.floor(minutes / 60), m: minutes % 60 }),
       })
     : '';
   return (

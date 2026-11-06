@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link } from 'react-router';
 import { useTranslation } from 'react-i18next';
+import { useLocalNames } from '../../lib/seededNames';
 import { useLiveRefetch } from '../../lib/useLiveRefetch';
 import { useNow } from '../../lib/useNow';
 import { DataAge } from './DataAge';
@@ -35,6 +36,7 @@ import './board.css';
 
 function Tile({ row, fetchedAt, now }: { row: WasherBoardRow; fetchedAt: number; now: number }) {
   const { t } = useTranslation();
+  const names = useLocalNames();
   const qtyText = useQtyText();
   const labeler = useReasonLabeler();
   const view = washerNow(row.status, row.expected_end_at, row.server_time, fetchedAt, now);
@@ -52,7 +54,7 @@ function Tile({ row, fetchedAt, now }: { row: WasherBoardRow; fetchedAt: number;
         <Link to={`/control/machines?machine=${row.machine_id}`} className="wb-tile-link">
           <span className="wb-tile-head">
             <span id={headingId} className="wb-name">
-              {row.machine_name}
+              {names.machine(row.machine_name)}
             </span>
             <span className="status-pill danger">
               <IconMachineDown /> {t('board.pill.down')}
@@ -62,9 +64,11 @@ function Tile({ row, fetchedAt, now }: { row: WasherBoardRow; fetchedAt: number;
           {why && <span className="wb-down-why">{why}</span>}
           {mins !== null && (
             <span className="wb-meta mono">
-              {mins < 60
-                ? t('board.forMinutes', { count: mins })
-                : t('board.forHours', { h: Math.floor(mins / 60), m: mins % 60 })}
+              {mins < 1
+                ? t('common.justNow')
+                : mins < 60
+                  ? t('board.forMinutes', { count: mins })
+                  : t('board.forHours', { h: Math.floor(mins / 60), m: mins % 60 })}
             </span>
           )}
         </Link>
@@ -99,7 +103,7 @@ function Tile({ row, fetchedAt, now }: { row: WasherBoardRow; fetchedAt: number;
       <Link to={`/station/washer/${row.machine_id}`} className="wb-tile-link">
         <span className="wb-tile-head">
           <span id={headingId} className="wb-name">
-            {row.machine_name}
+            {names.machine(row.machine_name)}
           </span>
           {pill}
         </span>
@@ -226,6 +230,7 @@ function NextInQueue({ items }: { items: QueueRow[] }) {
 
 export function WasherBoardPage() {
   const { t } = useTranslation();
+  const names = useLocalNames();
   const now = useNow(1000);
   const areas = useAreas();
   const [areaId, setAreaId] = useState<string | null>(null);
@@ -272,7 +277,7 @@ export function WasherBoardPage() {
           <select id="area" value={area?.id ?? ''} onChange={(e) => setAreaId(e.target.value)}>
             {washrooms.map((a) => (
               <option key={a.id} value={a.id}>
-                {a.name}
+                {names.area(a.name)}
               </option>
             ))}
           </select>
@@ -324,16 +329,18 @@ export function WasherBoardPage() {
               return (
                 <li key={m.machine_id} className="wb-strip-card stripes-danger">
                   <Link to={`/control/machines?machine=${m.machine_id}`}>
-                    <span className="wb-name">{m.machine_name}</span>
+                    <span className="wb-name">{names.machine(m.machine_name)}</span>
                     <span className="status-pill danger">
                       <IconMachineDown /> {t('board.pill.down')}
                     </span>
                     {why && <span className="wb-down-why">{why}</span>}
                     {mins !== null && (
                       <span className="wb-meta mono">
-                        {mins < 60
-                          ? t('board.forMinutes', { count: mins })
-                          : t('board.forHours', { h: Math.floor(mins / 60), m: mins % 60 })}
+                        {mins < 1
+                          ? t('common.justNow')
+                          : mins < 60
+                            ? t('board.forMinutes', { count: mins })
+                            : t('board.forHours', { h: Math.floor(mins / 60), m: mins % 60 })}
                       </span>
                     )}
                   </Link>

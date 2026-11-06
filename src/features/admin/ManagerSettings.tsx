@@ -1,5 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
+import { useLocalNames } from '../../lib/seededNames';
 import { supabase } from '../../lib/supabase';
 import { errorMessageKey } from '../washroom/rpcError';
 import type { AlertMembership } from './alertRecipients';
@@ -31,6 +32,7 @@ export function ManagerSettings({
   onStatus: (message: string) => void;
 }) {
   const { t, i18n } = useTranslation();
+  const names = useLocalNames();
   const qc = useQueryClient();
   const managerRows = memberships.filter(
     (m) =>
@@ -183,7 +185,7 @@ export function ManagerSettings({
                         })
                       }
                     />
-                    {t('people.shiftGroup', { area: g.area_name, shift: g.name })}
+                    {t('people.shiftGroup', { area: names.area(g.area_name), shift: g.name })}
                     {state === 'some' && ` (${t('people.shiftPartly')})`}
                   </label>
                   <ul id={hintId} className="hint shift-variants">

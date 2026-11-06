@@ -116,7 +116,8 @@
     "loading": "Cargando…",
     "back": "Atrás",
     "tryAgain": "Intentar de nuevo",
-    "cancel": "Cancelar"
+    "cancel": "Cancelar",
+    "justNow": "recién"
   },
   "errors": {
     "notAuthorized": "Tu cuenta no puede hacer eso. Pregúntale al dueño.",

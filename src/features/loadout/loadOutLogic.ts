@@ -1,3 +1,5 @@
+import { localName } from '../../lib/seededNames';
+
 // Load-out logic (owner 2026-11-06): load dates, routes per weekday, the countdown to the next truck,
 // and which items are rows on the sheet. Times are the PLANT's local time (America/New_York for ADB).
 // Pure module.
@@ -138,13 +140,7 @@ export function parseQty(input: string): number | null {
   return n <= 100000 ? n : null;
 }
 
-/**
- * Spanish for the seeded route names ("Route 21" → "Ruta 21"), the same rule as the push sender
- * (supabase/functions/send-alerts localRouteName); other names are kept as entered.
- */
+/** Spanish for the seeded route names ("Route 21" → "Ruta 21"); see src/lib/seededNames.ts. */
 export function localRouteName(name: string, lang: string): string {
-  const clean = name.replace(/\s+/g, ' ').trim();
-  if (!lang.toLowerCase().startsWith('es')) return clean;
-  const m = /^Route (\w{1,10})$/i.exec(clean);
-  return m ? `Ruta ${m[1]}` : clean;
+  return localName('route', name, lang);
 }

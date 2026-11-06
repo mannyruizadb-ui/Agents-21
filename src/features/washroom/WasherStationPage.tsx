@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link, useParams } from 'react-router';
 import { useTranslation } from 'react-i18next';
+import { useLocalNames } from '../../lib/seededNames';
 import { useLiveRefetch } from '../../lib/useLiveRefetch';
 import { useNow, useOnline } from '../../lib/useNow';
 import { DataAge } from './DataAge';
@@ -57,6 +58,7 @@ function useWakeLock() {
 }
 
 export function WasherStationPage() {
+  const names = useLocalNames();
   const { machineId } = useParams();
   const { t } = useTranslation();
   const localized = useLocalizedName();
@@ -157,7 +159,7 @@ export function WasherStationPage() {
   return (
     <main className="station">
       <header className="station-header">
-        <h1>{machine.data.name}</h1>
+        <h1>{names.machine(machine.data.name)}</h1>
         <DataAge
           updatedAt={board.dataUpdatedAt}
           now={now}
@@ -179,7 +181,7 @@ export function WasherStationPage() {
           <p className="meta">{t('station.downNoStart')}</p>
           <p>
             <Link to={`/control/machines?machine=${machine.data.id}`}>
-              {t('machines.markUpNamed', { name: machine.data.name })}
+              {t('machines.markUpNamed', { name: names.machine(machine.data.name) })}
             </Link>
           </p>
         </div>
@@ -300,7 +302,10 @@ export function WasherStationPage() {
         {lastTap && undoState !== 'done' && lastSent && (
           <p className="station-message ok">
             <IconReady />
-            {t('station.started', { group: lastTap.groupName, washer: machine.data.name })}
+            {t('station.started', {
+              group: lastTap.groupName,
+              washer: names.machine(machine.data.name),
+            })}
           </p>
         )}
         {lastTap && undoState !== 'done' && lastPending && (
