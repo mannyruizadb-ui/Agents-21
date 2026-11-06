@@ -1393,6 +1393,14 @@ isOneToOne: false
               "active": boolean,"area_id": string,"area_name": string,"kind": "washer"|"dryer"|"ironer"|"folder"|"wrapper"|"utility"|"other","machine_id": string,"machine_name": string,"reason": string,"reason_code": string,"reason_label_i18n": Json,"server_time": string,"since": string,"status": "down"|"up"
             }[]
                            },
+"get_my_alert_count":
+{ Args: { "p_plant_id": string }; Returns: number
+                           },
+"get_my_alerts":
+{ Args: { "p_limit"?: number,"p_plant_id": string }; Returns: {
+              "alert_id": string,"created_at": string,"kind": string,"payload": Json,"still_current": boolean
+            }[]
+                           },
 "get_pending_push_alerts":
 { Args: Record<PropertyKey, never>; Returns: {
               "alert_created": string,"alert_id": string,"area_name": string,"auth": string,"down_since": string,"endpoint": string,"language": string,"machine_id": string,"machine_kind": "washer"|"dryer"|"ironer"|"folder"|"wrapper"|"utility"|"other","machine_name": string,"org_id": string,"p256dh": string,"plant_id": string,"plant_name": string,"reason_code": string,"reason_label_i18n": Json,"still_down": boolean,"subscription_id": string,"user_id": string
