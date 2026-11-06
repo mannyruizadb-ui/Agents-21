@@ -39,6 +39,16 @@ export function ControlHome() {
             {t('people.title')}
           </Link>
         )}
+        {(ownerPlants.data?.length ?? 0) > 0 && (
+          <Link className="button-link" to="/control/setup/machines">
+            {t('setup.machines.title')}
+          </Link>
+        )}
+        {(ownerPlants.data?.length ?? 0) > 0 && (
+          <Link className="button-link" to="/control/setup/reasons">
+            {t('setup.reasons.title')}
+          </Link>
+        )}
         <SignOutButton />
       </div>
       {canGetAlerts && plantId && <NotificationsCard plantId={plantId} />}

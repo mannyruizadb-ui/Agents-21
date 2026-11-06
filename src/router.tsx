@@ -39,6 +39,19 @@ export const router = createBrowserRouter([
         }),
       },
       {
+        // Owner Setup (owner 2026-11-05): machines and machine-down reasons are app data.
+        path: 'setup/machines',
+        lazy: async () => ({
+          Component: (await import('./features/setup/SetupMachinesPage')).SetupMachinesPage,
+        }),
+      },
+      {
+        path: 'setup/reasons',
+        lazy: async () => ({
+          Component: (await import('./features/setup/SetupReasonsPage')).SetupReasonsPage,
+        }),
+      },
+      {
         // Machine down / back up (owner 2026-11-04): owner and managers change; others read.
         path: 'machines',
         lazy: async () => ({
