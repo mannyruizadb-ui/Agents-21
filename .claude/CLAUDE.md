@@ -105,7 +105,7 @@ Full context lives in these docs. Read the relevant one before non-trivial work;
     - Record in PRD v1.6 §4.7 the display read of the washer board and the owner/manager-only estimates.
   - Waiting on the owner: who enters estimates, setting `ships_next_morning` in the cloud.
 - **PR #7 merged (2026-11-06 03:26)** (load-out, tasks, People shifts and load-out grant). deploy-db run 8 applied `20261106030529`. Everything built so far is live.
-- **Redesign built (2026-11-06), PR #8 open:**
+- **Redesign LIVE: PR #8 merged by the owner (2026-11-06 11:06).**
   - Home dashboard + Customize, bottom nav, More grid, Alerts tab (`get_my_alerts`; badge uses `get_my_alert_count(p_since)`).
   - Every screen restyled dark.
   - Spanish seeded names via `src/lib/seededNames.ts`.
