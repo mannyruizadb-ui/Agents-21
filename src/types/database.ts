@@ -25,14 +25,14 @@ export type Database = {
           Tables: {
             "alert_events": {
                   Row: {
-                    "id": string,"kind": string,"org_id": string,"plant_id": string,"recipients": (string)[],"sent_at": string,"shift_instance_id": string | null,"subject_id": string | null
+                    "dedupe_key": string | null,"id": string,"kind": string,"org_id": string,"plant_id": string,"recipients": (string)[],"sent_at": string,"shift_instance_id": string | null,"subject_id": string | null
                   }
                   ComputedFields: never
                   Insert: {
-                    "id"?: string,"kind": string,"org_id": string,"plant_id": string,"recipients": (string)[],"sent_at"?: string,"shift_instance_id"?: string | null,"subject_id"?: string | null
+                    "dedupe_key"?: string | null,"id"?: string,"kind": string,"org_id": string,"plant_id": string,"recipients": (string)[],"sent_at"?: string,"shift_instance_id"?: string | null,"subject_id"?: string | null
                   }
                   Update: {
-                    "id"?: string,"kind"?: string,"org_id"?: string,"plant_id"?: string,"recipients"?: (string)[],"sent_at"?: string,"shift_instance_id"?: string | null,"subject_id"?: string | null
+                    "dedupe_key"?: string | null,"id"?: string,"kind"?: string,"org_id"?: string,"plant_id"?: string,"recipients"?: (string)[],"sent_at"?: string,"shift_instance_id"?: string | null,"subject_id"?: string | null
                   }
                   Relationships: [
                     {
@@ -1218,6 +1218,11 @@ isOneToOne: false
               "alert_created": string,"alert_id": string,"area_name": string,"auth": string,"down_since": string,"endpoint": string,"language": string,"machine_id": string,"machine_kind": "washer"|"dryer"|"ironer"|"folder"|"wrapper"|"utility"|"other","machine_name": string,"org_id": string,"p256dh": string,"plant_id": string,"plant_name": string,"reason_code": string,"reason_label_i18n": Json,"still_down": boolean,"subscription_id": string,"user_id": string
             }[]
                            },
+"claim_push_notifications":
+{ Args: Record<PropertyKey, never>; Returns: {
+              "alert_created": string,"alert_id": string,"auth": string,"endpoint": string,"kind": string,"language": string,"org_id": string,"p256dh": string,"payload": Json,"plant_id": string,"plant_name": string,"subscription_id": string,"user_id": string
+            }[]
+                           },
 "create_pairing_code":
 { Args: { "p_area_id": string,"p_device_name": string }; Returns: Database["public"]['CompositeTypes']["pairing_code_result"]
                           SetofOptions: {
@@ -1271,6 +1276,11 @@ isOneToOne: false
 "get_pending_push_alerts":
 { Args: Record<PropertyKey, never>; Returns: {
               "alert_created": string,"alert_id": string,"area_name": string,"auth": string,"down_since": string,"endpoint": string,"language": string,"machine_id": string,"machine_kind": "washer"|"dryer"|"ironer"|"folder"|"wrapper"|"utility"|"other","machine_name": string,"org_id": string,"p256dh": string,"plant_id": string,"plant_name": string,"reason_code": string,"reason_label_i18n": Json,"still_down": boolean,"subscription_id": string,"user_id": string
+            }[]
+                           },
+"get_pending_push_notifications":
+{ Args: Record<PropertyKey, never>; Returns: {
+              "alert_created": string,"alert_id": string,"auth": string,"endpoint": string,"kind": string,"language": string,"org_id": string,"p256dh": string,"payload": Json,"plant_id": string,"plant_name": string,"subscription_id": string,"user_id": string
             }[]
                            },
 "get_queue":
