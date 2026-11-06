@@ -951,6 +951,26 @@ isOneToOne: false
       referencedColumns: ["id","org_id"]
     }
                   ]
+                },"tasks": {
+                  Row: {
+                    "assignee_user_ids": (string)[],"body": string,"client_id": string,"created_at": string,"created_by": string | null,"done_at": string | null,"done_by": string | null,"done_note": string | null,"id": string,"org_id": string,"plant_id": string,"to_on_duty": boolean
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "assignee_user_ids": (string)[],"body": string,"client_id": string,"created_at"?: string,"created_by"?: string | null,"done_at"?: string | null,"done_by"?: string | null,"done_note"?: string | null,"id"?: string,"org_id": string,"plant_id": string,"to_on_duty": boolean
+                  }
+                  Update: {
+                    "assignee_user_ids"?: (string)[],"body"?: string,"client_id"?: string,"created_at"?: string,"created_by"?: string | null,"done_at"?: string | null,"done_by"?: string | null,"done_note"?: string | null,"id"?: string,"org_id"?: string,"plant_id"?: string,"to_on_duty"?: boolean
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "tasks_plant_id_org_id_fkey"
+      columns: ["plant_id","org_id"]
+isOneToOne: false
+      referencedRelation: "plants"
+      referencedColumns: ["id","org_id"]
+    }
+                  ]
                 },"wash_formulas": {
                   Row: {
                     "created_at": string,"cycle_minutes": number | null,"external_no": string,"id": string,"name": string | null,"org_id": string,"plant_id": string,"wash_group_id": string | null
@@ -1301,6 +1321,14 @@ isOneToOne: false
               "alert_created": string,"alert_id": string,"auth": string,"endpoint": string,"kind": string,"language": string,"org_id": string,"p256dh": string,"payload": Json,"plant_id": string,"plant_name": string,"subscription_id": string,"user_id": string
             }[]
                            },
+"complete_task":
+{ Args: { "p_note"?: string,"p_task_id": string }; Returns: Database["public"]['CompositeTypes']["task_result"]
+                          SetofOptions: {
+        from: "*"
+        to: "task_result"
+        isOneToOne: true
+        isSetofReturn: false
+      } },
 "copy_load_out_from":
 { Args: { "p_from_date": string,"p_plant_id": string,"p_to_date": string }; Returns: number
                            },
@@ -1343,6 +1371,14 @@ isOneToOne: false
                           SetofOptions: {
         from: "*"
         to: "queue_items"
+        isOneToOne: true
+        isSetofReturn: false
+      } },
+"create_task":
+{ Args: { "p_assignee_user_id"?: string,"p_body": string,"p_client_id": string,"p_plant_id": string }; Returns: Database["public"]['CompositeTypes']["task_result"]
+                          SetofOptions: {
+        from: "*"
+        to: "task_result"
         isOneToOne: true
         isSetofReturn: false
       } },
@@ -1408,6 +1444,14 @@ isOneToOne: false
 "get_shift_report":
 { Args: { "p_shift_instance_id": string }; Returns: Json
                            },
+"get_tasks":
+{ Args: { "p_include_done"?: boolean,"p_plant_id": string }; Returns: Database["public"]['CompositeTypes']["task_result"][]
+                          SetofOptions: {
+        from: "*"
+        to: "task_result"
+        isOneToOne: false
+        isSetofReturn: true
+      } },
 "get_wash_group_pace":
 { Args: { "p_plant_id": string,"p_production_date"?: string }; Returns: {
               "backlog_loads_approx": number,"color_hex": string,"estimate_age_minutes": number,"estimate_entered_at": string,"estimate_freshness": string,"estimate_loads": number,"estimate_qty": number,"estimate_unit": "load"|"basket"|"bin"|"piece"|"pack","last_load_at": string,"loads_run": number,"production_date": string,"queue_items_without_load_count": number,"queue_loads_remaining": number,"queue_open_items": number,"rewash_loads": number,"server_time": string,"ships_next_morning": boolean,"sort_order": number,"standard_loads": number,"standard_loads_since_estimate": number,"wash_group_id": string,"wash_group_name": string,"wash_group_name_i18n": Json
@@ -1681,6 +1725,8 @@ isOneToOne: false
                         "event_id": string | null,"route_id": string | null,"load_date": string | null,"loaded": boolean | null,"since": string | null,"changed": boolean | null
                       },"staff_session_result": {
                         "staff_session_id": string | null,"error": string | null,"locked_until": string | null,"expires_at": string | null
+                      },"task_result": {
+                        "task_id": string | null,"plant_id": string | null,"body": string | null,"to_on_duty": boolean | null,"assignee_user_ids": (string)[] | null,"created_at": string | null,"done_at": string | null,"done_note": string | null,"duplicate": boolean | null
                       },"washer_load_result": {
                         "cycle_id": string | null,"machine_id": string | null,"area_id": string | null,"wash_group_id": string | null,"wash_formula_id": string | null,"queue_item_id": string | null,"is_rewash": boolean | null,"started_at": string | null,"expected_end_at": string | null,"shift_instance_id": string | null,"production_date": string | null,"voided_at": string | null,"queue_status": "queued"|"in_progress"|"done"|"cancelled" | null,"queue_version": number | null,"loads_started": number | null,"loads_needed": number | null,"duplicate": boolean | null
                       }
