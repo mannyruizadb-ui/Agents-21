@@ -314,7 +314,13 @@
       "pick": "Elige qué le pasa.",
       "details": "Describe el problema en el cuadro.",
       "tooLong": "Muy largo. Usa como máximo {{max}} caracteres."
-    }
+    },
+    "downCount_one": "{{count}} fuera",
+    "downCount_other": "{{count}} fuera",
+    "allUp": "Todo funciona",
+    "outFor": "Fuera desde hace",
+    "downSinceTime": "Fuera de servicio desde las {{time}}",
+    "reportTitle": "Reportar una máquina fuera de servicio"
   },
   "rewash": {
     "title": "Agregar relavado",

@@ -314,7 +314,13 @@
       "pick": "Choose what's wrong.",
       "details": "Describe the problem in the box.",
       "tooLong": "Too long. Use at most {{max}} characters."
-    }
+    },
+    "downCount_one": "{{count}} down",
+    "downCount_other": "{{count}} down",
+    "allUp": "All working",
+    "outFor": "Out for",
+    "downSinceTime": "Down since {{time}}",
+    "reportTitle": "Report a machine out of service"
   },
   "rewash": {
     "title": "Add rewash",

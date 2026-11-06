@@ -439,6 +439,8 @@ body:has(.station) {
   align-items: center;
   gap: 0.5rem;
   font-size: 1.125rem;
+}
+.station .down-title {
   text-transform: uppercase;
 }
 .washer-card.status-down {
@@ -675,4 +677,155 @@ body:has(.station) {
 .station .down-title {
   color: var(--c-danger-text);
   font-family: var(--font-head);
+}
+
+/* Machine down screen (redesign 2026-11-06): per-area chips, one striped card per down machine with
+   an "out for" timer, then the report form. Real data only: no severity, technician, ETA or orders. */
+.md-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-sm);
+}
+.md-head h1 {
+  margin: 0;
+}
+.form-page .md-areas {
+  list-style: none;
+  padding: 0;
+  margin: var(--sp-sm) 0 var(--sp-md);
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 9.5rem), 1fr));
+  gap: var(--sp-sm);
+}
+.form-page .md-areas li {
+  display: grid;
+  gap: 0.2rem;
+  padding: var(--sp-sm) var(--sp-md);
+  border: 1px solid var(--c-seam);
+  border-radius: var(--radius);
+  background: var(--c-surface);
+}
+.form-page .md-areas li.down {
+  border: 2px solid var(--c-danger);
+}
+.md-area-name {
+  font-family: var(--font-head);
+  font-weight: 700;
+  font-size: var(--fs-lg);
+}
+.md-area-state {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3em;
+  color: var(--c-text-muted);
+  font-size: var(--fs-sm);
+}
+.md-area-state.danger {
+  color: var(--c-danger-text);
+  font-weight: 700;
+}
+.md-none {
+  display: flex;
+  align-items: center;
+  gap: 0.4em;
+  color: var(--c-text-muted);
+}
+.form-page .md-list {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 var(--sp-lg);
+  display: grid;
+  gap: var(--sp-md);
+}
+.form-page .md-card {
+  padding: var(--sp-md);
+  border: 3px dashed var(--c-danger);
+  border-radius: var(--radius-lg);
+  background-color: var(--c-danger-container);
+}
+.form-page .md-card.focus {
+  outline: 3px solid var(--c-focus);
+  outline-offset: 2px;
+}
+.md-card-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--sp-sm);
+}
+.form-page .md-card h3 {
+  margin: 0;
+  font-size: var(--fs-h-lg);
+  line-height: 1.1;
+}
+.form-page .md-card p {
+  margin: 0.2rem 0;
+}
+.form-page .md-area {
+  color: var(--c-text-muted);
+}
+.md-out {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.25rem var(--sp-sm);
+  margin: var(--sp-sm) 0;
+  padding: var(--sp-sm) var(--sp-md);
+  border-radius: var(--radius);
+  background: var(--c-surface-lowest);
+}
+.md-out-label {
+  color: var(--c-text-muted);
+  font-weight: 600;
+}
+.md-out-time {
+  font-size: var(--fs-timer);
+  font-weight: 700;
+  color: var(--c-danger-text);
+}
+.form-page .md-reason {
+  font-weight: 700;
+  font-size: var(--fs-lg);
+  color: var(--c-danger-text);
+}
+.form-page .md-detail {
+  overflow-wrap: anywhere;
+}
+.form-page .md-since {
+  color: var(--c-text-muted);
+  font-size: var(--fs-sm);
+}
+.form-page .md-fixed {
+  width: 100%;
+  min-height: var(--target);
+  margin-top: var(--sp-sm);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  color: var(--c-info-text);
+  background: var(--c-info-container);
+  border: 2px solid var(--c-info);
+}
+.form-page .md-card .confirm-box .actions .md-fixed {
+  width: auto;
+}
+.md-report {
+  margin: var(--sp-md) 0;
+  padding: var(--sp-md);
+  border: 2px solid var(--c-seam);
+  border-radius: var(--radius-lg);
+  background: var(--c-surface);
+}
+.form-page .md-report h2 {
+  margin-top: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.4em;
+}
+.form-page .md-mark {
+  width: 100%;
+  min-height: 64px;
 }
