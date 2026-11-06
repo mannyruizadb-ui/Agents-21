@@ -1,9 +1,10 @@
-// send-alerts: delivers machine-down Web Push notifications (owner 2026-11-04/05; push approved).
+// send-alerts: delivers Web Push notifications for every push alert kind (machine_down, washer_idle;
+// task and route kinds next). Owner 2026-11-04/05/06; push approved.
 // Called only by pg_cron (app.dispatch_send_alerts via pg_net) with `Authorization: Bearer <secret>`;
 // the gateway does not verify a JWT for this function (config.toml verify_jwt = false), so the
 // shared secret IS the authorization, compared in constant time before anything else happens.
 //
-// Flow: claim_push_alerts() (atomic, at most once) → one push per subscription → revoke 404/410
+// Flow: claim_push_notifications() (atomic, at most once; every push kind) → one push per subscription → revoke 404/410
 // subscriptions → mark_push_alert_delivered() for EVERY claimed alert, failures included.
 // Responses land in net._http_response, so bodies hold counts only. Never logs secrets, keys,
 // endpoints or request bodies; the request body is not read at all.
@@ -32,7 +33,7 @@ async function vapidKeys(pub: string, priv: string): Promise<CryptoKeyPair> {
 function realDeps(service: SupabaseClient, send: Deps['send']): Deps {
   return {
     async claim() {
-      const { data, error } = await service.rpc('claim_push_alerts');
+      const { data, error } = await service.rpc('claim_push_notifications');
       if (error) throw new Error('claim_failed');
       return (data ?? []) as ClaimedRow[];
     },
