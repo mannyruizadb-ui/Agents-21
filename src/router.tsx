@@ -12,9 +12,16 @@ export const router = createBrowserRouter([
     path: '/control',
     lazy: async () => ({ Component: (await import('./app/control/ControlRoute')).ControlRoute }),
     children: [
+      // The washer board is the home tab (owner-approved design 2026-11-06).
+      { index: true, element: <Navigate to="washers" replace /> },
       {
-        index: true,
+        // "More": everything that isn't a bottom-nav tab (the former Control home).
+        path: 'more',
         lazy: async () => ({ Component: (await import('./app/control/ControlHome')).ControlHome }),
+      },
+      {
+        path: 'alerts',
+        lazy: async () => ({ Component: (await import('./app/control/AlertsPage')).AlertsPage }),
       },
       {
         // Owner only (PRD A4). The page shows nothing manageable to others, and manage-users

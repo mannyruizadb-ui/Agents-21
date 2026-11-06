@@ -1,15 +1,18 @@
-/* Shared form styles for the control surface (PRD §6.3): targets ≥ 48 px, body ≥ 16 px,
-   visible labels, works at 360 px wide and at 200% text size. Scoped to .form-page. */
+/* Shared page styles for the control surface, on the design tokens (src/lib/theme.css): dark theme,
+   targets ≥ 48 px (≥ 56 px on entry screens), body ≥ 16 px, nothing under 14 px, works at 360 px wide
+   and at 200% text size. Scoped to .form-page. */
 .form-page {
   box-sizing: border-box;
-  max-width: 36rem;
+  max-width: 40rem;
   margin: 0 auto;
-  padding: 16px;
-  font-family: system-ui, sans-serif;
-  font-size: 1rem;
+  padding: var(--sp-md) var(--sp-md) calc(var(--nav-h) + var(--sp-lg));
+  font-family: var(--font-body);
+  font-size: var(--fs-md);
   line-height: 1.5;
-  color: #111;
-  background: #fff;
+  color: var(--c-text);
+  background: var(--c-bg);
+  min-height: 100vh;
+  min-height: 100dvh;
 }
 .form-page *,
 .form-page *::before,
@@ -17,98 +20,132 @@
   box-sizing: inherit;
 }
 .form-page h1 {
-  font-size: 1.75rem;
-  margin: 0 0 1rem;
+  font-family: var(--font-head);
+  font-weight: 700;
+  font-size: var(--fs-h-lg);
+  line-height: 1.15;
+  letter-spacing: 0.02em;
+  margin: 0 0 var(--sp-md);
 }
 .form-page h2 {
-  font-size: 1.375rem;
-  margin: 1.5rem 0 0.75rem;
+  font-family: var(--font-head);
+  font-weight: 700;
+  font-size: var(--fs-h-md);
+  line-height: 1.2;
+  letter-spacing: 0.02em;
+  margin: var(--sp-lg) 0 var(--sp-sm);
+}
+.form-page a {
+  color: var(--c-info-text);
 }
 .form-page .field {
-  margin-bottom: 1rem;
+  margin-bottom: var(--sp-md);
 }
 .form-page label {
   display: block;
   font-weight: 600;
-  margin-bottom: 0.25rem;
+  margin-bottom: var(--sp-xs);
 }
 .form-page .check label {
   display: flex;
   align-items: center;
   gap: 0.75rem;
   min-height: 48px;
-  font-weight: 400;
+  font-weight: 500;
 }
 .form-page input[type='checkbox'] {
   width: 28px;
   height: 28px;
   flex: none;
+  accent-color: var(--c-info);
 }
 .form-page input:not([type='checkbox']),
-.form-page select {
+.form-page select,
+.form-page textarea {
   width: 100%;
   min-height: 48px;
   padding: 0.5rem 0.75rem;
-  font-size: 1.125rem;
-  border: 2px solid #555;
-  border-radius: 6px;
-  background: #fff;
-  color: #111;
+  font: inherit;
+  font-size: var(--fs-lg);
+  color: var(--c-text);
+  background: var(--c-surface-lowest);
+  border: 2px solid var(--c-outline);
+  border-radius: var(--radius);
+}
+.form-page input:focus,
+.form-page select:focus,
+.form-page textarea:focus {
+  border-color: var(--c-info);
+}
+.form-page input[aria-invalid='true'] {
+  border-color: var(--c-danger);
 }
 .form-page button,
 .form-page .button-link {
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  gap: var(--sp-sm);
   min-height: 48px;
   min-width: 48px;
   padding: 0.5rem 1rem;
-  font-size: 1.0625rem;
-  font-weight: 600;
-  border: 2px solid #1f3a8a;
-  border-radius: 6px;
-  background: #1f3a8a;
-  color: #fff;
+  font-family: var(--font-body);
+  font-size: var(--fs-md);
+  font-weight: 700;
+  color: var(--c-text-inverse);
+  background: var(--c-info-text);
+  border: 2px solid var(--c-info-text);
+  border-bottom-width: 4px;
+  border-radius: var(--radius);
   text-decoration: none;
   cursor: pointer;
 }
+.form-page button:active:not(:disabled) {
+  transform: translateY(2px);
+}
 .form-page button.secondary,
 .form-page .button-link.secondary {
-  background: #fff;
-  color: #1f3a8a;
+  color: var(--c-text);
+  background: var(--c-surface-high);
+  border-color: var(--c-outline);
 }
 .form-page button.danger {
-  background: #8b0000;
-  border-color: #8b0000;
+  color: var(--c-danger-text);
+  background: var(--c-danger-container);
+  border-color: var(--c-danger);
 }
 .form-page button:disabled {
-  opacity: 0.6;
+  opacity: 0.5;
   cursor: not-allowed;
-}
-.form-page :focus-visible {
-  outline: 3px solid #b45309;
-  outline-offset: 2px;
 }
 .form-page .actions {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
-  margin-top: 0.5rem;
+  gap: var(--sp-sm);
+  margin-top: var(--sp-sm);
 }
 .form-page .hint {
-  font-size: 0.9375rem;
-  color: #333;
-  margin: 0.25rem 0 0;
+  font-size: var(--fs-sm);
+  color: var(--c-text-muted);
+  margin: var(--sp-xs) 0 0;
 }
 .form-page .error {
-  color: #8b0000;
+  color: var(--c-danger-text);
   font-weight: 600;
 }
+.form-page .notice {
+  border: 2px solid var(--c-info);
+  border-radius: var(--radius);
+  padding: var(--sp-sm) 0.75rem;
+  background: var(--c-info-container);
+  color: var(--c-text);
+}
 .form-page .card {
-  border: 2px solid #ccc;
-  border-radius: 8px;
-  padding: 0.75rem 1rem;
+  border: 1px solid var(--c-seam);
+  border-radius: var(--radius-lg);
+  padding: 0.75rem var(--sp-md);
   margin-bottom: 0.75rem;
+  background: var(--c-surface);
 }
 .form-page .people {
   list-style: none;
@@ -116,32 +153,32 @@
   margin: 0;
 }
 .form-page .secret {
-  border: 3px solid #b45309;
-  border-radius: 8px;
-  padding: 1rem;
-  margin-bottom: 1.5rem;
-  background: #fff8eb;
+  border: 3px solid var(--c-warn);
+  border-radius: var(--radius-lg);
+  padding: var(--sp-md);
+  margin-bottom: var(--sp-lg);
+  background: var(--c-warn-container);
 }
 .form-page .secret-value {
   display: block;
-  font-family: ui-monospace, Menlo, Consolas, monospace;
-  font-size: 1.75rem;
+  font-family: var(--font-mono);
+  font-size: var(--fs-h-lg);
   font-weight: 700;
   letter-spacing: 0.05em;
   word-break: break-all;
   user-select: all;
-  margin: 0.5rem 0;
+  margin: var(--sp-sm) 0;
+}
+.form-page .shift-variants {
+  margin: 0 0 var(--sp-xs) 2.5rem;
+  padding: 0;
+  list-style: none;
 }
 
-/* ── Dark, high-contrast theme (matches the planned wall-TV look). Every text/background pair is
-   ≥ 7:1: white on #0b0f14 = 19.2, #c9d1d9 hint = 12.5, #ffd60a accent = 13.6, black on the
-   #ffd60a button = 14.9, #ff8a8a error = 8.5. Errors also carry an icon + text (never color only). */
+/* Sign-in and password pages: the same dark theme, a narrower column, bigger inputs. */
 .form-page.theme-dark {
   max-width: none;
-  min-height: 100vh;
-  min-height: 100dvh;
-  color: #fff;
-  background: #0b0f14;
+  padding-bottom: var(--sp-lg);
 }
 .form-page.theme-dark > * {
   max-width: 32rem;
@@ -149,60 +186,36 @@
   margin-right: auto;
 }
 .theme-dark h1 {
-  font-size: 1.875rem;
-  margin-top: 1.5rem;
+  margin-top: var(--sp-lg);
 }
 .theme-dark label,
 .theme-dark .language-switch-label {
-  color: #fff;
-  font-size: 1.125rem;
-}
-.theme-dark .hint {
-  color: #c9d1d9;
+  font-size: var(--fs-lg);
 }
 .theme-dark input:not([type='checkbox']) {
-  min-height: 56px;
+  min-height: var(--target);
   font-size: 1.25rem;
-  color: #fff;
-  background: #000;
-  border: 2px solid #fff;
-}
-.theme-dark input[type='checkbox'] {
-  accent-color: #ffd60a;
 }
 .theme-dark button {
-  min-height: 56px;
-  font-size: 1.125rem;
-  color: #000;
-  background: #ffd60a;
-  border-color: #ffd60a;
+  min-height: var(--target);
+  font-size: var(--fs-lg);
 }
 .theme-dark button[type='submit'] {
   width: 100%;
 }
-.theme-dark button.secondary {
-  color: #fff;
-  background: transparent;
-  border-color: #fff;
-}
-.theme-dark :focus-visible {
-  outline: 3px solid #ffd60a;
-  outline-offset: 3px;
-}
 .theme-dark .error {
-  color: #ff8a8a;
-  font-size: 1.125rem;
+  font-size: var(--fs-lg);
 }
 .theme-dark .error-icon {
-  margin-right: 0.5rem;
+  margin-right: var(--sp-sm);
 }
 .brand {
   display: flex;
   align-items: center;
-  gap: 1rem;
-  padding-bottom: 1rem;
-  border-bottom: 2px solid #ffd60a;
-  margin-bottom: 1rem;
+  gap: var(--sp-md);
+  padding-bottom: var(--sp-md);
+  border-bottom: 2px solid var(--c-warn);
+  margin-bottom: var(--sp-md);
 }
 .brand-logo-slot {
   flex: none;
@@ -211,38 +224,32 @@
   justify-content: center;
   width: 72px;
   height: 72px;
-  border: 2px dashed #ffd60a;
-  border-radius: 12px;
-  color: #ffd60a;
-  font-weight: 800;
-  font-size: 1.25rem;
+  border: 2px dashed var(--c-warn);
+  border-radius: var(--radius-lg);
+  color: var(--c-warn);
+  font-family: var(--font-head);
+  font-weight: 700;
+  font-size: var(--fs-h-md);
 }
 .brand p {
   margin: 0;
 }
 .brand-company {
-  font-size: 1.375rem;
-  font-weight: 800;
+  font-family: var(--font-head);
+  font-size: var(--fs-h-md);
+  font-weight: 700;
   line-height: 1.2;
 }
 .brand-product {
-  font-size: 1.125rem;
-  color: #ffd60a;
+  font-family: var(--font-mono);
+  font-size: var(--fs-md);
+  color: var(--c-warn);
   font-weight: 700;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.06em;
 }
 .language-switch .actions {
-  margin-top: 0.25rem;
+  margin-top: var(--sp-xs);
 }
-/* No white frame around full-bleed pages (browser default body margin). */
 body:has(.form-page) {
   margin: 0;
-}
-body:has(.theme-dark) {
-  background: #0b0f14;
-}
-.form-page .shift-variants {
-  margin: 0 0 0.25rem 2.5rem;
-  padding: 0;
-  list-style: none;
 }

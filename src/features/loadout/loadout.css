@@ -12,7 +12,7 @@
   margin: 0.75rem 0;
 }
 .form-page .lo-route {
-  border: 2px solid #999;
+  border: 2px solid var(--c-outline);
   border-radius: 10px;
   padding: 0.5rem 0.75rem 0.75rem;
   margin: 0;
@@ -52,7 +52,7 @@
   font-size: 1.25rem;
 }
 .lo-special-form {
-  border-top: 1px solid #bbb;
+  border-top: 1px solid var(--c-seam);
   padding-top: 0.5rem;
 }
 .lo-date {
@@ -66,23 +66,23 @@
   gap: 0.5rem;
   font-size: 1.375rem;
   font-weight: 800;
-  border: 3px solid #1f3a8a;
+  border: 3px solid var(--c-info);
   border-radius: 10px;
   padding: 0.5rem 0.75rem;
 }
 .lo-countdown.late {
-  border-color: #8b0000;
-  color: #5c0000;
-  background: #fff0f0;
+  border-color: var(--c-danger);
+  color: var(--c-danger-text);
+  background: var(--c-danger-container);
 }
 .form-page .lo-board-card {
-  border: 3px solid #999;
+  border: 3px solid var(--c-outline);
   border-radius: 10px;
   padding: 0.75rem;
 }
 .form-page .lo-board-card.loaded {
-  border-color: #146c2e;
-  background: #ecf8ef;
+  border-color: var(--c-info);
+  background: var(--c-info-container);
 }
 .lo-board-card h2 {
   margin: 0 0 0.5rem;
@@ -101,15 +101,15 @@
   justify-content: space-between;
   gap: 0.75rem;
   padding: 0.25rem 0;
-  border-bottom: 1px solid #ddd;
+  border-bottom: 1px solid var(--c-seam);
   font-size: 1.125rem;
 }
 .form-page .lo-loaded-button {
   width: 100%;
   min-height: 72px;
   font-size: 1.5rem;
-  background: #146c2e;
-  border-color: #146c2e;
+  background: var(--c-info-container);
+  border-color: var(--c-info);
 }
 .lo-done {
   display: flex;
@@ -121,5 +121,5 @@
 .lo-done p {
   margin: 0;
   font-size: 1.125rem;
-  color: #0b3d1b;
+  color: var(--c-info-text);
 }

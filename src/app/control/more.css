@@ -1,0 +1,26 @@
+.form-page .more-menu {
+  list-style: none;
+  margin: 0 0 var(--sp-md);
+  padding: 0;
+  border: 1px solid var(--c-seam);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+.form-page .more-menu li + li {
+  border-top: 1px solid var(--c-seam);
+}
+.form-page .more-menu a {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: var(--target);
+  padding: 0 var(--sp-md);
+  color: var(--c-text);
+  background: var(--c-surface);
+  text-decoration: none;
+  font-size: var(--fs-lg);
+  font-weight: 600;
+}
+.form-page .more-menu li:nth-child(even) a {
+  background: var(--c-surface-low);
+}

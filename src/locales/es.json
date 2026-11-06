@@ -601,5 +601,21 @@
     "errors": {
       "text": "Escribe la tarea (de 1 a {{max}} caracteres)."
     }
+  },
+  "nav": {
+    "label": "Principal",
+    "washers": "Lavadoras",
+    "queue": "Cola",
+    "loadOut": "Carga",
+    "alerts": "Alertas",
+    "estimates": "Estimados",
+    "tasks": "Tareas",
+    "more": "Más"
+  },
+  "alerts": {
+    "placeholder": "Las alertas llegan como notificaciones a este teléfono (actívalas en Más). Pronto habrá una lista de las alertas recientes.",
+    "kindMachine": "Una máquina queda fuera de servicio",
+    "kindRoute": "Una ruta se marca cargada",
+    "kindTask": "Se termina una tarea"
   }
 }

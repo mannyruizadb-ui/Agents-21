@@ -1,6 +1,7 @@
 import { Link } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import { SignOutButton } from '../auth/SignOutButton';
+import { LanguageSwitch } from '../auth/LanguageSwitch';
 import { useRequiredSession } from '../auth/sessionContext';
 import { useOwnerPlants } from '../../features/admin/useOwnerPlants';
 import { NotificationsCard } from '../../features/notifications/NotificationsCard';
@@ -9,6 +10,10 @@ import { useAreas } from '../../features/washroom/washroomData';
 import { TapAlarmBanner } from '../../features/washroom/TapAlarmBanner';
 import { MyTaskCount } from '../../features/tasks/MyTaskCount';
 import '../../lib/forms.css';
+import './more.css';
+
+// "More" (bottom-nav tab): every screen that isn't a tab, notifications, language and sign-out.
+// Route: /control/more (the washer board is the home tab).
 
 export function ControlHome() {
   const { t } = useTranslation();
@@ -17,51 +22,46 @@ export function ControlHome() {
   const areas = useAreas();
   const plantId = areas.data?.[0]?.plant_id;
   const roles = useMyRoles(session.user.id).rolesFor(plantId);
+  const isOwner = (ownerPlants.data?.length ?? 0) > 0 || roles.has('owner');
+  const isManager = !isOwner && roles.has('manager');
   // Machine-down alerts go to owners and managers (owner 2026-11-04).
   const canGetAlerts = !!plantId && (roles.has('owner') || roles.has('manager'));
 
+  const links: { to: string; label: string; show: boolean }[] = [
+    { to: '/control/tasks', label: isOwner ? t('tasks.title') : t('tasks.myTitle'), show: isOwner },
+    { to: '/control/estimates', label: t('control.estimates'), show: !isManager },
+    { to: '/control/queue', label: t('control.queue'), show: isManager },
+    { to: '/control/machines', label: t('machines.linkLabel'), show: true },
+    { to: '/control/load-out/entry', label: t('loadOut.entryTitle'), show: isOwner || isManager },
+    { to: '/control/people', label: t('people.title'), show: isOwner },
+    { to: '/control/setup/machines', label: t('setup.machines.title'), show: isOwner },
+    { to: '/control/setup/reasons', label: t('setup.reasons.title'), show: isOwner },
+  ];
+
   return (
     <main className="form-page">
-      <h1>{t('app.name')}</h1>
+      <h1>{t('nav.more')}</h1>
       <TapAlarmBanner />
-      {plantId && !roles.has('owner') && roles.has('manager') && <MyTaskCount plantId={plantId} />}
-      <p>{t('control.placeholder')}</p>
+      {plantId && isManager && <MyTaskCount plantId={plantId} />}
+      <ul className="more-menu">
+        {links
+          .filter((l) => l.show)
+          .map((l) => (
+            <li key={l.to}>
+              <Link to={l.to}>
+                <span>{l.label}</span>
+                <span aria-hidden="true">›</span>
+              </Link>
+            </li>
+          ))}
+      </ul>
+      {canGetAlerts && plantId && <NotificationsCard plantId={plantId} />}
+      <section className="card">
+        <LanguageSwitch />
+      </section>
       <div className="actions">
-        <Link className="button-link" to="/control/washers">
-          {t('control.washerBoard')}
-        </Link>
-        <Link className="button-link" to="/control/estimates">
-          {t('control.estimates')}
-        </Link>
-        <Link className="button-link" to="/control/queue">
-          {t('control.queue')}
-        </Link>
-        {(roles.has('owner') || roles.has('manager')) && (
-          <Link className="button-link" to="/control/tasks">
-            {roles.has('owner') ? t('tasks.title') : t('tasks.myTitle')}
-          </Link>
-        )}
-        <Link className="button-link" to="/control/load-out">
-          {t('loadOut.boardTitle')}
-        </Link>
-        {(ownerPlants.data?.length ?? 0) > 0 && (
-          <Link className="button-link" to="/control/people">
-            {t('people.title')}
-          </Link>
-        )}
-        {(ownerPlants.data?.length ?? 0) > 0 && (
-          <Link className="button-link" to="/control/setup/machines">
-            {t('setup.machines.title')}
-          </Link>
-        )}
-        {(ownerPlants.data?.length ?? 0) > 0 && (
-          <Link className="button-link" to="/control/setup/reasons">
-            {t('setup.reasons.title')}
-          </Link>
-        )}
         <SignOutButton />
       </div>
-      {canGetAlerts && plantId && <NotificationsCard plantId={plantId} />}
     </main>
   );
 }

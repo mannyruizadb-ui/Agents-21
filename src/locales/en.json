@@ -601,5 +601,21 @@
     "errors": {
       "text": "Type the task (1 to {{max}} characters)."
     }
+  },
+  "nav": {
+    "label": "Main",
+    "washers": "Washers",
+    "queue": "Queue",
+    "loadOut": "Load-out",
+    "alerts": "Alerts",
+    "estimates": "Estimates",
+    "tasks": "Tasks",
+    "more": "More"
+  },
+  "alerts": {
+    "placeholder": "Alerts arrive as notifications on this phone (turn them on under More). A list of recent alerts is coming soon.",
+    "kindMachine": "A machine goes out of service",
+    "kindRoute": "A route is marked loaded",
+    "kindTask": "A task is done"
   }
 }

@@ -1,0 +1,70 @@
+/* Bottom nav: fixed, dark, ≥ 56 px tabs, icon + word, count badges (never color alone). */
+.app-nav {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 20;
+  display: flex;
+  min-height: var(--nav-h);
+  padding-bottom: env(safe-area-inset-bottom);
+  background: var(--c-surface-lowest);
+  border-top: 1px solid var(--c-seam);
+}
+.nav-tab {
+  flex: 1 1 0;
+  min-width: 0;
+  min-height: var(--nav-h);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  color: var(--c-text-muted);
+  text-decoration: none;
+  font-family: var(--font-body);
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  border-top: 3px solid transparent;
+}
+.nav-tab.active {
+  /* Not green: green means running/OK only (owner rule). Active = info blue + top bar + bold. */
+  color: var(--c-info-text);
+  background: var(--c-surface-high);
+  border-top-color: var(--c-info-text);
+  font-weight: 700;
+}
+.nav-icon {
+  position: relative;
+  display: inline-flex;
+}
+.nav-badge {
+  position: absolute;
+  top: -6px;
+  right: -12px;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 5px;
+  border-radius: 9999px;
+  background: var(--c-warn);
+  color: var(--c-text-inverse);
+  font-family: var(--font-mono);
+  font-size: 0.875rem;
+  font-weight: 700;
+  line-height: 20px;
+  text-align: center;
+}
+.nav-label {
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  text-align: center;
+  line-height: 1.1;
+}
+.app-nav .visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}

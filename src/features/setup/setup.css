@@ -7,13 +7,13 @@
   gap: 0.5rem;
 }
 .form-page .setup-row {
-  border: 2px solid #999;
+  border: 2px solid var(--c-outline);
   border-radius: 8px;
   padding: 0.5rem 0.75rem;
 }
 .form-page .setup-row.inactive {
   border-style: dashed;
-  background: #f4f4f4;
+  background: var(--c-surface-high);
 }
 .setup-row-head {
   display: flex;
@@ -27,16 +27,16 @@
 }
 .setup-editor {
   margin-top: 0.5rem;
-  border-top: 1px solid #bbb;
+  border-top: 1px solid var(--c-seam);
   padding-top: 0.5rem;
 }
 .badge.setup-off {
   margin-left: 0.5rem;
-  color: #333;
-  background: #e8e8e8;
+  color: var(--c-text-muted);
+  background: var(--c-surface-high);
 }
 .badge.setup-fixed {
   margin-left: 0.5rem;
-  color: #1f3a8a;
-  background: #eef3ff;
+  color: var(--c-info-text);
+  background: var(--c-info-container);
 }

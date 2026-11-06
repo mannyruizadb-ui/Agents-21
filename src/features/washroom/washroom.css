@@ -46,16 +46,16 @@
   white-space: nowrap;
 }
 .badge-rush {
-  color: #7a1500;
-  background: #fff1ec;
+  color: var(--c-warn);
+  background: var(--c-warn-container);
 }
 .badge-rewash {
-  color: #3b2a8c;
-  background: #f1eeff;
+  color: var(--c-info-text);
+  background: var(--c-info-container);
 }
 .badge-pin {
-  color: #1f3a8a;
-  background: #eef3ff;
+  color: var(--c-info-text);
+  background: var(--c-info-container);
 }
 
 .data-age {
@@ -65,11 +65,11 @@
   gap: 0.25rem;
   margin: 0 0 0.75rem;
   font-size: 0.9375rem;
-  color: #333;
+  color: var(--c-text-muted);
 }
 .data-age-stale,
 .data-age-old {
-  color: #7a3e00;
+  color: var(--c-warn);
   font-weight: 700;
 }
 
@@ -89,7 +89,7 @@
   gap: 0.75rem;
 }
 .washer-card {
-  border: 3px solid #999;
+  border: 3px solid var(--c-outline);
   border-left-width: 10px;
   border-radius: 10px;
   padding: 0.75rem 1rem;
@@ -99,14 +99,14 @@
   font-size: 1.375rem;
 }
 .washer-card.status-running {
-  border-color: #1f3a8a;
+  border-color: var(--c-info);
 }
 .washer-card.status-ready {
-  border-color: #b45309;
-  background: #fffaf0;
+  border-color: var(--c-warn);
+  background: var(--c-warn-container);
 }
 .washer-card.status-idle {
-  border-color: #6b7280;
+  border-color: var(--c-outline);
 }
 .washer-card .status-line {
   font-size: 1.125rem;
@@ -128,7 +128,7 @@
   text-transform: uppercase;
   font-size: 0.875rem;
   padding-top: 0.2rem;
-  color: #333;
+  color: var(--c-text-muted);
 }
 .washer-card dd {
   margin: 0;
@@ -182,7 +182,7 @@ body:has(.station) {
   line-height: 1.1;
 }
 .station .data-age {
-  color: #c9d1d9;
+  color: var(--c-text-muted);
   font-size: 1.125rem;
   margin: 0;
 }
@@ -199,7 +199,7 @@ body:has(.station) {
   margin: 0 0 4px;
   font-size: 1.25rem;
   letter-spacing: 0.08em;
-  color: #c9d1d9;
+  color: var(--c-text-muted);
 }
 .station-now .group-label,
 .station-next .group-label {
@@ -225,7 +225,7 @@ body:has(.station) {
 }
 .station .meta {
   font-size: 1.25rem;
-  color: #c9d1d9;
+  color: var(--c-text-muted);
   margin: 6px 0 0;
   display: flex;
   flex-wrap: wrap;
@@ -362,7 +362,7 @@ body:has(.station) {
   gap: 0.75rem;
 }
 .queue-item {
-  border: 2px solid #999;
+  border: 2px solid var(--c-outline);
   border-radius: 10px;
   padding: 0.75rem;
 }
@@ -398,10 +398,10 @@ body:has(.station) {
   gap: 0.5rem;
 }
 .form-page .notice {
-  border: 2px solid #1f3a8a;
+  border: 2px solid var(--c-info);
   border-radius: 8px;
   padding: 0.5rem 0.75rem;
-  background: #eef3ff;
+  background: var(--c-info-container);
 }
 
 /* Board: the queue's next unassigned work, listed once. */
@@ -424,10 +424,10 @@ body:has(.station) {
 
 /* Machine down: wrench icon + "DOWN" text + reason; the striped border is extra, never the only cue. */
 .down-banner {
-  border: 3px dashed #8b0000;
+  border: 3px dashed var(--c-danger);
   border-radius: 10px;
-  background: #fff0f0;
-  color: #5c0000;
+  background: var(--c-danger-container);
+  color: var(--c-danger-text);
   padding: 0.5rem 0.75rem;
   margin: 0.5rem 0;
 }
@@ -442,7 +442,7 @@ body:has(.station) {
   text-transform: uppercase;
 }
 .washer-card.status-down {
-  border-color: #8b0000;
+  border-color: var(--c-danger);
   border-style: dashed;
 }
 .station .down-banner {
@@ -469,20 +469,20 @@ body:has(.station) {
   min-height: 56px;
 }
 .form-page .pick-list button[aria-pressed='true'] {
-  background: #1f3a8a;
+  background: var(--c-info-container);
   color: #fff;
-  outline: 3px solid #b45309;
+  outline: 3px solid var(--c-warn);
   outline-offset: 1px;
 }
 .form-page .pick-list button[aria-pressed='false'] {
-  background: #fff;
-  color: #1f3a8a;
+  background: var(--c-surface);
+  color: var(--c-info-text);
 }
 .form-page .confirm-box {
-  border: 3px solid #b45309;
+  border: 3px solid var(--c-warn);
   border-radius: 8px;
   padding: 0.75rem 1rem;
-  background: #fff8eb;
+  background: var(--c-warn-container);
 }
 .form-page textarea {
   width: 100%;
@@ -490,18 +490,18 @@ body:has(.station) {
   padding: 0.5rem 0.75rem;
   font: inherit;
   font-size: 1.125rem;
-  border: 2px solid #555;
+  border: 2px solid var(--c-outline);
   border-radius: 6px;
 }
 
 /* Late / unsent tap alarm: loud on purpose (icon + text + thick border), never color alone. */
 .tap-alarm {
-  border: 4px solid #8b0000;
+  border: 4px solid var(--c-danger);
   border-radius: 12px;
   padding: 12px 14px;
   margin: 0 0 12px;
-  background: #fff0f0;
-  color: #3d0000;
+  background: var(--c-danger-container);
+  color: var(--c-danger-text);
 }
 .tap-alarm ul {
   list-style: none;
@@ -530,9 +530,9 @@ body:has(.station) {
   font: inherit;
   font-weight: 700;
   border-radius: 8px;
-  border: 3px solid #8b0000;
-  background: #fff;
-  color: #8b0000;
+  border: 3px solid var(--c-danger);
+  background: var(--c-surface);
+  color: var(--c-danger-text);
   cursor: pointer;
 }
 .tap-alarm-dark {

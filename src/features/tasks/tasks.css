@@ -7,7 +7,7 @@
   gap: 0.75rem;
 }
 .form-page .task-card {
-  border: 2px solid #999;
+  border: 2px solid var(--c-outline);
   border-radius: 10px;
   padding: 0.75rem;
 }
@@ -15,11 +15,11 @@
   margin: 0.25rem 0;
 }
 .form-page .task-card.open {
-  border: 3px solid #b45309;
-  background: #fff8eb;
+  border: 3px solid var(--c-warn);
+  background: var(--c-warn-container);
 }
 .form-page .task-card.done {
-  border-color: #146c2e;
+  border-color: var(--c-info);
 }
 .task-body {
   font-size: 1.25rem;
@@ -36,10 +36,10 @@
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  border: 3px solid #b45309;
+  border: 3px solid var(--c-warn);
   border-radius: 10px;
   padding: 0.5rem 0.75rem;
-  background: #fff8eb;
+  background: var(--c-warn-container);
   font-weight: 700;
 }
 .task-pinned a {
