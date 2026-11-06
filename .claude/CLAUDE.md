@@ -119,7 +119,13 @@ Full context lives in these docs. Read the relevant one before non-trivial work;
     - "30 minutes behind": **both**: the late/unsent tap alarm (built) AND a load running behind (a washer done with no next load started while work waits). Threshold TBD.
   - **Load-out (owner 2026-11-06):** the office manager or the owner types each day's numbers into the app; it must be simple. Items that matter to the supervisor, shown on the pace/load-out board: **sheets, butcher coats, soil bags, special items (as needed)**. 4 routes.
   - VAPID public key is in `netlify.toml` (`VITE_VAPID_PUBLIC_KEY`; public by design). The Netlify MCP can't set env vars (403).
-  - Open: truck loading time; idle threshold (rec 15 min); manager on duty by shift schedule (rec); per route vs totals; units (packs or pieces, coat sizes); whether soil bags are a new item.
+  - Owner 2026-11-06 (round 2):
+    - Load sheets are printed by **Fulcrum** (export unknown; the owner checks for Excel/CSV).
+    - Trucks load at **03:30, 04:30, 05:00, 05:30** (4 routes).
+    - **Manager on duty = the shift schedule.**
+    - Washer idle with work waiting: alarm after **15 min**.
+    - Sheets are entered in **packs of 10**; butcher coats by size **M/L/XL**.
+  - Open: route names/order vs load times; soil bags (a new non-washed item?); pieces per load for sheets and coats (fill-in sheet).
 - **Pilot build progress (2026-11-04…05, now merged in PR #5):**
   - Screens:
     - washer board `/control/washers`, with "Next in queue" shown once;
