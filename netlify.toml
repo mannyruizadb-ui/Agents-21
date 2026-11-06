@@ -7,6 +7,10 @@
 
 [build.environment]
   NODE_VERSION = "22"
+  # Web Push VAPID PUBLIC key. Public by design (every browser receives it), so it is safe here.
+  # Its private half lives only in the send-alerts function secrets. Changing it breaks every
+  # saved subscription, so keep it in step with the VAPID_PUBLIC_KEY function secret.
+  VITE_VAPID_PUBLIC_KEY = "BNQ7lNE6Tn1lwSdSJYZ2KxvPJycXi4rbyzIcDWX1Zb0xiMLUgObPjoU74Nbyw4uCruJZK7PfLNwwBZkkXbYPHMo"
 
 # Single-page app: every route is served by index.html (React Router handles it).
 [[redirects]]

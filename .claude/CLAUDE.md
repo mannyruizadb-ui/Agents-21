@@ -117,7 +117,9 @@ Full context lives in these docs. Read the relevant one before non-trivial work;
     - Tasks re-notify every **10 minutes** until done.
     - **4 routes.** The office prints a daily route + master load sheet with each route's products and quantities. A **different manager** is on duty when the drivers load, so tasks and the load-out go to the manager on duty, not to a fixed person.
     - "30 minutes behind": **both**: the late/unsent tap alarm (built) AND a load running behind (a washer done with no next load started while work waits). Threshold TBD.
-  - Open: which program prints the load sheet (export?); truck loading time; idle threshold; how "manager on duty" is known.
+  - **Load-out (owner 2026-11-06):** the office manager or the owner types each day's numbers into the app; it must be simple. Items that matter to the supervisor, shown on the pace/load-out board: **sheets, butcher coats, soil bags, special items (as needed)**. 4 routes.
+  - VAPID public key is in `netlify.toml` (`VITE_VAPID_PUBLIC_KEY`; public by design). The Netlify MCP can't set env vars (403).
+  - Open: truck loading time; idle threshold (rec 15 min); manager on duty by shift schedule (rec); per route vs totals; units (packs or pieces, coat sizes); whether soil bags are a new item.
 - **Pilot build progress (2026-11-04…05, now merged in PR #5):**
   - Screens:
     - washer board `/control/washers`, with "Next in queue" shown once;
