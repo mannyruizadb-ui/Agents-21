@@ -1708,7 +1708,7 @@ isOneToOne: false
         isSetofReturn: false
       } },
 "start_washer_load":
-{ Args: { "p_client_id": string,"p_machine_id": string,"p_queue_item_id"?: string,"p_tapped_at"?: string,"p_wash_group_id"?: string }; Returns: Database["public"]['CompositeTypes']["washer_load_result"]
+{ Args: { "p_client_id": string,"p_confirm_running"?: boolean,"p_machine_id": string,"p_queue_item_id"?: string,"p_tapped_at"?: string,"p_wash_group_id"?: string }; Returns: Database["public"]['CompositeTypes']["washer_load_result"]
                           SetofOptions: {
         from: "*"
         to: "washer_load_result"

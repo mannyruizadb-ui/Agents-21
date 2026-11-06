@@ -132,7 +132,8 @@
     "rateLimited": "Demasiados cambios a la vez. Espera unos segundos e intenta de nuevo.",
     "network": "No hay conexión con el servidor. Revisa el Wi-Fi e intenta de nuevo.",
     "machineDown": "Esa lavadora está fuera de servicio. Elige otra, o márcala como arreglada primero.",
-    "pinAgain": "Hay que poner el PIN otra vez. Escríbelo y guarda."
+    "pinAgain": "Hay que poner el PIN otra vez. Escríbelo y guarda.",
+    "washerRunning": "Esta lavadora todavía está trabajando. Confirma para empezar otra carga."
   },
   "units": {
     "load_one": "{{n}} carga",
@@ -214,7 +215,12 @@
     "rejectTooLate": "Llegó al servidor más de 30 minutos tarde y no se puede contar. Avísale al gerente para que agregue la carga.",
     "rejectDown": "La lavadora estaba fuera de servicio a esa hora. Si de verdad lavó, avísale al gerente.",
     "downNoStart": "EMPEZAR está apagado mientras esta lavadora esté fuera de servicio. Márcala como arreglada cuando funcione.",
-    "undoCountdown": "DESHACER · {{count}} s"
+    "undoCountdown": "DESHACER · {{count}} s",
+    "stillRunningUntil": "{{washer}} sigue trabajando hasta las {{time}}.",
+    "stillRunning": "{{washer}} sigue trabajando.",
+    "startAnotherQ": "¿Empezar otra carga de todos modos? Solo si de verdad metiste una carga nueva.",
+    "startAnyway": "Empezar de todos modos",
+    "rejectRunning": "La lavadora todavía estaba trabajando, así que no se contó. Toca «Empezar de todos modos» solo si de verdad metiste una carga nueva."
   },
   "queue": {
     "rush": "URGENTE",

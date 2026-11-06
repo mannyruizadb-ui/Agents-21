@@ -58,3 +58,15 @@ describe('machine down and late taps', () => {
     expect(tapRejectedKey('VALIDATION_FAILED')).toBe('errors.validation');
   });
 });
+
+describe('WASHER_RUNNING (owner 2026-11-06)', () => {
+  it('is an app error that is not retried and has its own wording', async () => {
+    const { appErrorCode, isRetryable, errorMessageKey, tapRejectedKey } =
+      await import('./rpcError');
+    const e = { message: 'WASHER_RUNNING', details: 'machine_id: still running until …' };
+    expect(appErrorCode(e)).toBe('WASHER_RUNNING');
+    expect(isRetryable(e)).toBe(false);
+    expect(errorMessageKey(e)).toBe('errors.washerRunning');
+    expect(tapRejectedKey('WASHER_RUNNING')).toBe('station.rejectRunning');
+  });
+});

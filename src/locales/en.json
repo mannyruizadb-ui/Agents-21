@@ -132,7 +132,8 @@
     "rateLimited": "Too many changes at once. Wait a few seconds and try again.",
     "network": "Couldn't reach the server. Check the Wi-Fi and try again.",
     "machineDown": "That washer is marked down. Choose another washer, or mark it back up first.",
-    "pinAgain": "The PIN has to be entered again. Enter it and save."
+    "pinAgain": "The PIN has to be entered again. Enter it and save.",
+    "washerRunning": "This washer is still running. Confirm to start another load."
   },
   "units": {
     "load_one": "{{n}} load",
@@ -214,7 +215,12 @@
     "rejectTooLate": "It reached the server more than 30 minutes late, so it can't be counted. Tell the manager so they can add the load.",
     "rejectDown": "The washer was marked down at that time. If it really ran, tell the manager.",
     "downNoStart": "START is off while this washer is down. Mark it back up when it's fixed.",
-    "undoCountdown": "UNDO · {{count}} s"
+    "undoCountdown": "UNDO · {{count}} s",
+    "stillRunningUntil": "{{washer}} is still running until {{time}}.",
+    "stillRunning": "{{washer}} is still running.",
+    "startAnotherQ": "Start another load anyway? Only if a new load really went in.",
+    "startAnyway": "Start anyway",
+    "rejectRunning": "The washer was still running, so it wasn't counted. Tap Start anyway only if a new load really went in."
   },
   "queue": {
     "rush": "RUSH",

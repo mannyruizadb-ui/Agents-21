@@ -12,6 +12,7 @@ export const APP_ERROR_CODES = [
   'RATE_LIMITED',
   'MACHINE_DOWN',
   'STAFF_SESSION_REQUIRED',
+  'WASHER_RUNNING',
 ] as const;
 
 export type AppErrorCode = (typeof APP_ERROR_CODES)[number];
@@ -85,6 +86,8 @@ export function errorMessageKey(e: unknown): string {
       return 'errors.machineDown';
     case 'STAFF_SESSION_REQUIRED':
       return 'errors.pinAgain';
+    case 'WASHER_RUNNING':
+      return 'errors.washerRunning';
     default:
       return 'errors.network';
   }
@@ -97,6 +100,7 @@ export function errorMessageKey(e: unknown): string {
 export function tapRejectedKey(code: string): string {
   if (code === 'OUT_OF_RANGE_TIMESTAMP') return 'station.rejectTooLate';
   if (code === 'MACHINE_DOWN') return 'station.rejectDown';
+  if (code === 'WASHER_RUNNING') return 'station.rejectRunning';
   return errorMessageKey({ message: code });
 }
 

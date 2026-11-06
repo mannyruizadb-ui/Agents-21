@@ -29,8 +29,13 @@ import {
 
 export type WasherLoadResult = Database['public']['CompositeTypes']['washer_load_result'];
 
-/** How long the station offers UNDO after a start (the server allows 30 minutes). */
+/**
+ * How long UNDO is offered after a start (owner 2026-11-06: the server allows 5 minutes). Owners and
+ * managers get almost all of it on their phones; anyone else (a shared washroom tablet) keeps 60 s,
+ * so a stray undo + restart on the floor can't hide a load. The 30 s margin covers the round trip.
+ */
 export const UNDO_WINDOW_MS = 60_000;
+export const MANAGER_UNDO_WINDOW_MS = 4.5 * 60_000;
 const RETRY_EVERY_MS = 15_000;
 
 export interface TapSnapshot {
@@ -107,6 +112,8 @@ async function sendTap(tap: PendingTap): Promise<SendOutcome<WasherLoadResult>> 
       // still starts the cycle when the washer was loaded. Older than 30 min → OUT_OF_RANGE_TIMESTAMP.
       p_tapped_at: tap.tappedAt,
       ...(tap.washGroupId ? { p_wash_group_id: tap.washGroupId } : {}),
+      // WASHER_RUNNING without it: a START on a washer that is still running needs a "yes" first.
+      ...(tap.confirmRunning ? { p_confirm_running: true } : {}),
     });
     if (res.error) {
       const e = toRpcError(res.error);
@@ -204,11 +211,22 @@ export function useTapSync() {
    * doesn't send a tap time in the future (the server allows at most 1 minute ahead).
    */
   const tap = useCallback(
-    (machineId: string, washGroupId: string | null, clockOffsetMs = 0): string => {
+    (
+      machineId: string,
+      washGroupId: string | null,
+      clockOffsetMs = 0,
+      confirmRunning = false,
+    ): string => {
       const clientId = crypto.randomUUID();
       addPending(
         userStore(userId),
-        newTap(machineId, washGroupId, clientId, new Date(Date.now() + clockOffsetMs)),
+        newTap(
+          machineId,
+          washGroupId,
+          clientId,
+          new Date(Date.now() + clockOffsetMs),
+          confirmRunning,
+        ),
       );
       refresh(userId);
       void flushTaps(userId, qc);
