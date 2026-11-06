@@ -34,6 +34,9 @@ export function ControlHome() {
         <Link className="button-link" to="/control/queue">
           {t('control.queue')}
         </Link>
+        <Link className="button-link" to="/control/load-out">
+          {t('loadOut.boardTitle')}
+        </Link>
         {(ownerPlants.data?.length ?? 0) > 0 && (
           <Link className="button-link" to="/control/people">
             {t('people.title')}

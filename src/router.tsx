@@ -39,6 +39,19 @@ export const router = createBrowserRouter([
         }),
       },
       {
+        // Load-out (owner 2026-11-06): the board for the manager on duty, the entry for the office.
+        path: 'load-out',
+        lazy: async () => ({
+          Component: (await import('./features/loadout/LoadOutBoardPage')).LoadOutBoardPage,
+        }),
+      },
+      {
+        path: 'load-out/entry',
+        lazy: async () => ({
+          Component: (await import('./features/loadout/LoadOutEntryPage')).LoadOutEntryPage,
+        }),
+      },
+      {
         // Owner Setup (owner 2026-11-05): machines and machine-down reasons are app data.
         path: 'setup/machines',
         lazy: async () => ({

@@ -1,0 +1,125 @@
+/* Load-out entry and board. Function first (visual design comes later from Stitch). Targets ≥ 56 px. */
+.form-page.lo-page {
+  max-width: 64rem;
+}
+.lo-routes,
+.form-page .lo-board {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 19rem), 1fr));
+  gap: 0.75rem;
+  list-style: none;
+  padding: 0;
+  margin: 0.75rem 0;
+}
+.form-page .lo-route {
+  border: 2px solid #999;
+  border-radius: 10px;
+  padding: 0.5rem 0.75rem 0.75rem;
+  margin: 0;
+  min-width: 0;
+}
+.form-page .lo-route legend {
+  font-weight: 800;
+  font-size: 1.25rem;
+  padding: 0 0.25rem;
+}
+.lo-cell {
+  margin: 0.5rem 0;
+}
+.lo-stepper {
+  display: grid;
+  grid-template-columns: 64px minmax(0, 1fr) 64px;
+  gap: 8px;
+}
+.form-page .lo-stepper button {
+  min-height: 56px;
+  font-size: 1.25rem;
+}
+.form-page .lo-stepper input {
+  min-height: 56px;
+  text-align: center;
+  font-size: 1.375rem;
+  font-weight: 700;
+}
+.form-page .lo-status {
+  min-height: 1.25em;
+  margin: 0.125rem 0 0;
+  font-size: 0.875rem;
+}
+.form-page .lo-copy {
+  width: 100%;
+  min-height: 64px;
+  font-size: 1.25rem;
+}
+.lo-special-form {
+  border-top: 1px solid #bbb;
+  padding-top: 0.5rem;
+}
+.lo-date {
+  font-size: 1.25rem;
+  font-weight: 700;
+  margin: 0 0 0.25rem;
+}
+.lo-countdown {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 1.375rem;
+  font-weight: 800;
+  border: 3px solid #1f3a8a;
+  border-radius: 10px;
+  padding: 0.5rem 0.75rem;
+}
+.lo-countdown.late {
+  border-color: #8b0000;
+  color: #5c0000;
+  background: #fff0f0;
+}
+.form-page .lo-board-card {
+  border: 3px solid #999;
+  border-radius: 10px;
+  padding: 0.75rem;
+}
+.form-page .lo-board-card.loaded {
+  border-color: #146c2e;
+  background: #ecf8ef;
+}
+.lo-board-card h2 {
+  margin: 0 0 0.5rem;
+  font-size: 1.375rem;
+}
+.lo-time {
+  font-variant-numeric: tabular-nums;
+}
+.form-page .lo-lines {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 0.75rem;
+}
+.form-page .lo-lines li {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.25rem 0;
+  border-bottom: 1px solid #ddd;
+  font-size: 1.125rem;
+}
+.form-page .lo-loaded-button {
+  width: 100%;
+  min-height: 72px;
+  font-size: 1.5rem;
+  background: #146c2e;
+  border-color: #146c2e;
+}
+.lo-done {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+.lo-done p {
+  margin: 0;
+  font-size: 1.125rem;
+  color: #0b3d1b;
+}
