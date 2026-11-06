@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   addDays,
+  localRouteName,
   loadOutRows,
   nextLoadDate,
   nextTruck,
@@ -110,5 +111,15 @@ describe('rows and quantities', () => {
     expect(parseQty('12')).toBe(12);
     expect(parseQty('')).toBe(0);
     for (const bad of ['1.5', '-1', 'abc', '100001']) expect(parseQty(bad)).toBeNull();
+  });
+});
+
+describe('localRouteName', () => {
+  it('shows seeded route names in Spanish and keeps others as entered', () => {
+    expect(localRouteName('Route 21', 'es')).toBe('Ruta 21');
+    expect(localRouteName('route 4', 'es-US')).toBe('Ruta 4');
+    expect(localRouteName('Route 21', 'en')).toBe('Route 21');
+    expect(localRouteName('Hialeah run', 'es')).toBe('Hialeah run');
+    expect(localRouteName('Route 21 extra', 'es')).toBe('Route 21 extra');
   });
 });

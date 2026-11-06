@@ -137,3 +137,14 @@ export function parseQty(input: string): number | null {
   const n = Number(s);
   return n <= 100000 ? n : null;
 }
+
+/**
+ * Spanish for the seeded route names ("Route 21" → "Ruta 21"), the same rule as the push sender
+ * (supabase/functions/send-alerts localRouteName); other names are kept as entered.
+ */
+export function localRouteName(name: string, lang: string): string {
+  const clean = name.replace(/\s+/g, ' ').trim();
+  if (!lang.toLowerCase().startsWith('es')) return clean;
+  const m = /^Route (\w{1,10})$/i.exec(clean);
+  return m ? `Ruta ${m[1]}` : clean;
+}

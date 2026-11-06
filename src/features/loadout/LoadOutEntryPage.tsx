@@ -10,6 +10,7 @@ import { errorMessageKey, unwrap } from '../washroom/rpcError';
 import { useAreas } from '../washroom/washroomData';
 import {
   loadOutRows,
+  localRouteName,
   nextLoadDate,
   parseQty,
   previousLoadDate,
@@ -257,7 +258,7 @@ function RouteCard({
     immediate: boolean,
   ) => void;
 }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const localized = useLocalizedName();
   const qtyOf = (itemId: string) => lines.find((l) => l.item_type_id === itemId)?.qty ?? 0;
   const specials = lines.filter((l) => l.special_text && l.qty > 0);
@@ -268,7 +269,7 @@ function RouteCard({
   return (
     <fieldset className="lo-route">
       <legend>
-        {route.name} · {route.load_time.slice(0, 5)}
+        {localRouteName(route.name, i18n.language)} · {route.load_time.slice(0, 5)}
       </legend>
       {rows.map((item) => (
         <QtyCell

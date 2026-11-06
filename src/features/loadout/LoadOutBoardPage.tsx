@@ -12,7 +12,7 @@ import { useLocalizedName } from '../washroom/localizedName';
 import { errorMessageKey, unwrap } from '../washroom/rpcError';
 import { estimateServerNow } from '../washroom/washerTime';
 import { useAreas } from '../washroom/washroomData';
-import { nextTruck } from './loadOutLogic';
+import { localRouteName, nextTruck } from './loadOutLogic';
 import {
   useLoadOutBoard,
   useLoadOutPermissions,
@@ -85,8 +85,8 @@ function RouteCard({
       onStatus(
         true,
         loaded
-          ? t('loadOut.markedLoaded', { route: route.name })
-          : t('loadOut.undone', { route: route.name }),
+          ? t('loadOut.markedLoaded', { route: localRouteName(route.name, i18n.language) })
+          : t('loadOut.undone', { route: localRouteName(route.name, i18n.language) }),
       );
     },
     onError: (e) => onStatus(false, t(errorMessageKey(e))),
@@ -104,7 +104,8 @@ function RouteCard({
       aria-labelledby={headingId}
     >
       <h2 id={headingId}>
-        <span className="lo-time">{route.load_time.slice(0, 5)}</span> {route.name}
+        <span className="lo-time">{route.load_time.slice(0, 5)}</span>{' '}
+        {localRouteName(route.name, i18n.language)}
       </h2>
       {route.lines.length === 0 ? (
         <p className="hint">{t('loadOut.nothingForRoute')}</p>
@@ -205,11 +206,15 @@ export function LoadOutBoardPage() {
             </>
           ) : next.minutes < 0 ? (
             <>
-              <IconWarning /> {t('loadOut.late', { route: next.route.name, count: -next.minutes })}
+              <IconWarning />{' '}
+              {t('loadOut.late', {
+                route: localRouteName(next.route.name, i18n.language),
+                count: -next.minutes,
+              })}
             </>
           ) : (
             t('loadOut.nextTruck', {
-              route: next.route.name,
+              route: localRouteName(next.route.name, i18n.language),
               time: next.route.load_time.slice(0, 5),
               when:
                 next.minutes >= 60
