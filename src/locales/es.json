@@ -356,8 +356,6 @@
     "noWashTime": "Tiempo de lavadora: sin número",
     "unknownGroups_one": "{{count}} grupo no tiene número de cargas y no se cuenta.",
     "unknownGroups_other": "{{count}} grupos no tienen número de cargas y no se cuentan.",
-    "groupsWithout_one": "{{count}} grupo no tiene estimado todavía.",
-    "groupsWithout_other": "{{count}} grupos no tienen estimado todavía.",
     "includesUnsaved_one": "Incluye {{count}} cambio sin guardar.",
     "includesUnsaved_other": "Incluye {{count}} cambios sin guardar.",
     "waitingToSend_one": "{{count}} estimado está guardado en este teléfono y se enviará cuando vuelva la conexión.",
@@ -424,7 +422,16 @@
     "partialNone": "Ninguno",
     "washerTime": "≈ {{time}} de tiempo de lavadora",
     "lastSaved": "Último guardado: {{what}}",
-    "done": "Listo"
+    "done": "Listo",
+    "loadsWord_one": "carga esperando",
+    "loadsWord_other": "cargas esperando",
+    "groupsEstimated": "{{done}} de {{total}} grupos de lavado estimados",
+    "filterLabel": "Mostrar",
+    "filterAll_one": "Todos ({{count}})",
+    "filterAll_other": "Todos ({{count}})",
+    "filterNeeds_one": "Falta estimar ({{count}})",
+    "filterNeeds_other": "Falta estimar ({{count}})",
+    "allEstimated": "Todos los grupos de lavado tienen estimado."
   },
   "signOut": {
     "pending_one": "{{count}} dato o arranque de lavadora no se ha enviado todavía.",

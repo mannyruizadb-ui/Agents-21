@@ -356,8 +356,6 @@
     "noWashTime": "Washer time: no number set",
     "unknownGroups_one": "{{count}} group has no load number set and isn't counted.",
     "unknownGroups_other": "{{count}} groups have no load number set and aren't counted.",
-    "groupsWithout_one": "{{count}} group has no estimate yet.",
-    "groupsWithout_other": "{{count}} groups have no estimate yet.",
     "includesUnsaved_one": "Includes {{count}} change not saved yet.",
     "includesUnsaved_other": "Includes {{count}} changes not saved yet.",
     "waitingToSend_one": "{{count}} estimate is saved on this phone and will send when the connection is back.",
@@ -424,7 +422,16 @@
     "partialNone": "None",
     "washerTime": "≈ {{time}} of washer time",
     "lastSaved": "Last saved: {{what}}",
-    "done": "Done"
+    "done": "Done",
+    "loadsWord_one": "load waiting",
+    "loadsWord_other": "loads waiting",
+    "groupsEstimated": "{{done}} of {{total}} wash groups estimated",
+    "filterLabel": "Show",
+    "filterAll_one": "All ({{count}})",
+    "filterAll_other": "All ({{count}})",
+    "filterNeeds_one": "Needs estimate ({{count}})",
+    "filterNeeds_other": "Needs estimate ({{count}})",
+    "allEstimated": "Every wash group has an estimate."
   },
   "signOut": {
     "pending_one": "{{count}} entry or washer start hasn't been sent yet.",
