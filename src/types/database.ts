@@ -501,6 +501,26 @@ isOneToOne: false
       referencedColumns: ["id","org_id"]
     }
                   ]
+                },"plant_holidays": {
+                  Row: {
+                    "active": boolean,"created_at": string,"day": number | null,"id": string,"month": number,"name": string,"name_i18n": NonNullable<Json>,"nth": number | null,"org_id": string,"plant_id": string,"updated_at": string,"weekday": number | null
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "active"?: boolean,"created_at"?: string,"day"?: number | null,"id"?: string,"month": number,"name": string,"name_i18n"?: NonNullable<Json>,"nth"?: number | null,"org_id": string,"plant_id": string,"updated_at"?: string,"weekday"?: number | null
+                  }
+                  Update: {
+                    "active"?: boolean,"created_at"?: string,"day"?: number | null,"id"?: string,"month"?: number,"name"?: string,"name_i18n"?: NonNullable<Json>,"nth"?: number | null,"org_id"?: string,"plant_id"?: string,"updated_at"?: string,"weekday"?: number | null
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "plant_holidays_plant_id_org_id_fkey"
+      columns: ["plant_id","org_id"]
+isOneToOne: false
+      referencedRelation: "plants"
+      referencedColumns: ["id","org_id"]
+    }
+                  ]
                 },"plants": {
                   Row: {
                     "created_at": string,"default_language": string,"display_reload_local_time": string,"enabled_languages": (string)[],"estimate_amber_minutes": number,"estimate_red_minutes": number,"id": string,"name": string,"org_id": string,"production_day_start": string,"staff_pin_reuse_minutes": number,"timezone": string

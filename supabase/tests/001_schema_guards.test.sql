@@ -4,7 +4,7 @@ select plan(14);
 
 select is(
   (select count(*)::int from pg_tables where schemaname = 'public'),
-  30, '§4.4: 26 tables + wash_groups (owner 2026-11-01) + machine_status_events, push_subscriptions (2026-11-04) + machine_down_reasons (2026-11-05) in public');
+  31, '§4.4: 26 tables + wash_groups (owner 2026-11-01) + machine_status_events, push_subscriptions (2026-11-04) + machine_down_reasons, plant_holidays (2026-11-05) in public');
 
 -- Every FK has a non-partial index whose leading columns are exactly the FK columns (§4.8).
 select is(
