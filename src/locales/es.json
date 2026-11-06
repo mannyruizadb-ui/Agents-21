@@ -95,8 +95,10 @@
     "loadOutOff": "{{name}} ya no puede anotar la carga.",
     "shiftsLabel": "Turnos habituales (gerente de turno)",
     "shiftsHint": "El gerente de turno recibe las tareas, marca los camiones cargados y recibe las alarmas de las lavadoras durante estos turnos.",
-    "shiftOption": "{{area}} · {{shift}} {{from}}–{{to}} ({{days}})",
-    "shiftsSaved": "Turnos guardados para {{name}}."
+    "shiftsSaved": "Turnos guardados para {{name}}.",
+    "shiftGroup": "{{area}} · {{shift}}",
+    "shiftVariant": "{{from}}–{{to}} ({{days}})",
+    "shiftPartly": "en parte"
   },
   "control": {
     "placeholder": "Elige una pantalla.",

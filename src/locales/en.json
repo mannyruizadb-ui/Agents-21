@@ -95,8 +95,10 @@
     "loadOutOff": "{{name}} can no longer enter the load-out.",
     "shiftsLabel": "Usual shifts (manager on duty)",
     "shiftsHint": "The manager on duty gets tasks, marks trucks loaded and gets washer alarms during these shifts.",
-    "shiftOption": "{{area}} · {{shift}} {{from}}–{{to}} ({{days}})",
-    "shiftsSaved": "Shifts saved for {{name}}."
+    "shiftsSaved": "Shifts saved for {{name}}.",
+    "shiftGroup": "{{area}} · {{shift}}",
+    "shiftVariant": "{{from}}–{{to}} ({{days}})",
+    "shiftPartly": "partly"
   },
   "control": {
     "placeholder": "Choose a screen.",

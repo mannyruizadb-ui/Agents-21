@@ -241,3 +241,8 @@ body:has(.form-page) {
 body:has(.theme-dark) {
   background: #0b0f14;
 }
+.form-page .shift-variants {
+  margin: 0 0 0.25rem 2.5rem;
+  padding: 0;
+  list-style: none;
+}

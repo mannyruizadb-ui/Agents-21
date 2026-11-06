@@ -11,6 +11,7 @@ import type { AlertMembership } from './alertRecipients';
 // Schedule data only: nothing here counts or reports anything per person.
 
 import type { Assignment, ShiftOption } from './useManagerSchedule';
+import { groupShifts, groupState } from './shiftGroups';
 
 export function ManagerSettings({
   userId,
@@ -66,47 +67,55 @@ export function ManagerSettings({
     onSettled: () => void qc.invalidateQueries({ queryKey: ['alert-memberships', plant.id] }),
   });
 
+  // One checkbox per area + shift name: every variant row (e.g. Thursday's times) changes together.
   const assign = useMutation({
-    mutationFn: async (v: { membershipId: string; shiftId: string; on: boolean }) => {
-      const existing = assignments.find(
-        (a) =>
-          a.membership_id === v.membershipId &&
-          a.shift_id === v.shiftId &&
-          !a.id.startsWith('pending-'),
-      );
-      const { error } = existing
-        ? await supabase
-            .from('manager_shift_assignments')
-            .update({ active: v.on })
-            .eq('id', existing.id)
-        : await supabase.from('manager_shift_assignments').insert({
-            org_id: plant.org_id,
-            plant_id: plant.id,
-            membership_id: v.membershipId,
-            shift_id: v.shiftId,
-          });
-      if (error) throw error;
+    mutationFn: async (v: { membershipId: string; shiftIds: string[]; on: boolean }) => {
+      for (const shiftId of v.shiftIds) {
+        const existing = assignments.find(
+          (a) =>
+            a.membership_id === v.membershipId &&
+            a.shift_id === shiftId &&
+            !a.id.startsWith('pending-'),
+        );
+        if (existing && existing.active === v.on) continue;
+        if (!existing && !v.on) continue;
+        const { error } = existing
+          ? await supabase
+              .from('manager_shift_assignments')
+              .update({ active: v.on })
+              .eq('id', existing.id)
+          : await supabase.from('manager_shift_assignments').insert({
+              org_id: plant.org_id,
+              plant_id: plant.id,
+              membership_id: v.membershipId,
+              shift_id: shiftId,
+            });
+        if (error) throw error;
+      }
     },
     onMutate: async (v) => {
       const key = ['shift-assignments', plant.id];
       await qc.cancelQueries({ queryKey: key });
       const previous = qc.getQueryData<Assignment[]>(key);
       qc.setQueryData<Assignment[]>(key, (list) => {
-        const rows = list ?? [];
-        const hit = rows.find(
-          (a) => a.membership_id === v.membershipId && a.shift_id === v.shiftId,
-        );
-        return hit
-          ? rows.map((a) => (a === hit ? { ...a, active: v.on } : a))
-          : [
-              ...rows,
-              {
-                id: `pending-${v.shiftId}`,
-                membership_id: v.membershipId,
-                shift_id: v.shiftId,
-                active: v.on,
-              },
-            ];
+        let rows = list ?? [];
+        for (const shiftId of v.shiftIds) {
+          const hit = rows.find(
+            (a) => a.membership_id === v.membershipId && a.shift_id === shiftId,
+          );
+          rows = hit
+            ? rows.map((a) => (a === hit ? { ...a, active: v.on } : a))
+            : [
+                ...rows,
+                {
+                  id: `pending-${shiftId}`,
+                  membership_id: v.membershipId,
+                  shift_id: shiftId,
+                  active: v.on,
+                },
+              ];
+        }
+        return rows;
       });
       return { previous };
     },
@@ -148,29 +157,46 @@ export function ManagerSettings({
               <strong>{t('people.shiftsLabel')}</strong>
             </legend>
             <p className="hint">{t('people.shiftsHint')}</p>
-            {shifts.map((s) => {
-              const on = assignments.some(
-                (a) => a.membership_id === m.id && a.shift_id === s.id && a.active,
+            {groupShifts(shifts).map((g) => {
+              const state = groupState(
+                assignments,
+                m.id,
+                g.variants.map((v) => v.id),
               );
+              const hintId = `sg-${m.id}-${g.key.replace(/\W+/g, '-')}`;
               return (
-                <div className="field check" key={s.id}>
+                <div className="field check" key={g.key}>
                   <label>
                     <input
                       type="checkbox"
-                      checked={on}
+                      checked={state === 'all'}
+                      ref={(el) => {
+                        if (el) el.indeterminate = state === 'some';
+                      }}
+                      aria-describedby={hintId}
                       disabled={assign.isPending}
-                      onChange={(e) =>
-                        assign.mutate({ membershipId: m.id, shiftId: s.id, on: e.target.checked })
+                      onChange={() =>
+                        assign.mutate({
+                          membershipId: m.id,
+                          shiftIds: g.variants.map((v) => v.id),
+                          on: state !== 'all',
+                        })
                       }
                     />
-                    {t('people.shiftOption', {
-                      area: s.area_name,
-                      shift: s.name,
-                      from: s.start_local.slice(0, 5),
-                      to: s.end_local.slice(0, 5),
-                      days: dayNames(s.days_of_week),
-                    })}
+                    {t('people.shiftGroup', { area: g.area_name, shift: g.name })}
+                    {state === 'some' && ` (${t('people.shiftPartly')})`}
                   </label>
+                  <ul id={hintId} className="hint shift-variants">
+                    {g.variants.map((v) => (
+                      <li key={v.id}>
+                        {t('people.shiftVariant', {
+                          from: v.start_local.slice(0, 5),
+                          to: v.end_local.slice(0, 5),
+                          days: dayNames(v.days_of_week),
+                        })}
+                      </li>
+                    ))}
+                  </ul>
                 </div>
               );
             })}
