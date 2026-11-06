@@ -91,7 +91,7 @@ select is((select array[loads_run::text, standard_loads::text, approximate::text
   array['1', '1.00', 'false', '2026-11-03'], 'no machine → factor 1, not approximate; Tue Evening starts Tuesday''s production day');
 select is((select array[production_date::text, loads_run::text] from public.washroom_by_shift where shift_instance_id is null and plant_id = pg_temp.id('plantA')),
   array['2026-11-08', '2'], 'off-shift load (Sun 23:30 local) dated by its production day, in plant time (not UTC)');
-select is(pg_temp.reads($$select 1 from public.washroom_by_shift$$), '{3,3,3,3,0,0,1,42501}', 'washroom_by_shift respects RLS (display none; B sees only B)');
+select is(pg_temp.reads($$select 1 from public.washroom_by_shift$$), '{42501,42501,42501,42501,42501,42501,42501,42501}', 'washroom_by_shift: no client reads since 2026-11-05 (owner RPCs only)');
 
 -- finished_by_shift
 select is((select array[packs, loose_pieces, pieces] from public.finished_by_shift
@@ -108,8 +108,8 @@ select is((select production_date from public.finished_by_shift
   '2026-11-02'::date, 'finishing Tue Day 10–16 belongs to Monday''s production day');
 select is((select array[coalesce(loads_approx::text, 'null'), has_conversion::text] from public.finished_by_shift where item_type_id = pg_temp.id('mat')),
   array['null', 'false'], 'no pieces_per_load → no conversion');
-select is(pg_temp.reads($$select 1 from public.finished_by_shift where plant_id = pg_temp.id('plantA')$$), '{3,3,3,3,0,0,0,42501}',
-  'finished_by_shift respects RLS (display none)');
+select is(pg_temp.reads($$select 1 from public.finished_by_shift where plant_id = pg_temp.id('plantA')$$), '{42501,42501,42501,42501,42501,42501,42501,42501}',
+  'finished_by_shift: no client reads since 2026-11-05 (owner RPCs only)');
 
 -- daily_reconciliation (production days)
 select is((select array[loads_run, standard_loads, pieces_finished, pieces_without_conversion, loads_finished_approx, clean_backlog_loads_approx]
@@ -133,8 +133,8 @@ select is((select array[loads_run, standard_loads, pieces_finished] from public.
 select is((select array[est_loads_start::text, est_loads_end::text] from public.daily_reconciliation
             where production_date = '2026-11-08' and wash_group_id = pg_temp.id('gNapkin')),
   array['9.00', '10.00'], 'a day without instances uses the 12:00 → 12:00 bounds (Mon 11:00 counts, Mon 13:00 does not)');
-select is(pg_temp.reads($$select 1 from public.daily_reconciliation where plant_id = pg_temp.id('plantA')$$), '{3,3,3,3,0,0,0,42501}',
-  'daily_reconciliation respects RLS (display none; no cross-tenant)');
+select is(pg_temp.reads($$select 1 from public.daily_reconciliation where plant_id = pg_temp.id('plantA')$$), '{42501,42501,42501,42501,42501,42501,42501,42501}',
+  'daily_reconciliation: no client reads since 2026-11-05 (owner RPCs only)');
 select is(pg_temp.run_as('anon', $$select 1 from public.daily_reconciliation$$, true), '42501', 'anon cannot read report views');
 
 -- ── Wash-group reconciliation: several items sum into one group (owner 2026-11-01) ──

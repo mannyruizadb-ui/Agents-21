@@ -148,18 +148,20 @@ select is(pg_temp.run_as('ownerB', $$select public.record_finished_goods(pg_temp
   'NOT_AUTHORIZED', 'owner B cannot confirm plant A staff');
 
 -- ══ void_finished_goods (E4) ══════════════════════════════════════════════
-select is(array[pg_temp.run_as('lead', $$select public.void_finished_goods((select id from public.finished_goods_entries where client_id = pg_temp.cid(10)), 'typo')$$),
-                pg_temp.run_as('viewer', $$select public.void_finished_goods((select id from public.finished_goods_entries where client_id = pg_temp.cid(10)), 'typo')$$),
-                pg_temp.run_as('display', $$select public.void_finished_goods((select id from public.finished_goods_entries where client_id = pg_temp.cid(10)), 'typo')$$),
-                pg_temp.run_as('ownerB', $$select public.void_finished_goods((select id from public.finished_goods_entries where client_id = 'c0000000-0000-0000-0000-000000000010'), 'typo')$$),
+-- The entry id is looked up as postgres: since 2026-11-05 managers read only the current shift's rows.
+select set_config('test.f10', (select id::text from public.finished_goods_entries where client_id = pg_temp.cid(10)), true);
+select is(array[pg_temp.run_as('lead', $$select public.void_finished_goods(current_setting('test.f10')::uuid, 'typo')$$),
+                pg_temp.run_as('viewer', $$select public.void_finished_goods(current_setting('test.f10')::uuid, 'typo')$$),
+                pg_temp.run_as('display', $$select public.void_finished_goods(current_setting('test.f10')::uuid, 'typo')$$),
+                pg_temp.run_as('ownerB', $$select public.void_finished_goods(current_setting('test.f10')::uuid, 'typo')$$),
                 pg_temp.run_as('ownerB', $$select public.void_finished_goods(gen_random_uuid(), 'typo')$$),
                 pg_temp.run_as('anon', $$select public.void_finished_goods(gen_random_uuid(), 'typo')$$)],
   '{NOT_AUTHORIZED,NOT_AUTHORIZED,NOT_AUTHORIZED,NOT_AUTHORIZED,NOT_AUTHORIZED,42501}', 'void: lead, viewer, display, other tenant (foreign or missing id) denied');
-select is(pg_temp.run_as('manager', $$select public.void_finished_goods((select id from public.finished_goods_entries where client_id = pg_temp.cid(10)), '  ')$$),
+select is(pg_temp.run_as('manager', $$select public.void_finished_goods(current_setting('test.f10')::uuid, '  ')$$),
   'VALIDATION_FAILED', 'a reason is required');
-select is(pg_temp.val_as('manager', $$select row(r.void_reason, r.duplicate, r.pieces)::text from public.void_finished_goods((select id from public.finished_goods_entries where client_id = pg_temp.cid(10)), 'counted twice') r$$),
+select is(pg_temp.val_as('manager', $$select row(r.void_reason, r.duplicate, r.pieces)::text from public.void_finished_goods(current_setting('test.f10')::uuid, 'counted twice') r$$),
   '("counted twice",f,734)', 'manager voids with a reason');
-select is(pg_temp.val_as('owner', $$select (public.void_finished_goods((select id from public.finished_goods_entries where client_id = pg_temp.cid(10)), 'again')).duplicate$$),
+select is(pg_temp.val_as('owner', $$select (public.void_finished_goods(current_setting('test.f10')::uuid, 'again')).duplicate$$),
   'true', 'voiding again is idempotent');
 select is((select array[(voided_by = pg_temp.id('manager'))::text, void_reason] from public.finished_goods_entries where client_id = pg_temp.cid(10)),
   array['true', 'counted twice'], 'the first void stands');
@@ -167,7 +169,7 @@ select is((select coalesce(sum(pieces), 0)::int from public.finished_by_shift wh
   'voided entries leave the totals (734 voided, 160 left)');
 select is((select count(*)::int from public.finished_goods_entries where client_id = pg_temp.cid(10)), 1, 'voided, never deleted');
 select is((select count(*)::int from public.audit_log where action = 'finished_goods_entries.void' and plant_id = pg_temp.id('plantA')
-              and entity_id = (select id from public.finished_goods_entries where client_id = pg_temp.cid(10))), 1, 'the void is audited');
+              and entity_id = current_setting('test.f10')::uuid), 1, 'the void is audited');
 select is(pg_temp.run_as('manager', $$update public.finished_goods_entries set voided_at = null where client_id = pg_temp.cid(10)$$), '42501',
   'clients cannot un-void (no UPDATE privilege)');
 

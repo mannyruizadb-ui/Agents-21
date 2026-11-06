@@ -49,7 +49,7 @@ select is((select array[loads_run::text, rewash_loads::text, standard_loads::tex
             where shift_instance_id = pg_temp.si(pg_temp.id('wash'), 'Evening', '2026-11-03') and wash_group_id = pg_temp.id('gTowel')),
   array['2', '2', '0', 'false'], 'rewash-only shift: loads run and rewash loads 2, standard loads 0');
 select is(pg_temp.reads($$select rewash_loads from public.washroom_by_shift where rewash_loads > 0$$),
-  '{3,3,3,3,0,0,1,42501}', 'rewash_loads respects RLS (display none; B sees only its own row)');
+  '{42501,42501,42501,42501,42501,42501,42501,42501}', 'washroom_by_shift: owner-only since 2026-11-05 (no client grant; the owner reads it through the report RPCs)');
 
 -- ── daily_reconciliation ──────────────────────────────────────────────────
 select is((select array[loads_run, rewash_loads, standard_loads, pieces_finished, loads_finished_approx, clean_backlog_loads_approx]
@@ -62,7 +62,7 @@ select is((select array[loads_run, rewash_loads, standard_loads, loads_finished_
 select is((select count(*)::int from public.daily_reconciliation where plant_id = pg_temp.id('plantA') and rewash_loads > 0), 3,
   'every reconciliation row with rewash exposes rewash_loads (napkins 11-02, towels 11-03, towels 11-09)');
 select is(pg_temp.reads($$select 1 from public.daily_reconciliation where rewash_loads > 0$$),
-  '{3,3,3,3,0,0,1,42501}', 'daily_reconciliation rewash rows respect RLS (display none; no cross-tenant)');
+  '{42501,42501,42501,42501,42501,42501,42501,42501}', 'daily_reconciliation: owner-only since 2026-11-05 (no client grant; get_day_report)');
 
 -- Same definition in both views: per production day and group, the shift view sums to the day view.
 select is((select array_agg(x order by x) from (

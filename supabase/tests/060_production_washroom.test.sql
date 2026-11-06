@@ -18,7 +18,12 @@ insert into public.shift_crew_hours (org_id, plant_id, shift_instance_id, area_i
 insert into public.import_batches (org_id, plant_id, source, created_by) values (pg_temp.id('orgA'), pg_temp.id('plantA'), 'accuflow_csv', pg_temp.id('owner'));
 
 -- ── finished_goods_entries: owner/manager R C; lead, viewer R; display none; no direct U (D8) ──
-select is(pg_temp.reads($$select 1 from public.finished_goods_entries where plant_id = pg_temp.id('plantA')$$), '{2,2,2,2,0,0,0,42501}', 'finished goods R (display: none)');
+select is(pg_temp.reads($$select 1 from public.finished_goods_entries where plant_id = pg_temp.id('plantA')$$),
+  array[(select count(*)::text from public.finished_goods_entries where plant_id = pg_temp.id('plantA')), (select count(*)::text from public.finished_goods_entries x join public.shift_instances si on si.id = x.shift_instance_id and si.area_id = x.area_id
+                  where x.plant_id = pg_temp.id('plantA') and si.skipped_at is null and si.starts_at <= now() and si.ends_at > now()), (select count(*)::text from public.finished_goods_entries x join public.shift_instances si on si.id = x.shift_instance_id and si.area_id = x.area_id
+                  where x.plant_id = pg_temp.id('plantA') and si.skipped_at is null and si.starts_at <= now() and si.ends_at > now()), (select count(*)::text from public.finished_goods_entries x join public.shift_instances si on si.id = x.shift_instance_id and si.area_id = x.area_id
+                  where x.plant_id = pg_temp.id('plantA') and si.skipped_at is null and si.starts_at <= now() and si.ends_at > now()), '0', '0', '0', '42501'],
+  'finished goods R: owner all; manager/lead/viewer only the current shift (owner 2026-11-05); display none');
 select is(pg_temp.writes($$insert into public.finished_goods_entries (org_id, plant_id, area_id, item_type_id, loose_pieces, entered_by, client_id)
   values (pg_temp.id('orgA'), pg_temp.id('plantA'), pg_temp.id('fin'), pg_temp.id('mat'), 5, (select auth.uid()), gen_random_uuid())$$),
   '{42501,42501,42501,42501,42501,42501,42501,42501}', 'M2: no direct finished goods insert for any role (record_finished_goods only)');
@@ -128,7 +133,12 @@ select is((select wash_group_id from public.finished_goods_entries where id = 'f
   'finished goods wash_group_id = the item''s group (client value ignored)');
 
 -- ── washer_cycles: owner/manager/lead/viewer R; display none; M2: writes via start/undo_washer_load only ──
-select is(pg_temp.reads($$select 1 from public.washer_cycles where plant_id = pg_temp.id('plantA')$$), '{1,1,1,1,0,0,0,42501}', 'washer_cycles R (display: none)');
+select is(pg_temp.reads($$select 1 from public.washer_cycles where plant_id = pg_temp.id('plantA')$$),
+  array[(select count(*)::text from public.washer_cycles where plant_id = pg_temp.id('plantA')), (select count(*)::text from public.washer_cycles x join public.shift_instances si on si.id = x.shift_instance_id and si.area_id = x.area_id
+                  where x.plant_id = pg_temp.id('plantA') and si.skipped_at is null and si.starts_at <= now() and si.ends_at > now()), (select count(*)::text from public.washer_cycles x join public.shift_instances si on si.id = x.shift_instance_id and si.area_id = x.area_id
+                  where x.plant_id = pg_temp.id('plantA') and si.skipped_at is null and si.starts_at <= now() and si.ends_at > now()), (select count(*)::text from public.washer_cycles x join public.shift_instances si on si.id = x.shift_instance_id and si.area_id = x.area_id
+                  where x.plant_id = pg_temp.id('plantA') and si.skipped_at is null and si.starts_at <= now() and si.ends_at > now()), '0', '0', '0', '42501'],
+  'washer_cycles R: owner all; manager/lead/viewer only the current shift (owner 2026-11-05); display none');
 select is(pg_temp.writes($$insert into public.washer_cycles (org_id, plant_id, area_id, wash_group_id, started_at, load_count, source, entered_by, client_id)
   values (pg_temp.id('orgA'), pg_temp.id('plantA'), pg_temp.id('wash'), pg_temp.id('gNapkin'), now(), 1, 'manual', (select auth.uid()), gen_random_uuid())$$),
   '{42501,42501,42501,42501,42501,42501,42501,42501}', 'M2: no direct washer_cycles insert for any role (start_washer_load only)');
