@@ -40,8 +40,9 @@ function useQtyLabel() {
     },
   ) => {
     const name = line.special_text ?? localized(line.item_name ?? '', line.item_name_i18n);
-    const qty =
-      line.count_mode === 'pack'
+    const qty = line.special_text
+      ? new Intl.NumberFormat().format(line.qty)
+      : line.count_mode === 'pack'
         ? t('loadOut.packsOf', { count: line.qty, size: line.pack_size ?? '?' })
         : t('loadOut.pieces', { count: line.qty });
     return { name, qty };
@@ -51,11 +52,14 @@ function useQtyLabel() {
 function RouteCard({
   route,
   loadDate,
+  timeZone,
   canMark,
   onStatus,
 }: {
   route: BoardRoute;
   loadDate: string;
+  /** Plant time zone: "loaded at" reads in plant time, like the truck times. */
+  timeZone: string;
   canMark: boolean;
   onStatus: (ok: boolean, text: string) => void;
 }) {
@@ -89,7 +93,7 @@ function RouteCard({
     onSettled: () => void qc.invalidateQueries({ queryKey: ['load-out-board'] }),
   });
   const time = (iso: string) =>
-    new Intl.DateTimeFormat(i18n.language, { hour: 'numeric', minute: '2-digit' }).format(
+    new Intl.DateTimeFormat(i18n.language, { hour: 'numeric', minute: '2-digit', timeZone }).format(
       new Date(iso),
     );
   const headingId = `route-${route.route_id}`;
@@ -245,6 +249,7 @@ export function LoadOutBoardPage() {
               key={r.route_id}
               route={r}
               loadDate={data.load_date}
+              timeZone={tz}
               canMark={canMark}
               onStatus={(ok, text) => setStatus({ ok, text })}
             />

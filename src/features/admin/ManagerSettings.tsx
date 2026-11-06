@@ -47,16 +47,32 @@ export function ManagerSettings({
         .eq('id', v.membershipId);
       if (error) throw error;
     },
+    // Optimistic: the box moves at once and goes back if the server refuses.
+    onMutate: async (v) => {
+      const key = ['alert-memberships', plant.id];
+      await qc.cancelQueries({ queryKey: key });
+      const previous = qc.getQueryData<AlertMembership[]>(key);
+      qc.setQueryData<AlertMembership[]>(key, (list) =>
+        list?.map((x) => (x.id === v.membershipId ? { ...x, can_enter_load_out: v.on } : x)),
+      );
+      return { previous };
+    },
     onSuccess: (_r, v) =>
       onStatus(v.on ? t('people.loadOutOn', { name }) : t('people.loadOutOff', { name })),
-    onError: (e) => onStatus(t(errorMessageKey(e))),
+    onError: (e, _v, ctx) => {
+      if (ctx?.previous) qc.setQueryData(['alert-memberships', plant.id], ctx.previous);
+      onStatus(t(errorMessageKey(e)));
+    },
     onSettled: () => void qc.invalidateQueries({ queryKey: ['alert-memberships', plant.id] }),
   });
 
   const assign = useMutation({
     mutationFn: async (v: { membershipId: string; shiftId: string; on: boolean }) => {
       const existing = assignments.find(
-        (a) => a.membership_id === v.membershipId && a.shift_id === v.shiftId,
+        (a) =>
+          a.membership_id === v.membershipId &&
+          a.shift_id === v.shiftId &&
+          !a.id.startsWith('pending-'),
       );
       const { error } = existing
         ? await supabase
@@ -71,8 +87,34 @@ export function ManagerSettings({
           });
       if (error) throw error;
     },
+    onMutate: async (v) => {
+      const key = ['shift-assignments', plant.id];
+      await qc.cancelQueries({ queryKey: key });
+      const previous = qc.getQueryData<Assignment[]>(key);
+      qc.setQueryData<Assignment[]>(key, (list) => {
+        const rows = list ?? [];
+        const hit = rows.find(
+          (a) => a.membership_id === v.membershipId && a.shift_id === v.shiftId,
+        );
+        return hit
+          ? rows.map((a) => (a === hit ? { ...a, active: v.on } : a))
+          : [
+              ...rows,
+              {
+                id: `pending-${v.shiftId}`,
+                membership_id: v.membershipId,
+                shift_id: v.shiftId,
+                active: v.on,
+              },
+            ];
+      });
+      return { previous };
+    },
     onSuccess: () => onStatus(t('people.shiftsSaved', { name })),
-    onError: (e) => onStatus(t(errorMessageKey(e))),
+    onError: (e, _v, ctx) => {
+      if (ctx?.previous) qc.setQueryData(['shift-assignments', plant.id], ctx.previous);
+      onStatus(t(errorMessageKey(e)));
+    },
     onSettled: () => void qc.invalidateQueries({ queryKey: ['shift-assignments', plant.id] }),
   });
 
