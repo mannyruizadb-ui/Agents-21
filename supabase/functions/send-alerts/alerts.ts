@@ -239,7 +239,7 @@ export interface BuildContext {
 /**
  * One entry per push kind. isCurrent: false = the condition already ended (marked 'stale', not
  * sent). build: the notification in one language, or null when the payload is unusable.
- * Adding a kind (task_assigned, task_done) = adding an entry here.
+ * Adding a kind = adding an entry here (and to the tests).
  */
 export interface KindBuilder {
   isCurrent(payload: Record<string, unknown>): boolean;
@@ -279,6 +279,43 @@ export const BUILDERS: Record<string, KindBuilder> = {
         lang === 'es' ? `${name} parada${dur} — hay trabajo` : `${name} idle${dur} — work waiting`;
       const body = capitalize(sinceText(idleSince, lang, ctx.timeZone) ?? '');
       return { title, body, tag: `washer-idle-${id}`, url: ALERT_URL };
+    },
+  },
+  task_assigned: {
+    // The DB only hands out task_assigned (first push and reminders) while the task is open.
+    isCurrent: () => true,
+    build(p, lang) {
+      const id = str(p, 'task_id');
+      if (id === null) return null;
+      const reminder = (num(p, 'reminder') ?? 0) > 0;
+      const title = reminder
+        ? lang === 'es'
+          ? 'Recordatorio: tarea pendiente'
+          : 'Reminder: task still open'
+        : lang === 'es'
+          ? 'Nueva tarea'
+          : 'New task';
+      return { title, body: taskText(p), tag: `task-${id}`, url: TASKS_URL };
+    },
+  },
+  task_done: {
+    isCurrent: () => true,
+    build(p, lang, ctx) {
+      const id = str(p, 'task_id');
+      if (id === null) return null;
+      const title = lang === 'es' ? 'Tarea hecha' : 'Task done';
+      const doneIso = str(p, 'done_at');
+      const time = doneIso === null ? null : formatTime(doneIso, lang, ctx.timeZone);
+      const done =
+        time === null || doneIso === null
+          ? null
+          : lang === 'es'
+            ? `hecha a ${hourIsOne(doneIso, ctx.timeZone) ? 'la' : 'las'} ${time}`
+            : `done ${time}`;
+      const text = taskText(p, MAX_TASK_CHARS - 25);
+      const body = text ? [text, done].filter(Boolean).join(' · ') : capitalize(done ?? '');
+      // the done note and any names are never in the payload or the push
+      return { title, body, tag: `task-${id}`, url: TASKS_URL };
     },
   },
   route_loaded: {
@@ -330,6 +367,18 @@ export function formatWallTime(hhmm: string, lang: Lang): string | null {
 }
 
 const LOAD_OUT_URL = '/control';
+const TASKS_URL = '/control/tasks';
+const MAX_TASK_CHARS = 120;
+
+function num(p: Record<string, unknown>, key: string): number | null {
+  const v = Object.hasOwn(p, key) ? p[key] : undefined;
+  return typeof v === 'number' && Number.isFinite(v) ? v : null;
+}
+
+/** The task's own text (the only free text a push may carry: to its assignees and owners). */
+function taskText(p: Record<string, unknown>, max = MAX_TASK_CHARS): string {
+  return cleanText(str(p, 'body') ?? '', max);
+}
 
 /** The notification for one claimed row, or null (unknown kind or unusable payload: never sent). */
 export function buildMessage(

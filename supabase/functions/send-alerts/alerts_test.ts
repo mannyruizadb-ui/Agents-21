@@ -203,10 +203,16 @@ Deno.test('tags differ per kind and per machine', () => {
 });
 
 Deno.test('unknown kinds and bad payloads build nothing', () => {
-  assertEquals(buildMessage('task_assigned', { text: 'check trucks' }, 'en', ctx), null);
+  assertEquals(buildMessage('task_rescheduled', { task_id: 't' }, 'en', ctx), null);
   assertEquals(buildMessage('__proto__', {}, 'en', ctx), null);
   assertEquals(buildMessage('machine_down', null, 'en', ctx), null);
-  assertEquals(Object.keys(BUILDERS).sort(), ['machine_down', 'route_loaded', 'washer_idle']);
+  assertEquals(Object.keys(BUILDERS).sort(), [
+    'machine_down',
+    'route_loaded',
+    'task_assigned',
+    'task_done',
+    'washer_idle',
+  ]);
 });
 
 Deno.test('localMachineName: only the seeded washer pattern is translated', () => {
@@ -330,7 +336,7 @@ Deno.test('run: washer_idle is sent; idle ended or machine back up is stale', as
 
 Deno.test('run: unknown kinds and unusable payloads are marked none and never sent', async () => {
   const rows = [
-    row({ alert_id: 'task', kind: 'task_assigned', payload: { text: 'check trucks' } }),
+    row({ alert_id: 'task', kind: 'task_rescheduled', payload: { task_id: 't', body: 'x' } }),
     row({ alert_id: 'nullp', payload: null }),
     row({ alert_id: 'noid', payload: { ...down, machine_id: null } }),
   ];
@@ -446,4 +452,83 @@ Deno.test('localRouteName: only the seeded route pattern is translated', () => {
   assertEquals(localRouteName('Route 4', 'es'), 'Ruta 4');
   assertEquals(localRouteName('Route 4', 'en'), 'Route 4');
   assertEquals(localRouteName('Route 4 extra', 'es'), 'Route 4 extra');
+});
+
+// ------------------------------------------------------------------------------------------------
+// task_assigned / task_done
+
+const TASK = '33333333-3333-3333-3333-333333333333';
+const task = {
+  task_id: TASK,
+  body: 'Check all parked trucks',
+  to_on_duty: true,
+  created_at: '2026-11-06T08:00:00Z',
+  reminder: 0,
+  done_at: null,
+};
+
+Deno.test('task_assigned: new task and reminders share one tag', () => {
+  assertEquals(msg('task_assigned', task, 'en'), {
+    title: 'New task',
+    body: 'Check all parked trucks',
+    tag: `task-${TASK}`,
+    url: '/control/tasks',
+  });
+  assertEquals(msg('task_assigned', task, 'es').title, 'Nueva tarea');
+  const r = msg('task_assigned', { ...task, reminder: 2 }, 'en');
+  assertEquals(r.title, 'Reminder: task still open');
+  assertEquals(r.tag, `task-${TASK}`);
+  assertEquals(
+    msg('task_assigned', { ...task, reminder: 1 }, 'es').title,
+    'Recordatorio: tarea pendiente',
+  );
+  assertEquals(msg('task_assigned', { ...task, reminder: null }, 'en').title, 'New task');
+  assertEquals(msg('task_assigned', { ...task, reminder: '3' }, 'en').title, 'New task');
+});
+
+Deno.test('task text is cleaned and capped', () => {
+  assertEquals(msg('task_assigned', { ...task, body: 'a\n\tb\u0007' }, 'en').body, 'a b');
+  const long = msg('task_assigned', { ...task, body: 'z'.repeat(200) }, 'en').body;
+  assertEquals(long.length, 120);
+  assert(long.endsWith('…'));
+  assertEquals(buildMessage('task_assigned', { ...task, task_id: null }, 'en', ctx), null);
+});
+
+Deno.test('task_done: text plus done time; never the note', () => {
+  // 2026-11-06 08:12 UTC = 3:12 AM Miami
+  const done = { ...task, done_at: '2026-11-06T08:12:00Z', note: 'secret note', done_by: 'Denise' };
+  const en = msg('task_done', done, 'en');
+  assertEquals(en, {
+    title: 'Task done',
+    body: 'Check all parked trucks · done 3:12 AM',
+    tag: `task-${TASK}`,
+    url: '/control/tasks',
+  });
+  const es = msg('task_done', done, 'es');
+  assertEquals(es.title, 'Tarea hecha');
+  assert(/^Check all parked trucks · hecha a las 3:12/.test(es.body), es.body);
+  assert(
+    !JSON.stringify([en, es]).includes('secret') && !JSON.stringify([en, es]).includes('Denise'),
+  );
+  assertEquals(msg('task_done', { ...task, done_at: null }, 'en').body, 'Check all parked trucks');
+  assertEquals(msg('task_done', { ...done, body: '' }, 'en').body, 'Done 3:12 AM');
+  assert(msg('task_done', { ...done, body: 'q'.repeat(200) }, 'en').body.length <= 120);
+});
+
+Deno.test('run: task kinds are sent and never stale', async () => {
+  const { deps, rec } = mockDeps(
+    [
+      row({ alert_id: 't1', kind: 'task_assigned', payload: task, subscription_id: 'x' }),
+      row({
+        alert_id: 't2',
+        kind: 'task_done',
+        payload: { ...task, done_at: '2026-11-06T08:12:00Z' },
+        subscription_id: 'y',
+      }),
+    ],
+    () => 'ok',
+  );
+  const counts = await run(deps, NOW);
+  assertEquals(rec.marks, { t1: ['x'], t2: ['y'] });
+  assertEquals(counts.stale, 0);
 });
