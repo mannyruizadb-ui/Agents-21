@@ -154,7 +154,12 @@ function RouteCard({
           const x = label(l);
           return (
             <li key={l.line_id} className={l.special_text ? 'special' : undefined}>
-              <span>{x.name}</span>
+              <span>
+                {x.name}
+                {l.entered_by_name && (
+                  <span className="hint"> · {t('names.by', { name: l.entered_by_name })}</span>
+                )}
+              </span>
               <strong className="mono">{x.qty}</strong>
             </li>
           );
@@ -187,6 +192,7 @@ function RouteCard({
                   time: route.loaded_since ? time(route.loaded_since) : '',
                 })}
               </strong>
+              {route.loaded_by_name && <> · {t('names.by', { name: route.loaded_by_name })}</>}
             </p>
             {canMark && (
               <button

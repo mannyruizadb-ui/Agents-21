@@ -98,7 +98,11 @@
     "shiftsSaved": "Turnos guardados para {{name}}.",
     "shiftGroup": "{{area}} · {{shift}}",
     "shiftVariant": "{{from}}–{{to}} ({{days}})",
-    "shiftPartly": "en parte"
+    "shiftPartly": "en parte",
+    "idleLabel": "Alarmas de lavadora parada",
+    "idleHint": "El gerente de turno siempre recibe las alarmas de lavadora parada, aunque esto esté apagado.",
+    "idleOn": "Alarmas de lavadora parada encendidas para {{name}}.",
+    "idleOff": "Alarmas de lavadora parada apagadas para {{name}}."
   },
   "control": {
     "placeholder": "Elige una pantalla.",
@@ -624,8 +628,6 @@
     "namesUnavailable": "No se pueden cargar los nombres ahora; igual puedes mandarla al gerente de turno.",
     "openTitle": "Abiertas",
     "noneOpen": "No hay tareas abiertas.",
-    "doneTitle": "Terminadas en los últimos 7 días",
-    "noneDone": "Nada terminado en los últimos 7 días.",
     "toOnDuty": "Al gerente de turno: {{names}}",
     "toNamed": "A {{names}}",
     "aManager": "un gerente",
@@ -653,10 +655,14 @@
     "filterLabel": "Mostrar",
     "filterOpen_one": "Abiertas ({{count}})",
     "filterOpen_other": "Abiertas ({{count}})",
-    "filterDone_one": "Terminadas ({{count}})",
-    "filterDone_other": "Terminadas ({{count}})",
     "addNote": "Agregar una nota (opcional)",
-    "justSent": "Recién mandada"
+    "justSent": "Recién mandada",
+    "filterReview_one": "Por revisar ({{count}})",
+    "filterReview_other": "Por revisar ({{count}})",
+    "noneToReview": "Nada por revisar.",
+    "reviewed": "Revisada",
+    "doneBy": "Terminada por {{name}}",
+    "sentBy": "Enviada por {{name}}"
   },
   "nav": {
     "label": "Principal",
@@ -713,7 +719,9 @@
         "task_done": "Hecha",
         "route_loaded": "Cargada"
       }
-    }
+    },
+    "clear": "Quitar",
+    "clearAll": "Quitar todas las terminadas"
   },
   "board": {
     "pill": {
@@ -776,5 +784,10 @@
     "m": "{{m}}m",
     "alertsNew_one": "nueva desde la última vez",
     "alertsNew_other": "nuevas desde la última vez"
+  },
+  "names": {
+    "by": "por {{name}}",
+    "addedBy": "Agregado por {{name}}",
+    "markedBy": "Marcado por {{name}}"
   }
 }

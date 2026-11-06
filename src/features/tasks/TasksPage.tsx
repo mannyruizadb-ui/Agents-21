@@ -19,6 +19,9 @@ import './tasks.css';
 // (optional note), then the owners are told. Open = amber card, done = blue. Open / Done filter.
 // Work direction only: no per-person statistics, counts or rankings anywhere; no snooze, no
 // signatures or photo proof (design README).
+// Review (owner 2026-11-06): a done task waits on the owners' screen until one owner taps Reviewed;
+// then it leaves every list (kept in the database, never deleted). Managers see only open tasks.
+// Names (who sent it, who marked it done) come from the server for owners only.
 
 function useAgo() {
   const { t } = useTranslation();
@@ -45,7 +48,7 @@ function OwnerTasks({ plantId }: { plantId: string }) {
   const qc = useQueryClient();
   const now = useNow(30_000);
   const ago = useAgo();
-  const tasks = useTasks(plantId, true);
+  const tasks = useTasks(plantId, false);
   useLiveRefetch(tasks.refetch, true);
   const managers = useManagers(plantId, true);
   const [body, setBody] = useState('');
@@ -86,7 +89,7 @@ function OwnerTasks({ plantId }: { plantId: string }) {
   });
 
   const open = (tasks.data ?? []).filter((x) => !x.done_at);
-  const done = (tasks.data ?? []).filter((x) => x.done_at);
+  const done = (tasks.data ?? []).filter((x) => x.done_at && x.awaiting_review);
   const [composing, setComposing] = useState(false);
   const [filter, setFilter] = useState<'open' | 'done'>('open');
   const showForm = composing || (tasks.isSuccess && open.length === 0 && done.length === 0);
@@ -171,7 +174,7 @@ function OwnerTasks({ plantId }: { plantId: string }) {
           {t('tasks.filterOpen', { count: open.length })}
         </button>
         <button type="button" aria-pressed={filter === 'done'} onClick={() => setFilter('done')}>
-          {t('tasks.filterDone', { count: done.length })}
+          {t('tasks.filterReview', { count: done.length })}
         </button>
       </div>
       {tasks.isPending && <p role="status">{t('common.loading')}</p>}
@@ -206,6 +209,9 @@ function OwnerTasks({ plantId }: { plantId: string }) {
                 <p className="task-meta">
                   <IconBell /> {t('tasks.reminderEvery')}
                 </p>
+                {x.created_by_name && (
+                  <p className="task-meta">{t('tasks.sentBy', { name: x.created_by_name })}</p>
+                )}
               </li>
             ))}
           </ul>
@@ -214,11 +220,13 @@ function OwnerTasks({ plantId }: { plantId: string }) {
       {filter === 'done' && (
         <>
           {tasks.isSuccess && done.length === 0 && (
-            <p className="task-empty">{t('tasks.noneDone')}</p>
+            <p className="task-empty">
+              <IconReady /> {t('tasks.noneToReview')}
+            </p>
           )}
           <ul className="task-list">
             {done.map((x) => (
-              <DoneCard key={x.task_id ?? ''} task={x} showNote />
+              <ReviewCard key={x.task_id ?? ''} task={x} />
             ))}
           </ul>
         </>
@@ -227,9 +235,19 @@ function OwnerTasks({ plantId }: { plantId: string }) {
   );
 }
 
-function DoneCard({ task, showNote = false }: { task: Task; showNote?: boolean }) {
+/** Owner: a done task waiting for review. One owner's Reviewed clears it for both owners. */
+function ReviewCard({ task }: { task: Task }) {
   const { t } = useTranslation();
+  const qc = useQueryClient();
   const clock = useClock();
+  const [error, setError] = useState<string | null>(null);
+  const review = useMutation({
+    mutationFn: async () =>
+      unwrap(await supabase.rpc('review_task', { p_task_id: task.task_id ?? '' })),
+    onSuccess: () => setError(null),
+    onError: (e) => setError(t(errorMessageKey(e))),
+    onSettled: () => void qc.invalidateQueries({ queryKey: ['tasks'] }),
+  });
   return (
     <li className="task-card done">
       <div className="task-card-head">
@@ -239,9 +257,23 @@ function DoneCard({ task, showNote = false }: { task: Task; showNote?: boolean }
         <span className="mono task-age">{clock(task.done_at)}</span>
       </div>
       <p className="task-body">{task.body}</p>
-      {showNote && task.done_note && (
-        <p className="task-meta">{t('tasks.note', { note: task.done_note })}</p>
+      {task.done_by_name && (
+        <p className="task-meta">{t('tasks.doneBy', { name: task.done_by_name })}</p>
       )}
+      {task.done_note && <p className="task-meta">{t('tasks.note', { note: task.done_note })}</p>}
+      {error && (
+        <p className="error" role="alert">
+          {error}
+        </p>
+      )}
+      <button
+        type="button"
+        className="task-big task-done-button"
+        disabled={review.isPending}
+        onClick={() => review.mutate()}
+      >
+        <IconReady /> {t('tasks.reviewed')}
+      </button>
     </li>
   );
 }
@@ -306,10 +338,10 @@ function MyTaskCard({ task }: { task: Task }) {
 
 function MyTasks({ plantId }: { plantId: string }) {
   const { t } = useTranslation();
-  const tasks = useTasks(plantId, true);
+  // Managers get only their open tasks: a task leaves this list as soon as it is marked done.
+  const tasks = useTasks(plantId, false);
   useLiveRefetch(tasks.refetch, true);
   const open = (tasks.data ?? []).filter((x) => !x.done_at);
-  const done = (tasks.data ?? []).filter((x) => x.done_at);
   return (
     <>
       {open.length > 0 && (
@@ -329,16 +361,6 @@ function MyTasks({ plantId }: { plantId: string }) {
           <MyTaskCard key={x.task_id ?? ''} task={x} />
         ))}
       </ul>
-      {done.length > 0 && (
-        <>
-          <h2>{t('tasks.doneTitle')}</h2>
-          <ul className="task-list">
-            {done.map((x) => (
-              <DoneCard key={x.task_id ?? ''} task={x} />
-            ))}
-          </ul>
-        </>
-      )}
     </>
   );
 }

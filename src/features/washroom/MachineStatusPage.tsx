@@ -215,6 +215,9 @@ export function MachineStatusPage() {
               {m.since && (
                 <p className="md-since">{t('machines.downSinceTime', { time: clock(m.since) })}</p>
               )}
+              {m.status_by_name && (
+                <p className="md-since">{t('names.markedBy', { name: m.status_by_name })}</p>
+              )}
               {canEdit &&
                 (fixing ? (
                   <div className="confirm-box" role="group" aria-labelledby={`up-${m.machine_id}`}>

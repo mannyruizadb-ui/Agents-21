@@ -98,7 +98,11 @@
     "shiftsSaved": "Shifts saved for {{name}}.",
     "shiftGroup": "{{area}} · {{shift}}",
     "shiftVariant": "{{from}}–{{to}} ({{days}})",
-    "shiftPartly": "partly"
+    "shiftPartly": "partly",
+    "idleLabel": "Washer idle alarms",
+    "idleHint": "The manager on duty always gets washer idle alarms, even when this is off.",
+    "idleOn": "Washer idle alarms on for {{name}}.",
+    "idleOff": "Washer idle alarms off for {{name}}."
   },
   "control": {
     "placeholder": "Choose a screen.",
@@ -624,8 +628,6 @@
     "namesUnavailable": "Manager names can't be loaded right now; you can still send to the manager on duty.",
     "openTitle": "Open",
     "noneOpen": "No open tasks.",
-    "doneTitle": "Done in the last 7 days",
-    "noneDone": "Nothing done in the last 7 days.",
     "toOnDuty": "To the manager on duty: {{names}}",
     "toNamed": "To {{names}}",
     "aManager": "a manager",
@@ -653,10 +655,14 @@
     "filterLabel": "Show",
     "filterOpen_one": "Open ({{count}})",
     "filterOpen_other": "Open ({{count}})",
-    "filterDone_one": "Done ({{count}})",
-    "filterDone_other": "Done ({{count}})",
     "addNote": "Add a note (optional)",
-    "justSent": "Just sent"
+    "justSent": "Just sent",
+    "filterReview_one": "To review ({{count}})",
+    "filterReview_other": "To review ({{count}})",
+    "noneToReview": "Nothing to review.",
+    "reviewed": "Reviewed",
+    "doneBy": "Done by {{name}}",
+    "sentBy": "Sent by {{name}}"
   },
   "nav": {
     "label": "Main",
@@ -713,7 +719,9 @@
         "task_done": "Done",
         "route_loaded": "Loaded"
       }
-    }
+    },
+    "clear": "Clear",
+    "clearAll": "Clear all finished"
   },
   "board": {
     "pill": {
@@ -776,5 +784,10 @@
     "m": "{{m}}m",
     "alertsNew_one": "new since you last looked",
     "alertsNew_other": "new since you last looked"
+  },
+  "names": {
+    "by": "by {{name}}",
+    "addedBy": "Added by {{name}}",
+    "markedBy": "Marked by {{name}}"
   }
 }

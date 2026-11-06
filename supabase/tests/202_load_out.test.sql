@@ -85,8 +85,9 @@ select is(pg_temp.val_as('viewer', $$select jsonb_array_length(public.get_load_o
 select is(array[pg_temp.run_as('display', $$select public.get_load_out_board(pg_temp.id('plantA'))$$),
                 pg_temp.run_as('ownerB', $$select public.get_load_out_board(pg_temp.id('plantA'))$$)],
   '{NOT_AUTHORIZED,NOT_AUTHORIZED}', 'board: plant roles only');
-select ok(position('entered_by' in current_setting('test.b')) = 0 and position(pg_temp.id('manager')::text in current_setting('test.b')) = 0,
-  'the board names nobody');
+select ok(current_setting('test.b') !~ '"(entered_by|loaded_by)_name": "' and position('"entered_by":' in current_setting('test.b')) = 0
+          and position(pg_temp.id('manager')::text in current_setting('test.b')) = 0 and position('Manager A' in current_setting('test.b')) = 0,
+  'the board names nobody for a non-owner (name keys are null; owner 2026-11-06: names on owner screens only)');
 
 -- ══ Copy from another day ════════════════════════════════════════════════
 select is(pg_temp.val_as('manager', $$select public.copy_load_out_from(pg_temp.id('plantA'), pg_temp.next_dow(1), pg_temp.next_dow(1) + 7)::text$$),
