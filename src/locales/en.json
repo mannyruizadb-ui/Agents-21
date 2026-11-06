@@ -617,5 +617,23 @@
     "kindMachine": "A machine goes out of service",
     "kindRoute": "A route is marked loaded",
     "kindTask": "A task is done"
+  },
+  "board": {
+    "pill": {
+      "running": "Running",
+      "ready": "Unload",
+      "idle": "Empty",
+      "unknown": "Check",
+      "down": "Down"
+    },
+    "minLeft": "min left",
+    "unload": "Done: unload",
+    "open": "Open",
+    "running": "{{n}}/{{total}} running",
+    "thenMore_one": "then {{count}} more",
+    "thenMore_other": "then {{count}} more",
+    "forMinutes_one": "{{count}} min",
+    "forMinutes_other": "{{count}} min",
+    "forHours": "{{h}} h {{m}} min"
   }
 }

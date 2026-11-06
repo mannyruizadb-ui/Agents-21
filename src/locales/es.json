@@ -617,5 +617,23 @@
     "kindMachine": "Una máquina queda fuera de servicio",
     "kindRoute": "Una ruta se marca cargada",
     "kindTask": "Se termina una tarea"
+  },
+  "board": {
+    "pill": {
+      "running": "Lavando",
+      "ready": "Sacar",
+      "idle": "Vacía",
+      "unknown": "Revisar",
+      "down": "Fuera"
+    },
+    "minLeft": "min faltan",
+    "unload": "Terminó: sacar",
+    "open": "Abrir",
+    "running": "{{n}}/{{total}} lavando",
+    "thenMore_one": "y {{count}} más",
+    "thenMore_other": "y {{count}} más",
+    "forMinutes_one": "{{count}} min",
+    "forMinutes_other": "{{count}} min",
+    "forHours": "{{h}} h {{m}} min"
   }
 }
