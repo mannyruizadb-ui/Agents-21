@@ -545,6 +545,37 @@
       "name": "Type a name of 1 to 60 characters.",
       "area": "Choose an area.",
       "englishLabel": "Type the English label (1 to 60 characters)."
+    },
+    "pins": {
+      "title": "Setup: entry PINs",
+      "intro": "The people who confirm estimates and finished goods with their name and a 4-digit PIN. The PIN only shows who entered something; it is not a password. Deactivate someone who leaves; they are never deleted, because their past entries point at them.",
+      "none": "Nobody yet. Add the first person below.",
+      "name": "Name",
+      "language": "Language",
+      "homeShift": "Home shift",
+      "noShift": "No home shift",
+      "homeShiftHint": "Entries count toward this shift unless they pick the next one.",
+      "hasPin": "PIN set",
+      "noPin": "No PIN yet",
+      "setPin": "Set PIN",
+      "resetPin": "Reset PIN",
+      "savePin": "Save PIN",
+      "pin": "New PIN (4 digits)",
+      "pinAgain": "Type the PIN again",
+      "pinHint": "Not 1234 and not one digit 4 times. Each person needs a different PIN.",
+      "pinSaved": "New PIN saved for {{name}}.",
+      "addTitle": "Add a person",
+      "add": "Add person",
+      "added": "{{name}} was added with a PIN.",
+      "addedNoPin": "{{name}} was added, but the PIN was not saved.",
+      "deactivateHint": "A deactivated person can't confirm entries; their past entries stay.",
+      "errors": {
+        "digits": "The PIN must be exactly 4 digits.",
+        "easy": "That PIN is too easy to guess. Pick another.",
+        "mismatch": "The two PINs don't match.",
+        "inUse": "Someone else already has that PIN. Pick another.",
+        "name": "Type a name (up to 60 characters)."
+      }
     }
   },
   "loadOut": {

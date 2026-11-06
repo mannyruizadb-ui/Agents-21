@@ -545,6 +545,37 @@
       "name": "Escribe un nombre de 1 a 60 caracteres.",
       "area": "Escoge un área.",
       "englishLabel": "Escribe el texto en inglés (de 1 a 60 caracteres)."
+    },
+    "pins": {
+      "title": "Configuración: PIN de registro",
+      "intro": "Las personas que confirman los estimados y los productos terminados con su nombre y un PIN de 4 dígitos. El PIN solo muestra quién registró algo; no es una contraseña. Desactiva a quien se vaya; nunca se borra, porque sus registros anteriores lo mencionan.",
+      "none": "Todavía no hay nadie. Agrega a la primera persona abajo.",
+      "name": "Nombre",
+      "language": "Idioma",
+      "homeShift": "Turno habitual",
+      "noShift": "Sin turno habitual",
+      "homeShiftHint": "Los registros cuentan para este turno, salvo que elijan el siguiente.",
+      "hasPin": "PIN listo",
+      "noPin": "Sin PIN",
+      "setPin": "Poner PIN",
+      "resetPin": "Cambiar PIN",
+      "savePin": "Guardar PIN",
+      "pin": "PIN nuevo (4 dígitos)",
+      "pinAgain": "Escribe el PIN otra vez",
+      "pinHint": "Que no sea 1234 ni el mismo dígito 4 veces. Cada persona necesita un PIN distinto.",
+      "pinSaved": "PIN nuevo guardado para {{name}}.",
+      "addTitle": "Agregar una persona",
+      "add": "Agregar persona",
+      "added": "Se agregó a {{name}} con su PIN.",
+      "addedNoPin": "Se agregó a {{name}}, pero el PIN no se guardó.",
+      "deactivateHint": "Una persona desactivada no puede confirmar registros; sus registros anteriores se quedan.",
+      "errors": {
+        "digits": "El PIN debe tener exactamente 4 dígitos.",
+        "easy": "Ese PIN es muy fácil de adivinar. Elige otro.",
+        "mismatch": "Los dos PIN no son iguales.",
+        "inUse": "Otra persona ya tiene ese PIN. Elige otro.",
+        "name": "Escribe un nombre (hasta 60 caracteres)."
+      }
     }
   },
   "loadOut": {

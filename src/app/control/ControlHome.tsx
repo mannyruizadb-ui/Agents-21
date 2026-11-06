@@ -77,6 +77,12 @@ export function ControlHome() {
       show: isOwner,
     },
     {
+      to: '/control/setup/pins',
+      label: t('setup.pins.title'),
+      icon: <IconPeople />,
+      show: isOwner,
+    },
+    {
       to: '/control/setup/reasons',
       label: t('setup.reasons.title'),
       icon: <IconList />,

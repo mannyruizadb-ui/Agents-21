@@ -74,6 +74,13 @@ export const router = createBrowserRouter([
         }),
       },
       {
+        // Setup → Entry PINs (owner 2026-11-06): the people who confirm entries with name + PIN.
+        path: 'setup/pins',
+        lazy: async () => ({
+          Component: (await import('./features/setup/SetupPinsPage')).SetupPinsPage,
+        }),
+      },
+      {
         path: 'setup/reasons',
         lazy: async () => ({
           Component: (await import('./features/setup/SetupReasonsPage')).SetupReasonsPage,
