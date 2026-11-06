@@ -200,15 +200,19 @@ select is((select array_agg(load_factor_used order by id) from public.washer_cyc
             where id in ('f1000000-0000-0000-0000-0000000000a7', 'f1000000-0000-0000-0000-0000000000a8')),
   array[1.19, 1.00]::numeric[], 'load_factor_used = the machine''s factor, 1.00 without a machine (client values ignored)');
 
--- ── shift_crew_hours: owner/manager R C U; lead, viewer R ──
-select is(pg_temp.reads($$select 1 from public.shift_crew_hours where plant_id = pg_temp.id('plantA')$$), '{1,1,1,1,0,0,0,0}', 'shift_crew_hours R');
-select is(pg_temp.writes($$insert into public.shift_crew_hours (org_id, plant_id, shift_instance_id, area_id, crew_count, labor_hours, entered_by)
-  values (pg_temp.id('orgA'), pg_temp.id('plantA'),
-          (select si.id from public.shift_instances si where si.area_id = pg_temp.id('fin')
-              and not exists (select 1 from public.shift_crew_hours h where h.shift_instance_id = si.id) order by si.starts_at limit 1),
-          pg_temp.id('fin'), 5, 30, (select auth.uid()))$$),
-  '{1,1,42501,42501,42501,42501,42501,42501}', 'shift_crew_hours C owner/manager');
-select is(pg_temp.writes($$update public.shift_crew_hours set crew_count = 6 where plant_id = pg_temp.id('plantA')$$), '{3,3,0,0,0,0,0,0}', 'shift_crew_hours U owner/manager');
+-- ── shift_crew_hours: owner R (security review 2026-11-06 L1); owner/manager C; owner U (a manager cannot see rows to update) ──
+select is(pg_temp.reads($$select 1 from public.shift_crew_hours where plant_id = pg_temp.id('plantA')$$), '{1,0,0,0,0,0,0,0}', 'shift_crew_hours R: owner only');
+select set_config('test.free', (select string_agg(si.id::text, ',' order by si.starts_at) from public.shift_instances si where si.area_id = pg_temp.id('fin')
+                                   and not exists (select 1 from public.shift_crew_hours h where h.shift_instance_id = si.id)), true);
+select is(array[
+  pg_temp.run_as('owner', $$insert into public.shift_crew_hours (org_id, plant_id, shift_instance_id, area_id, crew_count, labor_hours, entered_by)
+    values (pg_temp.id('orgA'), pg_temp.id('plantA'), split_part(current_setting('test.free'), ',', 1)::uuid, pg_temp.id('fin'), 5, 30, (select auth.uid()))$$),
+  pg_temp.run_as('manager', $$insert into public.shift_crew_hours (org_id, plant_id, shift_instance_id, area_id, crew_count, labor_hours, entered_by)
+    values (pg_temp.id('orgA'), pg_temp.id('plantA'), split_part(current_setting('test.free'), ',', 2)::uuid, pg_temp.id('fin'), 5, 30, (select auth.uid()))$$),
+  pg_temp.run_as('lead', $$insert into public.shift_crew_hours (org_id, plant_id, shift_instance_id, area_id, crew_count, labor_hours, entered_by)
+    values (pg_temp.id('orgA'), pg_temp.id('plantA'), split_part(current_setting('test.free'), ',', 3)::uuid, pg_temp.id('fin'), 5, 30, (select auth.uid()))$$)],
+  '{1,1,42501}', 'shift_crew_hours C owner/manager');
+select is(pg_temp.writes($$update public.shift_crew_hours set crew_count = 6 where plant_id = pg_temp.id('plantA')$$), '{3,0,0,0,0,0,0,0}', 'shift_crew_hours U: owner (others see no rows)');
 select throws_ok($$insert into public.shift_crew_hours (org_id, plant_id, shift_instance_id, area_id, crew_count, labor_hours, entered_by)
   values (pg_temp.id('orgA'), pg_temp.id('plantA'), pg_temp.si(pg_temp.id('fin'), 'Day', '2026-11-04'), pg_temp.id('wash'), 1, 1, pg_temp.id('owner'))$$,
   '23503', null, 'crew hours area must match the shift instance''s area');

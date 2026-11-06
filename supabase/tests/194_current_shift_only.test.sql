@@ -1,9 +1,10 @@
 -- Owner 2026-11-05: managers (and leads, viewers) see only the CURRENT shift's totals; the owner sees
--- every shift. get_shift_report, the history views and the raw washer_cycles / finished_goods_entries.
+-- every shift. get_shift_report, the history views, the raw washer_cycles / finished_goods_entries, and
+-- queue_items (open items + items completed in the current shift; security review 2026-11-06 M1).
 -- Matrix arrays: [owner, manager, lead, viewer, display, display-without-device, owner of B, anon].
 begin;
 \ir _fixtures.psql
-select plan(9);
+select plan(11);
 
 -- A shift running now in the spare area, one that ended an hour ago, and one later today.
 insert into public.shifts (id, org_id, plant_id, area_id, name, start_local, end_local, days_of_week, active) values
@@ -47,6 +48,18 @@ select is(array[
   '{0,0}', 'the manager screens'' views (queue_board, current_soil_estimates) still work');
 select is(pg_temp.run_as('manager', $$select public.get_day_report(pg_temp.id('plantA'), current_date)$$), 'NOT_AUTHORIZED',
   'the day report stays owner-only');
+
+-- ══ queue_items (security review M1) ═════════════════════════════════════
+insert into public.queue_items (org_id, plant_id, area_id, wash_group_id, qty, unit, position, created_by, client_id, status, started_at, completed_at) values
+  (pg_temp.id('orgA'), pg_temp.id('plantA'), pg_temp.id('spare'), pg_temp.id('gMat'), 1, 'load', 1, pg_temp.id('owner'), gen_random_uuid(), 'queued', null, null),
+  (pg_temp.id('orgA'), pg_temp.id('plantA'), pg_temp.id('spare'), pg_temp.id('gMat'), 1, 'load', 2, pg_temp.id('owner'), gen_random_uuid(), 'done', now() - interval '40 minutes', now() - interval '20 minutes'),
+  (pg_temp.id('orgA'), pg_temp.id('plantA'), pg_temp.id('spare'), pg_temp.id('gMat'), 1, 'load', 3, pg_temp.id('owner'), gen_random_uuid(), 'done', now() - interval '150 minutes', now() - interval '2 hours'),
+  (pg_temp.id('orgA'), pg_temp.id('plantA'), pg_temp.id('spare'), pg_temp.id('gMat'), 1, 'load', 4, pg_temp.id('owner'), gen_random_uuid(), 'cancelled', null, null);
+select is(pg_temp.reads($$select 1 from public.queue_items where area_id = pg_temp.id('spare')$$),
+  array['4', '2', '2', '2', '0', '0', '0', pg_temp.run_as('anon', $$select 1 from public.queue_items$$, true)],
+  'queue_items: the owner sees all; manager/lead/viewer see open items + those done in the current shift (not the previous shift, not cancelled)');
+select is(pg_temp.run_as('manager', $$select * from public.get_queue(pg_temp.id('spare'))$$, true), '1',
+  'get_queue still returns the open queue to managers');
 
 select * from finish();
 rollback;

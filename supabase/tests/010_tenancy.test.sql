@@ -81,7 +81,7 @@ select is(pg_temp.run_as('ownerP', $$update public.organizations set name = 'Hij
 
 -- audit_log: owner/manager R; nobody writes (app.audit() only).
 select is(pg_temp.reads($$select 1 from public.audit_log where org_id = pg_temp.id('orgA') limit 1$$),
-  '{1,1,0,0,0,0,0,0}', 'audit_log R owner/manager');
+  '{1,0,0,0,0,0,0,0}', 'audit_log R: owner only (security review 2026-11-06 H1)');
 select is(pg_temp.writes($$insert into public.audit_log (org_id, action, entity) values (pg_temp.id('orgA'), 'x', 'x')$$),
   '{42501,42501,42501,42501,42501,42501,42501,42501}', 'audit_log C denied');
 select is(pg_temp.writes($$update public.audit_log set action = 'x'$$), '{0,0,0,0,0,0,0,0}', 'audit_log U denied');

@@ -17,13 +17,13 @@ select is(array[
   pg_temp.run_as('owner', $$select public.save_push_subscription(pg_temp.id('plantA'), 'https://fcm.googleapis.com/fcm/send/owner-secret-token', pg_temp.k2(), pg_temp.a())$$),
   pg_temp.run_as('owner', $$select public.remove_push_subscription('https://fcm.googleapis.com/fcm/send/owner-secret-token')$$)],
   '{1,1,1}', 'subscribe, rotate keys, remove (three audited changes)');
-select is(pg_temp.val_as('manager', $$select count(*)::text from public.audit_log where entity = 'push_subscriptions'$$),
-  '3', 'the manager can read the push_subscriptions audit rows …');
-select is(pg_temp.val_as('manager', $$select count(*)::text from public.audit_log where entity = 'push_subscriptions'
+select is(pg_temp.val_as('owner', $$select count(*)::text from public.audit_log where entity = 'push_subscriptions'$$),
+  '3', 'the owner reads the push_subscriptions audit rows (managers no longer read the audit log) …');
+select is(pg_temp.val_as('owner', $$select count(*)::text from public.audit_log where entity = 'push_subscriptions'
                                         and (coalesce(before, '{}') ?| array['endpoint', 'p256dh', 'auth'] or after ?| array['endpoint', 'p256dh', 'auth']
                                              or (coalesce(before, '{}')::text || after::text) ~ '(owner-secret-token|BBBBBBBB|CCCCCCCC|abcdefghij)')$$),
   '0', '… but none holds the endpoint, p256dh or auth (before or after)');
-select is(pg_temp.val_as('manager', $$select string_agg(distinct after ->> 'endpoint_host', ',') from public.audit_log where entity = 'push_subscriptions'$$),
+select is(pg_temp.val_as('owner', $$select string_agg(distinct after ->> 'endpoint_host', ',') from public.audit_log where entity = 'push_subscriptions'$$),
   'fcm.googleapis.com', 'only the push service host is kept');
 
 -- ══ M2: allow-listed push hosts ══════════════════════════════════════════
