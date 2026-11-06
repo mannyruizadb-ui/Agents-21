@@ -52,7 +52,7 @@ select is(pg_temp.val_as('nobody', $$select (payload ->> 'body') || '/' || still
 select is(pg_temp.val_as('owner', $$select count(*)::text from public.get_my_alerts(pg_temp.id('plantA')) where payload ? 'reason' or payload ? 'done_note' or payload::text like '%Ana%'$$),
   '0', 'no free-text reason, done note or names in any payload');
 select is(pg_temp.val_as('owner', $$select string_agg(kind || '=' || still_current, ',' order by kind) from public.get_my_alerts(pg_temp.id('plantA'))$$),
-  'machine_down=true,route_loaded=true,task_done=false,washer_idle=true', 'still_current: down, loaded, idle are still true');
+  'machine_down=true,route_loaded=true,task_done=true,washer_idle=true', 'still_current: down, loaded, idle are still true; task_done stays live until an owner reviews it (owner 2026-11-06)');
 
 -- ══ Window and badge ═════════════════════════════════════════════════════
 update public.alert_events set sent_at = now() - interval '2 days' where kind = 'route_loaded';

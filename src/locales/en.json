@@ -98,7 +98,11 @@
     "shiftsSaved": "Shifts saved for {{name}}.",
     "shiftGroup": "{{area}} · {{shift}}",
     "shiftVariant": "{{from}}–{{to}} ({{days}})",
-    "shiftPartly": "partly"
+    "shiftPartly": "partly",
+    "idleLabel": "Washer idle alarms",
+    "idleHint": "The manager on duty always gets washer idle alarms, even when this is off.",
+    "idleOn": "Washer idle alarms on for {{name}}.",
+    "idleOff": "Washer idle alarms off for {{name}}."
   },
   "control": {
     "placeholder": "Choose a screen.",
@@ -128,7 +132,8 @@
     "rateLimited": "Too many changes at once. Wait a few seconds and try again.",
     "network": "Couldn't reach the server. Check the Wi-Fi and try again.",
     "machineDown": "That washer is marked down. Choose another washer, or mark it back up first.",
-    "pinAgain": "The PIN has to be entered again. Enter it and save."
+    "pinAgain": "The PIN has to be entered again. Enter it and save.",
+    "washerRunning": "This washer is still running. Confirm to start another load."
   },
   "units": {
     "load_one": "{{n}} load",
@@ -210,7 +215,12 @@
     "rejectTooLate": "It reached the server more than 30 minutes late, so it can't be counted. Tell the manager so they can add the load.",
     "rejectDown": "The washer was marked down at that time. If it really ran, tell the manager.",
     "downNoStart": "START is off while this washer is down. Mark it back up when it's fixed.",
-    "undoCountdown": "UNDO · {{count}} s"
+    "undoCountdown": "UNDO · {{count}} s",
+    "stillRunningUntil": "{{washer}} is still running until {{time}}.",
+    "stillRunning": "{{washer}} is still running.",
+    "startAnotherQ": "Start another load anyway? Only if a new load really went in.",
+    "startAnyway": "Start anyway",
+    "rejectRunning": "The washer was still running, so it wasn't counted. Tap Start anyway only if a new load really went in."
   },
   "queue": {
     "rush": "RUSH",
@@ -541,6 +551,37 @@
       "name": "Type a name of 1 to 60 characters.",
       "area": "Choose an area.",
       "englishLabel": "Type the English label (1 to 60 characters)."
+    },
+    "pins": {
+      "title": "Setup: entry PINs",
+      "intro": "The people who confirm estimates and finished goods with their name and a 4-digit PIN. The PIN only shows who entered something; it is not a password. Deactivate someone who leaves; they are never deleted, because their past entries point at them.",
+      "none": "Nobody yet. Add the first person below.",
+      "name": "Name",
+      "language": "Language",
+      "homeShift": "Home shift",
+      "noShift": "No home shift",
+      "homeShiftHint": "Entries count toward this shift unless they pick the next one.",
+      "hasPin": "PIN set",
+      "noPin": "No PIN yet",
+      "setPin": "Set PIN",
+      "resetPin": "Reset PIN",
+      "savePin": "Save PIN",
+      "pin": "New PIN (4 digits)",
+      "pinAgain": "Type the PIN again",
+      "pinHint": "Not 1234 and not one digit 4 times. Each person needs a different PIN.",
+      "pinSaved": "New PIN saved for {{name}}.",
+      "addTitle": "Add a person",
+      "add": "Add person",
+      "added": "{{name}} was added with a PIN.",
+      "addedNoPin": "{{name}} was added, but the PIN was not saved.",
+      "deactivateHint": "A deactivated person can't confirm entries; their past entries stay.",
+      "errors": {
+        "digits": "The PIN must be exactly 4 digits.",
+        "easy": "That PIN is too easy to guess. Pick another.",
+        "mismatch": "The two PINs don't match.",
+        "inUse": "Someone else already has that PIN. Pick another.",
+        "name": "Type a name (up to 60 characters)."
+      }
     }
   },
   "loadOut": {
@@ -624,8 +665,6 @@
     "namesUnavailable": "Manager names can't be loaded right now; you can still send to the manager on duty.",
     "openTitle": "Open",
     "noneOpen": "No open tasks.",
-    "doneTitle": "Done in the last 7 days",
-    "noneDone": "Nothing done in the last 7 days.",
     "toOnDuty": "To the manager on duty: {{names}}",
     "toNamed": "To {{names}}",
     "aManager": "a manager",
@@ -653,10 +692,14 @@
     "filterLabel": "Show",
     "filterOpen_one": "Open ({{count}})",
     "filterOpen_other": "Open ({{count}})",
-    "filterDone_one": "Done ({{count}})",
-    "filterDone_other": "Done ({{count}})",
     "addNote": "Add a note (optional)",
-    "justSent": "Just sent"
+    "justSent": "Just sent",
+    "filterReview_one": "To review ({{count}})",
+    "filterReview_other": "To review ({{count}})",
+    "noneToReview": "Nothing to review.",
+    "reviewed": "Reviewed",
+    "doneBy": "Done by {{name}}",
+    "sentBy": "Sent by {{name}}"
   },
   "nav": {
     "label": "Main",
@@ -713,7 +756,9 @@
         "task_done": "Done",
         "route_loaded": "Loaded"
       }
-    }
+    },
+    "clear": "Clear",
+    "clearAll": "Clear all finished"
   },
   "board": {
     "pill": {
@@ -776,5 +821,10 @@
     "m": "{{m}}m",
     "alertsNew_one": "new since you last looked",
     "alertsNew_other": "new since you last looked"
+  },
+  "names": {
+    "by": "by {{name}}",
+    "addedBy": "Added by {{name}}",
+    "markedBy": "Marked by {{name}}"
   }
 }

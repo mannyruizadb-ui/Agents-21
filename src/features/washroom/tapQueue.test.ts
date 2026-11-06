@@ -166,3 +166,12 @@ describe('flushPending', () => {
     expect(readPending(s).map((t) => t.clientId)).toEqual(['b']);
   });
 });
+
+describe('newTap confirmRunning', () => {
+  it('only carries the flag when the person confirmed', async () => {
+    const { newTap } = await import('./tapQueue');
+    const at = new Date('2026-11-06T12:00:00Z');
+    expect(newTap('m', null, 'c1', at).confirmRunning).toBeUndefined();
+    expect(newTap('m', null, 'c2', at, true).confirmRunning).toBe(true);
+  });
+});

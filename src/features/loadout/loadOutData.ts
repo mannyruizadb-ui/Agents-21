@@ -7,7 +7,8 @@ import { LIVE_REFETCH_MS } from '../washroom/washroomData';
 // Reads for the load-out (owner 2026-11-06). Who typed or who loaded is never read.
 
 export type RouteRow = Database['public']['Tables']['routes']['Row'];
-export type LineRow = Database['public']['Tables']['load_out_lines']['Row'];
+// entered_by is not readable by clients (column grants), so it is not part of a line here.
+export type LineRow = Omit<Database['public']['Tables']['load_out_lines']['Row'], 'entered_by'>;
 
 export interface LoadItem {
   id: string;
@@ -28,6 +29,8 @@ export interface BoardLine {
   pack_size: number | null;
   special_text: string | null;
   qty: number;
+  /** owners only (null for everyone else and for lines saved before names were recorded) */
+  entered_by_name?: string | null;
 }
 
 export interface BoardRoute {
@@ -36,6 +39,8 @@ export interface BoardRoute {
   load_time: string;
   loaded: boolean;
   loaded_since: string | null;
+  /** owners only */
+  loaded_by_name?: string | null;
   lines: BoardLine[];
 }
 
@@ -126,7 +131,10 @@ export function useLoadOutLines(plantId: string | undefined, loadDate: string) {
       const [day, recent] = await Promise.all([
         supabase
           .from('load_out_lines')
-          .select('*')
+          // Explicit columns: entered_by is hidden by column grants (owner names come from RPCs).
+          .select(
+            'id, org_id, plant_id, load_date, route_id, item_type_id, special_text, qty, created_at, updated_at',
+          )
           .eq('plant_id', plantId ?? '')
           .eq('load_date', loadDate),
         supabase

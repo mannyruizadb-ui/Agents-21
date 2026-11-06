@@ -1,8 +1,9 @@
 import { Link } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import { useRequiredSession } from '../auth/sessionContext';
-import { useEffect } from 'react';
-import { useQueryClient } from '@tanstack/react-query';
+import { useEffect, useState } from 'react';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { supabase } from '../../lib/supabase';
 import { useLocalNames } from '../../lib/seededNames';
 import { userStore } from '../../lib/scopedStore';
 import { useLiveRefetch } from '../../lib/useLiveRefetch';
@@ -29,7 +30,7 @@ import {
   IconTasks,
   IconTruck,
 } from '../../features/washroom/Icons';
-import { errorMessageKey } from '../../features/washroom/rpcError';
+import { errorMessageKey, unwrap } from '../../features/washroom/rpcError';
 import { useMyRoles } from '../../features/washroom/useMyRoles';
 import { useAreas } from '../../features/washroom/washroomData';
 import '../../lib/forms.css';
@@ -39,6 +40,8 @@ import './alerts.css';
 // (get_my_alerts, owner or manager). Open ones first; every row says what happened, when, and whether
 // it is resolved, and a tap opens the screen that fixes it. Wording matches the push notifications.
 // No names: the payload never carries any.
+// Clear (owner 2026-11-06): each person clears their own list (someone else's stays); only alerts that
+// are over can be cleared (the server decides, can_clear). Cleared alerts are hidden, never deleted.
 
 function useTimeText() {
   const { t, i18n } = useTranslation();
@@ -73,7 +76,7 @@ function KindIcon({ kind }: { kind: AlertView['kind'] }) {
   }
 }
 
-function AlertItem({ a }: { a: AlertView }) {
+function AlertItem({ a, onClear }: { a: AlertView; onClear?: (id: string) => void }) {
   const { t, i18n } = useTranslation();
   const names = useLocalNames();
   const labeler = useReasonLabeler();
@@ -154,6 +157,13 @@ function AlertItem({ a }: { a: AlertView }) {
           ›
         </span>
       </Link>
+      {onClear && a.canClear && (
+        <div className="al-clear">
+          <button type="button" className="secondary" onClick={() => onClear(a.id)}>
+            {t('alerts.clear')}
+          </button>
+        </div>
+      )}
     </li>
   );
 }
@@ -185,6 +195,30 @@ export function AlertsPage() {
     }
   }, [loadedAt, data, userId, qc]);
   const split = data?.available ? splitAlerts(data.rows) : null;
+
+  const [clearError, setClearError] = useState<unknown>(null);
+  const afterClear = {
+    onSuccess: () => setClearError(null),
+    onError: (e: unknown) => setClearError(e),
+    onSettled: () => {
+      void qc.invalidateQueries({ queryKey: ['my-alerts'] });
+      void qc.invalidateQueries({ queryKey: ['my-alert-count'] });
+    },
+  };
+  const clearOne = useMutation({
+    mutationFn: async (id: string) =>
+      unwrap(
+        await supabase.rpc('clear_my_alerts', { p_plant_id: plantId ?? '', p_alert_ids: [id] }),
+      ),
+    ...afterClear,
+  });
+  const clearAll = useMutation({
+    mutationFn: async () =>
+      unwrap(await supabase.rpc('clear_my_finished_alerts', { p_plant_id: plantId ?? '' })),
+    ...afterClear,
+  });
+  const clearable = split ? split.earlier.filter((a) => a.canClear).length : 0;
+  const clearing = clearOne.isPending || clearAll.isPending;
 
   return (
     <main className="form-page al-page">
@@ -232,13 +266,32 @@ export function AlertsPage() {
             )}
           </section>
           <section aria-labelledby="al-earlier">
-            <h2 id="al-earlier">{t('alerts.earlier')}</h2>
+            <div className="al-head">
+              <h2 id="al-earlier">{t('alerts.earlier')}</h2>
+              {clearable > 0 && (
+                <button
+                  type="button"
+                  className="secondary"
+                  disabled={clearing}
+                  onClick={() => clearAll.mutate()}
+                >
+                  {t('alerts.clearAll')}
+                </button>
+              )}
+            </div>
+            <div role="status" aria-live="polite">
+              {clearError !== null && <p className="error">{t(errorMessageKey(clearError))}</p>}
+            </div>
             {split.earlier.length === 0 ? (
               <p className="al-empty">{t('alerts.noneEarlier')}</p>
             ) : (
               <ul className="al-list">
                 {split.earlier.map((a) => (
-                  <AlertItem key={a.id} a={a} />
+                  <AlertItem
+                    key={a.id}
+                    a={a}
+                    onClear={clearing ? undefined : (id) => clearOne.mutate(id)}
+                  />
                 ))}
               </ul>
             )}

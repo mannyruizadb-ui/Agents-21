@@ -10,7 +10,9 @@ import { QueueBadges } from './QueueBadges';
 import { WashGroupLabel } from './WashGroupLabel';
 import { useLocalizedName } from './localizedName';
 import { errorMessageKey, tapRejectedKey } from './rpcError';
-import { UNDO_WINDOW_MS, useTapSync } from './useTapSync';
+import { MANAGER_UNDO_WINDOW_MS, UNDO_WINDOW_MS, useTapSync } from './useTapSync';
+import { useMyRoles } from './useMyRoles';
+import { useRequiredSession } from '../../app/auth/sessionContext';
 import { useQtyText } from './useQtyText';
 import { estimateServerNow, formatCountdown, minutesLeftRoundedUp, washerNow } from './washerTime';
 import { DownBanner } from './DownBanner';
@@ -80,6 +82,12 @@ export function WasherStationPage() {
   const [undoState, setUndoState] = useState<'idle' | 'busy' | 'done' | 'error'>('idle');
   const [undoError, setUndoError] = useState<unknown>(null);
   const startRef = useRef<HTMLButtonElement>(null);
+  // Owner 2026-11-06: START on a washer that is still running asks first (the server insists too).
+  const [confirmingRunning, setConfirmingRunning] = useState(false);
+  const session = useRequiredSession();
+  const roles = useMyRoles(session.user.id).rolesFor(machine.data?.plant_id);
+  const undoWindowMs =
+    roles.has('owner') || roles.has('manager') ? MANAGER_UNDO_WINDOW_MS : UNDO_WINDOW_MS;
 
   const row = board.data?.find((r) => r.machine_id === machineId);
   const isDown = !!row?.is_down;
@@ -95,7 +103,7 @@ export function WasherStationPage() {
       : null;
 
   const locked = lastTap !== null && now - lastTap.at < START_LOCK_MS;
-  const undoLeftMs = lastTap ? UNDO_WINDOW_MS - (now - lastTap.at) : 0;
+  const undoLeftMs = lastTap ? undoWindowMs - (now - lastTap.at) : 0;
   const lastPending = lastTap ? taps.pending.some((p) => p.clientId === lastTap.clientId) : false;
   const lastSent = lastTap ? taps.sent[lastTap.clientId] : undefined;
   // Too-late taps are shown by the loud TapAlarmBanner instead (owner 2026-11-05).
@@ -107,14 +115,20 @@ export function WasherStationPage() {
   const showUndo =
     lastTap !== null && undoLeftMs > 0 && undoState !== 'done' && (lastPending || !!lastSent);
 
-  function onStart() {
+  function onStart(confirmRunning = false) {
     if (!machineId || !startGroupName || locked) return;
+    if (view?.status === 'running' && !confirmRunning) {
+      setConfirmingRunning(true);
+      return;
+    }
+    setConfirmingRunning(false);
     // Server clock − device clock, so the stored tap time is in server time (see useTapSync.tap).
     const offset = row ? Date.parse(row.server_time) - board.dataUpdatedAt : 0;
     const clientId = taps.tap(
       machineId,
       override?.id ?? null,
       Number.isFinite(offset) ? offset : 0,
+      confirmRunning,
     );
     setLastTap({ clientId, at: now, groupName: startGroupName });
     setUndoState('idle');
@@ -339,6 +353,17 @@ export function WasherStationPage() {
             })}{' '}
             {t(tapRejectedKey(r.errorCode))}
           </p>
+          {r.errorCode === 'WASHER_RUNNING' && (
+            <button
+              type="button"
+              onClick={() => {
+                taps.dismiss(r.clientId);
+                taps.tap(r.machineId, r.washGroupId, 0, true);
+              }}
+            >
+              {t('station.startAnyway')}
+            </button>
+          )}
           <button type="button" onClick={() => taps.dismiss(r.clientId)}>
             {t('station.dismiss')}
           </button>
@@ -372,13 +397,44 @@ export function WasherStationPage() {
             ref={startRef}
             type="button"
             className="start-button"
-            onClick={onStart}
-            disabled={!startGroupName || locked || !machine.data.active}
+            onClick={() => onStart()}
+            disabled={!startGroupName || locked || !machine.data.active || confirmingRunning}
             aria-describedby="start-what"
           >
             <IconStart size="1em" />
             <span>{locked ? t('station.startedShort') : t('station.start')}</span>
           </button>
+          {confirmingRunning && (
+            <div
+              className="confirm-box station-message warn"
+              role="alertdialog"
+              aria-labelledby="running-q"
+            >
+              <IconWarning />
+              <p id="running-q">
+                <strong>
+                  {row?.expected_end_at
+                    ? t('station.stillRunningUntil', {
+                        washer: names.machine(machine.data.name),
+                        time: new Date(row.expected_end_at).toLocaleTimeString(undefined, {
+                          hour: 'numeric',
+                          minute: '2-digit',
+                        }),
+                      })
+                    : t('station.stillRunning', { washer: names.machine(machine.data.name) })}
+                </strong>{' '}
+                {t('station.startAnotherQ')}
+              </p>
+              <div className="row">
+                <button type="button" className="start-button" onClick={() => onStart(true)}>
+                  {t('station.startAnyway')}
+                </button>
+                <button type="button" onClick={() => setConfirmingRunning(false)}>
+                  {t('common.cancel')}
+                </button>
+              </div>
+            </div>
+          )}
           <p id="start-what" className="meta">
             {startGroupName
               ? override

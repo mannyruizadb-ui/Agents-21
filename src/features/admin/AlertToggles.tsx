@@ -7,6 +7,8 @@ import { alertRowsFor, type AlertMembership } from './alertRecipients';
 // "Machine down alerts" on/off per person (owner only: PeoplePage is reachable only by owners, and
 // set_alert_recipient re-checks the owner role). The flag is read from memberships directly (RLS:
 // owners and managers can read their plant's memberships), not from the manage-users function.
+// "Washer idle alarms" (owner 2026-11-06): on/off for owner memberships only, via
+// set_washer_idle_alert; the manager on duty always gets them, so a washer is never left idle unseen.
 
 export function AlertToggles({
   userId,
@@ -52,6 +54,32 @@ export function AlertToggles({
     onSettled: () => void qc.invalidateQueries({ queryKey: key }),
   });
 
+  const setIdle = useMutation({
+    mutationFn: async (v: { membershipId: string; on: boolean }) =>
+      unwrap(
+        await supabase.rpc('set_washer_idle_alert', {
+          p_membership_id: v.membershipId,
+          p_notify: v.on,
+        }),
+      ),
+    onMutate: async (v) => {
+      await qc.cancelQueries({ queryKey: key });
+      const previous = qc.getQueryData<AlertMembership[]>(key);
+      qc.setQueryData<AlertMembership[]>(key, (list) =>
+        list?.map((m) => (m.id === v.membershipId ? { ...m, notify_washer_idle: v.on } : m)),
+      );
+      return { previous };
+    },
+    onSuccess: (_r, v) =>
+      onStatus(v.on ? t('people.idleOn', { name }) : t('people.idleOff', { name })),
+    onError: (e, _v, ctx) => {
+      if (ctx?.previous) qc.setQueryData(key, ctx.previous);
+      onStatus(t(errorMessageKey(e)));
+    },
+    onSettled: () => void qc.invalidateQueries({ queryKey: key }),
+  });
+  const ownerRows = rows.filter((r) => r.role === 'owner');
+
   if (rows.length === 0) return null;
   return (
     <div className="field check">
@@ -72,6 +100,18 @@ export function AlertToggles({
         </label>
       ))}
       <p className="hint">{t('people.alertsHint')}</p>
+      {ownerRows.map((r) => (
+        <label key={`idle-${r.membershipId}`}>
+          <input
+            type="checkbox"
+            checked={r.idleOn}
+            disabled={setIdle.isPending}
+            onChange={(e) => setIdle.mutate({ membershipId: r.membershipId, on: e.target.checked })}
+          />
+          {t('people.idleLabel')}
+        </label>
+      ))}
+      {ownerRows.length > 0 && <p className="hint">{t('people.idleHint')}</p>}
     </div>
   );
 }

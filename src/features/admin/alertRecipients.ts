@@ -9,6 +9,8 @@ export interface AlertMembership {
   plant_id: string | null;
   role: string;
   notify_machine_down: boolean;
+  /** Owner 2026-11-06: owners may switch off washer idle alarms (the manager on duty always gets them). */
+  notify_washer_idle: boolean;
   /** Owner 2026-11-06: this manager may type the load-out. */
   can_enter_load_out: boolean;
 }
@@ -20,6 +22,8 @@ export interface AlertRow {
   on: boolean;
   /** Owner and manager only; anything else can't receive machine-down alerts. */
   canEnable: boolean;
+  /** Washer idle alarms: on/off exists for owner memberships only. */
+  idleOn: boolean;
 }
 
 /** This person's active memberships that apply to `plantId` (plant-level or org-wide). */
@@ -41,5 +45,6 @@ export function alertRowsFor(
       orgWide: m.plant_id === null,
       on: m.notify_machine_down,
       canEnable: m.role === 'owner' || m.role === 'manager',
+      idleOn: m.notify_washer_idle,
     }));
 }

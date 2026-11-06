@@ -318,6 +318,9 @@ function QueueItemCard({
           ` · ${t('queue.inProgress', { count: item.loads_started })}`}
       </p>
       {item.note && <p className="hint">{t('queue.note', { note: item.note })}</p>}
+      {item.created_by_name && (
+        <p className="hint">{t('names.addedBy', { name: item.created_by_name })}</p>
+      )}
       {assignedDown && (
         <p className="down-banner">
           <strong>

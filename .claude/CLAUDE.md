@@ -24,6 +24,25 @@ Full context lives in these docs. Read the relevant one before non-trivial work;
 
 ## Current state (update this section as work progresses)
 
+- **PR #9 open (2026-11-06, https://github.com/mannyruizadb-ui/Agents-21/pull/9). NOT deployed; deploy-db needs the owner's OK.** App and migrations ship together (`load_out_lines` now uses column grants; the client select is fixed in the PR).
+  - Bug fix `5dd6608`: washer UNDO raced an in-flight START (the tap was removed locally while the server saved it, so the queue lost loads). `undoTap` now waits for the flush. Regression test added.
+  - Migrations `20261106123651…123701` (5). **1296 pgTAP** and **176 Vitest** pass. security-reviewer PASS WITH NOTES:
+    - L1 `app.audit` should strip `reviewed_by`;
+    - L2 the tasks RLS policy is broader than `get_tasks`;
+    - L3 `memberships` anon table grants still open;
+    - L6 `alert_dismissals` has no retention;
+    - L7 never render names on the station or washer board (shared tablet);
+    - M1 document in PRD v1.6 that names are attribution, not per-person output, and get the owner's HR/legal note.
+  - Owner answers 2026-11-06:
+    - Task window: 7 days is only the list window (tasks are never deleted). A done task leaves the list once ONE owner reviews it (`review_task`). Managers see only open tasks.
+    - Alerts: per-person Clear / Clear all finished (`alert_dismissals`). Live alerts can't be cleared; `route_loaded` is always clearable; `task_done` stays live until reviewed.
+    - Old audit names: NOT scrubbed (owner wants them).
+    - Names: the owner role sees who entered (queue creator, machine status, load-out lines and loaded, tasks; owner-only reads `get_soil_estimate_entries`, `get_finished_goods_entries`, `get_machine_status_history`), for accountability. Managers never see names. No totals by person. Washer taps stay anonymous. This reverses the 2026-11-04 "no names anywhere" rule for owners only.
+    - Father: full owner access, with his own washer-idle switch (`memberships.notify_washer_idle`, `set_washer_idle_alert`). The manager on duty always gets idle alarms (owner OK).
+    - Soil bags, Spanish: "Bolsas".
+  - Not done: browser click-through and axe scan of the changed screens; UI for the 3 owner-only history reads.
+  - Waiting on the owner: (1) START on a running washer: confirm prompt (recommended) or hard block; (2) cut the server undo window from 30 min to 2 min; (3) confirm per-person alert clearing.
+  - After deploy: check the father's membership scope (plant or org-wide); confirm the Bolsas migration changed 1 row; run the advisors.
 - **Sprint Zero DONE (2026-10-30, `research/roadmap.md` §3):** React 19/Router 8/Vite 8 PWA scaffold, magic-link sign-in, EN/ES locales (ES pending AI review), Supabase init, CI (app + migrations/pgTAP + hook tests), Foundation agents and guard hooks. Local Supabase works when Docker is started; CI always proves SQL.
 - **Supabase: "Plant Ops Board"** (ref `ypurifebjiivvltbcufx`, us-east-1). The only cloud project (staging until the pilot), schema + seed uploaded 2026-11-02 via the manual deploy-db workflow (staging until the pilot). Never touch "ADB Project" or "Fleet Repair Log".
 - **M1 part 1 DONE (2026-11-01): database foundation**
@@ -117,13 +136,13 @@ Full context lives in these docs. Read the relevant one before non-trivial work;
   - `20261106024855` (push delivery for every kind + washer idle), `025433` (load-out), `025957` (tasks), plus send-alerts redeployed (all builders).
   - PR #7 is open: load-out board and entry, tasks, People shift and load-out settings.
   - `20261106030529` (review tidy-ups) is on the branch, NOT deployed; review pending.
-  - Owner decisions open:
-    - task timing window (rec 7 days);
-    - scrub old audit names;
-    - father's opt-out of idle alarms;
-    - soap wording;
-    - Spanish for soil bags;
-    - "Lavadora N" in pushes.
+  - Owner decisions open (resolved items struck through; answers in the PR #9 bullet above):
+    - ~~task timing window (rec 7 days)~~ **resolved 2026-11-06:** 7 days is the list window only; done tasks leave after one owner review;
+    - ~~scrub old audit names~~ **resolved 2026-11-06:** NOT scrubbed;
+    - ~~father's opt-out of idle alarms~~ **resolved 2026-11-06:** per-owner washer-idle switch;
+    - soap wording (open);
+    - ~~Spanish for soil bags~~ **resolved 2026-11-06:** "Bolsas";
+    - "Lavadora N" in pushes (open).
   - Owner to do before Monday: tick each manager's usual shifts in People.
 - **PR #6 merged (2026-11-06 02:49; CI on main green):**
   - Push alerts are on: VAPID public key in `netlify.toml`.

@@ -1,6 +1,6 @@
 -- M2 washroom start-taps (PRD F1, D1 v1.6; owner decisions 2026-11-02/03): start_washer_load,
 -- undo_washer_load, get_washroom_board. No name/PIN on taps. Picks assigned before unassigned, copies
--- rewash, advances the queue, is idempotent, and undo works only within 30 minutes.
+-- rewash, advances the queue, is idempotent, and undo works only within 5 minutes (owner 2026-11-06).
 -- Matrix arrays: [owner, manager, lead, viewer, display, display-without-device, owner of B, anon].
 begin;
 \ir _fixtures.psql
@@ -51,6 +51,7 @@ select is(array[
   '{1,1,1,1,1}', 'queue set up');
 
 -- ── Picking and advancing ─────────────────────────────────────────────────
+-- Back-to-back taps on a washer still running pass p_confirm_running (owner 2026-11-06; see 111).
 select is(pg_temp.val_as('lead', $$select (public.start_washer_load(pg_temp.id('machine'), pg_temp.cid(101))).queue_item_id$$),
   pg_temp.q(1)::text, 'Washer 1: the item ASSIGNED to it wins over an unassigned RUSH item');
 select is(pg_temp.qstate(1), array['in_progress', '1'], 'first load: queued → in_progress, loads_started 1');
@@ -63,14 +64,14 @@ select ok((select shift_instance_id is not distinct from app.shift_instance_at(p
                                             app.production_date(started_at, 'America/New_York', '12:00'))
              from public.washer_cycles w where id = pg_temp.cyc(101)),
   'shift = the area''s clock instance (or off-shift); production_date stored');
-select is(pg_temp.val_as('lead', $$select (public.start_washer_load(pg_temp.id('machine'), pg_temp.cid(102))).queue_status$$),
+select is(pg_temp.val_as('lead', $$select (public.start_washer_load(pg_temp.id('machine'), pg_temp.cid(102), p_confirm_running => true)).queue_status$$),
   'done', 'second load completes the 2-load item');
 select is(pg_temp.qstate(1), array['done', '2'], 'item A done after 2 loads');
-select is(pg_temp.val_as('manager', $$select (public.start_washer_load(pg_temp.id('machine'), pg_temp.cid(103))).queue_item_id$$),
+select is(pg_temp.val_as('manager', $$select (public.start_washer_load(pg_temp.id('machine'), pg_temp.cid(103), p_confirm_running => true)).queue_item_id$$),
   pg_temp.q(2)::text, 'Washer 1, nothing assigned left: the top UNASSIGNED item (the rush one)');
 select is(pg_temp.val_as('owner', $$select (public.start_washer_load('60000000-0000-0000-0000-0000000000a2', pg_temp.cid(104))).queue_item_id$$),
   pg_temp.q(4)::text, 'Washer 2 takes the item assigned to it');
-select is(pg_temp.val_as('owner', $$select (public.start_washer_load('60000000-0000-0000-0000-0000000000a2', pg_temp.cid(105))).is_rewash$$),
+select is(pg_temp.val_as('owner', $$select (public.start_washer_load('60000000-0000-0000-0000-0000000000a2', pg_temp.cid(105), p_confirm_running => true)).is_rewash$$),
   'true', 'Washer 2 then takes the unassigned rewash item: is_rewash copied to the cycle');
 select is((select array[load_factor_used::text, queue_item_id::text] from public.washer_cycles where id = pg_temp.cyc(105)),
   array['1.19', pg_temp.q(3)::text], 'the 1.19 washer''s factor is snapshotted');
@@ -87,7 +88,7 @@ select is(pg_temp.run_as('ownerB', $$select public.start_washer_load('60000000-0
 select is(pg_temp.run_as('owner', $$select public.create_queue_item(pg_temp.id('wash'), 3, 'load', pg_temp.cid(6), pg_temp.id('gNapkin'))$$), '1', 'more napkins');
 select is(pg_temp.val_as('lead', $$select (public.start_washer_load('60000000-0000-0000-0000-0000000000a3', pg_temp.cid(106), null, pg_temp.id('gNapkin'))).queue_item_id$$),
   pg_temp.q(6)::text, 'with a chosen group, the top open item of that group');
-select is(pg_temp.val_as('lead', $$select (public.start_washer_load('60000000-0000-0000-0000-0000000000a3', pg_temp.cid(107), pg_temp.q(6))).queue_item_id$$),
+select is(pg_temp.val_as('lead', $$select (public.start_washer_load('60000000-0000-0000-0000-0000000000a3', pg_temp.cid(107), pg_temp.q(6), p_confirm_running => true)).queue_item_id$$),
   pg_temp.q(6)::text, 'an explicit open item of the washer''s area');
 select is(array[
   pg_temp.run_as('lead', $$select public.start_washer_load(pg_temp.id('machine'), gen_random_uuid(), pg_temp.q(5))$$),
@@ -130,8 +131,8 @@ select is(pg_temp.val_as('manager', $$select (public.undo_washer_load(pg_temp.cy
   'queued', 'undo of the only load of the rewash item puts it back in the queue');
 select is((select array[status::text, loads_started::text, coalesce(started_at::text, 'null')] from public.queue_items where id = pg_temp.q(3)),
   array['queued', '0', 'null'], 'rewash item: queued, 0 loads, started_at cleared');
-update public.washer_cycles set started_at = now() - interval '31 minutes', created_at = now() - interval '31 minutes' where id = pg_temp.cyc(103);
-select is(pg_temp.run_as('lead', $$select public.undo_washer_load(pg_temp.cyc(103))$$), 'OUT_OF_RANGE_TIMESTAMP', 'no undo 30 minutes after the tap was recorded (created_at)');
+update public.washer_cycles set started_at = now() - interval '6 minutes', created_at = now() - interval '6 minutes' where id = pg_temp.cyc(103);
+select is(pg_temp.run_as('lead', $$select public.undo_washer_load(pg_temp.cyc(103))$$), 'OUT_OF_RANGE_TIMESTAMP', 'no undo 6 minutes after the tap was recorded (created_at; window 5 minutes)');
 select is((select coalesce(sum(loads_run), 0)::int from public.washroom_by_shift where plant_id = pg_temp.id('plantA')),
   (select count(*)::int from public.washer_cycles where plant_id = pg_temp.id('plantA') and voided_at is null),
   'voided loads leave every report');

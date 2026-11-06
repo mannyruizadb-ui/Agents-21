@@ -32,7 +32,9 @@ select is(array(select app.managers_on_duty(pg_temp.id('plantA'), now())), array
   'the manager assigned to the running shift is on duty now');
 select is(array(select app.managers_on_duty(pg_temp.id('plantA'), now() + interval '400 days')), '{}'::uuid[],
   'nobody when no assigned shift covers that time');
-update public.manager_shift_assignments set active = false where shift_id = '90000000-0000-0000-0000-0000000000d1';
+-- Deactivate both of the manager's assignments: the fixture week's washroom night shift (Tue/Wed/Fri/Sat
+-- 00:00–12:00) can also be running now, which made this time-dependent.
+update public.manager_shift_assignments set active = false where membership_id = pg_temp.mid('manager');
 select is(array(select app.managers_on_duty(pg_temp.id('plantA'), now())), '{}'::uuid[], 'a deactivated assignment does not count');
 select is(pg_temp.run_as('owner', $$delete from public.manager_shift_assignments$$), '42501', 'no deletes (deactivate)');
 select is(array[has_function_privilege('authenticated', 'app.managers_on_duty(uuid,timestamptz)', 'execute'),

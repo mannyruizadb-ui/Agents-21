@@ -18,6 +18,8 @@ export interface PendingTap {
   attempts: number;
   /** Last error code or message from a failed attempt, for the screen. */
   lastError: string | null;
+  /** Owner 2026-11-06: the person confirmed starting another load on a washer that was still running. */
+  confirmRunning?: boolean;
 }
 
 export interface RejectedTap extends PendingTap {
@@ -92,6 +94,7 @@ export function newTap(
   washGroupId: string | null,
   clientId: string,
   now: Date,
+  confirmRunning = false,
 ): PendingTap {
   return {
     clientId,
@@ -100,6 +103,7 @@ export function newTap(
     tappedAt: now.toISOString(),
     attempts: 0,
     lastError: null,
+    ...(confirmRunning ? { confirmRunning: true } : {}),
   };
 }
 

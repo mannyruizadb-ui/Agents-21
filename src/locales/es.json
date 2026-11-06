@@ -98,7 +98,11 @@
     "shiftsSaved": "Turnos guardados para {{name}}.",
     "shiftGroup": "{{area}} · {{shift}}",
     "shiftVariant": "{{from}}–{{to}} ({{days}})",
-    "shiftPartly": "en parte"
+    "shiftPartly": "en parte",
+    "idleLabel": "Alarmas de lavadora parada",
+    "idleHint": "El gerente de turno siempre recibe las alarmas de lavadora parada, aunque esto esté apagado.",
+    "idleOn": "Alarmas de lavadora parada encendidas para {{name}}.",
+    "idleOff": "Alarmas de lavadora parada apagadas para {{name}}."
   },
   "control": {
     "placeholder": "Elige una pantalla.",
@@ -128,7 +132,8 @@
     "rateLimited": "Demasiados cambios a la vez. Espera unos segundos e intenta de nuevo.",
     "network": "No hay conexión con el servidor. Revisa el Wi-Fi e intenta de nuevo.",
     "machineDown": "Esa lavadora está fuera de servicio. Elige otra, o márcala como arreglada primero.",
-    "pinAgain": "Hay que poner el PIN otra vez. Escríbelo y guarda."
+    "pinAgain": "Hay que poner el PIN otra vez. Escríbelo y guarda.",
+    "washerRunning": "Esta lavadora todavía está trabajando. Confirma para empezar otra carga."
   },
   "units": {
     "load_one": "{{n}} carga",
@@ -210,7 +215,12 @@
     "rejectTooLate": "Llegó al servidor más de 30 minutos tarde y no se puede contar. Avísale al gerente para que agregue la carga.",
     "rejectDown": "La lavadora estaba fuera de servicio a esa hora. Si de verdad lavó, avísale al gerente.",
     "downNoStart": "EMPEZAR está apagado mientras esta lavadora esté fuera de servicio. Márcala como arreglada cuando funcione.",
-    "undoCountdown": "DESHACER · {{count}} s"
+    "undoCountdown": "DESHACER · {{count}} s",
+    "stillRunningUntil": "{{washer}} sigue trabajando hasta las {{time}}.",
+    "stillRunning": "{{washer}} sigue trabajando.",
+    "startAnotherQ": "¿Empezar otra carga de todos modos? Solo si de verdad metiste una carga nueva.",
+    "startAnyway": "Empezar de todos modos",
+    "rejectRunning": "La lavadora todavía estaba trabajando, así que no se contó. Toca «Empezar de todos modos» solo si de verdad metiste una carga nueva."
   },
   "queue": {
     "rush": "URGENTE",
@@ -541,6 +551,37 @@
       "name": "Escribe un nombre de 1 a 60 caracteres.",
       "area": "Escoge un área.",
       "englishLabel": "Escribe el texto en inglés (de 1 a 60 caracteres)."
+    },
+    "pins": {
+      "title": "Configuración: PIN de registro",
+      "intro": "Las personas que confirman los estimados y los productos terminados con su nombre y un PIN de 4 dígitos. El PIN solo muestra quién registró algo; no es una contraseña. Desactiva a quien se vaya; nunca se borra, porque sus registros anteriores lo mencionan.",
+      "none": "Todavía no hay nadie. Agrega a la primera persona abajo.",
+      "name": "Nombre",
+      "language": "Idioma",
+      "homeShift": "Turno habitual",
+      "noShift": "Sin turno habitual",
+      "homeShiftHint": "Los registros cuentan para este turno, salvo que elijan el siguiente.",
+      "hasPin": "PIN listo",
+      "noPin": "Sin PIN",
+      "setPin": "Poner PIN",
+      "resetPin": "Cambiar PIN",
+      "savePin": "Guardar PIN",
+      "pin": "PIN nuevo (4 dígitos)",
+      "pinAgain": "Escribe el PIN otra vez",
+      "pinHint": "Que no sea 1234 ni el mismo dígito 4 veces. Cada persona necesita un PIN distinto.",
+      "pinSaved": "PIN nuevo guardado para {{name}}.",
+      "addTitle": "Agregar una persona",
+      "add": "Agregar persona",
+      "added": "Se agregó a {{name}} con su PIN.",
+      "addedNoPin": "Se agregó a {{name}}, pero el PIN no se guardó.",
+      "deactivateHint": "Una persona desactivada no puede confirmar registros; sus registros anteriores se quedan.",
+      "errors": {
+        "digits": "El PIN debe tener exactamente 4 dígitos.",
+        "easy": "Ese PIN es muy fácil de adivinar. Elige otro.",
+        "mismatch": "Los dos PIN no son iguales.",
+        "inUse": "Otra persona ya tiene ese PIN. Elige otro.",
+        "name": "Escribe un nombre (hasta 60 caracteres)."
+      }
     }
   },
   "loadOut": {
@@ -624,8 +665,6 @@
     "namesUnavailable": "No se pueden cargar los nombres ahora; igual puedes mandarla al gerente de turno.",
     "openTitle": "Abiertas",
     "noneOpen": "No hay tareas abiertas.",
-    "doneTitle": "Terminadas en los últimos 7 días",
-    "noneDone": "Nada terminado en los últimos 7 días.",
     "toOnDuty": "Al gerente de turno: {{names}}",
     "toNamed": "A {{names}}",
     "aManager": "un gerente",
@@ -653,10 +692,14 @@
     "filterLabel": "Mostrar",
     "filterOpen_one": "Abiertas ({{count}})",
     "filterOpen_other": "Abiertas ({{count}})",
-    "filterDone_one": "Terminadas ({{count}})",
-    "filterDone_other": "Terminadas ({{count}})",
     "addNote": "Agregar una nota (opcional)",
-    "justSent": "Recién mandada"
+    "justSent": "Recién mandada",
+    "filterReview_one": "Por revisar ({{count}})",
+    "filterReview_other": "Por revisar ({{count}})",
+    "noneToReview": "Nada por revisar.",
+    "reviewed": "Revisada",
+    "doneBy": "Terminada por {{name}}",
+    "sentBy": "Enviada por {{name}}"
   },
   "nav": {
     "label": "Principal",
@@ -713,7 +756,9 @@
         "task_done": "Hecha",
         "route_loaded": "Cargada"
       }
-    }
+    },
+    "clear": "Quitar",
+    "clearAll": "Quitar todas las terminadas"
   },
   "board": {
     "pill": {
@@ -776,5 +821,10 @@
     "m": "{{m}}m",
     "alertsNew_one": "nueva desde la última vez",
     "alertsNew_other": "nuevas desde la última vez"
+  },
+  "names": {
+    "by": "por {{name}}",
+    "addedBy": "Agregado por {{name}}",
+    "markedBy": "Marcado por {{name}}"
   }
 }

@@ -13,6 +13,8 @@ export interface AlertRow {
   created_at: string;
   payload: unknown;
   still_current: boolean;
+  /** server: this user may clear it (it is over; live alerts can't be cleared). Absent on older servers. */
+  can_clear?: boolean;
 }
 
 export interface AlertView {
@@ -26,6 +28,8 @@ export interface AlertView {
   open: boolean;
   /** the condition ended (machine fixed, load started, task done, loaded mark removed) */
   resolved: boolean;
+  /** the Clear button shows (server decides; never for a live alert) */
+  canClear: boolean;
   machineName?: string;
   areaName?: string;
   reasonCode?: string | null;
@@ -61,7 +65,7 @@ export function describeAlert(row: AlertRow): AlertView | null {
   const p = row.payload;
   if (p === null || typeof p !== 'object' || Array.isArray(p)) return null;
   const payload = p as Record<string, unknown>;
-  const base = { id: row.alert_id, createdAt: row.created_at };
+  const base = { id: row.alert_id, createdAt: row.created_at, canClear: row.can_clear === true };
   switch (row.kind) {
     case 'machine_down': {
       const id = str(payload, 'machine_id');

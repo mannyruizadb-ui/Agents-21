@@ -318,7 +318,7 @@ select a.org_id, a.plant_id, a.id, m.name, m.kind::app.machine_kind
 -- Load-out (owner 2026-11-06; data migration 20261106025433_add_load_out for the cloud): soil bags (never
 -- washed, packs of 5) and the 4+1 routes with their load times and weekdays (0 = Sun … 6 = Sat).
 insert into public.item_types (org_id, plant_id, wash_group_id, name, name_i18n, category, count_mode, pack_size, washed, sort_order)
-select p.org_id, p.id, null, 'Soil bags', '{"es":"Bolsas para ropa sucia"}'::jsonb, 'other', 'pack', 5, false, 900
+select p.org_id, p.id, null, 'Soil bags', '{"es":"Bolsas"}'::jsonb, 'other', 'pack', 5, false, 900
   from public.plants p
   join public.organizations o on o.id = p.org_id and o.slug = 'americas-dust-busters'
  where p.name = 'Miami';

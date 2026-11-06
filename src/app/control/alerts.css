@@ -120,3 +120,13 @@
   gap: var(--sp-sm);
   align-items: flex-start;
 }
+
+/* Clear (owner 2026-11-06): a separate target under the row link, never inside it. */
+.al-clear {
+  display: flex;
+  justify-content: flex-end;
+  padding: 0 var(--sp-md) var(--sp-sm);
+}
+.al-page .al-head button {
+  margin-top: var(--sp-lg);
+}
