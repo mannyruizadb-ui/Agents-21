@@ -584,7 +584,17 @@
     "truckAt": "Truck at {{time}}",
     "lateWord": "late",
     "leftWord": "to go",
-    "routesTitle": "Routes"
+    "routesTitle": "Routes",
+    "packsShort_one": "{{count}} pack",
+    "packsShort_other": "{{count}} packs",
+    "piecesShort_one": "{{count}} pc",
+    "piecesShort_other": "{{count}} pcs",
+    "empty": "Nothing yet",
+    "groupTotal": "Total {{count}}",
+    "size": "Size {{size}}",
+    "routesFilled": "{{filled}} of {{total}} routes filled",
+    "allSaved": "All changes saved",
+    "someNotSaved": "Some boxes were not saved. Check the red messages."
   },
   "tasks": {
     "title": "Tasks",

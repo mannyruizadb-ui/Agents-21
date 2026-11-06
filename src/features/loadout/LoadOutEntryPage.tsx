@@ -9,12 +9,15 @@ import { useLocalizedName } from '../washroom/localizedName';
 import { errorMessageKey, unwrap } from '../washroom/rpcError';
 import { useAreas } from '../washroom/washroomData';
 import {
+  groupSizes,
   loadOutRows,
   localRouteName,
   nextLoadDate,
   parseQty,
   previousLoadDate,
   routesForDate,
+  splitSize,
+  wallClock,
 } from './loadOutLogic';
 import {
   useLoadItems,
@@ -28,10 +31,11 @@ import {
 import '../../lib/forms.css';
 import './loadout.css';
 
-// Load-out entry (owner 2026-11-06: "must be simple"): the office manager or the owner types what each
-// route needs for one loading morning. One card per route (works on a phone); one number per item with
-// −1 / +1; "+ Special item" per route; "Same as yesterday" copies the last loading day. Every cell
-// saves on its own (optimistic, with its own status); qty 0 = not needed.
+// Load-out entry (owner 2026-11-06: "must be simple"; redesign 2026-11-06): the office manager or the
+// owner types what each route needs for one loading morning. "Same as yesterday" on top, a summary
+// (routes filled, packs and pieces), then one card per route with its total; one row per item with
+// −1 / +1, sized items (Butcher coat M / L / XL) under one heading with their total; "+ Special item"
+// per route. Every cell saves on its own (optimistic, with its own status); qty 0 = not needed.
 
 type CellStatus = 'saving' | 'saved' | 'error';
 interface CellState {
@@ -129,6 +133,7 @@ function QtyCell({
   value,
   state,
   onChange,
+  compact = false,
 }: {
   id: string;
   label: string;
@@ -136,15 +141,26 @@ function QtyCell({
   value: number;
   state: CellState | undefined;
   onChange: (text: string, immediate: boolean) => void;
+  /** a size inside a group: the label is just the size */
+  compact?: boolean;
 }) {
   const { t } = useTranslation();
   const text = state?.text ?? String(value);
   const n = parseQty(text) ?? value;
   return (
-    <div className="lo-cell">
-      <label htmlFor={id}>
-        {label} <span className="hint">({unit})</span>
-      </label>
+    <div className={compact ? 'lo-row compact' : 'lo-row'}>
+      <div className="lo-row-label">
+        <label htmlFor={id}>{label}</label>
+        {unit && <span className="lo-unit">{unit}</span>}
+        <span
+          id={`${id}-status`}
+          className={state?.status === 'error' ? 'error lo-status' : 'lo-status'}
+        >
+          {state?.status === 'saving' && t('loadOut.saving')}
+          {state?.status === 'saved' && t('loadOut.saved')}
+          {state?.status === 'error' && state.error}
+        </span>
+      </div>
       <div className="lo-stepper">
         <button
           type="button"
@@ -156,6 +172,7 @@ function QtyCell({
         </button>
         <input
           id={id}
+          className="mono"
           inputMode="numeric"
           autoComplete="off"
           value={text}
@@ -167,16 +184,42 @@ function QtyCell({
           +1
         </button>
       </div>
-      <p
-        id={`${id}-status`}
-        className={state?.status === 'error' ? 'error lo-status' : 'hint lo-status'}
-      >
-        {state?.status === 'saving' && t('loadOut.saving')}
-        {state?.status === 'saved' && t('loadOut.saved')}
-        {state?.status === 'error' && state.error}
-      </p>
     </div>
   );
+}
+
+type Line = { item_type_id: string | null; special_text: string | null; qty: number };
+
+/** The quantity a cell shows: what is being typed when it reads as a number, else the server's. */
+function shownQty(cells: Record<string, CellState>, key: string, server: number): number {
+  const c = cells[key];
+  return c ? (parseQty(c.text) ?? server) : server;
+}
+
+/** Packs and pieces on a set of lines (special items count as pieces). */
+function sumUnits(
+  rows: readonly LoadItem[],
+  qty: (item: LoadItem) => number,
+  specials: number,
+): { packs: number; pieces: number } {
+  let packs = 0;
+  let pieces = specials;
+  for (const r of rows) {
+    if (r.count_mode === 'pack') packs += qty(r);
+    else pieces += qty(r);
+  }
+  return { packs, pieces };
+}
+
+function useUnitsText() {
+  const { t } = useTranslation();
+  return ({ packs, pieces }: { packs: number; pieces: number }) =>
+    [
+      packs > 0 && t('loadOut.packsShort', { count: packs }),
+      pieces > 0 && t('loadOut.piecesShort', { count: pieces }),
+    ]
+      .filter(Boolean)
+      .join(' · ') || t('loadOut.empty');
 }
 
 function SpecialForm({ onAdd }: { onAdd: (text: string, qty: number) => void }) {
@@ -249,7 +292,7 @@ function RouteCard({
 }: {
   route: RouteRow;
   rows: LoadItem[];
-  lines: { item_type_id: string | null; special_text: string | null; qty: number }[];
+  lines: Line[];
   cells: Record<string, CellState>;
   onChange: (
     itemId: string | null,
@@ -260,45 +303,97 @@ function RouteCard({
 }) {
   const { t, i18n } = useTranslation();
   const localized = useLocalizedName();
-  const qtyOf = (itemId: string) => lines.find((l) => l.item_type_id === itemId)?.qty ?? 0;
+  const unitsText = useUnitsText();
+  const serverQty = (itemId: string) => lines.find((l) => l.item_type_id === itemId)?.qty ?? 0;
+  const qtyOf = (item: LoadItem) =>
+    shownQty(cells, cellKey(route.id, item.id, null), serverQty(item.id));
   const specials = lines.filter((l) => l.special_text && l.qty > 0);
   const added = Object.keys(cells)
     .filter((k) => k.startsWith(`${route.id}|s|`))
     .map((k) => k.slice(`${route.id}|s|`.length))
     .filter((s) => !specials.some((l) => l.special_text === s));
+  const specialNames = [...specials.map((l) => l.special_text as string), ...added];
+  const specialQty = specialNames.reduce(
+    (n, s) =>
+      n +
+      shownQty(
+        cells,
+        cellKey(route.id, null, s),
+        lines.find((l) => l.special_text === s)?.qty ?? 0,
+      ),
+    0,
+  );
+  const units = sumUnits(rows, qtyOf, specialQty);
+  const empty = units.packs === 0 && units.pieces === 0;
+  const unitOf = (item: LoadItem) =>
+    item.count_mode === 'pack'
+      ? t('loadOut.unitPacks', { size: item.pack_size ?? '?' })
+      : t('loadOut.unitPieces');
+  const headId = `lo-route-${route.id}`;
+
   return (
-    <fieldset className="lo-route">
-      <legend>
-        {localRouteName(route.name, i18n.language)} · {route.load_time.slice(0, 5)}
-      </legend>
-      {rows.map((item) => (
-        <QtyCell
-          key={item.id}
-          id={`c-${route.id}-${item.id}`}
-          label={localized(item.name, item.name_i18n)}
-          unit={
-            item.count_mode === 'pack'
-              ? t('loadOut.unitPacks', { size: item.pack_size ?? '?' })
-              : t('loadOut.unitPieces')
-          }
-          value={qtyOf(item.id)}
-          state={cells[cellKey(route.id, item.id, null)]}
-          onChange={(text, now) => onChange(item.id, null, text, now)}
-        />
-      ))}
-      {[...specials.map((l) => l.special_text as string), ...added].map((s) => (
-        <QtyCell
-          key={s}
-          id={`c-${route.id}-sp-${s}`}
-          label={s}
-          unit={t('loadOut.unitSpecial')}
-          value={lines.find((l) => l.special_text === s)?.qty ?? 0}
-          state={cells[cellKey(route.id, null, s)]}
-          onChange={(text, now) => onChange(null, s, text, now)}
-        />
+    <section className={empty ? 'lo-route empty' : 'lo-route'} aria-labelledby={headId}>
+      <div className="lo-route-head">
+        <h2 id={headId} className="head">
+          {localRouteName(route.name, i18n.language)}
+          <span className="lo-time-chip mono">{wallClock(route.load_time, i18n.language)}</span>
+        </h2>
+        <span className={empty ? 'status-pill idle' : 'status-pill info'}>{unitsText(units)}</span>
+      </div>
+      {groupSizes(rows).map((g) =>
+        g.kind === 'single' ? (
+          <QtyCell
+            key={g.item.id}
+            id={`c-${route.id}-${g.item.id}`}
+            label={localized(g.item.name, g.item.name_i18n)}
+            unit={unitOf(g.item)}
+            value={serverQty(g.item.id)}
+            state={cells[cellKey(route.id, g.item.id, null)]}
+            onChange={(text, now) => onChange(g.item.id, null, text, now)}
+          />
+        ) : (
+          <fieldset key={g.base} className="lo-sizes">
+            <legend>
+              <span>
+                {(g.items[0] &&
+                  splitSize(localized(g.items[0].item.name, g.items[0].item.name_i18n))?.base) ??
+                  g.base}
+              </span>
+              <span className="lo-sizes-total mono">
+                {t('loadOut.groupTotal', {
+                  count: g.items.reduce((n, x) => n + qtyOf(x.item), 0),
+                })}
+              </span>
+            </legend>
+            {g.items.map(({ item, size }) => (
+              <QtyCell
+                key={item.id}
+                id={`c-${route.id}-${item.id}`}
+                label={t('loadOut.size', { size })}
+                unit={unitOf(item)}
+                value={serverQty(item.id)}
+                state={cells[cellKey(route.id, item.id, null)]}
+                onChange={(text, now) => onChange(item.id, null, text, now)}
+                compact
+              />
+            ))}
+          </fieldset>
+        ),
+      )}
+      {specialNames.map((s) => (
+        <div key={s} className="lo-special">
+          <QtyCell
+            id={`c-${route.id}-sp-${s}`}
+            label={`★ ${s}`}
+            unit={t('loadOut.unitSpecial')}
+            value={lines.find((l) => l.special_text === s)?.qty ?? 0}
+            state={cells[cellKey(route.id, null, s)]}
+            onChange={(text, now) => onChange(null, s, text, now)}
+          />
+        </div>
       ))}
       <SpecialForm onAdd={(text, qty) => onChange(null, text, String(qty), true)} />
-    </fieldset>
+    </section>
   );
 }
 
@@ -330,6 +425,34 @@ export function LoadOutEntryPage() {
   const prev = date ? previousLoadDate(routes.data ?? [], date) : null;
   const rows = loadOutRows(items.data ?? [], lines.data?.recentItemIds ?? new Set(), addedIds);
   const otherItems = (items.data ?? []).filter((i) => !rows.some((r) => r.id === i.id));
+  const unitsText = useUnitsText();
+  const allLines = lines.data?.lines ?? [];
+  const perRoute = dayRoutes.map((r) => {
+    const mine = allLines.filter((l) => l.route_id === r.id);
+    const q = (item: LoadItem) =>
+      shownQty(
+        saver.cells,
+        cellKey(r.id, item.id, null),
+        mine.find((l) => l.item_type_id === item.id)?.qty ?? 0,
+      );
+    const sp = mine
+      .filter((l) => l.special_text)
+      .reduce((n, l) => n + shownQty(saver.cells, cellKey(r.id, null, l.special_text), l.qty), 0);
+    return sumUnits(rows, q, sp);
+  });
+  const filled = perRoute.filter((u) => u.packs + u.pieces > 0).length;
+  const grand = perRoute.reduce(
+    (a, u) => ({ packs: a.packs + u.packs, pieces: a.pieces + u.pieces }),
+    { packs: 0, pieces: 0 },
+  );
+  const cellList = Object.values(saver.cells);
+  const saveState = cellList.some((c) => c.status === 'error')
+    ? 'error'
+    : cellList.some((c) => c.status === 'saving')
+      ? 'saving'
+      : cellList.length > 0
+        ? 'saved'
+        : null;
   const fmtDate = (d: string) =>
     new Intl.DateTimeFormat(i18n.language, {
       weekday: 'long',
@@ -359,13 +482,12 @@ export function LoadOutEntryPage() {
   if (perms.isSuccess && !perms.data.canEnter) {
     return (
       <main className="form-page">
-        <p>
-          <Link to="/control">{t('common.back')}</Link>
-        </p>
         <h1>{t('loadOut.entryTitle')}</h1>
         <p className="notice">{t('loadOut.notAllowed')}</p>
         <p>
-          <Link to="/control/load-out">{t('loadOut.boardTitle')}</Link>
+          <Link className="button-link secondary" to="/control/load-out">
+            {t('loadOut.boardTitle')}
+          </Link>
         </p>
       </main>
     );
@@ -373,19 +495,18 @@ export function LoadOutEntryPage() {
 
   return (
     <main className="form-page lo-page">
-      <p>
-        <Link to="/control">{t('common.back')}</Link>
-      </p>
       <h1>{t('loadOut.entryTitle')}</h1>
-      <div className="field">
-        <label htmlFor="lo-date">{t('loadOut.dateLabel')}</label>
-        <input
-          id="lo-date"
-          type="date"
-          value={date}
-          onChange={(e) => setLoadDate(e.target.value)}
-        />
-        {date && <p className="hint">{fmtDate(date)}</p>}
+      <div className="lo-date-row">
+        <div className="field">
+          <label htmlFor="lo-date">{t('loadOut.dateLabel')}</label>
+          <input
+            id="lo-date"
+            type="date"
+            value={date}
+            onChange={(e) => setLoadDate(e.target.value)}
+          />
+        </div>
+        {date && <p className="lo-date-chip head">{fmtDate(date)}</p>}
       </div>
       <button
         type="button"
@@ -393,12 +514,32 @@ export function LoadOutEntryPage() {
         disabled={!prev || copy.isPending || dayRoutes.length === 0}
         onClick={() => copy.mutate()}
       >
-        {t('loadOut.sameAsYesterday')}
+        <span className="lo-copy-title head">{t('loadOut.sameAsYesterday')}</span>
+        {prev && (
+          <span className="lo-copy-hint">{t('loadOut.copyHint', { from: fmtDate(prev) })}</span>
+        )}
       </button>
-      {prev && <p className="hint">{t('loadOut.copyHint', { from: fmtDate(prev) })}</p>}
       <div role="status" aria-live="polite">
         {message && <p className={message.ok ? 'notice' : 'error'}>{message.text}</p>}
       </div>
+      {dayRoutes.length > 0 && (
+        <div className="lo-summary">
+          <p>
+            <strong className="head">
+              {t('loadOut.routesFilled', { filled, total: dayRoutes.length })}
+            </strong>
+          </p>
+          <p className="mono lo-summary-units">{unitsText(grand)}</p>
+          <p
+            className={saveState === 'error' ? 'lo-save-state error' : 'lo-save-state'}
+            aria-live="polite"
+          >
+            {saveState === 'saving' && t('loadOut.saving')}
+            {saveState === 'saved' && t('loadOut.allSaved')}
+            {saveState === 'error' && t('loadOut.someNotSaved')}
+          </p>
+        </div>
+      )}
       {(routes.isPending || items.isPending || lines.isPending) && (
         <p role="status">{t('common.loading')}</p>
       )}
@@ -439,7 +580,9 @@ export function LoadOutEntryPage() {
         </div>
       )}
       <p>
-        <Link to="/control/load-out">{t('loadOut.boardTitle')}</Link>
+        <Link className="button-link secondary" to="/control/load-out">
+          {t('loadOut.boardTitle')}
+        </Link>
       </p>
     </main>
   );

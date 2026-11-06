@@ -1,60 +1,202 @@
-/* Load-out entry and board. Function first (visual design comes later from Stitch). Targets ≥ 56 px. */
+/* Load-out entry and board (redesign 2026-11-06). Targets ≥ 56 px on entry; blue = done/info. */
 .form-page.lo-page {
   max-width: 64rem;
 }
 .lo-routes,
 .form-page .lo-board {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(min(100%, 19rem), 1fr));
-  gap: 0.75rem;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 21rem), 1fr));
+  gap: var(--sp-md);
   list-style: none;
   padding: 0;
-  margin: 0.75rem 0;
+  margin: var(--sp-md) 0;
+}
+
+/* Entry */
+.lo-date-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--sp-sm) var(--sp-md);
+}
+.lo-date-row .field {
+  margin-bottom: 0;
+}
+.lo-date-chip {
+  margin: 0 0 0.6rem;
+  padding: 0.15em 0.6em;
+  border: 2px solid var(--c-info);
+  border-radius: var(--radius);
+  color: var(--c-info-text);
+  font-size: var(--fs-lg);
+}
+.form-page .lo-copy {
+  width: 100%;
+  min-height: 72px;
+  margin-top: var(--sp-md);
+  display: grid;
+  gap: 0.25rem;
+  justify-items: start;
+  text-align: left;
+  padding: var(--sp-sm) var(--sp-md);
+  border: 3px solid var(--c-info);
+  background: var(--c-info-container);
+  color: var(--c-text);
+}
+.lo-copy-title {
+  font-size: var(--fs-h-md);
+  color: var(--c-info-text);
+}
+.lo-copy-hint {
+  font-size: var(--fs-sm);
+  font-weight: 400;
+  color: var(--c-text);
+}
+.lo-summary {
+  margin: var(--sp-md) 0;
+  padding: var(--sp-sm) var(--sp-md);
+  border: 1px solid var(--c-seam);
+  border-radius: var(--radius-lg);
+  background: var(--c-surface);
+}
+.lo-summary p {
+  margin: 0.15rem 0;
+}
+.lo-summary .head {
+  font-size: var(--fs-lg);
+}
+.lo-summary-units {
+  font-size: var(--fs-h-md);
+  font-weight: 700;
+  color: var(--c-info-text);
+}
+.lo-save-state {
+  color: var(--c-text-muted);
+  font-size: var(--fs-sm);
+  min-height: 1.25em;
 }
 .form-page .lo-route {
   border: 2px solid var(--c-outline);
-  border-radius: 10px;
-  padding: 0.5rem 0.75rem 0.75rem;
+  border-radius: var(--radius-lg);
+  padding: var(--sp-md);
   margin: 0;
   min-width: 0;
+  background: var(--c-surface);
 }
-.form-page .lo-route legend {
-  font-weight: 800;
-  font-size: 1.25rem;
-  padding: 0 0.25rem;
+.form-page .lo-route.empty {
+  border-style: dashed;
 }
-.lo-cell {
-  margin: 0.5rem 0;
+.lo-route-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-sm);
+  margin-bottom: var(--sp-sm);
+}
+.lo-route-head h2 {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: var(--sp-sm);
+  font-size: var(--fs-h-md);
+}
+.lo-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.25rem var(--sp-sm);
+  padding: var(--sp-sm) 0;
+  border-top: 1px solid var(--c-seam);
+}
+.lo-row.compact {
+  padding: 0.35rem 0;
+}
+.lo-row-label {
+  flex: 1 1 6.5rem;
+  min-width: 0;
+  display: grid;
+}
+.form-page .lo-row-label label {
+  margin: 0;
+  font-weight: 600;
+  font-size: var(--fs-lg);
+  overflow-wrap: anywhere;
+}
+.lo-unit {
+  color: var(--c-text-muted);
+  font-size: var(--fs-sm);
+}
+.form-page .lo-status {
+  min-height: 0;
+  margin: 0;
+  font-size: var(--fs-sm);
+  color: var(--c-info-text);
+}
+.form-page .lo-status.error {
+  color: var(--c-danger-text);
 }
 .lo-stepper {
+  flex: none;
   display: grid;
-  grid-template-columns: 64px minmax(0, 1fr) 64px;
-  gap: 8px;
+  grid-template-columns: 56px 3.75rem 56px;
+  gap: 6px;
 }
 .form-page .lo-stepper button {
   min-height: 56px;
-  font-size: 1.25rem;
+  padding: 0;
+  font-size: 1.125rem;
 }
 .form-page .lo-stepper input {
   min-height: 56px;
+  width: 100%;
+  padding: 0 0.25rem;
   text-align: center;
   font-size: 1.375rem;
   font-weight: 700;
 }
-.form-page .lo-status {
-  min-height: 1.25em;
-  margin: 0.125rem 0 0;
-  font-size: 0.875rem;
+.form-page .lo-sizes {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-top: 1px solid var(--c-seam);
+  border-left: 4px solid var(--c-warn);
+  padding-left: var(--sp-sm);
 }
-.form-page .lo-copy {
+.form-page .lo-sizes legend {
+  float: left;
   width: 100%;
-  min-height: 64px;
-  font-size: 1.25rem;
+  display: flex;
+  justify-content: space-between;
+  gap: var(--sp-sm);
+  padding: var(--sp-sm) 0 0.25rem;
+  font-weight: 700;
+  font-size: var(--fs-lg);
+}
+.form-page .lo-sizes legend + * {
+  clear: both;
+}
+.lo-sizes-total {
+  color: var(--c-warn);
+  font-size: var(--fs-md);
+}
+.lo-sizes .lo-row:first-of-type {
+  border-top: 0;
+}
+.lo-special {
+  border-left: 4px solid var(--c-warn);
+  padding-left: var(--sp-sm);
 }
 .lo-special-form {
   border-top: 1px solid var(--c-seam);
   padding-top: 0.5rem;
 }
+.lo-route > .secondary {
+  margin-top: var(--sp-sm);
+}
+
+/* Board */
 .lo-head {
   display: flex;
   align-items: baseline;

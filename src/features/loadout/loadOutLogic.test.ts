@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import {
   addDays,
+  groupSizes,
+  splitSize,
   minutesUntil,
   wallClock,
   localRouteName,
@@ -137,5 +139,25 @@ describe('truck times', () => {
     expect(wallClock('03:30:00', 'en-US')).toBe('3:30 AM');
     expect(wallClock('15:05', 'en-US')).toBe('3:05 PM');
     expect(wallClock('nope', 'en-US')).toBe('nope');
+  });
+});
+
+describe('size groups', () => {
+  it('splits a size suffix', () => {
+    expect(splitSize('Butcher coat XL')).toEqual({ base: 'Butcher coat', size: 'XL' });
+    expect(splitSize('Bata de carnicero m')).toEqual({ base: 'Bata de carnicero', size: 'M' });
+    expect(splitSize('Sheet – regular')).toBeNull();
+    expect(splitSize('XL')).toBeNull();
+  });
+  it('groups sized items of one base at the first one, keeps singles', () => {
+    const rows = ['Butcher coat M', 'Sheet', 'Butcher coat L', 'Butcher coat XL', 'Apron L'].map(
+      (name) => ({ name }),
+    );
+    const g = groupSizes(rows);
+    expect(
+      g.map((x) =>
+        x.kind === 'single' ? x.item.name : `${x.base}:${x.items.map((i) => i.size).join('/')}`,
+      ),
+    ).toEqual(['Butcher coat:M/L/XL', 'Sheet', 'Apron L']);
   });
 });

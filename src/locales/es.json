@@ -584,7 +584,17 @@
     "truckAt": "Camión de las {{time}}",
     "lateWord": "de retraso",
     "leftWord": "para salir",
-    "routesTitle": "Rutas"
+    "routesTitle": "Rutas",
+    "packsShort_one": "{{count}} paquete",
+    "packsShort_other": "{{count}} paquetes",
+    "piecesShort_one": "{{count}} pza",
+    "piecesShort_other": "{{count}} pzas",
+    "empty": "Nada aún",
+    "groupTotal": "Total {{count}}",
+    "size": "Talla {{size}}",
+    "routesFilled": "{{filled}} de {{total}} rutas llenas",
+    "allSaved": "Todo guardado",
+    "someNotSaved": "Algunas casillas no se guardaron. Revise los mensajes en rojo."
   },
   "tasks": {
     "title": "Tareas",

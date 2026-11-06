@@ -165,3 +165,43 @@ export function wallClock(hhmm: string, lang: string): string {
     timeZone: 'UTC',
   }).format(new Date(Date.UTC(2000, 0, 1, Number(m[1]), Number(m[2]))));
 }
+
+const SIZE_SUFFIX = /^(.+?)\s+(XXS|XS|S|M|L|XL|XXL|2XL|3XL|4XL)$/i;
+
+/** "Butcher coat XL" → { base: "Butcher coat", size: "XL" }; null when the name has no size. */
+export function splitSize(name: string): { base: string; size: string } | null {
+  const m = SIZE_SUFFIX.exec(name.trim());
+  return m?.[1] && m[2] ? { base: m[1], size: m[2].toUpperCase() } : null;
+}
+
+export type RowGroup<I> =
+  { kind: 'single'; item: I } | { kind: 'sizes'; base: string; items: { item: I; size: string }[] };
+
+/**
+ * Sheet rows with sized items of the same base ("Butcher coat M / L / XL") under one heading, at the
+ * first one's place. A base with one size stays a single row. Order inside a group = row order.
+ */
+export function groupSizes<I extends { name: string }>(rows: readonly I[]): RowGroup<I>[] {
+  const byBase = new Map<string, { item: I; size: string }[]>();
+  for (const item of rows) {
+    const s = splitSize(item.name);
+    if (!s) continue;
+    const key = s.base.toLowerCase();
+    byBase.set(key, [...(byBase.get(key) ?? []), { item, size: s.size }]);
+  }
+  const out: RowGroup<I>[] = [];
+  const placed = new Set<string>();
+  for (const item of rows) {
+    const s = splitSize(item.name);
+    const group = s ? byBase.get(s.base.toLowerCase()) : undefined;
+    if (!s || !group || group.length < 2) {
+      out.push({ kind: 'single', item });
+      continue;
+    }
+    const key = s.base.toLowerCase();
+    if (placed.has(key)) continue;
+    placed.add(key);
+    out.push({ kind: 'sizes', base: s.base, items: group });
+  }
+  return out;
+}
