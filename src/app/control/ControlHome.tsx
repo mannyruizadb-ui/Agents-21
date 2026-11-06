@@ -31,6 +31,7 @@ export function ControlHome() {
     { to: '/control/tasks', label: isOwner ? t('tasks.title') : t('tasks.myTitle'), show: isOwner },
     { to: '/control/estimates', label: t('control.estimates'), show: !isManager },
     { to: '/control/queue', label: t('control.queue'), show: isManager },
+    { to: '/control/alerts', label: t('nav.alerts'), show: isManager },
     { to: '/control/machines', label: t('machines.linkLabel'), show: true },
     { to: '/control/load-out/entry', label: t('loadOut.entryTitle'), show: isOwner || isManager },
     { to: '/control/people', label: t('people.title'), show: isOwner },

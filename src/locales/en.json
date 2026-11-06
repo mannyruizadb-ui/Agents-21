@@ -624,10 +624,50 @@
     "more": "More"
   },
   "alerts": {
-    "placeholder": "Alerts arrive as notifications on this phone (turn them on under More). A list of recent alerts is coming soon.",
-    "kindMachine": "A machine goes out of service",
-    "kindRoute": "A route is marked loaded",
-    "kindTask": "A task is done"
+    "unavailable": "The alerts list isn't available yet. Alerts still arrive as notifications on this phone (turn them on under More).",
+    "openCount_one": "{{count}} open",
+    "openCount_other": "{{count}} open",
+    "openNow": "Open now",
+    "earlier": "Last 7 days",
+    "noneOpen": "Nothing open right now.",
+    "noneEarlier": "No other alerts in the last 7 days.",
+    "pushHint": "The same alerts arrive as notifications on this phone when they are turned on under More.",
+    "minAgo_one": "{{count}} min ago",
+    "minAgo_other": "{{count}} min ago",
+    "aMachine": "A machine",
+    "aWasher": "A washer",
+    "aRoute": "A route",
+    "truckAt": "{{time}} truck",
+    "title": {
+      "machineDown": "{{name}} is down",
+      "washerIdle": "{{name}} idle — work waiting",
+      "taskNew": "New task",
+      "taskDone": "Task done",
+      "routeLoaded": "{{name}} loaded"
+    },
+    "state": {
+      "open": {
+        "machine_down": "Down",
+        "washer_idle": "Idle",
+        "task_assigned": "Open",
+        "task_done": "Done",
+        "route_loaded": "Loaded"
+      },
+      "resolved": {
+        "machine_down": "Fixed",
+        "washer_idle": "Started",
+        "task_assigned": "Done",
+        "task_done": "Done",
+        "route_loaded": "Unmarked"
+      },
+      "done": {
+        "machine_down": "Fixed",
+        "washer_idle": "Started",
+        "task_assigned": "Done",
+        "task_done": "Done",
+        "route_loaded": "Loaded"
+      }
+    }
   },
   "board": {
     "pill": {

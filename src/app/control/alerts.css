@@ -1,0 +1,122 @@
+/* Alerts tab (redesign 2026-11-06): icon + title + time per row; open rows carry the signal color
+   (border + pill), resolved rows are muted with a "Fixed / Done" pill. Never color alone. */
+.al-page .al-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--sp-sm);
+}
+.al-page .al-count {
+  color: var(--c-warn);
+  font-size: var(--fs-lg);
+}
+.al-page h2 {
+  margin-top: var(--sp-lg);
+}
+.al-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: var(--sp-sm);
+}
+.al-row {
+  border: 2px solid var(--c-seam);
+  border-radius: var(--radius-lg);
+  background-color: var(--c-surface);
+}
+.al-row.open.tone-danger {
+  border-color: var(--c-danger);
+  border-style: dashed;
+  background-color: var(--c-danger-container);
+}
+.al-row.open.tone-warn {
+  border-color: var(--c-warn);
+}
+.al-row.open.tone-info {
+  border-color: var(--c-info);
+}
+.al-row.past {
+  background-color: var(--c-surface-low);
+}
+.al-page .al-link {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-md);
+  min-height: var(--target);
+  padding: var(--sp-sm) var(--sp-md);
+  color: var(--c-text);
+  text-decoration: none;
+}
+.al-page .al-link:focus-visible {
+  outline: 3px solid var(--c-focus);
+  outline-offset: 2px;
+  border-radius: var(--radius-lg);
+}
+.al-icon {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  border-radius: var(--radius);
+  background: var(--c-surface-high);
+  color: var(--c-text-muted);
+}
+.al-row.open .al-icon.tone-danger {
+  color: var(--c-danger-text);
+  background: var(--c-surface-lowest);
+}
+.al-row.open .al-icon.tone-warn {
+  color: var(--c-warn);
+  background: var(--c-warn-container);
+}
+.al-row.open .al-icon.tone-info,
+.al-row.past .al-icon.tone-info {
+  color: var(--c-info-text);
+  background: var(--c-info-container);
+}
+.al-main {
+  flex: 1;
+  min-width: 0;
+  display: grid;
+  gap: 0.25rem;
+}
+.al-title {
+  font-family: var(--font-head);
+  font-size: 1.3rem;
+  font-weight: 700;
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+}
+.al-row.past .al-title {
+  color: var(--c-text-muted);
+}
+.al-body {
+  color: var(--c-text);
+  overflow-wrap: anywhere;
+}
+.al-row.past .al-body {
+  color: var(--c-text-muted);
+}
+.al-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--sp-sm);
+  color: var(--c-text-muted);
+  font-size: var(--fs-sm);
+}
+.al-chevron {
+  flex: none;
+  font-size: 1.5rem;
+  color: var(--c-text-muted);
+}
+.al-empty {
+  color: var(--c-text-muted);
+}
+.al-unavailable p {
+  display: flex;
+  gap: var(--sp-sm);
+  align-items: flex-start;
+}

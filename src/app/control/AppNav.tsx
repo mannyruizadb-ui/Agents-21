@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { useRequiredSession } from '../auth/sessionContext';
 import { useLoadOutBoard } from '../../features/loadout/loadOutData';
 import { useTasks } from '../../features/tasks/tasksData';
+import { useMyAlertCount } from '../../features/alerts/alertsData';
 import {
   IconBell,
   IconBins,
@@ -18,7 +19,7 @@ import { pickArea, useAreas, useQueue } from '../../features/washroom/washroomDa
 import './appnav.css';
 
 // Bottom nav (owner-approved design, 2026-11-06), per role, with count badges where data exists:
-//   owner:    Washers · Queue · Load-out · Alerts · More
+//   owner:    Washers · Queue · Load-out · Alerts (last 24 h) · More
 //   managers: Washers · Estimates · Load-out · Tasks · More
 //   others:   Washers · Queue · Load-out · More
 // Every tab shows an icon AND its word; the badge number is part of the link's name.
@@ -59,6 +60,7 @@ export function AppNav() {
   const queue = useQueue(washroom?.id);
   const board = useLoadOutBoard(plantId);
   const tasks = useTasks(isManager ? plantId : undefined, false);
+  const alertCount = useMyAlertCount(isOwner ? plantId : undefined).data ?? 0;
   const queueCount = queue.data?.length ?? 0;
   const loadOutCount = (board.data?.routes ?? []).filter(
     (r) => !r.loaded && r.lines.length > 0,
@@ -85,7 +87,12 @@ export function AppNav() {
         badge={loadOutCount}
       />
       {isOwner && (
-        <Tab to="/control/alerts" icon={<IconBell size="26" />} label={t('nav.alerts')} />
+        <Tab
+          to="/control/alerts"
+          icon={<IconBell size="26" />}
+          label={t('nav.alerts')}
+          badge={alertCount}
+        />
       )}
       {isManager && (
         <Tab

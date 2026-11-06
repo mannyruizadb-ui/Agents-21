@@ -624,10 +624,50 @@
     "more": "Más"
   },
   "alerts": {
-    "placeholder": "Las alertas llegan como notificaciones a este teléfono (actívalas en Más). Pronto habrá una lista de las alertas recientes.",
-    "kindMachine": "Una máquina queda fuera de servicio",
-    "kindRoute": "Una ruta se marca cargada",
-    "kindTask": "Se termina una tarea"
+    "unavailable": "La lista de alertas todavía no está disponible. Las alertas siguen llegando como notificaciones a este teléfono (actívelas en Más).",
+    "openCount_one": "{{count}} abierta",
+    "openCount_other": "{{count}} abiertas",
+    "openNow": "Abiertas ahora",
+    "earlier": "Últimos 7 días",
+    "noneOpen": "Nada abierto ahora.",
+    "noneEarlier": "No hay otras alertas en los últimos 7 días.",
+    "pushHint": "Las mismas alertas llegan como notificaciones a este teléfono cuando están activadas en Más.",
+    "minAgo_one": "hace {{count}} min",
+    "minAgo_other": "hace {{count}} min",
+    "aMachine": "Una máquina",
+    "aWasher": "Una lavadora",
+    "aRoute": "Una ruta",
+    "truckAt": "Camión de las {{time}}",
+    "title": {
+      "machineDown": "{{name}} está fuera de servicio",
+      "washerIdle": "{{name}} parada — hay trabajo",
+      "taskNew": "Nueva tarea",
+      "taskDone": "Tarea hecha",
+      "routeLoaded": "{{name}} cargada"
+    },
+    "state": {
+      "open": {
+        "machine_down": "Fuera",
+        "washer_idle": "Parada",
+        "task_assigned": "Abierta",
+        "task_done": "Hecha",
+        "route_loaded": "Cargada"
+      },
+      "resolved": {
+        "machine_down": "Arreglada",
+        "washer_idle": "Empezada",
+        "task_assigned": "Hecha",
+        "task_done": "Hecha",
+        "route_loaded": "Desmarcada"
+      },
+      "done": {
+        "machine_down": "Arreglada",
+        "washer_idle": "Empezada",
+        "task_assigned": "Hecha",
+        "task_done": "Hecha",
+        "route_loaded": "Cargada"
+      }
+    }
   },
   "board": {
     "pill": {
