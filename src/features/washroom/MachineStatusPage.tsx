@@ -8,14 +8,9 @@ import { useNow } from '../../lib/useNow';
 import { useRequiredSession } from '../../app/auth/sessionContext';
 import { DataAge } from './DataAge';
 import { DownBanner } from './DownBanner';
+import { useReasonOptions } from './downReasons';
 import { IconMachineDown, IconReady } from './Icons';
-import {
-  buildDownReason,
-  REASON_CODES,
-  REASON_MAX,
-  reasonText,
-  type ReasonCode,
-} from './machineReason';
+import { buildDownReason, REASON_MAX, reasonText, type ReasonCode } from './machineReason';
 import { errorMessageKey, unwrap } from './rpcError';
 import { useMyRoles } from './useMyRoles';
 import { estimateServerNow } from './washerTime';
@@ -93,8 +88,11 @@ export function MachineStatusPage() {
     },
   });
 
-  const built = buildDownReason(pick, details);
-  const label = (c: ReasonCode) => t(`machines.reasons.${c}`);
+  // Reasons are plant data (Setup → Down reasons); locale labels are only the fallback.
+  const reasonOptions = useReasonOptions(plantId);
+  const picked = reasonOptions.options.find((o) => o.code === pick);
+  const built = buildDownReason(pick, details, picked?.requiresDetails ?? pick === 'other');
+  const label = (c: ReasonCode) => reasonOptions.options.find((o) => o.code === c)?.label ?? c;
 
   function onReview() {
     if (!built.ok) {
@@ -134,6 +132,7 @@ export function MachineStatusPage() {
           key={m.machine_id}
           name={`${m.machine_name} (${m.area_name})`}
           reasonCode={m.reason_code}
+          reasonLabelI18n={m.reason_label_i18n}
           reason={m.reason}
           since={m.since}
           serverNowMs={serverNow}
@@ -170,6 +169,7 @@ export function MachineStatusPage() {
             <>
               <DownBanner
                 reasonCode={machine.reason_code}
+                reasonLabelI18n={machine.reason_label_i18n}
                 reason={machine.reason}
                 since={machine.since}
                 serverNowMs={serverNow}
@@ -211,7 +211,7 @@ export function MachineStatusPage() {
                   <strong>{t('machines.reasonLabel')}</strong>
                 </legend>
                 <ul className="pick-list">
-                  {REASON_CODES.map((p) => (
+                  {reasonOptions.options.map(({ code: p, label: pLabel }) => (
                     <li key={p}>
                       <button
                         type="button"
@@ -221,7 +221,7 @@ export function MachineStatusPage() {
                           clientId.current = null;
                         }}
                       >
-                        {t(`machines.reasons.${p}`)}
+                        {pLabel}
                       </button>
                     </li>
                   ))}
@@ -229,7 +229,9 @@ export function MachineStatusPage() {
               </fieldset>
               <div className="field">
                 <label htmlFor="m-details">
-                  {pick === 'other' ? t('machines.detailsRequired') : t('machines.detailsOptional')}
+                  {picked?.requiresDetails
+                    ? t('machines.detailsRequired')
+                    : t('machines.detailsOptional')}
                 </label>
                 <textarea
                   id="m-details"
