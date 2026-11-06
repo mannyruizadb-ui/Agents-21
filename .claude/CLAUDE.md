@@ -113,7 +113,11 @@ Full context lives in these docs. Read the relevant one before non-trivial work;
     - managers limited to the current shift only (the views are still readable);
     - holiday closures;
     - then tasks, AA Linen time, the load-out list.
-  - Open questions: task re-notify interval; drivers/routes and who supplies the load-out numbers; meaning of "30 minutes behind".
+  - Owner 2026-11-06:
+    - Tasks re-notify every **10 minutes** until done.
+    - **4 routes.** The office prints a daily route + master load sheet with each route's products and quantities. A **different manager** is on duty when the drivers load, so tasks and the load-out go to the manager on duty, not to a fixed person.
+    - "30 minutes behind": **both**: the late/unsent tap alarm (built) AND a load running behind (a washer done with no next load started while work waits). Threshold TBD.
+  - Open: which program prints the load sheet (export?); truck loading time; idle threshold; how "manager on duty" is known.
 - **Pilot build progress (2026-11-04…05, now merged in PR #5):**
   - Screens:
     - washer board `/control/washers`, with "Next in queue" shown once;
