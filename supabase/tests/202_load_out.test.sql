@@ -112,7 +112,7 @@ select is(pg_temp.run_as('owner', $$select public.mark_route_loaded('a1000000-00
   'VALIDATION_FAILED', 'only yesterday, today or tomorrow');
 select is((select count(*)::int from app.pending_push_notifications() where kind = 'route_loaded' and plant_id = pg_temp.id('plantA')), 0,
   'no subscription yet: nothing pending for delivery');
-select is((select app.alert_payload(a) ->> 'route_name' from public.alert_events a where a.kind = 'route_loaded' limit 1), 'Route 2',
+select is((select app.alert_payload(a) ->> 'route_name' from public.alert_events a where a.kind = 'route_loaded' and a.plant_id = pg_temp.id('plantA') limit 1), 'Route 2',
   'route_loaded payload: the route name (no names of people)');
 select is(pg_temp.run_as('owner', $$select entered_by from public.route_load_events$$), '42501', 'who marked it is never readable');
 
