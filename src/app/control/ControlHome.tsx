@@ -7,6 +7,7 @@ import { NotificationsCard } from '../../features/notifications/NotificationsCar
 import { useMyRoles } from '../../features/washroom/useMyRoles';
 import { useAreas } from '../../features/washroom/washroomData';
 import { TapAlarmBanner } from '../../features/washroom/TapAlarmBanner';
+import { MyTaskCount } from '../../features/tasks/MyTaskCount';
 import '../../lib/forms.css';
 
 export function ControlHome() {
@@ -23,6 +24,7 @@ export function ControlHome() {
     <main className="form-page">
       <h1>{t('app.name')}</h1>
       <TapAlarmBanner />
+      {plantId && !roles.has('owner') && roles.has('manager') && <MyTaskCount plantId={plantId} />}
       <p>{t('control.placeholder')}</p>
       <div className="actions">
         <Link className="button-link" to="/control/washers">
@@ -33,6 +35,14 @@ export function ControlHome() {
         </Link>
         <Link className="button-link" to="/control/queue">
           {t('control.queue')}
+        </Link>
+        {(roles.has('owner') || roles.has('manager')) && (
+          <Link className="button-link" to="/control/tasks">
+            {roles.has('owner') ? t('tasks.title') : t('tasks.myTitle')}
+          </Link>
+        )}
+        <Link className="button-link" to="/control/load-out">
+          {t('loadOut.boardTitle')}
         </Link>
         {(ownerPlants.data?.length ?? 0) > 0 && (
           <Link className="button-link" to="/control/people">

@@ -315,6 +315,25 @@ select a.org_id, a.plant_id, a.id, m.name, m.kind::app.machine_kind
 
 -- ── Shifts (A6), per area; days = the day a shift STARTS (0 = Sun … 6 = Sat) ──
 -- Thursday variants are separate rows with the same name. No washroom midday shift (owner).
+-- Load-out (owner 2026-11-06; data migration 20261106025433_add_load_out for the cloud): soil bags (never
+-- washed, packs of 5) and the 4+1 routes with their load times and weekdays (0 = Sun … 6 = Sat).
+insert into public.item_types (org_id, plant_id, wash_group_id, name, name_i18n, category, count_mode, pack_size, washed, sort_order)
+select p.org_id, p.id, null, 'Soil bags', '{"es":"Bolsas para ropa sucia"}'::jsonb, 'other', 'pack', 5, false, 900
+  from public.plants p
+  join public.organizations o on o.id = p.org_id and o.slug = 'americas-dust-busters'
+ where p.name = 'Miami';
+insert into public.routes (org_id, plant_id, name, load_time, days_of_week, sort_order)
+select p.org_id, p.id, v.name, v.load_time::time, v.days::smallint[], v.sort_order
+  from public.plants p
+  join public.organizations o on o.id = p.org_id and o.slug = 'americas-dust-busters'
+ cross join (values
+   ('Route 21', '03:30', '{1,2,4,5}',   10),
+   ('Route 11', '04:30', '{1,4}',       20),
+   ('Route 5',  '04:30', '{2,5}',       30),
+   ('Route 2',  '05:00', '{1,2,3,4,5}', 40),
+   ('Route 4',  '05:30', '{1,2,4,5}',   50)) as v(name, load_time, days, sort_order)
+ where p.name = 'Miami';
+
 -- Holidays (owner 2026-11-05; data migration 20261106022343_add_plant_holidays for the cloud): closed only on
 -- Christmas Day, New Year's Day and Thanksgiving Day (4th Thursday of November). No shift instances then.
 insert into public.plant_holidays (org_id, plant_id, name, name_i18n, month, day, weekday, nth)

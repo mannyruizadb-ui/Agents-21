@@ -70,8 +70,8 @@ select throws_ok($$insert into public.item_types (org_id, plant_id, wash_group_i
   values (pg_temp.id('orgA'), pg_temp.id('plantA'), pg_temp.id('groupA2'), 'Cross', 'mat')$$, '23503', null,
   'item must reference a wash group of its own plant (same org, other plant)');
 select throws_ok($$insert into public.item_types (org_id, plant_id, name, category)
-  values (pg_temp.id('orgA'), pg_temp.id('plantA'), 'No group', 'mat')$$, '23502', null,
-  'every item belongs to a wash group');
+  values (pg_temp.id('orgA'), pg_temp.id('plantA'), 'No group', 'mat')$$, '23514', null,
+  'every WASHED item belongs to a wash group (only washed = false items have none; owner 2026-11-06)');
 select throws_ok($$insert into public.areas (org_id, plant_id, name, kind) values (pg_temp.id('orgB'), pg_temp.id('plantA'), 'Z', 'other')$$,
   '23503', null, 'plant must belong to the row''s org');
 

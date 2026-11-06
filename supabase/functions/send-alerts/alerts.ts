@@ -2,16 +2,15 @@
 // grouping of claimed rows and the claim → send → mark loop. index.ts wires in the real client and
 // the Web Push sender; the tests pass mocks.
 
-/** One row of public.claim_push_alerts(): an alert × one active subscription of a recipient. */
+/**
+ * One row of public.claim_push_notifications(): an alert × one active subscription of a recipient.
+ * `payload` is app.alert_payload(alert): per kind, never free text (a task's own text will be the
+ * only exception, and only to its assignees and owners).
+ */
 export interface ClaimedRow {
   alert_id: string;
-  machine_id: string;
-  machine_name: string;
-  reason_code: string | null;
-  /** The plant's label for reason_code, per language ({"en": …, "es": …}); owner-edited data. */
-  reason_label_i18n?: Record<string, unknown> | null;
-  down_since: string;
-  still_down: boolean;
+  kind: string;
+  payload: Record<string, unknown> | null;
   subscription_id: string;
   language: string | null;
   endpoint: string;
@@ -49,7 +48,10 @@ export interface RunCounts {
   failed: number;
   revoked: number;
   stale: number;
+  /** subscriptions skipped because their endpoint is not on the allow-list */
   skipped: number;
+  /** alerts of a kind this function cannot send yet, or with an unusable payload (marked 'none') */
+  unsupported: number;
   unmarked: number;
 }
 
@@ -110,7 +112,7 @@ export function isAllowedPushEndpoint(endpoint: string): boolean {
 }
 
 // ---------------------------------------------------------------------------------------------
-// Message text. Reasons are per-plant data (machine_down_reasons.label_i18n, owner-edited, clean
+// Message text (per kind, EN/ES). Reasons are per-plant data (machine_down_reasons.label_i18n, owner-edited, clean
 // 1–60 chars); the built-in labels below (= src/locales machines.reasons.*) are only the fallback.
 // The free-text details (machine_status_events.reason) never reach this function.
 
@@ -197,29 +199,197 @@ function hourIsOne(iso: string, timeZone: string): boolean {
   return h === '1';
 }
 
-export function buildPayload(
-  row: Pick<
-    ClaimedRow,
-    'machine_id' | 'machine_name' | 'reason_code' | 'reason_label_i18n' | 'down_since' | 'language'
-  >,
-  timeZone = PLANT_TIME_ZONE,
-): PushPayload {
-  const lang = pickLanguage(row.language);
-  const name = cleanName(row.machine_name) || (lang === 'es' ? 'Una máquina' : 'A machine');
-  const title = lang === 'es' ? `${name} está fuera de servicio` : `${name} is down`;
-  const reason = reasonLabel(row.reason_code, lang, row.reason_label_i18n);
-  const time = formatTime(row.down_since, lang, timeZone);
-  let since: string | null = null;
-  if (time !== null) {
-    since =
-      lang === 'es'
-        ? `desde ${hourIsOne(row.down_since, timeZone) ? 'la' : 'las'} ${time}`
-        : `since ${time}`;
-  }
-  const parts = [reason, since].filter((p): p is string => p !== null);
-  let body = parts.join(' · ');
-  if (body && reason === null) body = body.charAt(0).toUpperCase() + body.slice(1);
-  return { title, body, tag: `machine-${row.machine_id}`, url: ALERT_URL };
+/** Spanish for the seeded washer names ("Washer 3" → "Lavadora 3"); other names are kept as entered. */
+export function localMachineName(name: string, lang: Lang): string {
+  const clean = cleanName(name);
+  if (lang !== 'es') return clean;
+  const m = /^Washer (\d{1,3})$/i.exec(clean);
+  return m ? `Lavadora ${m[1]}` : clean;
+}
+
+function str(p: Record<string, unknown>, key: string): string | null {
+  const v = Object.hasOwn(p, key) ? p[key] : undefined;
+  return typeof v === 'string' && v.length > 0 ? v : null;
+}
+
+function labels(p: Record<string, unknown>, key: string): Record<string, unknown> | null {
+  const v = Object.hasOwn(p, key) ? p[key] : undefined;
+  return v !== null && typeof v === 'object' && !Array.isArray(v)
+    ? (v as Record<string, unknown>)
+    : null;
+}
+
+/** "since 9:42 PM" / "desde las 9:42 p. m."; null for an unreadable timestamp. */
+function sinceText(iso: string | null, lang: Lang, timeZone: string): string | null {
+  if (iso === null) return null;
+  const time = formatTime(iso, lang, timeZone);
+  if (time === null) return null;
+  return lang === 'es'
+    ? `desde ${hourIsOne(iso, timeZone) ? 'la' : 'las'} ${time}`
+    : `since ${time}`;
+}
+
+const capitalize = (t: string) => (t ? t.charAt(0).toUpperCase() + t.slice(1) : t);
+
+export interface BuildContext {
+  now: Date;
+  timeZone: string;
+}
+
+/**
+ * One entry per push kind. isCurrent: false = the condition already ended (marked 'stale', not
+ * sent). build: the notification in one language, or null when the payload is unusable.
+ * Adding a kind = adding an entry here (and to the tests).
+ */
+export interface KindBuilder {
+  isCurrent(payload: Record<string, unknown>): boolean;
+  build(payload: Record<string, unknown>, lang: Lang, ctx: BuildContext): PushPayload | null;
+}
+
+export const BUILDERS: Record<string, KindBuilder> = {
+  machine_down: {
+    isCurrent: (p) => p.still_down === true,
+    build(p, lang, ctx) {
+      const id = str(p, 'machine_id');
+      if (id === null) return null;
+      const name =
+        localMachineName(str(p, 'machine_name') ?? '', lang) ||
+        (lang === 'es' ? 'Una máquina' : 'A machine');
+      const title = lang === 'es' ? `${name} está fuera de servicio` : `${name} is down`;
+      const reason = reasonLabel(str(p, 'reason_code'), lang, labels(p, 'reason_label_i18n'));
+      const since = sinceText(str(p, 'down_since'), lang, ctx.timeZone);
+      const body =
+        reason === null ? capitalize(since ?? '') : [reason, since].filter(Boolean).join(' · ');
+      return { title, body, tag: `machine-down-${id}`, url: ALERT_URL };
+    },
+  },
+  washer_idle: {
+    isCurrent: (p) => p.still_idle === true,
+    build(p, lang, ctx) {
+      const id = str(p, 'machine_id');
+      if (id === null) return null;
+      const name =
+        localMachineName(str(p, 'machine_name') ?? '', lang) ||
+        (lang === 'es' ? 'Una lavadora' : 'A washer');
+      const idleSince = str(p, 'idle_since');
+      const t = idleSince === null ? NaN : new Date(idleSince).getTime();
+      const minutes = Number.isNaN(t) ? null : Math.floor((ctx.now.getTime() - t) / 60_000);
+      const dur = minutes !== null && minutes >= 1 ? ` ${minutes} min` : '';
+      const title =
+        lang === 'es' ? `${name} parada${dur} — hay trabajo` : `${name} idle${dur} — work waiting`;
+      const body = capitalize(sinceText(idleSince, lang, ctx.timeZone) ?? '');
+      return { title, body, tag: `washer-idle-${id}`, url: ALERT_URL };
+    },
+  },
+  task_assigned: {
+    // The DB only hands out task_assigned (first push and reminders) while the task is open.
+    isCurrent: () => true,
+    build(p, lang) {
+      const id = str(p, 'task_id');
+      if (id === null) return null;
+      const reminder = (num(p, 'reminder') ?? 0) > 0;
+      const title = reminder
+        ? lang === 'es'
+          ? 'Recordatorio: tarea pendiente'
+          : 'Reminder: task still open'
+        : lang === 'es'
+          ? 'Nueva tarea'
+          : 'New task';
+      return { title, body: taskText(p), tag: `task-${id}`, url: TASKS_URL };
+    },
+  },
+  task_done: {
+    isCurrent: () => true,
+    build(p, lang, ctx) {
+      const id = str(p, 'task_id');
+      if (id === null) return null;
+      const title = lang === 'es' ? 'Tarea hecha' : 'Task done';
+      const doneIso = str(p, 'done_at');
+      const time = doneIso === null ? null : formatTime(doneIso, lang, ctx.timeZone);
+      const done =
+        time === null || doneIso === null
+          ? null
+          : lang === 'es'
+            ? `hecha a ${hourIsOne(doneIso, ctx.timeZone) ? 'la' : 'las'} ${time}`
+            : `done ${time}`;
+      const text = taskText(p, MAX_TASK_CHARS - 25);
+      const body = text ? [text, done].filter(Boolean).join(' · ') : capitalize(done ?? '');
+      // the done note and any names are never in the payload or the push
+      return { title, body, tag: `task-${id}`, url: TASKS_URL };
+    },
+  },
+  route_loaded: {
+    // A route that was loaded stays loaded news; a correction is a new event, never stale.
+    isCurrent: () => true,
+    build(p, lang, ctx) {
+      const id = str(p, 'route_id');
+      const date = str(p, 'load_date');
+      if (id === null || date === null || !/^\d{4}-\d{2}-\d{2}$/.test(date)) return null;
+      const name =
+        localRouteName(str(p, 'route_name') ?? '', lang) ||
+        (lang === 'es' ? 'Una ruta' : 'A route');
+      const title = lang === 'es' ? `${name} cargada` : `${name} loaded`;
+      const truck = formatWallTime(str(p, 'load_time') ?? '', lang);
+      const loadedAtIso = str(p, 'loaded_at');
+      const loadedAt = loadedAtIso === null ? null : formatTime(loadedAtIso, lang, ctx.timeZone);
+      const parts =
+        lang === 'es'
+          ? [
+              truck && `camión de las ${truck}`,
+              loadedAt &&
+                `cargada a ${loadedAtIso && hourIsOne(loadedAtIso, ctx.timeZone) ? 'la' : 'las'} ${loadedAt}`,
+            ]
+          : [truck && `${truck} truck`, loadedAt && `loaded ${loadedAt}`];
+      const body = capitalize(parts.filter((x): x is string => !!x).join(' · '));
+      return { title, body, tag: `route-${id}-${date}`, url: LOAD_OUT_URL };
+    },
+  },
+};
+
+/** Spanish for the seeded route names ("Route 21" → "Ruta 21"); other names are kept as entered. */
+export function localRouteName(name: string, lang: Lang): string {
+  const clean = cleanName(name);
+  if (lang !== 'es') return clean;
+  const m = /^Route (\w{1,10})$/i.exec(clean);
+  return m ? `Ruta ${m[1]}` : clean;
+}
+
+/** A plant-local wall-clock time ("03:30" / "03:30:00") as "3:30 AM" / "3:30 a. m."; null if unreadable. */
+export function formatWallTime(hhmm: string, lang: Lang): string | null {
+  const m = /^(\d{2}):(\d{2})(?::\d{2}(?:\.\d+)?)?$/.exec(hhmm);
+  if (!m || Number(m[1]) > 23 || Number(m[2]) > 59) return null;
+  const d = new Date(Date.UTC(2000, 0, 1, Number(m[1]), Number(m[2])));
+  return new Intl.DateTimeFormat(lang === 'es' ? 'es-US' : 'en-US', {
+    hour: 'numeric',
+    minute: '2-digit',
+    timeZone: 'UTC',
+  }).format(d);
+}
+
+const LOAD_OUT_URL = '/control';
+const TASKS_URL = '/control/tasks';
+const MAX_TASK_CHARS = 120;
+
+function num(p: Record<string, unknown>, key: string): number | null {
+  const v = Object.hasOwn(p, key) ? p[key] : undefined;
+  return typeof v === 'number' && Number.isFinite(v) ? v : null;
+}
+
+/** The task's own text (the only free text a push may carry: to its assignees and owners). */
+function taskText(p: Record<string, unknown>, max = MAX_TASK_CHARS): string {
+  return cleanText(str(p, 'body') ?? '', max);
+}
+
+/** The notification for one claimed row, or null (unknown kind or unusable payload: never sent). */
+export function buildMessage(
+  kind: string,
+  payload: Record<string, unknown> | null,
+  language: string | null,
+  ctx: BuildContext = { now: new Date(), timeZone: PLANT_TIME_ZONE },
+): PushPayload | null {
+  if (!Object.hasOwn(BUILDERS, kind) || payload === null || typeof payload !== 'object')
+    return null;
+  return BUILDERS[kind].build(payload, pickLanguage(language), ctx);
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -227,7 +397,8 @@ export function buildPayload(
 
 export interface AlertGroup {
   alertId: string;
-  stillDown: boolean;
+  kind: string;
+  payload: Record<string, unknown> | null;
   /** One row per subscription (duplicates of the same subscription dropped). */
   rows: ClaimedRow[];
 }
@@ -237,10 +408,9 @@ export function groupByAlert(rows: ClaimedRow[]): AlertGroup[] {
   for (const row of rows) {
     let g = groups.get(row.alert_id);
     if (!g) {
-      g = { alertId: row.alert_id, stillDown: true, rows: [] };
+      g = { alertId: row.alert_id, kind: row.kind, payload: row.payload, rows: [] };
       groups.set(row.alert_id, g);
     }
-    if (row.still_down !== true) g.stillDown = false;
     if (!g.rows.some((r) => r.subscription_id === row.subscription_id)) g.rows.push(row);
   }
   return [...groups.values()];
@@ -259,10 +429,11 @@ async function pool<T>(items: T[], limit: number, fn: (item: T) => Promise<void>
 
 /**
  * Claims the pending alerts, sends one push per subscription, revokes gone subscriptions, and
- * marks EVERY claimed alert: the subscription ids that got the push, or 'stale' (machine already
- * back up), 'failed' (every send failed) or 'none' (no allowed endpoint).
+ * marks EVERY claimed alert: the subscription ids that got the push, or 'stale' (the condition
+ * already ended), 'failed' (every send failed) or 'none' (unknown kind, unusable payload, or no
+ * allowed endpoint).
  */
-export async function run(deps: Deps): Promise<RunCounts> {
+export async function run(deps: Deps, now: () => Date = () => new Date()): Promise<RunCounts> {
   const counts: RunCounts = {
     alerts: 0,
     sent: 0,
@@ -270,23 +441,43 @@ export async function run(deps: Deps): Promise<RunCounts> {
     revoked: 0,
     stale: 0,
     skipped: 0,
+    unsupported: 0,
     unmarked: 0,
   };
   const groups = groupByAlert(await deps.claim());
   counts.alerts = groups.length;
+  const ctx: BuildContext = { now: now(), timeZone: PLANT_TIME_ZONE };
 
   for (const group of groups) {
     let recipients: string[];
     try {
-      if (!group.stillDown) {
+      const builder = Object.hasOwn(BUILDERS, group.kind) ? BUILDERS[group.kind] : null;
+      const payload =
+        group.payload !== null && typeof group.payload === 'object' ? group.payload : null;
+      if (builder === null || payload === null) {
+        counts.unsupported++;
+        recipients = ['none'];
+      } else if (!builder.isCurrent(payload)) {
         counts.stale++;
         recipients = ['stale'];
       } else {
+        const messages = new Map<Lang, PushPayload | null>();
+        const messageFor = (language: string | null) => {
+          const lang = pickLanguage(language);
+          if (!messages.has(lang)) messages.set(lang, builder.build(payload, lang, ctx));
+          return messages.get(lang) ?? null;
+        };
         const sentIds: string[] = [];
         let attempted = 0;
+        let unusable = false;
         await pool(group.rows, SEND_CONCURRENCY, async (row) => {
           if (!isAllowedPushEndpoint(row.endpoint)) {
             counts.skipped++;
+            return;
+          }
+          const message = messageFor(row.language);
+          if (message === null) {
+            unusable = true;
             return;
           }
           attempted++;
@@ -294,7 +485,7 @@ export async function run(deps: Deps): Promise<RunCounts> {
           try {
             result = await deps.send(
               { endpoint: row.endpoint, p256dh: row.p256dh, auth: row.auth },
-              buildPayload(row),
+              message,
             );
           } catch {
             result = 'failed';
@@ -314,6 +505,7 @@ export async function run(deps: Deps): Promise<RunCounts> {
             }
           }
         });
+        if (unusable && attempted === 0) counts.unsupported++;
         recipients = sentIds.length > 0 ? sentIds : attempted > 0 ? ['failed'] : ['none'];
       }
     } catch {

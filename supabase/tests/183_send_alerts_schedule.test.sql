@@ -14,7 +14,7 @@ $$;
 
 select ok(exists (select 1 from pg_extension where extname = 'pg_net'), 'pg_net is installed (local image)');
 select is((select array[schedule, command] from cron.job where jobname = 'send-alerts'),
-  array['* * * * *', 'select app.dispatch_send_alerts()'], 'pg_cron runs app.dispatch_send_alerts() every minute');
+  array['* * * * *', 'select app.alert_tick()'], 'pg_cron runs app.alert_tick() (generators, then app.dispatch_send_alerts()) every minute');
 select is(array[has_function_privilege('authenticated', 'app.dispatch_send_alerts()', 'execute'),
                 has_function_privilege('anon', 'app.dispatch_send_alerts()', 'execute')],
   array[false, false], 'clients cannot trigger the dispatch');

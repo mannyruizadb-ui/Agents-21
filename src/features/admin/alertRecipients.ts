@@ -9,6 +9,8 @@ export interface AlertMembership {
   plant_id: string | null;
   role: string;
   notify_machine_down: boolean;
+  /** Owner 2026-11-06: this manager may type the load-out. */
+  can_enter_load_out: boolean;
 }
 
 export interface AlertRow {

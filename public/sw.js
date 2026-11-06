@@ -1,11 +1,12 @@
 /* PlantBoard service worker (hand-written; no build step, no dependencies).
- * Only does push notifications for now (machine-down alerts, owner 2026-11-04). It has no fetch
- * handler, so it never caches or changes how pages load.
+ * Only does push notifications (sent by the send-alerts Edge Function). It has no fetch handler,
+ * so it never caches or changes how pages load.
  *
- * Push payload (JSON, sent by the future Edge Function):
- *   { "title": "Washer 4 is down", "body": "Water pump", "machine_id": "<uuid>",
- *     "tag": "machine-<uuid>" (optional), "url": "/control/washers" (optional, same-site path) }
- * The tag is per machine, so a repeat alert for the same machine replaces the older one.
+ * Push payload (JSON): { "title": "Washer 4 is down", "body": "Water pump · since 9:42 PM",
+ *   "tag": "machine-down-<machine_id>", "url": "/control/washers" (same-site path) }
+ * Tags, one per subject so a repeat replaces the older notification:
+ *   machine-down-<machine_id>, washer-idle-<machine_id>, route-<route_id>-<load_date>.
+ * Without a tag, a legacy machine_id gives "machine-<machine_id>", else "plantboard".
  */
 
 const DEFAULT_URL = '/control/washers';
