@@ -1394,7 +1394,7 @@ isOneToOne: false
             }[]
                            },
 "get_my_alert_count":
-{ Args: { "p_plant_id": string }; Returns: number
+{ Args: { "p_plant_id": string,"p_since"?: string }; Returns: number
                            },
 "get_my_alerts":
 { Args: { "p_limit"?: number,"p_plant_id": string }; Returns: {

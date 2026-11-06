@@ -3,7 +3,7 @@
 -- Matrix arrays: [owner, manager, lead, viewer, display, display-without-device, owner of B, anon].
 begin;
 \ir _fixtures.psql
-select plan(14);
+select plan(15);
 
 create function pg_temp.kinds(p_user text) returns text language sql as $$
   select pg_temp.val_as(p_user, $q$select string_agg(kind, ',' order by kind) from public.get_my_alerts(pg_temp.id('plantA'))$q$);
@@ -63,6 +63,15 @@ select is(array[pg_temp.run_as('owner', $$select * from public.get_my_alerts(pg_
                 pg_temp.run_as('lead', $$select public.get_my_alert_count(pg_temp.id('plantA'))$$),
                 pg_temp.run_as('ownerB', $$select public.get_my_alert_count(pg_temp.id('plantA'))$$)],
   '{VALIDATION_FAILED,NOT_AUTHORIZED,NOT_AUTHORIZED}', 'p_limit 1–200; the badge is owner/manager only, no cross-tenant');
+
+-- ══ p_since (badge since the tab was last opened) ════════════════════════
+select is(array[
+  pg_temp.val_as('owner', $$select public.get_my_alert_count(pg_temp.id('plantA'), now() - interval '3 days')::text$$),
+  pg_temp.val_as('owner', $$select public.get_my_alert_count(pg_temp.id('plantA'), now() - interval '1 hour')::text$$),
+  pg_temp.val_as('owner', $$select public.get_my_alert_count(pg_temp.id('plantA'), now() - interval '30 days')::text$$),
+  pg_temp.val_as('owner', $$select public.get_my_alert_count(p_plant_id => pg_temp.id('plantA'))::text$$)],
+  array['3', '2', '3', '2'],
+  'p_since: 3 days back counts the 2-day-old route too; 1 hour back only today''s; never beyond 7 days (the 8-day idle alert); no p_since = 24 h');
 
 select * from finish();
 rollback;
