@@ -104,6 +104,14 @@ Full context lives in these docs. Read the relevant one before non-trivial work;
     - Throttle queue and estimate writes.
     - Record in PRD v1.6 §4.7 the display read of the washer board and the owner/manager-only estimates.
   - Waiting on the owner: who enters estimates, setting `ships_next_morning` in the cloud.
+- **PR #6 merged (2026-11-06 02:49; CI on main green):**
+  - Push alerts are on: VAPID public key in `netlify.toml`.
+  - Owner Setup screens for machines and down reasons.
+  - deploy-db run 6 applied `20261106022343` (holidays), `022557` (current shift only), `024122` (manager shift assignments) and `024452` (audit log, queue history and crew hours owner-only; who-entered stripped from new audit rows).
+  - Old cloud audit rows still hold who-entered keys (owner-only now); scrubbing them waits on the owner.
+  - On the branch, not deployed: `6466ef0` (push delivery for every kind + washer idle 15 min + alert_tick cron) and `c3be065` (send-alerts uses `claim_push_notifications`). Security review pending; deploy both together (deploy_functions=true).
+  - In progress: load-out (B), then tasks (C).
+  - The owner asked for a Google Stitch UI prompt: `research/stitch-ui-prompt.md`. A UI redesign comes after the Stitch designs.
 - **PILOT VERSION LIVE (2026-11-06): PR #5 merged by the owner.**
   - deploy-db run 5 applied 36 migrations (latest `20261105171442`) and deployed `send-alerts` (ACTIVE, verify_jwt off) plus its secrets.
   - Security advisors: by-design items only.
