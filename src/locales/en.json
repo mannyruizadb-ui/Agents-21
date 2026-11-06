@@ -733,11 +733,9 @@
     "queueItems_other": "items · ≈ {{loads}} loads",
     "rush_one": "{{count}} rush",
     "rush_other": "{{count}} rush",
-    "alerts24h_one": "alert in the last 24 h",
-    "alerts24h_other": "alerts in the last 24 h",
     "alertsUnavailable": "Not available yet",
-    "bellLabel_one": "Alerts ({{count}} in the last 24 h)",
-    "bellLabel_other": "Alerts ({{count}} in the last 24 h)",
+    "bellLabel_one": "Alerts ({{count}} new)",
+    "bellLabel_other": "Alerts ({{count}} new)",
     "customize": "Customize",
     "customizeTitle": "Customize Home",
     "customizeHint": "Check the tiles to show. Use the arrows to change the order. Saved on this phone for your account.",
@@ -749,6 +747,10 @@
     "ageSec_one": "Updated {{count}} s ago",
     "ageSec_other": "Updated {{count}} s ago",
     "ageMin_one": "Updated {{count}} min ago",
-    "ageMin_other": "Updated {{count}} min ago"
+    "ageMin_other": "Updated {{count}} min ago",
+    "hm": "{{h}}h {{m}}m",
+    "m": "{{m}}m",
+    "alertsNew_one": "new since you last looked",
+    "alertsNew_other": "new since you last looked"
   }
 }

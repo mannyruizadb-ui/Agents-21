@@ -109,6 +109,7 @@
   justify-items: start;
 }
 .home-big {
+  white-space: nowrap;
   font-size: var(--fs-timer);
   font-weight: 700;
   line-height: 1.05;

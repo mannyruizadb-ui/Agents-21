@@ -1,10 +1,18 @@
 import { Link } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import { useRequiredSession } from '../auth/sessionContext';
+import { useEffect } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { useLocalNames } from '../../lib/seededNames';
+import { userStore } from '../../lib/scopedStore';
 import { useLiveRefetch } from '../../lib/useLiveRefetch';
 import { useNow } from '../../lib/useNow';
-import { useMyAlerts } from '../../features/alerts/alertsData';
+import {
+  readSeen,
+  SEEN_KEY,
+  seenAfterViewing,
+  useMyAlerts,
+} from '../../features/alerts/alertsData';
 import {
   minutesAgo,
   splitAlerts,
@@ -162,6 +170,20 @@ export function AlertsPage() {
   useLiveRefetch(alerts.refetch, canRead && !!plantId);
 
   const data = alerts.data;
+  const qc = useQueryClient();
+  const userId = session.user.id;
+
+  // Opening the tab marks its alerts seen, so the bell badge clears (per user, this device).
+  const loadedAt = data?.available ? alerts.dataUpdatedAt : 0;
+  useEffect(() => {
+    if (!loadedAt || !data?.available) return;
+    const store = userStore(userId);
+    const next = seenAfterViewing(data.rows, readSeen(store), Date.now());
+    if (next !== readSeen(store)) {
+      store.setItem(SEEN_KEY, next);
+      void qc.invalidateQueries({ queryKey: ['my-alert-count'] });
+    }
+  }, [loadedAt, data, userId, qc]);
   const split = data?.available ? splitAlerts(data.rows) : null;
 
   return (

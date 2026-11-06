@@ -125,7 +125,7 @@ export function HomePage() {
   const isManager = !isOwner && roles.has('manager');
   const role: HomeRole = isOwner ? 'owner' : isManager ? 'manager' : 'other';
   const rolesKnown = myRoles.isSuccess;
-  const alertCount = useMyAlertCount(isOwner || isManager ? plantId : undefined).data ?? 0;
+  const alertCount = useMyAlertCount(isOwner || isManager ? plantId : undefined, userId).data ?? 0;
 
   // Prefs: read once per user + role; edits save immediately.
   const [edited, setEdited] = useState<{ key: string; prefs: HomePrefs } | null>(null);
@@ -141,7 +141,7 @@ export function HomePage() {
 
   useLiveRefetch(() => qc.refetchQueries({ type: 'active' }), !!plantId);
 
-  const ctx = { plantId, washroomId: washroom?.id, isOwner, isManager, now };
+  const ctx = { userId, plantId, washroomId: washroom?.id, isOwner, isManager, now };
   const tiles = visibleTiles(prefs);
 
   return (

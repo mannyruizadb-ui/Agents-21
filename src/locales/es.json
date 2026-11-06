@@ -733,11 +733,9 @@
     "queueItems_other": "trabajos · ≈ {{loads}} cargas",
     "rush_one": "{{count}} urgente",
     "rush_other": "{{count}} urgentes",
-    "alerts24h_one": "alerta en las últimas 24 h",
-    "alerts24h_other": "alertas en las últimas 24 h",
     "alertsUnavailable": "Todavía no disponible",
-    "bellLabel_one": "Alertas ({{count}} en las últimas 24 h)",
-    "bellLabel_other": "Alertas ({{count}} en las últimas 24 h)",
+    "bellLabel_one": "Alertas ({{count}} nueva)",
+    "bellLabel_other": "Alertas ({{count}} nuevas)",
     "customize": "Personalizar",
     "customizeTitle": "Personalizar Inicio",
     "customizeHint": "Marque los cuadros que quiere ver. Use las flechas para cambiar el orden. Se guarda en este teléfono para su cuenta.",
@@ -749,6 +747,10 @@
     "ageSec_one": "Hace {{count}} s",
     "ageSec_other": "Hace {{count}} s",
     "ageMin_one": "Hace {{count}} min",
-    "ageMin_other": "Hace {{count}} min"
+    "ageMin_other": "Hace {{count}} min",
+    "hm": "{{h}}h {{m}}m",
+    "m": "{{m}}m",
+    "alertsNew_one": "nueva desde la última vez",
+    "alertsNew_other": "nuevas desde la última vez"
   }
 }

@@ -27,7 +27,6 @@ import {
   IconWarning,
   IconWasher,
 } from '../washroom/Icons';
-import { reasonText } from '../washroom/machineReason';
 import { ageSeconds, estimateServerNow, freshness, washerNow } from '../washroom/washerTime';
 import { useMachineStatus, useQueue, useWashroomBoard } from '../washroom/washroomData';
 import type { TileId } from './homePrefs';
@@ -39,6 +38,7 @@ import type { TileId } from './homePrefs';
 export type TileTone = 'neutral' | 'ok' | 'warn' | 'danger' | 'info';
 
 interface Ctx {
+  userId: string;
   plantId: string | undefined;
   washroomId: string | undefined;
   isOwner: boolean;
@@ -209,9 +209,9 @@ function MachinesDownTile({ c }: { c: Ctx }) {
           <span className="home-big mono home-danger">{down.length}</span>
           <span className="home-list">
             {shown.map((m) => {
-              const why = reasonText(m.reason_code, m.reason, (code) =>
-                labeler(code, m.reason_label_i18n),
-              );
+              // Home shows only the plant's preset label; the free-text detail stays on the
+              // board and machine screens (coordinator 2026-11-06).
+              const why = m.reason_code ? labeler(m.reason_code, m.reason_label_i18n) : null;
               return (
                 <span key={m.machine_id} className="home-list-row">
                   <strong>{names.machine(m.machine_name)}</strong>
@@ -242,10 +242,11 @@ function NextTruckTile({ c }: { c: Ctx }) {
   const total = data?.routes.length ?? 0;
   const done = data?.routes.filter((r) => r.loaded).length ?? 0;
   const mins = next ? minutesUntil(data?.load_date ?? '', next.route.load_time, serverNow, tz) : 0;
+  // Compact so it fits one line in a half-width tile: "5h 28m" / "18m".
   const dur = (m: number) =>
     Math.abs(m) >= 60
-      ? t('loadOut.hoursMin', { h: Math.floor(Math.abs(m) / 60), m: Math.abs(m) % 60 })
-      : t('loadOut.minutes', { count: Math.abs(m) });
+      ? t('home.hm', { h: Math.floor(Math.abs(m) / 60), m: Math.abs(m) % 60 })
+      : t('home.m', { m: Math.abs(m) });
   const tone: TileTone =
     total === 0
       ? 'neutral'
@@ -262,7 +263,6 @@ function NextTruckTile({ c }: { c: Ctx }) {
       icon={<IconTruck size="1.5em" />}
       title={t('loadOut.nextLabel')}
       tone={tone}
-      wide
       updatedAt={board.dataUpdatedAt}
       isFetching={board.isFetching}
       isError={board.isError}
@@ -426,7 +426,7 @@ function QueueTile({ c }: { c: Ctx }) {
 
 function AlertsTile({ c }: { c: Ctx }) {
   const { t } = useTranslation();
-  const count = useMyAlertCount(c.plantId);
+  const count = useMyAlertCount(c.plantId, c.userId);
   const n = count.data;
   return (
     <Tile
@@ -445,7 +445,7 @@ function AlertsTile({ c }: { c: Ctx }) {
       ) : (
         <>
           <span className={`home-big mono ${n > 0 ? 'home-warn' : ''}`}>{n}</span>
-          <span className="home-sub">{t('home.alerts24h', { count: n })}</span>
+          <span className="home-sub">{t('home.alertsNew', { count: n })}</span>
         </>
       )}
     </Tile>
