@@ -4,7 +4,7 @@
 -- 20261104163718_set_wash_group_factors_and_colors.sql).
 begin;
 \ir _fixtures.psql
-select plan(25);
+select plan(27);
 
 -- ══ Schema and CHECKs ════════════════════════════════════════════════════
 select has_column('public', 'wash_groups', 'loads_per_basket', 'wash_groups.loads_per_basket');
@@ -107,6 +107,12 @@ select is((select coalesce(array_agg(name order by name), '{}') from pg_temp.adb
             where name !~* '(black|white|navy|bone|sheets|charcoal)'
               and (pg_temp.contrast(color_hex, '#FFFFFF') < 3 or pg_temp.contrast(color_hex, '#0B0F14') < 3)),
   '{}'::text[], 'colored and no-color groups are ≥ 3:1 against both cards');
+
+select is((select array_agg(name order by name) from pg_temp.adb_groups() where loads_per_bin = 4 and allow_bin_estimates),
+  array['Black mats','Charcoal mats','City & Brito mats','Colored mats','Logo mats','Presidente logo mats','Scraper mats'],
+  'owner 2026-11-05: every mat group also takes 4 loads per full bin (bins allowed)');
+select is((select array_agg(name_i18n ->> 'es' order by name) from pg_temp.adb_groups() where name like '%mops'),
+  array['Mapos de polvo y trapeadores', 'Mapos de microfibra'], 'owner 2026-11-05: mops are "Mapos" in Spanish');
 
 select * from finish();
 rollback;

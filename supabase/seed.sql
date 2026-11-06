@@ -72,8 +72,8 @@ select p.org_id, p.id, g.name, jsonb_build_object('es', g.name_es), g.sort_order
   ('City & Brito mats',                   'Tapetes City y Brito',                      34, '1'),   -- wash together; the roller separates them
   ('Presidente logo mats',                'Tapetes con logo Presidente',               40, '6'),
   ('Logo mats',                           'Tapetes con logo',                          50, '6'),   -- all other logos
-  ('Dust & wet mops',                     'Mopas de polvo y trapeadores',              60, '1'),
-  ('Microfiber mops',                     'Mopas de microfibra',                       70, '1'),
+  ('Dust & wet mops',                     'Mapos de polvo y trapeadores',              60, '1'),
+  ('Microfiber mops',                     'Mapos de microfibra',                       70, '1'),
   ('Kitchen towels',                      'Toallas de cocina',                         80, '5'),
   ('Microfiber towels',                   'Toallas de microfibra',                     90, '2'),   -- color and black wash together (owner 2026-11-02)
   ('Mechanic towels',                     'Toallas de mecánico',                       95, '5'),   -- white and colored wash together
@@ -118,16 +118,16 @@ update public.wash_groups g
 
 -- Container factors and chip colors (owner 2026-11-04, round 3; same values as the data migration
 -- 20261104163718_set_wash_group_factors_and_colors.sql, which reaches the cloud). Loads per FULL
--- container, approximate: mats 3.5 per basket; Kitchen towels 2 per basket, 2.5 per bin; sheets,
+-- container, approximate: mats 3.5 per basket and 4 per bin (owner 2026-11-05); Kitchen towels 2 per basket, 2.5 per bin; sheets,
 -- napkins and tablecloths 2 per bin; everything else null (TODO owner). Colors follow the goods' color.
 with v(name, color_hex, loads_per_basket, loads_per_bin) as (values
-  ('Black mats',                          '#1F1F1F', 3.5::numeric, null::numeric),
-  ('Colored mats',                        '#B45309', 3.5, null),
-  ('Charcoal mats',                       '#52525B', 3.5, null),
-  ('Scraper mats',                        '#7C5A3C', 3.5, null),
-  ('City & Brito mats',                   '#0F766E', 3.5, null),
-  ('Presidente logo mats',                '#7C3AED', 3.5, null),
-  ('Logo mats',                           '#C026D3', 3.5, null),
+  ('Black mats',                          '#1F1F1F', 3.5::numeric, 4::numeric),
+  ('Colored mats',                        '#B45309', 3.5, 4),
+  ('Charcoal mats',                       '#52525B', 3.5, 4),
+  ('Scraper mats',                        '#7C5A3C', 3.5, 4),
+  ('City & Brito mats',                   '#0F766E', 3.5, 4),
+  ('Presidente logo mats',                '#7C3AED', 3.5, 4),
+  ('Logo mats',                           '#C026D3', 3.5, 4),
   ('Dust & wet mops',                     '#78716C', null, null),
   ('Microfiber mops',                     '#0891B2', null, null),
   ('Kitchen towels',                      '#EA580C', 2,    2.5),
