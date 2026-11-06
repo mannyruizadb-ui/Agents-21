@@ -1,4 +1,8 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
+
+// The module under test imports the Supabase client, which needs env vars that CI does not set.
+// These tests only cover pure helpers, so a stub client is enough.
+vi.mock('../../lib/supabase', () => ({ supabase: {} }));
 import { memoryStore } from '../../lib/scopedStore';
 import { isUnavailable, readSeen, SEEN_KEY, seenAfterViewing } from './alertsData';
 
