@@ -133,7 +133,8 @@ Full context lives in these docs. Read the relevant one before non-trivial work;
     - Routes need a weekday schedule.
   - **Soil bags:** empty bags dropped off to customers, in packs of 5 (counted, not washed).
   - The owner dislikes the Setup → Machines layout; ask what to change.
-  - Open: which days routes 21/2/4 run; pieces per load for sheets and coats (fill-in sheet).
+  - **Route days:** Route 21 and Route 4 run Mon/Tue/Thu/Fri; Route 2 runs Mon–Fri; Route 11 Mon/Thu; Route 5 Tue/Fri. On Wednesday only Route 2 runs.
+  - Open: pieces per load for sheets and coats (fill-in sheet).
 - **Pilot build progress (2026-11-04…05, now merged in PR #5):**
   - Screens:
     - washer board `/control/washers`, with "Next in queue" shown once;
