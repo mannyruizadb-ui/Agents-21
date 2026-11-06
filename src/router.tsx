@@ -39,6 +39,11 @@ export const router = createBrowserRouter([
         }),
       },
       {
+        // Tasks (owner 2026-11-06): owner sends; managers see and finish their own.
+        path: 'tasks',
+        lazy: async () => ({ Component: (await import('./features/tasks/TasksPage')).TasksPage }),
+      },
+      {
         // Load-out (owner 2026-11-06): the board for the manager on duty, the entry for the office.
         path: 'load-out',
         lazy: async () => ({

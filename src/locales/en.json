@@ -561,5 +561,43 @@
       "qty": "Type a whole number from 0 to 100,000.",
       "special": "Type the special item (up to 80 characters)."
     }
+  },
+  "tasks": {
+    "title": "Tasks",
+    "myTitle": "My tasks",
+    "newTitle": "Send a task",
+    "textLabel": "What needs doing?",
+    "count": "{{n}} of {{max}} characters",
+    "sendTo": "Send to",
+    "onDuty": "Manager on duty",
+    "send": "Send",
+    "sending": "Sending…",
+    "sent": "Sent. They get a notification now and every 10 minutes until it's done.",
+    "nobodyOnDuty": "Nobody is on duty right now. Choose a manager by name.",
+    "namesUnavailable": "Manager names can't be loaded right now; you can still send to the manager on duty.",
+    "openTitle": "Open",
+    "noneOpen": "No open tasks.",
+    "doneTitle": "Done in the last 7 days",
+    "noneDone": "Nothing done in the last 7 days.",
+    "toOnDuty": "To the manager on duty: {{names}}",
+    "toNamed": "To {{names}}",
+    "aManager": "a manager",
+    "openFor": "Open for {{time}}",
+    "minutes_one": "{{count}} minute",
+    "minutes_other": "{{count}} minutes",
+    "hours": "{{h}} h {{m}} min",
+    "doneAt": "Done {{time}}",
+    "note": "Note: {{note}}",
+    "sentAt": "Sent {{time}}",
+    "noteLabel": "Note (optional)",
+    "done": "Done ✓",
+    "reminderBanner": "You'll get a reminder every 10 minutes until each task is marked done.",
+    "allDone": "No open tasks.",
+    "notForYou": "Tasks are for owners and managers.",
+    "pinned_one": "You have {{count}} open task",
+    "pinned_other": "You have {{count}} open tasks",
+    "errors": {
+      "text": "Type the task (1 to {{max}} characters)."
+    }
   }
 }

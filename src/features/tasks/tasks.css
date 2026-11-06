@@ -1,0 +1,47 @@
+/* Tasks. Open tasks are bold, loud cards; status is icon + text. Targets ≥ 56 px. */
+.form-page .task-list {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 1rem;
+  display: grid;
+  gap: 0.75rem;
+}
+.form-page .task-card {
+  border: 2px solid #999;
+  border-radius: 10px;
+  padding: 0.75rem;
+}
+.form-page .task-card p {
+  margin: 0.25rem 0;
+}
+.form-page .task-card.open {
+  border: 3px solid #b45309;
+  background: #fff8eb;
+}
+.form-page .task-card.done {
+  border-color: #146c2e;
+}
+.task-body {
+  font-size: 1.25rem;
+  font-weight: 800;
+  overflow-wrap: anywhere;
+}
+.form-page .task-big {
+  width: 100%;
+  min-height: 64px;
+  font-size: 1.375rem;
+}
+.form-page .task-banner,
+.task-pinned {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  border: 3px solid #b45309;
+  border-radius: 10px;
+  padding: 0.5rem 0.75rem;
+  background: #fff8eb;
+  font-weight: 700;
+}
+.task-pinned a {
+  font-size: 1.125rem;
+}

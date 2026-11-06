@@ -561,5 +561,43 @@
       "qty": "Escribe un número entero de 0 a 100,000.",
       "special": "Escribe el artículo especial (hasta 80 caracteres)."
     }
+  },
+  "tasks": {
+    "title": "Tareas",
+    "myTitle": "Mis tareas",
+    "newTitle": "Mandar una tarea",
+    "textLabel": "¿Qué hay que hacer?",
+    "count": "{{n}} de {{max}} caracteres",
+    "sendTo": "Mandar a",
+    "onDuty": "Gerente de turno",
+    "send": "Mandar",
+    "sending": "Mandando…",
+    "sent": "Mandada. Le llega un aviso ahora y cada 10 minutos hasta que la termine.",
+    "nobodyOnDuty": "Ahora no hay nadie de turno. Escoge un gerente por nombre.",
+    "namesUnavailable": "No se pueden cargar los nombres ahora; igual puedes mandarla al gerente de turno.",
+    "openTitle": "Abiertas",
+    "noneOpen": "No hay tareas abiertas.",
+    "doneTitle": "Terminadas en los últimos 7 días",
+    "noneDone": "Nada terminado en los últimos 7 días.",
+    "toOnDuty": "Al gerente de turno: {{names}}",
+    "toNamed": "A {{names}}",
+    "aManager": "un gerente",
+    "openFor": "Abierta hace {{time}}",
+    "minutes_one": "{{count}} minuto",
+    "minutes_other": "{{count}} minutos",
+    "hours": "{{h}} h {{m}} min",
+    "doneAt": "Terminada {{time}}",
+    "note": "Nota: {{note}}",
+    "sentAt": "Mandada {{time}}",
+    "noteLabel": "Nota (opcional)",
+    "done": "Terminada ✓",
+    "reminderBanner": "Te llega un recordatorio cada 10 minutos hasta que marques cada tarea como terminada.",
+    "allDone": "No hay tareas abiertas.",
+    "notForYou": "Las tareas son para dueños y gerentes.",
+    "pinned_one": "Tienes {{count}} tarea abierta",
+    "pinned_other": "Tienes {{count}} tareas abiertas",
+    "errors": {
+      "text": "Escribe la tarea (de 1 a {{max}} caracteres)."
+    }
   }
 }
