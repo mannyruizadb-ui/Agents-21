@@ -104,7 +104,17 @@ Full context lives in these docs. Read the relevant one before non-trivial work;
     - Throttle queue and estimate writes.
     - Record in PRD v1.6 §4.7 the display read of the washer board and the owner/manager-only estimates.
   - Waiting on the owner: who enters estimates, setting `ships_next_morning` in the cloud.
-- **Pilot build progress (2026-11-04, branch `claude/amazing-planck-k88ki3`, NOT yet in the cloud; no PR yet):**
+- **PILOT VERSION LIVE (2026-11-06): PR #5 merged by the owner.**
+  - deploy-db run 5 applied 36 migrations (latest `20261105171442`) and deployed `send-alerts` (ACTIVE, verify_jwt off) plus its secrets.
+  - Security advisors: by-design items only.
+  - Still owed: the owner pastes the VAPID public key from the run 42138682577 job summary, then set Netlify `VITE_VAPID_PUBLIC_KEY` and redeploy. Until then the alerts card says "not set up".
+  - Next:
+    - Setup screens for machines and down reasons;
+    - managers limited to the current shift only (the views are still readable);
+    - holiday closures;
+    - then tasks, AA Linen time, the load-out list.
+  - Open questions: task re-notify interval; drivers/routes and who supplies the load-out numbers; meaning of "30 minutes behind".
+- **Pilot build progress (2026-11-04…05, now merged in PR #5):**
   - Screens:
     - washer board `/control/washers`, with "Next in queue" shown once;
     - washer station `/station/washer/:machineId` (one-tap START, undo, offline tap queue with real tap time);
