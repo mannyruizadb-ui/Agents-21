@@ -1,5 +1,4 @@
 import { useRef, useState, type FormEvent } from 'react';
-import { Link } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../../lib/supabase';
@@ -9,9 +8,8 @@ import { useRequiredSession } from '../../app/auth/sessionContext';
 import { useMyRoles } from '../washroom/useMyRoles';
 import { RewashForm } from './RewashForm';
 import { DataAge } from '../washroom/DataAge';
-import { IconDown, IconRush, IconUp } from '../washroom/Icons';
-import { QueueBadges } from '../washroom/QueueBadges';
-import { WashGroupLabel } from '../washroom/WashGroupLabel';
+import { IconDown, IconPin, IconRewash, IconRush, IconUp } from '../washroom/Icons';
+import { GroupChip } from '../washroom/GroupChip';
 import { useLocalizedName } from '../washroom/localizedName';
 import { appErrorCode, errorMessageKey, unwrap } from '../washroom/rpcError';
 import { useQtyText } from '../washroom/useQtyText';
@@ -36,6 +34,7 @@ import {
 } from './queueOrder';
 import '../../lib/forms.css';
 import '../washroom/washroom.css';
+import './queue.css';
 
 // Work queue (PRD C1–C4). Owner decision 2026-11-04: only the OWNER changes the queue (add, reorder,
 // assign a washer, RUSH, cancel); managers, leads and viewers see a read-only list. The server still
@@ -281,24 +280,36 @@ function QueueItemCard({
 
   return (
     <li className={item.is_rush ? 'queue-item rush' : 'queue-item'}>
-      <p className="queue-item-head">
-        <span className="queue-item-pos">{t('queue.place', { n: place })}</span>
-        <WashGroupLabel
-          name={item.wash_group_name}
-          nameI18n={item.wash_group_name_i18n}
-          colorHex={item.wash_group_color_hex}
-        />
-        <QueueBadges
-          rush={item.is_rush}
-          rewash={item.is_rewash}
-          pinnedTo={!canEdit ? item.assigned_machine_name : null}
-        />
-      </p>
+      <div className="q-head">
+        <span className="q-place mono">
+          {t('queue.place', { n: String(place).padStart(2, '0') })}
+        </span>
+        <span className="q-tags">
+          {item.is_rush && (
+            <span className="status-pill warn">
+              <IconRush /> {t('queue.rush')}
+            </span>
+          )}
+          {item.is_rewash && (
+            <span className="status-pill info">
+              <IconRewash /> {t('queue.rewash')}
+            </span>
+          )}
+          <span className="status-pill idle q-washer">
+            <IconPin /> {item.assigned_machine_name ?? t('queue.nextFreeWasher')}
+          </span>
+        </span>
+      </div>
+      <GroupChip
+        name={item.wash_group_name}
+        nameI18n={item.wash_group_name_i18n}
+        colorHex={item.wash_group_color_hex}
+      />
       {item.item_name && <p>{localized(item.item_name, item.item_name_i18n)}</p>}
-      <p>
+      <p className="q-qty">
         {qtyText(item.loads_remaining, item.qty, item.unit)}
         {item.status === 'in_progress' &&
-          ` · ${t('queue.inProgress', { started: item.loads_started })}`}
+          ` · ${t('queue.inProgress', { count: item.loads_started })}`}
       </p>
       {item.note && <p className="hint">{t('queue.note', { note: item.note })}</p>}
       {assignedDown && (
@@ -437,6 +448,9 @@ export function QueuePage() {
   useLiveRefetch(queue.refetch, !!area);
   const washers = useWashers(isWashroom ? area?.id : undefined);
   const [message, setMessage] = useState<string | null>(null);
+  const [showAdd, setShowAdd] = useState(false);
+  const [showRewash, setShowRewash] = useState(false);
+  const [filter, setFilter] = useState<'all' | 'rush' | 'rewash'>('all');
   const [error, setError] = useState<string | null>(null);
   const key = washroomKeys.queue(area?.id ?? '');
 
@@ -505,13 +519,21 @@ export function QueuePage() {
   const busy = move.isPending || update.isPending || cancel.isPending;
   const items = queue.data ?? [];
   const places = placeNumbers(items);
+  // Loads still to wash: exact for loads, "≈" when any amount is converted from bins/baskets.
+  const totalLoads = items.reduce((n, i) => n + (i.loads_remaining ?? 0), 0);
+  const approxLoads = items.some((i) => i.unit !== 'load');
 
   return (
     <main className="form-page">
-      <p>
-        <Link to="/control">{t('common.back')}</Link>
-      </p>
       <h1>{t('queue.title')}</h1>
+      {items.length > 0 && (
+        <p className="q-summary mono">
+          {t('queue.summary', {
+            count: items.length,
+            loads: `${approxLoads ? '≈ ' : ''}${totalLoads}`,
+          })}
+        </p>
+      )}
       {(areas.data?.length ?? 0) > 1 && (
         <div className="field">
           <label htmlFor="q-area">{t('queue.areaLabel')}</label>
@@ -538,7 +560,12 @@ export function QueuePage() {
       </div>
       <div role="alert">{error && <p className="error">{error}</p>}</div>
 
-      {isOwner && area && (
+      {isOwner && area && !showAdd && (
+        <button type="button" className="q-add-button" onClick={() => setShowAdd(true)}>
+          {t('queue.addOpen')}
+        </button>
+      )}
+      {isOwner && area && showAdd && (
         <AddForm
           areaId={area.id}
           plantId={area.plant_id}
@@ -552,7 +579,16 @@ export function QueuePage() {
         />
       )}
 
-      {(isOwner || isManager) && area && isWashroom && (
+      {(isOwner || isManager) && area && isWashroom && !showRewash && (
+        <button
+          type="button"
+          className="secondary q-add-button"
+          onClick={() => setShowRewash(true)}
+        >
+          {t('rewash.open')}
+        </button>
+      )}
+      {(isOwner || isManager) && area && isWashroom && showRewash && (
         <RewashForm
           areaId={area.id}
           plantId={area.plant_id}
@@ -576,28 +612,50 @@ export function QueuePage() {
       )}
       {queue.data && items.length === 0 && <p>{t('queue.empty')}</p>}
       {items.length > 0 && (
-        <ol className="queue-list" aria-label={t('queue.listTitle')}>
-          {items.map((item) => (
-            <QueueItemCard
-              key={item.id}
-              item={item}
-              place={places.get(item.id) ?? 0}
-              canEdit={isOwner}
-              canMoveOff={isManager}
-              isWashroom={isWashroom}
-              washers={washers.data ?? []}
-              downIds={downIds}
-              canUp={canMove(items, item.id, 'up')}
-              canDown={canMove(items, item.id, 'down')}
-              busy={busy}
-              onMove={(dir) => {
-                const afterId = moveAfterId(items, item.id, dir);
-                if (afterId !== undefined) move.mutate({ item, afterId });
-              }}
-              onUpdate={(changes) => update.mutate({ item, changes })}
-              onCancel={() => cancel.mutate(item)}
-            />
+        <div className="q-filters" role="group" aria-label={t('queue.filterLabel')}>
+          {(['all', 'rush', 'rewash'] as const).map((f) => (
+            <button
+              key={f}
+              type="button"
+              className="secondary"
+              aria-pressed={filter === f}
+              onClick={() => setFilter(f)}
+            >
+              {t(`queue.filter.${f}`, {
+                count:
+                  f === 'all'
+                    ? items.length
+                    : items.filter((i) => (f === 'rush' ? i.is_rush : i.is_rewash)).length,
+              })}
+            </button>
           ))}
+        </div>
+      )}
+      {items.length > 0 && (
+        <ol className="queue-list" aria-label={t('queue.listTitle')}>
+          {items
+            .filter((i) => filter === 'all' || (filter === 'rush' ? i.is_rush : i.is_rewash))
+            .map((item) => (
+              <QueueItemCard
+                key={item.id}
+                item={item}
+                place={places.get(item.id) ?? 0}
+                canEdit={isOwner}
+                canMoveOff={isManager}
+                isWashroom={isWashroom}
+                washers={washers.data ?? []}
+                downIds={downIds}
+                canUp={canMove(items, item.id, 'up')}
+                canDown={canMove(items, item.id, 'down')}
+                busy={busy}
+                onMove={(dir) => {
+                  const afterId = moveAfterId(items, item.id, dir);
+                  if (afterId !== undefined) move.mutate({ item, afterId });
+                }}
+                onUpdate={(changes) => update.mutate({ item, changes })}
+                onCancel={() => cancel.mutate(item)}
+              />
+            ))}
         </ol>
       )}
     </main>

@@ -7,7 +7,7 @@ import { DataAge } from './DataAge';
 import { IconIdle, IconMachineDown, IconReady, IconRunning, IconRush, IconWarning } from './Icons';
 import { QueueBadges } from './QueueBadges';
 import { useQtyText } from './useQtyText';
-import { safeColor, useLocalizedName } from './localizedName';
+import { GroupChip } from './GroupChip';
 import { errorMessageKey } from './rpcError';
 import { estimateServerNow, minutesLeftRoundedUp, minutesSinceEnd, washerNow } from './washerTime';
 import { reasonText } from './machineReason';
@@ -19,7 +19,6 @@ import {
   useMachineStatus,
   useQueue,
   useWashroomBoard,
-  type I18nJson,
   type QueueRow,
   type WasherBoardRow,
 } from './washroomData';
@@ -33,24 +32,6 @@ import './board.css';
 // managers. A NEXT IN QUEUE banner, a 2-column tile grid (status pill + group chip + big countdown),
 // and a strip of other machines that are out of service. Real data only; no names, no weights.
 // Live: refetch on mount, focus, online, visibilitychange and every 30 s; Realtime is never relied on.
-
-/** Wash group chip: a color stripe + the name (wraps, never truncated). Color is never alone. */
-function GroupChip({
-  name,
-  nameI18n,
-  colorHex,
-}: {
-  name: string | null;
-  nameI18n: I18nJson | null;
-  colorHex: string | null;
-}) {
-  const localized = useLocalizedName();
-  return (
-    <span className="wb-chip" style={{ borderLeftColor: safeColor(colorHex) }}>
-      {localized(name, nameI18n)}
-    </span>
-  );
-}
 
 function Tile({ row, fetchedAt, now }: { row: WasherBoardRow; fetchedAt: number; now: number }) {
   const { t } = useTranslation();

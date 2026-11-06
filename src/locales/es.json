@@ -221,8 +221,7 @@
     "listTitle": "En orden",
     "empty": "La cola está vacía.",
     "noArea": "Tu planta no tiene áreas configuradas.",
-    "place": "{{n}}.",
-    "inProgress": "{{started}} empezadas",
+    "place": "#{{n}}",
     "note": "Nota: {{note}}",
     "addTitle": "Agregar trabajo",
     "groupLabel": "Grupo de lavado",
@@ -255,7 +254,18 @@
     "assignedDown": "Asignada a {{name}}, que está fuera de servicio.",
     "moveOffLabel": "Pasar esta carga a",
     "moveOff": "Sacar de esta lavadora",
-    "managerNotice": "Puedes ver la cola, agregar relavado y sacar cargas de una lavadora fuera de servicio. Solo el dueño cambia el orden."
+    "managerNotice": "Puedes ver la cola, agregar relavado y sacar cargas de una lavadora fuera de servicio. Solo el dueño cambia el orden.",
+    "summary_one": "{{count}} trabajo · {{loads}} cargas por lavar",
+    "summary_other": "{{count}} trabajos · {{loads}} cargas por lavar",
+    "addOpen": "+ Agregar trabajo",
+    "filterLabel": "Mostrar",
+    "filter": {
+      "all": "Todos ({{count}})",
+      "rush": "Urgentes ({{count}})",
+      "rewash": "Relavar ({{count}})"
+    },
+    "inProgress_one": "{{count}} empezada",
+    "inProgress_other": "{{count}} empezadas"
   },
   "machines": {
     "title": "Fuera de servicio / Arreglada",
@@ -329,7 +339,8 @@
       "amount": "Escribe una cantidad de 0.01 a 100,000, con hasta 2 decimales."
     },
     "preview_one": "≈ {{n}} carga (estimado)",
-    "preview_other": "≈ {{n}} cargas (estimado)"
+    "preview_other": "≈ {{n}} cargas (estimado)",
+    "open": "+ Agregar relavado"
   },
   "estimates": {
     "title": "Ropa sucia esperando",
