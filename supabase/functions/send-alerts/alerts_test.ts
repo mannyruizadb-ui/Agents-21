@@ -8,6 +8,7 @@ import {
   groupByAlert,
   isAllowedPushEndpoint,
   localMachineName,
+  localRouteName,
   REASONS,
   type PushPayload,
   type PushTarget,
@@ -205,7 +206,7 @@ Deno.test('unknown kinds and bad payloads build nothing', () => {
   assertEquals(buildMessage('task_assigned', { text: 'check trucks' }, 'en', ctx), null);
   assertEquals(buildMessage('__proto__', {}, 'en', ctx), null);
   assertEquals(buildMessage('machine_down', null, 'en', ctx), null);
-  assertEquals(Object.keys(BUILDERS).sort(), ['machine_down', 'washer_idle']);
+  assertEquals(Object.keys(BUILDERS).sort(), ['machine_down', 'route_loaded', 'washer_idle']);
 });
 
 Deno.test('localMachineName: only the seeded washer pattern is translated', () => {
@@ -387,4 +388,62 @@ Deno.test('run: nothing claimed, nothing done', async () => {
   const counts = await run(deps, NOW);
   assertEquals(counts.alerts, 0);
   assertEquals(rec.marks, {});
+});
+
+// ------------------------------------------------------------------------------------------------
+// route_loaded
+
+const ROUTE = '22222222-2222-2222-2222-222222222222';
+// loaded 2026-11-06 08:12 UTC = 3:12 AM in Miami (EST)
+const loaded = {
+  route_id: ROUTE,
+  route_name: 'Route 21',
+  load_time: '03:30:00',
+  load_date: '2026-11-06',
+  loaded_at: '2026-11-06T08:12:00Z',
+};
+
+Deno.test('route_loaded: EN/ES text, tag per route and day', () => {
+  assertEquals(msg('route_loaded', loaded, 'en'), {
+    title: 'Route 21 loaded',
+    body: '3:30 AM truck · loaded 3:12 AM',
+    tag: `route-${ROUTE}-2026-11-06`,
+    url: '/control',
+  });
+  const es = msg('route_loaded', loaded, 'es');
+  assertEquals(es.title, 'Ruta 21 cargada');
+  assert(
+    /^Camión de las 3:30 a\.?\s?m\.? · cargada a las 3:12 a\.?\s?m\.?$/.test(es.body),
+    es.body,
+  );
+  const one = msg('route_loaded', { ...loaded, loaded_at: '2026-11-06T06:05:00Z' }, 'es');
+  assert(one.body.includes('cargada a la 1:05'), one.body);
+});
+
+Deno.test('route_loaded: partial or bad payloads', () => {
+  assertEquals(msg('route_loaded', { ...loaded, load_time: '25:00' }, 'en').body, 'Loaded 3:12 AM');
+  assertEquals(msg('route_loaded', { ...loaded, loaded_at: null }, 'en').body, '3:30 AM truck');
+  assertEquals(
+    msg('route_loaded', { ...loaded, route_name: 'Kendall' }, 'es').title,
+    'Kendall cargada',
+  );
+  assertEquals(msg('route_loaded', { ...loaded, route_name: '' }, 'en').title, 'A route loaded');
+  assertEquals(buildMessage('route_loaded', { ...loaded, route_id: null }, 'en', ctx), null);
+  assertEquals(buildMessage('route_loaded', { ...loaded, load_date: 'x/../y' }, 'en', ctx), null);
+});
+
+Deno.test('route_loaded: never stale', async () => {
+  const { deps, rec } = mockDeps(
+    [row({ alert_id: 'r', kind: 'route_loaded', payload: loaded, subscription_id: 'x' })],
+    () => 'ok',
+  );
+  await run(deps, NOW);
+  assertEquals(rec.marks, { r: ['x'] });
+  assertEquals(rec.sends[0].payload.title, 'Route 21 loaded');
+});
+
+Deno.test('localRouteName: only the seeded route pattern is translated', () => {
+  assertEquals(localRouteName('Route 4', 'es'), 'Ruta 4');
+  assertEquals(localRouteName('Route 4', 'en'), 'Route 4');
+  assertEquals(localRouteName('Route 4 extra', 'es'), 'Route 4 extra');
 });

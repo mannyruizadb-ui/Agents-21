@@ -239,7 +239,7 @@ export interface BuildContext {
 /**
  * One entry per push kind. isCurrent: false = the condition already ended (marked 'stale', not
  * sent). build: the notification in one language, or null when the payload is unusable.
- * Adding a kind (task_assigned, task_done, route_loaded) = adding an entry here.
+ * Adding a kind (task_assigned, task_done) = adding an entry here.
  */
 export interface KindBuilder {
   isCurrent(payload: Record<string, unknown>): boolean;
@@ -281,7 +281,55 @@ export const BUILDERS: Record<string, KindBuilder> = {
       return { title, body, tag: `washer-idle-${id}`, url: ALERT_URL };
     },
   },
+  route_loaded: {
+    // A route that was loaded stays loaded news; a correction is a new event, never stale.
+    isCurrent: () => true,
+    build(p, lang, ctx) {
+      const id = str(p, 'route_id');
+      const date = str(p, 'load_date');
+      if (id === null || date === null || !/^\d{4}-\d{2}-\d{2}$/.test(date)) return null;
+      const name =
+        localRouteName(str(p, 'route_name') ?? '', lang) ||
+        (lang === 'es' ? 'Una ruta' : 'A route');
+      const title = lang === 'es' ? `${name} cargada` : `${name} loaded`;
+      const truck = formatWallTime(str(p, 'load_time') ?? '', lang);
+      const loadedAtIso = str(p, 'loaded_at');
+      const loadedAt = loadedAtIso === null ? null : formatTime(loadedAtIso, lang, ctx.timeZone);
+      const parts =
+        lang === 'es'
+          ? [
+              truck && `camión de las ${truck}`,
+              loadedAt &&
+                `cargada a ${loadedAtIso && hourIsOne(loadedAtIso, ctx.timeZone) ? 'la' : 'las'} ${loadedAt}`,
+            ]
+          : [truck && `${truck} truck`, loadedAt && `loaded ${loadedAt}`];
+      const body = capitalize(parts.filter((x): x is string => !!x).join(' · '));
+      return { title, body, tag: `route-${id}-${date}`, url: LOAD_OUT_URL };
+    },
+  },
 };
+
+/** Spanish for the seeded route names ("Route 21" → "Ruta 21"); other names are kept as entered. */
+export function localRouteName(name: string, lang: Lang): string {
+  const clean = cleanName(name);
+  if (lang !== 'es') return clean;
+  const m = /^Route (\w{1,10})$/i.exec(clean);
+  return m ? `Ruta ${m[1]}` : clean;
+}
+
+/** A plant-local wall-clock time ("03:30" / "03:30:00") as "3:30 AM" / "3:30 a. m."; null if unreadable. */
+export function formatWallTime(hhmm: string, lang: Lang): string | null {
+  const m = /^(\d{2}):(\d{2})(?::\d{2}(?:\.\d+)?)?$/.exec(hhmm);
+  if (!m || Number(m[1]) > 23 || Number(m[2]) > 59) return null;
+  const d = new Date(Date.UTC(2000, 0, 1, Number(m[1]), Number(m[2])));
+  return new Intl.DateTimeFormat(lang === 'es' ? 'es-US' : 'en-US', {
+    hour: 'numeric',
+    minute: '2-digit',
+    timeZone: 'UTC',
+  }).format(d);
+}
+
+const LOAD_OUT_URL = '/control';
 
 /** The notification for one claimed row, or null (unknown kind or unusable payload: never sent). */
 export function buildMessage(
