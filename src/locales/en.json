@@ -89,7 +89,14 @@
     "alertsLabelRole": "Machine down alerts ({{role}} {{scope}})",
     "alertsHint": "Sends a notification to this person's phones when a machine is marked down. They must also turn on notifications on each phone.",
     "alertsOn": "Machine down alerts on for {{name}}.",
-    "alertsOff": "Machine down alerts off for {{name}}."
+    "alertsOff": "Machine down alerts off for {{name}}.",
+    "canEnterLoadOut": "Can enter load-out (type the drivers' load sheet)",
+    "loadOutOn": "{{name}} can now enter the load-out.",
+    "loadOutOff": "{{name}} can no longer enter the load-out.",
+    "shiftsLabel": "Usual shifts (manager on duty)",
+    "shiftsHint": "The manager on duty gets tasks, marks trucks loaded and gets washer alarms during these shifts.",
+    "shiftOption": "{{area}} · {{shift}} {{from}}–{{to}} ({{days}})",
+    "shiftsSaved": "Shifts saved for {{name}}."
   },
   "control": {
     "placeholder": "Choose a screen.",

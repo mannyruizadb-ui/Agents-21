@@ -89,7 +89,14 @@
     "alertsLabelRole": "Alertas de máquina fuera de servicio ({{role}} {{scope}})",
     "alertsHint": "Le manda un aviso a los teléfonos de esta persona cuando una máquina se marca fuera de servicio. También tiene que activar las notificaciones en cada teléfono.",
     "alertsOn": "Alertas de máquina fuera de servicio activadas para {{name}}.",
-    "alertsOff": "Alertas de máquina fuera de servicio desactivadas para {{name}}."
+    "alertsOff": "Alertas de máquina fuera de servicio desactivadas para {{name}}.",
+    "canEnterLoadOut": "Puede anotar la carga (la hoja de los choferes)",
+    "loadOutOn": "{{name}} ya puede anotar la carga.",
+    "loadOutOff": "{{name}} ya no puede anotar la carga.",
+    "shiftsLabel": "Turnos habituales (gerente de turno)",
+    "shiftsHint": "El gerente de turno recibe las tareas, marca los camiones cargados y recibe las alarmas de las lavadoras durante estos turnos.",
+    "shiftOption": "{{area}} · {{shift}} {{from}}–{{to}} ({{days}})",
+    "shiftsSaved": "Turnos guardados para {{name}}."
   },
   "control": {
     "placeholder": "Elige una pantalla.",

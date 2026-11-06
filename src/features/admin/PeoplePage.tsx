@@ -14,6 +14,8 @@ import {
 } from './manageUsers';
 import { useOwnerPlants } from './useOwnerPlants';
 import { AlertToggles } from './AlertToggles';
+import { ManagerSettings } from './ManagerSettings';
+import { useAssignments, useShiftOptions } from './useManagerSchedule';
 import { useAlertMemberships } from './useAlertMemberships';
 import type { AlertMembership } from './alertRecipients';
 import '../../lib/forms.css';
@@ -84,6 +86,8 @@ function PersonCard({
   plantId,
   plant,
   alertMemberships,
+  shifts,
+  assignments,
   onSecret,
   onStatus,
 }: {
@@ -91,6 +95,8 @@ function PersonCard({
   plantId: string;
   plant: { id: string; org_id: string };
   alertMemberships: AlertMembership[];
+  shifts: Parameters<typeof ManagerSettings>[0]['shifts'];
+  assignments: Parameters<typeof ManagerSettings>[0]['assignments'];
   onSecret: (s: Secret) => void;
   onStatus: (message: string) => void;
 }) {
@@ -146,6 +152,15 @@ function PersonCard({
         name={name}
         plant={plant}
         memberships={alertMemberships}
+        onStatus={onStatus}
+      />
+      <ManagerSettings
+        userId={person.user_id}
+        name={name}
+        plant={plant}
+        memberships={alertMemberships}
+        shifts={shifts}
+        assignments={assignments}
         onStatus={onStatus}
       />
       {!person.is_self && !person.manageable && <p className="hint">{t('people.notManageable')}</p>}
@@ -309,6 +324,8 @@ export function PeoplePage() {
 
   const plant = plants.find((p) => p.id === plantId);
   const alertMemberships = useAlertMemberships(plant);
+  const shiftOptions = useShiftOptions(plant?.id);
+  const assignments = useAssignments(plant?.id);
   const people = useQuery({
     queryKey: ['people', plantId],
     enabled: plantId !== null,
@@ -370,6 +387,8 @@ export function PeoplePage() {
                   plantId={plantId}
                   plant={plant ?? { id: plantId, org_id: '' }}
                   alertMemberships={alertMemberships.data ?? []}
+                  shifts={shiftOptions.data ?? []}
+                  assignments={assignments.data ?? []}
                   onSecret={(s) => {
                     setStatus('');
                     setSecret(s);

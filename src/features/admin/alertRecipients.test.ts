@@ -9,6 +9,7 @@ const m = (over: Partial<AlertMembership>): AlertMembership => ({
   plant_id: 'p1',
   role: 'manager',
   notify_machine_down: false,
+  can_enter_load_out: false,
   ...over,
 });
 
