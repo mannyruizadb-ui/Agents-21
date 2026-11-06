@@ -104,6 +104,8 @@ Full context lives in these docs. Read the relevant one before non-trivial work;
     - Throttle queue and estimate writes.
     - Record in PRD v1.6 §4.7 the display read of the washer board and the owner/manager-only estimates.
   - Waiting on the owner: who enters estimates, setting `ships_next_morning` in the cloud.
+- **PR #7 merged (2026-11-06 03:26)** (load-out, tasks, People shifts and load-out grant). deploy-db run 8 applied `20261106030529`. Everything built so far is live.
+- **UI redesign approved (2026-11-06):** follow `research/design/README.md`. Stitch style, dark theme for all, one language per person, self-hosted Barlow Condensed / JetBrains Mono / Inter. Drop names, weights, invented data, snooze/signatures.
 - **Third cloud upload (2026-11-06 03:09, deploy-db run 7, head 452d155):**
   - `20261106024855` (push delivery for every kind + washer idle), `025433` (load-out), `025957` (tasks), plus send-alerts redeployed (all builders).
   - PR #7 is open: load-out board and entry, tasks, People shift and load-out settings.
