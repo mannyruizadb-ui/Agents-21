@@ -34,7 +34,7 @@ select is(pg_temp.run_as('manager', $$select public.set_machine_status('60000000
 -- ══ D: washer idle ═══════════════════════════════════════════════════════
 select is(app.generate_washer_idle_alerts(), 1, 'Washer S, finished 30 min ago with work waiting during a shift: one alert');
 select is(app.generate_washer_idle_alerts(), 0, 'one alert per idle period (no repeat)');
-select is((select dedupe_key from public.alert_events where kind = 'washer_idle'),
+select is((select dedupe_key from public.alert_events where kind = 'washer_idle' and plant_id = pg_temp.id('plantA')),
   (select id::text from public.washer_cycles where machine_id = '60000000-0000-0000-0000-0000000000e1'), 'the idle period is keyed by the finished cycle');
 insert into public.washer_cycles (org_id, plant_id, area_id, machine_id, wash_group_id, wash_formula_id, started_at, load_count, source, client_id)
 values (pg_temp.id('orgA'), pg_temp.id('plantA'), pg_temp.id('spare'), '60000000-0000-0000-0000-0000000000e1', pg_temp.id('gNapkin'), pg_temp.id('formula'), now() - interval '40 minutes', 1, 'manual', gen_random_uuid());
@@ -59,12 +59,12 @@ select is((select array_agg(kind || ':' || right(endpoint, 7) order by kind, end
   'machine_down: every owner/manager with alerts on; washer_idle: owners + the manager on duty only (twice: two idle periods)');
 select is((select count(*)::int from app.pending_push_notifications() where kind = 'machine_down' and payload ? 'reason'), 0,
   'payloads never carry the free-text reason');
-select is((select payload ->> 'machine_name' || '/' || (payload ->> 'still_idle') from app.pending_push_notifications() where kind = 'washer_idle' order by alert_created limit 1),
+select is((select payload ->> 'machine_name' || '/' || (payload ->> 'still_idle') from app.pending_push_notifications() where kind = 'washer_idle' and plant_id = pg_temp.id('plantA') order by alert_created limit 1),
   'Washer S/false', 'washer_idle payload: machine name and whether it is still idle');
-select set_config('test.claim', (select count(*)::text from public.claim_push_notifications()), true);
+select set_config('test.claim', (select count(*)::text from public.claim_push_notifications() where plant_id = pg_temp.id('plantA')), true);
 select is(current_setting('test.claim')::int, 7, 'claim_push_notifications returns every pending row once');
-select is((select count(*)::int from public.claim_push_notifications()), 0, 'a second claim gets nothing (at most once)');
-select is(public.mark_push_alert_delivered((select id from public.alert_events where kind = 'washer_idle' order by sent_at, id limit 1), array['x']),
+select is((select count(*)::int from public.claim_push_notifications() where plant_id = pg_temp.id('plantA')), 0, 'a second claim gets nothing (at most once)');
+select is(public.mark_push_alert_delivered((select id from public.alert_events where kind = 'washer_idle' and plant_id = pg_temp.id('plantA') order by sent_at, id limit 1), array['x']),
   true, 'mark works for the new kinds');
 select is(array[has_function_privilege('authenticated', 'public.claim_push_notifications()', 'execute'),
                 has_function_privilege('authenticated', 'public.get_pending_push_notifications()', 'execute'),

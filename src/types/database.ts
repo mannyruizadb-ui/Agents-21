@@ -319,14 +319,14 @@ isOneToOne: false
                   ]
                 },"item_types": {
                   Row: {
-                    "active": boolean,"category": "mat"|"linen"|"apparel"|"towel"|"mop"|"other","color_hex": string,"count_mode": "unit"|"pack","created_at": string,"id": string,"name": string,"name_i18n": NonNullable<Json>,"org_id": string,"pack_size": number | null,"pieces_per_load": number | null,"pieces_per_load_source": string | null,"plant_id": string,"sort_order": number,"updated_at": string,"wash_group_id": string
+                    "active": boolean,"category": "mat"|"linen"|"apparel"|"towel"|"mop"|"other","color_hex": string,"count_mode": "unit"|"pack","created_at": string,"id": string,"name": string,"name_i18n": NonNullable<Json>,"org_id": string,"pack_size": number | null,"pieces_per_load": number | null,"pieces_per_load_source": string | null,"plant_id": string,"sort_order": number,"updated_at": string,"wash_group_id": string | null,"washed": boolean
                   }
                   ComputedFields: never
                   Insert: {
-                    "active"?: boolean,"category": "mat"|"linen"|"apparel"|"towel"|"mop"|"other","color_hex"?: string,"count_mode"?: "unit"|"pack","created_at"?: string,"id"?: string,"name": string,"name_i18n"?: NonNullable<Json>,"org_id": string,"pack_size"?: number | null,"pieces_per_load"?: number | null,"pieces_per_load_source"?: string | null,"plant_id": string,"sort_order"?: number,"updated_at"?: string,"wash_group_id": string
+                    "active"?: boolean,"category": "mat"|"linen"|"apparel"|"towel"|"mop"|"other","color_hex"?: string,"count_mode"?: "unit"|"pack","created_at"?: string,"id"?: string,"name": string,"name_i18n"?: NonNullable<Json>,"org_id": string,"pack_size"?: number | null,"pieces_per_load"?: number | null,"pieces_per_load_source"?: string | null,"plant_id": string,"sort_order"?: number,"updated_at"?: string,"wash_group_id"?: string | null,"washed"?: boolean
                   }
                   Update: {
-                    "active"?: boolean,"category"?: "mat"|"linen"|"apparel"|"towel"|"mop"|"other","color_hex"?: string,"count_mode"?: "unit"|"pack","created_at"?: string,"id"?: string,"name"?: string,"name_i18n"?: NonNullable<Json>,"org_id"?: string,"pack_size"?: number | null,"pieces_per_load"?: number | null,"pieces_per_load_source"?: string | null,"plant_id"?: string,"sort_order"?: number,"updated_at"?: string,"wash_group_id"?: string
+                    "active"?: boolean,"category"?: "mat"|"linen"|"apparel"|"towel"|"mop"|"other","color_hex"?: string,"count_mode"?: "unit"|"pack","created_at"?: string,"id"?: string,"name"?: string,"name_i18n"?: NonNullable<Json>,"org_id"?: string,"pack_size"?: number | null,"pieces_per_load"?: number | null,"pieces_per_load_source"?: string | null,"plant_id"?: string,"sort_order"?: number,"updated_at"?: string,"wash_group_id"?: string | null,"washed"?: boolean
                   }
                   Relationships: [
                     {
@@ -356,6 +356,38 @@ isOneToOne: false
                   }
                   Relationships: [
                     
+                  ]
+                },"load_out_lines": {
+                  Row: {
+                    "created_at": string,"id": string,"item_type_id": string | null,"load_date": string,"org_id": string,"plant_id": string,"qty": number,"route_id": string,"special_text": string | null,"updated_at": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "created_at"?: string,"id"?: string,"item_type_id"?: string | null,"load_date": string,"org_id": string,"plant_id": string,"qty": number,"route_id": string,"special_text"?: string | null,"updated_at"?: string
+                  }
+                  Update: {
+                    "created_at"?: string,"id"?: string,"item_type_id"?: string | null,"load_date"?: string,"org_id"?: string,"plant_id"?: string,"qty"?: number,"route_id"?: string,"special_text"?: string | null,"updated_at"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "load_out_lines_item_type_id_plant_id_fkey"
+      columns: ["item_type_id","plant_id"]
+isOneToOne: false
+      referencedRelation: "item_types"
+      referencedColumns: ["id","plant_id"]
+    },{
+      foreignKeyName: "load_out_lines_plant_id_org_id_fkey"
+      columns: ["plant_id","org_id"]
+isOneToOne: false
+      referencedRelation: "plants"
+      referencedColumns: ["id","org_id"]
+    },{
+      foreignKeyName: "load_out_lines_route_id_plant_id_fkey"
+      columns: ["route_id","plant_id"]
+isOneToOne: false
+      referencedRelation: "routes"
+      referencedColumns: ["id","plant_id"]
+    }
                   ]
                 },"machine_down_reasons": {
                   Row: {
@@ -469,14 +501,14 @@ isOneToOne: false
                   ]
                 },"memberships": {
                   Row: {
-                    "can_edit_load_factors": boolean,"can_manage_staff": boolean,"created_at": string,"id": string,"notify_machine_down": boolean,"org_id": string,"plant_id": string | null,"revoked_at": string | null,"role": "owner"|"manager"|"lead"|"viewer"|"display","user_id": string
+                    "can_edit_load_factors": boolean,"can_enter_load_out": boolean,"can_manage_staff": boolean,"created_at": string,"id": string,"notify_machine_down": boolean,"org_id": string,"plant_id": string | null,"revoked_at": string | null,"role": "owner"|"manager"|"lead"|"viewer"|"display","user_id": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "can_edit_load_factors"?: boolean,"can_manage_staff"?: boolean,"created_at"?: string,"id"?: string,"notify_machine_down": boolean,"org_id": string,"plant_id"?: string | null,"revoked_at"?: string | null,"role": "owner"|"manager"|"lead"|"viewer"|"display","user_id": string
+                    "can_edit_load_factors"?: boolean,"can_enter_load_out"?: boolean,"can_manage_staff"?: boolean,"created_at"?: string,"id"?: string,"notify_machine_down": boolean,"org_id": string,"plant_id"?: string | null,"revoked_at"?: string | null,"role": "owner"|"manager"|"lead"|"viewer"|"display","user_id": string
                   }
                   Update: {
-                    "can_edit_load_factors"?: boolean,"can_manage_staff"?: boolean,"created_at"?: string,"id"?: string,"notify_machine_down"?: boolean,"org_id"?: string,"plant_id"?: string | null,"revoked_at"?: string | null,"role"?: "owner"|"manager"|"lead"|"viewer"|"display","user_id"?: string
+                    "can_edit_load_factors"?: boolean,"can_enter_load_out"?: boolean,"can_manage_staff"?: boolean,"created_at"?: string,"id"?: string,"notify_machine_down"?: boolean,"org_id"?: string,"plant_id"?: string | null,"revoked_at"?: string | null,"role"?: "owner"|"manager"|"lead"|"viewer"|"display","user_id"?: string
                   }
                   Relationships: [
                     {
@@ -673,6 +705,52 @@ isOneToOne: false
 isOneToOne: false
       referencedRelation: "wash_groups"
       referencedColumns: ["id","plant_id"]
+    }
+                  ]
+                },"route_load_events": {
+                  Row: {
+                    "client_id": string,"created_at": string,"entered_by": string | null,"id": string,"load_date": string,"loaded": boolean,"occurred_at": string,"org_id": string,"plant_id": string,"route_id": string,"seq": number
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "client_id": string,"created_at"?: string,"entered_by"?: string | null,"id"?: string,"load_date": string,"loaded": boolean,"occurred_at"?: string,"org_id": string,"plant_id": string,"route_id": string,"seq"?: never
+                  }
+                  Update: {
+                    "client_id"?: string,"created_at"?: string,"entered_by"?: string | null,"id"?: string,"load_date"?: string,"loaded"?: boolean,"occurred_at"?: string,"org_id"?: string,"plant_id"?: string,"route_id"?: string,"seq"?: never
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "route_load_events_plant_id_org_id_fkey"
+      columns: ["plant_id","org_id"]
+isOneToOne: false
+      referencedRelation: "plants"
+      referencedColumns: ["id","org_id"]
+    },{
+      foreignKeyName: "route_load_events_route_id_plant_id_fkey"
+      columns: ["route_id","plant_id"]
+isOneToOne: false
+      referencedRelation: "routes"
+      referencedColumns: ["id","plant_id"]
+    }
+                  ]
+                },"routes": {
+                  Row: {
+                    "active": boolean,"created_at": string,"days_of_week": (number)[],"id": string,"load_time": string,"name": string,"org_id": string,"plant_id": string,"sort_order": number,"updated_at": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "active"?: boolean,"created_at"?: string,"days_of_week": (number)[],"id"?: string,"load_time": string,"name": string,"org_id": string,"plant_id": string,"sort_order"?: number,"updated_at"?: string
+                  }
+                  Update: {
+                    "active"?: boolean,"created_at"?: string,"days_of_week"?: (number)[],"id"?: string,"load_time"?: string,"name"?: string,"org_id"?: string,"plant_id"?: string,"sort_order"?: number,"updated_at"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "routes_plant_id_org_id_fkey"
+      columns: ["plant_id","org_id"]
+isOneToOne: false
+      referencedRelation: "plants"
+      referencedColumns: ["id","org_id"]
     }
                   ]
                 },"shift_crew_hours": {
@@ -1223,6 +1301,9 @@ isOneToOne: false
               "alert_created": string,"alert_id": string,"auth": string,"endpoint": string,"kind": string,"language": string,"org_id": string,"p256dh": string,"payload": Json,"plant_id": string,"plant_name": string,"subscription_id": string,"user_id": string
             }[]
                            },
+"copy_load_out_from":
+{ Args: { "p_from_date": string,"p_plant_id": string,"p_to_date": string }; Returns: number
+                           },
 "create_pairing_code":
 { Args: { "p_area_id": string,"p_device_name": string }; Returns: Database["public"]['CompositeTypes']["pairing_code_result"]
                           SetofOptions: {
@@ -1267,6 +1348,9 @@ isOneToOne: false
       } },
 "get_day_report":
 { Args: { "p_plant_id": string,"p_production_date": string }; Returns: Json
+                           },
+"get_load_out_board":
+{ Args: { "p_load_date"?: string,"p_plant_id": string }; Returns: Json
                            },
 "get_machine_status":
 { Args: { "p_plant_id": string }; Returns: {
@@ -1337,6 +1421,14 @@ isOneToOne: false
 "mark_push_alert_delivered":
 { Args: { "p_alert_id": string,"p_recipients": (string)[] }; Returns: boolean
                            },
+"mark_route_loaded":
+{ Args: { "p_client_id": string,"p_load_date": string,"p_loaded"?: boolean,"p_route_id": string }; Returns: Database["public"]['CompositeTypes']["route_load_result"]
+                          SetofOptions: {
+        from: "*"
+        to: "route_load_result"
+        isOneToOne: true
+        isSetofReturn: false
+      } },
 "record_finished_goods":
 { Args: { "p_area_id"?: string,"p_client_id": string,"p_item_type_id": string,"p_loose_pieces": number,"p_note"?: string,"p_occurred_at"?: string,"p_pack_size_used"?: number,"p_packs": number,"p_queue_item_id"?: string,"p_shift_choice"?: string,"p_staff_session_id": string,"p_station_id"?: string }; Returns: Database["public"]['CompositeTypes']["finished_goods_result"]
                           SetofOptions: {
@@ -1408,6 +1500,7 @@ isOneToOne: false
 "set_alert_recipient":
 { Args: { "p_membership_id": string,"p_notify": boolean }; Returns: {
               "can_edit_load_factors": boolean,
+"can_enter_load_out": boolean,
 "can_manage_staff": boolean,
 "created_at": string,
 "id": string,
@@ -1421,6 +1514,25 @@ isOneToOne: false
                           SetofOptions: {
         from: "*"
         to: "memberships"
+        isOneToOne: true
+        isSetofReturn: false
+      } },
+"set_load_out_line":
+{ Args: { "p_item_type_id"?: string,"p_load_date": string,"p_plant_id": string,"p_qty": number,"p_route_id": string,"p_special_text"?: string }; Returns: {
+              "created_at": string,
+"id": string,
+"item_type_id": string | null,
+"load_date": string,
+"org_id": string,
+"plant_id": string,
+"qty": number,
+"route_id": string,
+"special_text": string | null,
+"updated_at": string
+            }
+                          SetofOptions: {
+        from: "*"
+        to: "load_out_lines"
         isOneToOne: true
         isSetofReturn: false
       } },
@@ -1565,6 +1677,8 @@ isOneToOne: false
                         "event_id": string | null,"machine_id": string | null,"status": "down"|"up" | null,"reason": string | null,"since": string | null,"changed": boolean | null,"reason_code": string | null
                       },"pairing_code_result": {
                         "code": string | null,"expires_at": string | null
+                      },"route_load_result": {
+                        "event_id": string | null,"route_id": string | null,"load_date": string | null,"loaded": boolean | null,"since": string | null,"changed": boolean | null
                       },"staff_session_result": {
                         "staff_session_id": string | null,"error": string | null,"locked_until": string | null,"expires_at": string | null
                       },"washer_load_result": {
