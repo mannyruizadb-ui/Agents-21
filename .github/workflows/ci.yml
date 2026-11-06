@@ -32,6 +32,18 @@ jobs:
           VITE_SUPABASE_URL: http://127.0.0.1:54321
           VITE_SUPABASE_PUBLISHABLE_KEY: ci-placeholder
 
+  edge-functions:
+    name: Edge Function tests (Deno)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.5.6
+      - name: send-alerts tests
+        working-directory: supabase/functions/send-alerts
+        run: deno test --allow-env --allow-net --allow-read
+
   database:
     name: Database (migrations + pgTAP)
     runs-on: ubuntu-latest

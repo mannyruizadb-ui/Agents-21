@@ -28,10 +28,17 @@ function readPayload(event) {
 }
 
 /** Only same-site paths are opened from a notification. */
+// Same-site paths only. Resolve first and compare origins, so tricks like "/\evil.com" (which
+// URL parsing turns into https://evil.com/) fall back to the default page.
 function safePath(url) {
-  return typeof url === 'string' && url.startsWith('/') && !url.startsWith('//')
-    ? url
-    : DEFAULT_URL;
+  if (typeof url !== 'string' || !url.startsWith('/')) return DEFAULT_URL;
+  try {
+    const resolved = new URL(url, self.location.origin);
+    if (resolved.origin !== self.location.origin) return DEFAULT_URL;
+    return resolved.pathname + resolved.search + resolved.hash;
+  } catch {
+    return DEFAULT_URL;
+  }
 }
 
 self.addEventListener('push', (event) => {

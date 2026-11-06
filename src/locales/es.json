@@ -277,7 +277,7 @@
     "reasons": {
       "water_pump": "Bomba de agua",
       "soap_dispenser": "Dosificador de jabón",
-      "wont_start": "No empieza",
+      "wont_start": "No arranca",
       "leaking": "Gotea",
       "other": "Otro"
     },
