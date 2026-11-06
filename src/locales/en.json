@@ -563,17 +563,28 @@
     "onlyOnDuty": "Only the manager on duty or an owner can mark it loaded.",
     "onlyOnDutyNotice": "You can see the load-out. Only the manager on duty (by the shift schedule) or an owner marks routes loaded.",
     "allLoaded": "All routes loaded.",
-    "nextTruck": "Next truck: {{route}} at {{time}}, {{when}}",
-    "inMinutes_one": "in {{count}} minute",
-    "inMinutes_other": "in {{count}} minutes",
-    "inHours": "in {{h}} h {{m}} min",
-    "late_one": "{{route}} is {{count}} minute late",
-    "late_other": "{{route}} is {{count}} minutes late",
     "totals": "Tonight's totals",
     "errors": {
       "qty": "Type a whole number from 0 to 100,000.",
       "special": "Type the special item (up to 80 characters)."
-    }
+    },
+    "minutes_one": "{{count}} min",
+    "minutes_other": "{{count}} min",
+    "hoursMin": "{{h}} h {{m}} min",
+    "pill": {
+      "loaded": "Loaded",
+      "late": "Late {{when}}",
+      "in": "In {{when}}"
+    },
+    "showItems_one": "Show {{count}} item",
+    "showItems_other": "Show {{count}} items",
+    "loadedCount": "{{done}}/{{total}} loaded",
+    "progress": "{{done}} of {{total}} routes loaded",
+    "nextLabel": "Next truck",
+    "truckAt": "Truck at {{time}}",
+    "lateWord": "late",
+    "leftWord": "to go",
+    "routesTitle": "Routes"
   },
   "tasks": {
     "title": "Tasks",

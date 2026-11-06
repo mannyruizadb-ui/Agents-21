@@ -55,41 +55,190 @@
   border-top: 1px solid var(--c-seam);
   padding-top: 0.5rem;
 }
+.lo-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--sp-sm);
+}
+.lo-count {
+  color: var(--c-info-text);
+  font-size: var(--fs-lg);
+  white-space: nowrap;
+}
 .lo-date {
-  font-size: 1.25rem;
-  font-weight: 700;
+  font-size: var(--fs-lg);
+  font-weight: 600;
+  color: var(--c-text-muted);
   margin: 0 0 0.25rem;
 }
-.lo-countdown {
+
+/* Next truck hero: info border; amber when ≤ 30 min; red + stripes when late; blue when all loaded. */
+.lo-next {
+  margin: var(--sp-md) 0;
+  padding: var(--sp-md);
+  border: 3px solid var(--c-info);
+  border-radius: var(--radius-lg);
+  background-color: var(--c-surface);
+  display: grid;
+  gap: var(--sp-sm);
+}
+.lo-next.soon {
+  border-color: var(--c-warn);
+}
+.lo-next.late {
+  border-color: var(--c-danger);
+  background-color: var(--c-danger-container);
+}
+.lo-next.all-done {
+  background-color: var(--c-info-container);
+}
+.lo-next-main {
+  display: flex;
+  gap: var(--sp-md);
+  align-items: center;
+}
+.lo-next-icon {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 3.5rem;
+  height: 3.5rem;
+  border-radius: var(--radius);
+  background: var(--c-info-container);
+  color: var(--c-info-text);
+}
+.lo-next.soon .lo-next-icon {
+  background: var(--c-warn-container);
+  color: var(--c-warn);
+}
+.lo-next.late .lo-next-icon {
+  background: var(--c-surface-lowest);
+  color: var(--c-danger-text);
+}
+.lo-next-label {
+  margin: 0;
+  color: var(--c-text-muted);
+  font-weight: 600;
+}
+.lo-next h2 {
+  margin: 0;
+  font-size: var(--fs-h-lg);
+  line-height: 1.1;
+}
+.lo-next-at {
+  margin: 0;
+  font-size: var(--fs-lg);
+}
+.lo-next-countdown {
+  margin: 0;
+  display: flex;
+  align-items: baseline;
+  gap: var(--sp-sm);
+  flex-wrap: wrap;
+}
+.lo-next-num {
+  font-size: var(--fs-timer-lg);
+  font-weight: 700;
+  color: var(--c-info-text);
+  line-height: 1;
+}
+.lo-next.soon .lo-next-num {
+  color: var(--c-warn);
+}
+.lo-next.late .lo-next-num {
+  color: var(--c-danger-text);
+}
+.lo-next-unit {
+  font-size: var(--fs-lg);
+  font-weight: 600;
+}
+.lo-next-all {
+  margin: 0;
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  font-size: 1.375rem;
-  font-weight: 800;
-  border: 3px solid var(--c-info);
-  border-radius: 10px;
-  padding: 0.5rem 0.75rem;
+  gap: var(--sp-sm);
+  font-size: var(--fs-h-md);
+  color: var(--c-info-text);
 }
-.lo-countdown.late {
-  border-color: var(--c-danger);
-  color: var(--c-danger-text);
-  background: var(--c-danger-container);
+.lo-progress p {
+  margin: 0.25rem 0 0;
+  color: var(--c-text-muted);
 }
+.lo-progress-bar {
+  height: 10px;
+  border-radius: 5px;
+  background: var(--c-surface-highest);
+  overflow: hidden;
+}
+.lo-progress-bar span {
+  display: block;
+  height: 100%;
+  background: var(--c-info);
+}
+
+/* Totals: compact tiles */
+.form-page .lo-totals {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 var(--sp-md);
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 10rem), 1fr));
+  gap: var(--sp-sm);
+}
+.form-page .lo-totals li {
+  display: grid;
+  gap: 0.25rem;
+  padding: var(--sp-sm) var(--sp-md);
+  border: 1px solid var(--c-seam);
+  border-radius: var(--radius);
+  background: var(--c-surface);
+}
+.lo-total-name {
+  color: var(--c-text-muted);
+  font-size: var(--fs-sm);
+  font-weight: 600;
+}
+.form-page .lo-totals strong {
+  font-size: var(--fs-lg);
+}
+
+/* Route cards */
 .form-page .lo-board-card {
-  border: 3px solid var(--c-outline);
-  border-radius: 10px;
-  padding: 0.75rem;
+  border: 2px solid var(--c-outline);
+  border-radius: var(--radius-lg);
+  padding: var(--sp-md);
+  background: var(--c-surface);
+}
+.form-page .lo-board-card.next {
+  border: 3px solid var(--c-warn);
+}
+.form-page .lo-board-card.late {
+  border: 3px dashed var(--c-danger);
 }
 .form-page .lo-board-card.loaded {
   border-color: var(--c-info);
-  background: var(--c-info-container);
+  background: var(--c-surface-low);
+}
+.lo-card-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--sp-sm);
 }
 .lo-board-card h2 {
-  margin: 0 0 0.5rem;
-  font-size: 1.375rem;
+  margin: 0;
+  font-size: var(--fs-h-md);
 }
-.lo-time {
-  font-variant-numeric: tabular-nums;
+.lo-time-chip {
+  padding: 0.1em 0.5em;
+  border: 1px solid var(--c-outline);
+  border-radius: var(--radius);
+  font-size: var(--fs-lg);
+  white-space: nowrap;
+}
+.lo-card-pill {
+  margin: 0.4rem 0 0.6rem;
 }
 .form-page .lo-lines {
   list-style: none;
@@ -99,17 +248,38 @@
 .form-page .lo-lines li {
   display: flex;
   justify-content: space-between;
+  align-items: baseline;
   gap: 0.75rem;
-  padding: 0.25rem 0;
+  padding: 0.4rem 0;
   border-bottom: 1px solid var(--c-seam);
-  font-size: 1.125rem;
+  font-size: var(--fs-lg);
+}
+.form-page .lo-lines li.special span::before {
+  content: '★ ' / '';
+  color: var(--c-warn);
+}
+.form-page .lo-lines strong {
+  white-space: nowrap;
 }
 .form-page .lo-loaded-button {
   width: 100%;
   min-height: 72px;
   font-size: 1.5rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  color: var(--c-info-text);
   background: var(--c-info-container);
-  border-color: var(--c-info);
+  border: 2px solid var(--c-info);
+}
+.lo-loaded-items summary {
+  min-height: 48px;
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  color: var(--c-info-text);
+  font-weight: 600;
 }
 .lo-done {
   display: flex;
@@ -120,6 +290,6 @@
 }
 .lo-done p {
   margin: 0;
-  font-size: 1.125rem;
+  font-size: var(--fs-lg);
   color: var(--c-info-text);
 }

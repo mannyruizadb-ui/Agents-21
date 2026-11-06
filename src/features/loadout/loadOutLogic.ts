@@ -144,3 +144,24 @@ export function parseQty(input: string): number | null {
 export function localRouteName(name: string, lang: string): string {
   return localName('route', name, lang);
 }
+
+/** Minutes from now until a route's truck time on the load date (negative = late). */
+export function minutesUntil(
+  loadDate: string,
+  loadTime: string,
+  nowMs: number,
+  timeZone: string,
+): number {
+  return Math.round((zonedToEpoch(loadDate, loadTime, timeZone) - nowMs) / 60000);
+}
+
+/** A plant wall-clock time ("03:30" / "03:30:00") as "3:30 AM" / "3:30 a. m."; the raw text if unreadable. */
+export function wallClock(hhmm: string, lang: string): string {
+  const m = /^(\d{2}):(\d{2})/.exec(hhmm);
+  if (!m || Number(m[1]) > 23 || Number(m[2]) > 59) return hhmm;
+  return new Intl.DateTimeFormat(lang, {
+    hour: 'numeric',
+    minute: '2-digit',
+    timeZone: 'UTC',
+  }).format(new Date(Date.UTC(2000, 0, 1, Number(m[1]), Number(m[2]))));
+}

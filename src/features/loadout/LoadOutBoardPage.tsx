@@ -7,12 +7,12 @@ import { supabase } from '../../lib/supabase';
 import { useLiveRefetch } from '../../lib/useLiveRefetch';
 import { useNow } from '../../lib/useNow';
 import { DataAge } from '../washroom/DataAge';
-import { IconReady, IconWarning } from '../washroom/Icons';
+import { IconReady, IconTruck, IconWarning } from '../washroom/Icons';
 import { useLocalizedName } from '../washroom/localizedName';
 import { errorMessageKey, unwrap } from '../washroom/rpcError';
 import { estimateServerNow } from '../washroom/washerTime';
 import { useAreas } from '../washroom/washroomData';
-import { localRouteName, nextTruck } from './loadOutLogic';
+import { localRouteName, minutesUntil, nextTruck, wallClock } from './loadOutLogic';
 import {
   useLoadOutBoard,
   useLoadOutPermissions,
@@ -24,9 +24,12 @@ import {
 import '../../lib/forms.css';
 import './loadout.css';
 
-// Load-out board (owner 2026-11-06): what each truck takes, in load-time order, for the manager on duty
-// (03:30–05:30). The owner or the manager on duty taps "Loaded ✓" per route (Undo fixes a mistake);
-// everyone else reads it. Live: refetch on focus/online/visibility and every 30 s; data age shown.
+// Load-out board (owner 2026-11-06; redesign 2026-11-06): what each truck takes, in load-time order,
+// for the manager on duty (03:30–05:30). A "next truck" countdown on top, tonight's totals, then one
+// card per route with its own time left. The owner or the manager on duty taps "Loaded ✓" per route
+// (one tap per route, owner: "must be simple"; Undo fixes a mistake); everyone else reads it.
+// Loaded = blue (done), soon = amber, late = red + icon + words. No bays, drivers or checklists.
+// Live: refetch on focus/online/visibility and every 30 s; data age shown.
 
 function useQtyLabel() {
   const { t } = useTranslation();
@@ -49,10 +52,47 @@ function useQtyLabel() {
   };
 }
 
+/** "18 min" / "1 h 48 min" (no sign). */
+function useDuration() {
+  const { t } = useTranslation();
+  return (mins: number) => {
+    const m = Math.abs(mins);
+    return m >= 60
+      ? t('loadOut.hoursMin', { h: Math.floor(m / 60), m: m % 60 })
+      : t('loadOut.minutes', { count: m });
+  };
+}
+
+const SOON_MIN = 30;
+
+function TimePill({ loaded, minutes }: { loaded: boolean; minutes: number }) {
+  const { t } = useTranslation();
+  const dur = useDuration();
+  if (loaded)
+    return (
+      <span className="status-pill info">
+        <IconReady /> {t('loadOut.pill.loaded')}
+      </span>
+    );
+  if (minutes < 0)
+    return (
+      <span className="status-pill danger">
+        <IconWarning /> {t('loadOut.pill.late', { when: dur(minutes) })}
+      </span>
+    );
+  return (
+    <span className={minutes <= SOON_MIN ? 'status-pill warn' : 'status-pill idle'}>
+      {t('loadOut.pill.in', { when: dur(minutes) })}
+    </span>
+  );
+}
+
 function RouteCard({
   route,
   loadDate,
   timeZone,
+  minutes,
+  isNext,
   canMark,
   onStatus,
 }: {
@@ -60,12 +100,15 @@ function RouteCard({
   loadDate: string;
   /** Plant time zone: "loaded at" reads in plant time, like the truck times. */
   timeZone: string;
+  minutes: number;
+  isNext: boolean;
   canMark: boolean;
   onStatus: (ok: boolean, text: string) => void;
 }) {
   const { t, i18n } = useTranslation();
   const qc = useQueryClient();
   const label = useQtyLabel();
+  const routeName = localRouteName(route.name, i18n.language);
   // One client_id per attempt, reused on retry until it succeeds (idempotent on the server).
   const clientId = useRef<string | null>(null);
   const mark = useMutation({
@@ -85,8 +128,8 @@ function RouteCard({
       onStatus(
         true,
         loaded
-          ? t('loadOut.markedLoaded', { route: localRouteName(route.name, i18n.language) })
-          : t('loadOut.undone', { route: localRouteName(route.name, i18n.language) }),
+          ? t('loadOut.markedLoaded', { route: routeName })
+          : t('loadOut.undone', { route: routeName }),
       );
     },
     onError: (e) => onStatus(false, t(errorMessageKey(e))),
@@ -97,61 +140,82 @@ function RouteCard({
       new Date(iso),
     );
   const headingId = `route-${route.route_id}`;
+  const classes = ['lo-board-card'];
+  if (route.loaded) classes.push('loaded');
+  else if (minutes < 0) classes.push('late');
+  else if (isNext) classes.push('next');
+
+  const lines =
+    route.lines.length === 0 ? (
+      <p className="hint">{t('loadOut.nothingForRoute')}</p>
+    ) : (
+      <ul className="lo-lines">
+        {route.lines.map((l) => {
+          const x = label(l);
+          return (
+            <li key={l.line_id} className={l.special_text ? 'special' : undefined}>
+              <span>{x.name}</span>
+              <strong className="mono">{x.qty}</strong>
+            </li>
+          );
+        })}
+      </ul>
+    );
 
   return (
-    <li
-      className={route.loaded ? 'lo-board-card loaded' : 'lo-board-card'}
-      aria-labelledby={headingId}
-    >
-      <h2 id={headingId}>
-        <span className="lo-time">{route.load_time.slice(0, 5)}</span>{' '}
-        {localRouteName(route.name, i18n.language)}
-      </h2>
-      {route.lines.length === 0 ? (
-        <p className="hint">{t('loadOut.nothingForRoute')}</p>
-      ) : (
-        <ul className="lo-lines">
-          {route.lines.map((l) => {
-            const x = label(l);
-            return (
-              <li key={l.line_id}>
-                <span>{x.name}</span>
-                <strong>{x.qty}</strong>
-              </li>
-            );
-          })}
-        </ul>
-      )}
+    <li className={classes.join(' ')} aria-labelledby={headingId}>
+      <div className="lo-card-head">
+        <h2 id={headingId} className="head">
+          {routeName}
+        </h2>
+        <span className="lo-time-chip mono">{wallClock(route.load_time, i18n.language)}</span>
+      </div>
+      <p className="lo-card-pill">
+        <TimePill loaded={route.loaded} minutes={minutes} />
+      </p>
       {route.loaded ? (
-        <div className="lo-done">
-          <p>
-            <IconReady />{' '}
-            <strong>
-              {t('loadOut.loadedAt', { time: route.loaded_since ? time(route.loaded_since) : '' })}
-            </strong>
-          </p>
-          {canMark && (
+        <>
+          <details className="lo-loaded-items">
+            <summary>{t('loadOut.showItems', { count: route.lines.length })}</summary>
+            {lines}
+          </details>
+          <div className="lo-done">
+            <p>
+              <IconReady />{' '}
+              <strong>
+                {t('loadOut.loadedAt', {
+                  time: route.loaded_since ? time(route.loaded_since) : '',
+                })}
+              </strong>
+            </p>
+            {canMark && (
+              <button
+                type="button"
+                className="secondary"
+                disabled={mark.isPending}
+                onClick={() => mark.mutate(false)}
+              >
+                {t('loadOut.undo')}
+              </button>
+            )}
+          </div>
+        </>
+      ) : (
+        <>
+          {lines}
+          {canMark ? (
             <button
               type="button"
-              className="secondary"
+              className="lo-loaded-button"
               disabled={mark.isPending}
-              onClick={() => mark.mutate(false)}
+              onClick={() => mark.mutate(true)}
             >
-              {t('loadOut.undo')}
+              <IconTruck /> {t('loadOut.loadedButton')}
             </button>
+          ) : (
+            <p className="hint">{t('loadOut.onlyOnDuty')}</p>
           )}
-        </div>
-      ) : canMark ? (
-        <button
-          type="button"
-          className="lo-loaded-button"
-          disabled={mark.isPending}
-          onClick={() => mark.mutate(true)}
-        >
-          {t('loadOut.loadedButton')}
-        </button>
-      ) : (
-        <p className="hint">{t('loadOut.onlyOnDuty')}</p>
+        </>
       )}
     </li>
   );
@@ -168,12 +232,15 @@ export function LoadOutBoardPage() {
   const board = useLoadOutBoard(plantId);
   useLiveRefetch(board.refetch, !!plantId);
   const label = useQtyLabel();
+  const dur = useDuration();
   const [status, setStatus] = useState<{ ok: boolean; text: string } | null>(null);
   const tz = plant.data?.timezone ?? 'America/New_York';
   const data = board.data;
   const serverNow = estimateServerNow(data?.server_time, board.dataUpdatedAt, now);
   const next = data ? nextTruck(data.routes, data.load_date, serverNow, tz) : null;
   const canMark = perms.data?.canMarkLoaded ?? false;
+  const total = data?.routes.length ?? 0;
+  const done = data?.routes.filter((r) => r.loaded).length ?? 0;
   const fmtDate = (d: string) =>
     new Intl.DateTimeFormat(i18n.language, {
       weekday: 'long',
@@ -182,12 +249,23 @@ export function LoadOutBoardPage() {
       timeZone: 'UTC',
     }).format(new Date(`${d}T12:00:00Z`));
 
+  const heroClass =
+    next === null
+      ? 'lo-next all-done'
+      : next.minutes < 0
+        ? 'lo-next late stripes-danger'
+        : next.minutes <= SOON_MIN
+          ? 'lo-next soon'
+          : 'lo-next';
+
   return (
     <main className="form-page lo-page">
-      <p>
-        <Link to="/control">{t('common.back')}</Link>
-      </p>
-      <h1>{t('loadOut.boardTitle')}</h1>
+      <div className="lo-head">
+        <h1>{t('loadOut.boardTitle')}</h1>
+        {total > 0 && (
+          <span className="lo-count head">{t('loadOut.loadedCount', { done, total })}</span>
+        )}
+      </div>
       {data && <p className="lo-date">{fmtDate(data.load_date)}</p>}
       <DataAge
         updatedAt={board.dataUpdatedAt}
@@ -198,43 +276,62 @@ export function LoadOutBoardPage() {
       {board.isPending && <p role="status">{t('common.loading')}</p>}
       {board.isError && !data && <p className="error">{t(errorMessageKey(board.error))}</p>}
 
-      {data && data.routes.length > 0 && (
-        <p className={next && next.minutes < 0 ? 'lo-countdown late' : 'lo-countdown'}>
+      {data && total > 0 && (
+        <section className={heroClass} aria-labelledby="lo-next-title">
           {next === null ? (
-            <>
-              <IconReady /> {t('loadOut.allLoaded')}
-            </>
-          ) : next.minutes < 0 ? (
-            <>
-              <IconWarning />{' '}
-              {t('loadOut.late', {
-                route: localRouteName(next.route.name, i18n.language),
-                count: -next.minutes,
-              })}
-            </>
+            <p id="lo-next-title" className="lo-next-all head">
+              <IconReady size="1.4em" /> {t('loadOut.allLoaded')}
+            </p>
           ) : (
-            t('loadOut.nextTruck', {
-              route: localRouteName(next.route.name, i18n.language),
-              time: next.route.load_time.slice(0, 5),
-              when:
-                next.minutes >= 60
-                  ? t('loadOut.inHours', { h: Math.floor(next.minutes / 60), m: next.minutes % 60 })
-                  : t('loadOut.inMinutes', { count: next.minutes }),
-            })
+            <>
+              <div className="lo-next-main">
+                <span className="lo-next-icon" aria-hidden="true">
+                  {next.minutes < 0 ? <IconWarning size="1.6em" /> : <IconTruck size="1.6em" />}
+                </span>
+                <div>
+                  <p className="lo-next-label">{t('loadOut.nextLabel')}</p>
+                  <h2 id="lo-next-title" className="head">
+                    {localRouteName(next.route.name, i18n.language)}
+                  </h2>
+                  <p className="lo-next-at">
+                    {t('loadOut.truckAt', { time: wallClock(next.route.load_time, i18n.language) })}
+                  </p>
+                </div>
+              </div>
+              <p className="lo-next-countdown">
+                <span className="mono lo-next-num">{dur(next.minutes)}</span>
+                <span className="lo-next-unit">
+                  {next.minutes < 0 ? t('loadOut.lateWord') : t('loadOut.leftWord')}
+                </span>
+              </p>
+            </>
           )}
-        </p>
+          <div className="lo-progress">
+            <div
+              className="lo-progress-bar"
+              role="progressbar"
+              aria-valuemin={0}
+              aria-valuemax={total}
+              aria-valuenow={done}
+              aria-label={t('loadOut.progress', { done, total })}
+            >
+              <span style={{ width: `${total ? (done / total) * 100 : 0}%` }} />
+            </div>
+            <p>{t('loadOut.progress', { done, total })}</p>
+          </div>
+        </section>
       )}
 
       {data && data.totals.length > 0 && (
-        <section className="card" aria-labelledby="lo-totals">
+        <section aria-labelledby="lo-totals">
           <h2 id="lo-totals">{t('loadOut.totals')}</h2>
-          <ul className="lo-lines">
+          <ul className="lo-totals">
             {data.totals.map((x) => {
               const v = label(x);
               return (
                 <li key={x.item_type_id}>
-                  <span>{v.name}</span>
-                  <strong>{v.qty}</strong>
+                  <span className="lo-total-name">{v.name}</span>
+                  <strong className="mono">{v.qty}</strong>
                 </li>
               );
             })}
@@ -246,7 +343,8 @@ export function LoadOutBoardPage() {
         {status && <p className={status.ok ? 'notice' : 'error'}>{status.text}</p>}
       </div>
       {perms.isSuccess && !canMark && <p className="notice">{t('loadOut.onlyOnDutyNotice')}</p>}
-      {data && data.routes.length === 0 && <p className="notice">{t('loadOut.noRoutes')}</p>}
+      {data && total === 0 && <p className="notice">{t('loadOut.noRoutes')}</p>}
+      {data && total > 0 && <h2>{t('loadOut.routesTitle')}</h2>}
       {data && (
         <ol className="lo-board">
           {data.routes.map((r) => (
@@ -255,6 +353,8 @@ export function LoadOutBoardPage() {
               route={r}
               loadDate={data.load_date}
               timeZone={tz}
+              minutes={minutesUntil(data.load_date, r.load_time, serverNow, tz)}
+              isNext={next?.route.route_id === r.route_id}
               canMark={canMark}
               onStatus={(ok, text) => setStatus({ ok, text })}
             />
