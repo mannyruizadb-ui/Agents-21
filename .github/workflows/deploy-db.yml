@@ -51,10 +51,27 @@ jobs:
       - name: Deploy Edge Functions
         if: ${{ inputs.apply && inputs.deploy_functions }}
         run: |
+          set -euo pipefail
           npx supabase secrets set ALLOWED_ORIGINS=https://adb-plantboard.netlify.app --project-ref "$PROJECT_REF" </dev/null
+          # SIGN_IN_PEPPER (2026-11-07, security review H1): the HMAC key that turns every typed password
+          # into what GoTrue stores (supabase/functions/_shared/pepper.ts). Used by sign-in AND
+          # manage-users (function secrets are project-wide, so one value serves both). Generated here
+          # ONCE when missing, masked, never printed, never rotated automatically: a new pepper makes
+          # every stored password wrong (everyone would need a reset by the owner). Both functions refuse
+          # to work without it (fail closed).
+          names=$(npx supabase secrets list --project-ref "$PROJECT_REF" -o json </dev/null | jq -r '.[].name')
+          if ! grep -qx SIGN_IN_PEPPER <<<"$names"; then
+            pepper=$(openssl rand -hex 32)
+            echo "::add-mask::$pepper"
+            npx supabase secrets set "SIGN_IN_PEPPER=$pepper" --project-ref "$PROJECT_REF" </dev/null >/dev/null
+            echo "SIGN_IN_PEPPER created (kept from now on). Existing accounts are upgraded at their next sign-in." >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "SIGN_IN_PEPPER already set (kept)." >> "$GITHUB_STEP_SUMMARY"
+          fi
           npx supabase functions deploy manage-users --project-ref "$PROJECT_REF" </dev/null
-          # sign-in is public (the caller has no session yet): no gateway JWT check. It reads only
-          # auto-injected variables and ALLOWED_ORIGINS (set above).
+          # sign-in is public (the caller has no session yet): no gateway JWT check. It reads the
+          # auto-injected variables, ALLOWED_ORIGINS and SIGN_IN_PEPPER (set above), and the optional
+          # SIGN_IN_TRUSTED_IP_HEADER / SIGN_IN_HEADER_DIAGNOSTIC / SIGN_IN_LEGACY_UPGRADE (set by hand).
           npx supabase functions deploy sign-in --no-verify-jwt --project-ref "$PROJECT_REF" </dev/null
 
       # send-alerts (machine-down Web Push). Secrets are generated here only when missing, are never

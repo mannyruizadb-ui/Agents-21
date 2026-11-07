@@ -395,8 +395,9 @@ verify_jwt = true
 
 [functions.sign-in]
 # Public: the caller is not signed in yet. Browser-called from the site's own origins (CORS allow-list);
-# checks the sign-in lockout (sign_in_lockouts, service role) before GoTrue's password grant. Deploy
-# with --no-verify-jwt.
+# checks the sign-in lockout (sign_in_lockouts, service role) before GoTrue's password grant, which only
+# ever gets the PEPPERED password (secret SIGN_IN_PEPPER, shared with manage-users). Deploy with
+# --no-verify-jwt.
 verify_jwt = false
 
 [functions.send-alerts]

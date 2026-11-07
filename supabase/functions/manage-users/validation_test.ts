@@ -1,5 +1,10 @@
 import { assert, assertEquals, assertMatch, assertNotEquals } from '@std/assert';
-import { isValidUsername, toLoginEmail, usernameFromEmail } from '../_shared/loginId.ts';
+import {
+  isValidEmail,
+  isValidUsername,
+  toLoginEmail,
+  usernameFromEmail,
+} from '../_shared/loginId.ts';
 import { corsHeaders, parseAllowedOrigins } from '../_shared/cors.ts';
 import { generateTempPassword, parseRequest, TEMP_PASSWORD_ALPHABET } from './validation.ts';
 
@@ -79,19 +84,47 @@ Deno.test('target actions need plant_id and user_id', () => {
 });
 
 Deno.test('change_own_password: 10 chars min, 72 bytes max, reasons reported', () => {
-  assert(parseRequest({ action: 'change_own_password', new_password: 'a'.repeat(10) }).ok);
-  assert(parseRequest({ action: 'change_own_password', new_password: 'a'.repeat(72) }).ok);
-  const short = parseRequest({ action: 'change_own_password', new_password: 'a'.repeat(9) });
+  assert(
+    parseRequest({
+      action: 'change_own_password',
+      current_password: 'old-pass',
+      new_password: 'a'.repeat(10),
+    }).ok,
+  );
+  assert(
+    parseRequest({
+      action: 'change_own_password',
+      current_password: 'old-pass',
+      new_password: 'a'.repeat(72),
+    }).ok,
+  );
+  const short = parseRequest({
+    action: 'change_own_password',
+    current_password: 'old-pass',
+    new_password: 'a'.repeat(9),
+  });
   assert(!short.ok && short.reason === 'password_too_short');
-  const long = parseRequest({ action: 'change_own_password', new_password: 'a'.repeat(73) });
+  const long = parseRequest({
+    action: 'change_own_password',
+    current_password: 'old-pass',
+    new_password: 'a'.repeat(73),
+  });
   assert(!long.ok && long.reason === 'password_too_long');
   // 25 × 3-byte chars = 75 bytes: too long even though only 25 characters.
-  const multibyte = parseRequest({ action: 'change_own_password', new_password: '€'.repeat(25) });
+  const multibyte = parseRequest({
+    action: 'change_own_password',
+    current_password: 'old-pass',
+    new_password: '€'.repeat(25),
+  });
   assert(!multibyte.ok && multibyte.reason === 'password_too_long');
 });
 
 Deno.test('validation errors never echo values', () => {
-  const r = parseRequest({ action: 'change_own_password', new_password: 'secret' });
+  const r = parseRequest({
+    action: 'change_own_password',
+    current_password: 'old-pass',
+    new_password: 'secret',
+  });
   assert(!r.ok);
   assert(!JSON.stringify(r).includes('secret'));
 });
@@ -137,14 +170,36 @@ Deno.test('cors: only listed origins are echoed', () => {
 Deno.test(
   'change_own_password: 6 digits that are not a simple pattern are accepted at parse',
   () => {
-    assert(parseRequest({ action: 'change_own_password', new_password: '483920' }).ok);
-    const simple = parseRequest({ action: 'change_own_password', new_password: '123456' });
+    assert(
+      parseRequest({
+        action: 'change_own_password',
+        current_password: 'old-pass',
+        new_password: '483920',
+      }).ok,
+    );
+    const simple = parseRequest({
+      action: 'change_own_password',
+      current_password: 'old-pass',
+      new_password: '123456',
+    });
     assert(!simple.ok && simple.reason === 'password_too_simple');
-    const seven = parseRequest({ action: 'change_own_password', new_password: '4839201' });
+    const seven = parseRequest({
+      action: 'change_own_password',
+      current_password: 'old-pass',
+      new_password: '4839201',
+    });
     assert(!seven.ok && seven.reason === 'password_too_short');
-    const letters = parseRequest({ action: 'change_own_password', new_password: 'abcdef' });
+    const letters = parseRequest({
+      action: 'change_own_password',
+      current_password: 'old-pass',
+      new_password: 'abcdef',
+    });
     assert(!letters.ok && letters.reason === 'password_too_short');
-    const notString = parseRequest({ action: 'change_own_password', new_password: 483920 });
+    const notString = parseRequest({
+      action: 'change_own_password',
+      current_password: 'old-pass',
+      new_password: 483920,
+    });
     assert(!notString.ok && notString.reason === 'password_invalid');
   },
 );
@@ -176,3 +231,74 @@ Deno.test('create / reset_password: optional owner-chosen password, same rules',
     !parseRequest({ action: 'unlock', plant_id: PLANT, user_id: USER, password: '483920' }).ok,
   );
 });
+
+Deno.test(
+  'change_own_password: the current password is required (any old one; only its size is checked)',
+  () => {
+    const missing = parseRequest({ action: 'change_own_password', new_password: '483920' });
+    assert(!missing.ok);
+    if (!missing.ok) {
+      assertEquals(missing.fields, ['current_password']);
+      assertEquals(missing.reason, undefined, 'no password-rule reason for the current password');
+    }
+    // An old password that breaks today's rules is still accepted as the CURRENT one.
+    assert(
+      parseRequest({ action: 'change_own_password', current_password: '1', new_password: '483920' })
+        .ok,
+    );
+    for (const bad of ['', 'a'.repeat(73), 7]) {
+      const r = parseRequest({
+        action: 'change_own_password',
+        current_password: bad,
+        new_password: '483920',
+      });
+      assert(!r.ok);
+      if (!r.ok) assertEquals(r.fields, ['current_password']);
+    }
+    const echo = parseRequest({
+      action: 'change_own_password',
+      current_password: 'top-secret-1',
+      new_password: 'x',
+    });
+    assert(!JSON.stringify(echo).includes('top-secret-1'));
+  },
+);
+
+Deno.test(
+  'loginId (Edge copy): "@" logins must be strict ASCII emails (security review L4)',
+  () => {
+    for (const ok of [
+      'mannyruiz.adb@gmail.com',
+      'owner+plant@example.co',
+      'a@b.cd',
+      'maria@accounts.adbheadquarters.com',
+    ]) {
+      assert(isValidEmail(ok), ok);
+      assertEquals(toLoginEmail(` ${ok.toUpperCase()} `), ok);
+    }
+    for (const bad of [
+      'a@b',
+      '@example.com',
+      'owner@',
+      '.owner@example.com',
+      'owner.@example.com',
+      'ow..ner@example.com',
+      'owner@-example.com',
+      'owner@example-.com',
+      'owner@example..com',
+      'owner@example.c',
+      'owner@example.123',
+      'o wner@example.com',
+      'owner@exa mple.com',
+      '"owner"@example.com',
+      'owner@[127.0.0.1]',
+      'josé@example.com',
+      'owner@exämple.com',
+      'a@b@example.com',
+      `${'a'.repeat(65)}@example.com`,
+      `owner@${'a'.repeat(250)}.com`,
+    ]) {
+      assertEquals(toLoginEmail(bad), null, bad);
+    }
+  },
+);

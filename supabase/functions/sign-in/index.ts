@@ -1,24 +1,38 @@
-// sign-in: the app's username + password sign-in, with a lockout (owner-approved 2026-11-06).
+// sign-in: the app's username + password sign-in, with a lockout (owner-approved 2026-11-06) and a
+// password pepper (owner-approved 2026-11-07, security review H1).
 //
 // Public (verify_jwt = false: the caller is not signed in yet), browser-called from the site's own
 // origins only (CORS allow-list, as manage-users). One POST: {username, password}. The decision logic is
-// in logic.ts; this file wires in:
-//   * the lockout RPCs (sign_in_begin / sign_in_failed / sign_in_succeeded) with the SERVICE ROLE
-//     (they are granted to nobody else), and
-//   * GoTrue's password grant, called server-side with the publishable (anon) key.
+// in logic.ts and ../_shared/passwordCheck.ts; this file wires in:
+//   * the lockout RPCs (sign_in_begin / sign_in_failed / sign_in_succeeded) and sign_in_account_state
+//     with the SERVICE ROLE (they are granted to nobody else),
+//   * GoTrue's password grant, called server-side with the publishable (anon) key and the PEPPERED
+//     password (../_shared/pepper.ts), and the admin update that re-stores a pre-pepper password.
 // The response carries the session for supabase.auth.setSession, or {code, message[, retry_after_seconds]}.
 //
-// Limits: a login is locked for 15 minutes after 5 wrong passwords in 15 minutes; an IP after 30
-// attempts in 15 minutes. GoTrue's own /token endpoint stays reachable directly with the publishable
-// key (Supabase Pro has no password-verification hook), where only Supabase's per-IP rate limits apply.
+// Function secrets / env (names only; values never logged):
+//   SIGN_IN_PEPPER             required (≥ 32 chars). Missing → every request 503 (fail closed). Shared with
+//                              manage-users. Rotating it = every account needs a password reset.
+//   SIGN_IN_TRUSTED_IP_HEADER  optional; the header the platform sets with the caller's IP (logic.ts
+//                              clientIp). Unset (default) → no per-IP limit; the per-login lock applies.
+//   SIGN_IN_HEADER_DIAGNOSTIC  'on' → log once per instance WHICH IP headers arrive (names, never values).
+//   SIGN_IN_LEGACY_UPGRADE     'off' disables the one-time upgrade of pre-pepper passwords (default on).
+//   ALLOWED_ORIGINS, SUPABASE_URL, SUPABASE_ANON_KEY, SUPABASE_SERVICE_ROLE_KEY.
 //
-// Never logs usernames, passwords, tokens, IPs or bodies: only status codes.
+// Limits: a login is locked after 5 wrong passwords in 15 minutes, 15 min doubling for each new lock
+// within 24 h of the previous (capped at 24 h); an IP (only with a trusted header) after 30 attempts in
+// 15 minutes. GoTrue's own /token endpoint stays reachable directly with the publishable key, but it
+// only ever sees peppered passwords, so a direct guess is a guess at a 256-bit value.
+//
+// Never logs usernames, passwords, tokens, IPs, header values or bodies: only status codes.
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import { corsHeaders, parseAllowedOrigins } from '../_shared/cors.ts';
+import { pepperPassword, PASSWORD_VERSION, requirePepper } from '../_shared/pepper.ts';
 import {
   clientIp,
   type FailResult,
   type GateResult,
+  headerDiagnostic,
   MAX_BODY_BYTES,
   type Outcome,
   signIn,
@@ -46,7 +60,9 @@ function firstRow<T>(data: unknown): T {
   return row as T;
 }
 
-function deps(): SignInDeps {
+let diagnosed = false;
+
+function deps(pepper: string): SignInDeps {
   const url = env('SUPABASE_URL');
   const anonKey = env('SUPABASE_ANON_KEY');
   const service: SupabaseClient = createClient(url, env('SUPABASE_SERVICE_ROLE_KEY'), {
@@ -67,6 +83,21 @@ function deps(): SignInDeps {
       firstRow<FailResult>(await rpc('sign_in_failed', { p_login: login, p_ip: ip })),
     succeeded: async (login, ip) => {
       await rpc('sign_in_succeeded', { p_login: login, p_ip: ip });
+    },
+    legacyPassword: async (login) =>
+      firstRow<{ legacy_password: boolean }>(await rpc('sign_in_account_state', { p_login: login }))
+        .legacy_password === true,
+    legacyUpgrade: Deno.env.get('SIGN_IN_LEGACY_UPGRADE') !== 'off',
+    pepper: (login, typed) => pepperPassword(pepper, login, typed),
+    upgradePassword: async (userId, peppered, mustChange) => {
+      const { error } = await service.auth.admin.updateUserById(userId, {
+        password: peppered,
+        app_metadata: {
+          pw_v: PASSWORD_VERSION,
+          ...(mustChange ? { must_change_password: true } : {}),
+        },
+      });
+      if (error) throw new Error('upgrade');
     },
     passwordGrant: async (email, password) => {
       const res = await fetch(`${url}/auth/v1/token?grant_type=password`, {
@@ -97,6 +128,24 @@ Deno.serve(async (req) => {
   if (Number.isFinite(declared) && declared > MAX_BODY_BYTES) {
     return json(413, { code: 'VALIDATION_FAILED', message: 'Request too large.' }, cors);
   }
+  if (!diagnosed && Deno.env.get('SIGN_IN_HEADER_DIAGNOSTIC') === 'on') {
+    diagnosed = true;
+    console.log(
+      'sign-in: ip header diagnostic:',
+      headerDiagnostic(req.headers).join(' ') || 'none',
+    );
+  }
+  let pepper: string;
+  try {
+    pepper = requirePepper(Deno.env.get('SIGN_IN_PEPPER'));
+  } catch {
+    console.error('sign-in: SIGN_IN_PEPPER is not configured');
+    return json(
+      503,
+      { code: 'INTERNAL', message: 'Could not sign in right now. Try again.' },
+      cors,
+    );
+  }
   let outcome: Outcome;
   try {
     // Read at most MAX_BODY_BYTES + 1 bytes, whatever Content-Length says.
@@ -119,11 +168,17 @@ Deno.serve(async (req) => {
       bytes.set(c, offset);
       offset += c.length;
     }
-    outcome = await signIn(new TextDecoder().decode(bytes), clientIp(req.headers), deps());
+    outcome = await signIn(
+      new TextDecoder().decode(bytes),
+      clientIp(req.headers, Deno.env.get('SIGN_IN_TRUSTED_IP_HEADER')),
+      deps(pepper),
+    );
   } catch (e) {
     console.error('sign-in: unexpected error', e instanceof Error ? e.name : 'unknown');
     outcome = { status: 500, body: { code: 'INTERNAL', message: 'Could not sign in right now.' } };
   }
   if (outcome.status !== 200) console.log('sign-in:', outcome.status, outcome.body.code);
+  if (outcome.upgraded !== undefined)
+    console.log('sign-in: password upgrade', outcome.upgraded ? 'done' : 'failed');
   return json(outcome.status, outcome.body, cors);
 });

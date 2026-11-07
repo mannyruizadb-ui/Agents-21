@@ -211,7 +211,6 @@ Deno.test('unknown kinds and bad payloads build nothing', () => {
     'customer_delivery',
     'estimate_entered',
     'machine_down',
-    'off_queue_start',
     'rewash_added',
     'route_loaded',
     'task_assigned',
@@ -539,7 +538,7 @@ Deno.test('run: task kinds are sent and never stale', async () => {
 });
 
 // ------------------------------------------------------------------------------------------------
-// Owner information kinds (customer_delivery, estimate_entered, rewash_added, off_queue_start) and
+// Owner information kinds (customer_delivery, estimate_entered, rewash_added) and
 // account_locked. Payload shapes = app.alert_payload (20261107003625, 20261107120000).
 
 const DELIVERY = '33333333-3333-3333-3333-333333333333';
@@ -714,55 +713,12 @@ Deno.test('rewash_added: EN/ES text; cancelled is stale', () => {
   assertFalse(BUILDERS.rewash_added.isCurrent({ ...rewash, status: 'cancelled' }));
 });
 
-const offQueue = {
-  cycle_id: 'w1',
-  machine_id: 'm1',
-  machine_name: 'Washer 3',
-  area_name: 'Washroom',
-  wash_group_name: 'Mats 3x5',
-  wash_group_name_i18n: { es: 'Mapos 3x5' },
-  is_rewash: false,
-  started_at: '2026-11-07T02:15:00Z',
-  queue_item_id: null,
-  off_queue: true,
-  expected_wash_group_id: 'g9',
-  expected_wash_group_name: 'Napkins',
-  expected_wash_group_name_i18n: { es: 'Servilletas' },
-  voided: false,
-};
-
-Deno.test('off_queue_start: off the queue vs not the next, EN/ES; voided is stale', () => {
-  assertEquals(msg('off_queue_start', offQueue, 'en'), {
-    title: 'Washer 3: load not in the queue',
-    body: 'Mats 3x5 · queue next: Napkins · at 9:15 PM',
-    tag: 'off-queue-w1',
-    url: '/control/washers',
-  });
-  const es = msg('off_queue_start', offQueue, 'es');
-  assertEquals(es.title, 'Lavadora 3: carga fuera de la cola');
-  assert(es.body.startsWith('Mapos 3x5 · próximo: Servilletas · a las 9:15'), es.body);
-  const other = { ...offQueue, off_queue: false, queue_item_id: 'q1' };
-  assertEquals(msg('off_queue_start', other, 'en').title, 'Washer 3: not the next in the queue');
+Deno.test('off_queue_start was removed (owner 2026-11-07): no builder, nothing is built', () => {
+  assertFalse(Object.hasOwn(BUILDERS, 'off_queue_start'));
   assertEquals(
-    msg('off_queue_start', other, 'es').title,
-    'Lavadora 3: no era lo próximo de la cola',
+    buildMessage('off_queue_start', { cycle_id: 'w1', machine_name: 'Washer 3' }, 'en', ctx),
+    null,
   );
-  const nothing = {
-    ...offQueue,
-    expected_wash_group_name: null,
-    expected_wash_group_name_i18n: null,
-  };
-  assertEquals(
-    msg('off_queue_start', nothing, 'en').body,
-    'Mats 3x5 · nothing queued · at 9:15 PM',
-  );
-  assertEquals(
-    msg('off_queue_start', { ...offQueue, machine_name: '' }, 'en').title,
-    'A washer: load not in the queue',
-  );
-  assertEquals(buildMessage('off_queue_start', { ...offQueue, cycle_id: null }, 'en'), null);
-  assert(BUILDERS.off_queue_start.isCurrent(offQueue));
-  assertFalse(BUILDERS.off_queue_start.isCurrent({ ...offQueue, voided: true }));
 });
 
 const locked = {
@@ -793,7 +749,7 @@ Deno.test('account_locked: username only, EN/ES, stale once unlocked', () => {
 });
 
 Deno.test('every kind the DB can push has a builder', () => {
-  // = app.push_alert_kinds() (20261107120000)
+  // = app.push_alert_kinds() (20261107021207)
   for (const kind of [
     'machine_down',
     'washer_idle',
@@ -803,7 +759,6 @@ Deno.test('every kind the DB can push has a builder', () => {
     'customer_delivery',
     'estimate_entered',
     'rewash_added',
-    'off_queue_start',
     'account_locked',
   ]) {
     assert(Object.hasOwn(BUILDERS, kind), kind);

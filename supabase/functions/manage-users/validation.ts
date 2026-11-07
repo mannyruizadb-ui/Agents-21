@@ -68,8 +68,19 @@ const resetSchema = z.strictObject({
   password: password.optional(),
 });
 
+/** The current password as typed (any old password: only its length is checked here). */
+const currentPassword = z
+  .string()
+  .min(1)
+  .refine((pw) => new TextEncoder().encode(pw).length <= PASSWORD_MAX_BYTES, 'password_too_long');
+
 const changeOwnSchema = z.strictObject({
   action: z.literal('change_own_password'),
+  /**
+   * 2026-11-07 (pepper): required. It is checked through the sign-in lockout before anything changes,
+   * so a stolen session cannot set a new password, nor guess the current one around the lockout.
+   */
+  current_password: currentPassword,
   new_password: password,
 });
 
@@ -106,6 +117,7 @@ export function parseRequest(body: unknown): ParseResult {
   const pw = result.error.issues.find(
     (i) => i.path[0] === 'new_password' || i.path[0] === 'password',
   );
+  // current_password problems never get a password-rule reason (it may be any old password).
   const reason = pw
     ? pw.code === 'custom' && PASSWORD_PROBLEMS.includes(pw.message)
       ? pw.message

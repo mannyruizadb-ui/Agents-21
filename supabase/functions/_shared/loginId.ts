@@ -7,7 +7,8 @@
 // which the owner types into the same "Username" field. The UI never says "email" (owner rule
 // 2026-11-03). Managers and everyone else get username-only accounts from the People screen.
 //
-// KEEP IN SYNC with src/lib/loginId.ts (this Edge Function copy cannot import from src/;
+// KEEP IN SYNC with src/lib/loginId.ts (2026-11-07: this copy gained the strict email pattern, L4; the
+// frontend copy must follow) (this Edge Function copy cannot import from src/;
 // the deployed bundle holds only supabase/functions). src/lib/loginId.test.ts runs the same cases
 // against both copies, and manage-users/validation_test.ts tests this copy under Deno.
 
@@ -21,12 +22,25 @@ export function isValidUsername(value: string): boolean {
 }
 
 /**
+ * A plain ASCII email (security review 2026-11-07 L4): lowercase local part of a-z 0-9 . _ % + -
+ * (1–64, no leading, trailing or doubled dot), then a domain of dot-separated labels (a-z 0-9 -, no
+ * leading or trailing hyphen, ≤ 63 each) ending in a 2–63 letter top-level label. Applied after
+ * trim + lowercase; ≤ 254 characters overall. No quoted local parts, IP literals or non-ASCII.
+ */
+export const EMAIL_PATTERN =
+  /^(?!\.)(?!.*\.\.)[a-z0-9._%+-]{1,64}(?<!\.)@(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,63}$/;
+
+export function isValidEmail(value: string): boolean {
+  return value.length <= 254 && EMAIL_PATTERN.test(value);
+}
+
+/**
  * Turns what the person typed into the email Supabase Auth expects.
- * Returns null when the value is neither an email nor a valid username.
+ * Returns null when the value is neither a strict ASCII email (isValidEmail) nor a valid username.
  */
 export function toLoginEmail(typed: string): string | null {
   const value = typed.trim().toLowerCase();
-  if (value.includes('@')) return value.length >= 3 && value.length <= 254 ? value : null;
+  if (value.includes('@')) return isValidEmail(value) ? value : null;
   return isValidUsername(value) ? `${value}@${LOGIN_EMAIL_DOMAIN}` : null;
 }
 

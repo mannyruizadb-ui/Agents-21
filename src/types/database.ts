@@ -991,14 +991,14 @@ isOneToOne: false
                   ]
                 },"sign_in_lockouts": {
                   Row: {
-                    "attempts": number,"key_hash": string,"key_kind": string,"locked_until": string | null,"updated_at": string,"window_started_at": string
+                    "attempts": number,"key_hash": string,"key_kind": string,"last_locked_until": string | null,"lock_level": number,"locked_until": string | null,"updated_at": string,"window_started_at": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "attempts"?: number,"key_hash": string,"key_kind": string,"locked_until"?: string | null,"updated_at"?: string,"window_started_at"?: string
+                    "attempts"?: number,"key_hash": string,"key_kind": string,"last_locked_until"?: string | null,"lock_level"?: number,"locked_until"?: string | null,"updated_at"?: string,"window_started_at"?: string
                   }
                   Update: {
-                    "attempts"?: number,"key_hash"?: string,"key_kind"?: string,"locked_until"?: string | null,"updated_at"?: string,"window_started_at"?: string
+                    "attempts"?: number,"key_hash"?: string,"key_kind"?: string,"last_locked_until"?: string | null,"lock_level"?: number,"locked_until"?: string | null,"updated_at"?: string,"window_started_at"?: string
                   }
                   Relationships: [
                     
@@ -1639,7 +1639,7 @@ isOneToOne: false
         isSetofReturn: false
       } },
 "record_customer_delivery":
-{ Args: { "p_client_id": string,"p_customer_id": string,"p_entered_at"?: string,"p_lines": Json,"p_note"?: string,"p_plant_id": string,"p_staff_session_id": string }; Returns: Database["public"]['CompositeTypes']["customer_delivery_result"]
+{ Args: { "p_client_id": string,"p_customer_id": string,"p_entered_at"?: string,"p_lines": Json,"p_note"?: string,"p_plant_id": string,"p_staff_session_id"?: string }; Returns: Database["public"]['CompositeTypes']["customer_delivery_result"]
                           SetofOptions: {
         from: "*"
         to: "customer_delivery_result"
@@ -1647,7 +1647,7 @@ isOneToOne: false
         isSetofReturn: false
       } },
 "record_finished_goods":
-{ Args: { "p_area_id"?: string,"p_client_id": string,"p_item_type_id": string,"p_loose_pieces": number,"p_note"?: string,"p_occurred_at"?: string,"p_pack_size_used"?: number,"p_packs": number,"p_queue_item_id"?: string,"p_shift_choice"?: string,"p_staff_session_id": string,"p_station_id"?: string }; Returns: Database["public"]['CompositeTypes']["finished_goods_result"]
+{ Args: { "p_area_id"?: string,"p_client_id": string,"p_item_type_id": string,"p_loose_pieces": number,"p_note"?: string,"p_occurred_at"?: string,"p_pack_size_used"?: number,"p_packs": number,"p_queue_item_id"?: string,"p_shift_choice"?: string,"p_staff_session_id"?: string,"p_station_id"?: string }; Returns: Database["public"]['CompositeTypes']["finished_goods_result"]
                           SetofOptions: {
         from: "*"
         to: "finished_goods_result"
@@ -1655,7 +1655,7 @@ isOneToOne: false
         isSetofReturn: false
       } },
 "record_soil_estimate":
-{ Args: { "p_client_id": string,"p_entered_at"?: string,"p_note"?: string,"p_qty": number,"p_staff_session_id": string,"p_unit": "load"|"basket"|"bin"|"piece"|"pack","p_wash_group_id": string }; Returns: {
+{ Args: { "p_client_id": string,"p_entered_at"?: string,"p_note"?: string,"p_qty": number,"p_staff_session_id"?: string,"p_unit": "load"|"basket"|"bin"|"piece"|"pack","p_wash_group_id": string }; Returns: {
               "client_id": string,
 "entered_at": string,
 "entered_by": string,
@@ -1875,6 +1875,11 @@ isOneToOne: false
         isOneToOne: true
         isSetofReturn: false
       } },
+"sign_in_account_state":
+{ Args: { "p_login": string }; Returns: {
+              "legacy_password": boolean
+            }[]
+                           },
 "sign_in_begin":
 { Args: { "p_ip"?: string,"p_login": string }; Returns: {
               "allowed": boolean,"retry_after_seconds": number
@@ -1955,6 +1960,14 @@ isOneToOne: false
         isOneToOne: true
         isSetofReturn: false
       } },
+"void_customer_delivery":
+{ Args: { "p_delivery_id": string,"p_reason": string }; Returns: Database["public"]['CompositeTypes']["customer_delivery_void_result"]
+                          SetofOptions: {
+        from: "*"
+        to: "customer_delivery_void_result"
+        isOneToOne: true
+        isSetofReturn: false
+      } },
 "void_finished_goods":
 { Args: { "p_id": string,"p_reason": string }; Returns: Database["public"]['CompositeTypes']["finished_goods_result"]
                           SetofOptions: {
@@ -1970,6 +1983,8 @@ isOneToOne: false
           CompositeTypes: {
             "customer_delivery_result": {
                         "delivery_id": string | null,"queue_item_ids": (string)[] | null,"duplicate": boolean | null
+                      },"customer_delivery_void_result": {
+                        "delivery_id": string | null,"voided_at": string | null,"cancelled_item_ids": (string)[] | null,"kept_items": Json | null,"duplicate": boolean | null
                       },"finished_goods_result": {
                         "id": string | null,"item_type_id": string | null,"wash_group_id": string | null,"area_id": string | null,"station_id": string | null,"queue_item_id": string | null,"packs": number | null,"pack_size_used": number | null,"loose_pieces": number | null,"pieces": number | null,"occurred_at": string | null,"shift_instance_id": string | null,"production_date": string | null,"staff_id": string | null,"voided_at": string | null,"void_reason": string | null,"warning": string | null,"duplicate": boolean | null
                       },"machine_status_result": {

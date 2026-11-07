@@ -48,7 +48,11 @@ function base64url(bytes: Uint8Array): string {
  * The password to store in / send to GoTrue for `login` (the normalised auth email; lowercased here
  * too) and what the person typed. Deterministic; never logged.
  */
-export async function pepperPassword(pepper: string, login: string, typed: string): Promise<string> {
+export async function pepperPassword(
+  pepper: string,
+  login: string,
+  typed: string,
+): Promise<string> {
   const key = await crypto.subtle.importKey(
     'raw',
     new TextEncoder().encode(requirePepper(pepper)),

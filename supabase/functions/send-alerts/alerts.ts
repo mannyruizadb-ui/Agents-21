@@ -348,14 +348,14 @@ export const BUILDERS: Record<string, KindBuilder> = {
 
 // ---------------------------------------------------------------------------------------------
 // Owner information kinds (owner 2026-11-06, C; payloads: app.alert_payload, 20261107003625) and
-// account_locked (security event for owners, 2026-11-07). Payloads carry no person names (except
+// account_locked (security event for owners, 2026-11-07). off_queue_start was removed (owner 2026-11-07,
+// 20261107021207): no builder; an old alert of that kind would be marked 'none' (never sent). Payloads carry no person names (except
 // account_locked's username, which IS the subject of the alert) and no free text (notes never).
 
 const QUEUE_URL = '/control/queue';
 const ESTIMATES_URL = '/control/estimates';
 const DELIVERIES_URL = '/control/deliveries';
 const PEOPLE_URL = '/control/people';
-const WASHERS_URL = '/control/washers';
 /** At most this many groups are listed in one notification; the rest are "+N more". */
 const MAX_LIST_ITEMS = 4;
 
@@ -501,38 +501,6 @@ export const OWNER_INFO_BUILDERS: Record<string, KindBuilder> = {
       const qty = qtyText(p.qty, p.unit, lang);
       const body = [group, qty].filter(Boolean).join(' · ');
       return { title, body, tag: `rewash-${id}`, url: QUEUE_URL };
-    },
-  },
-  off_queue_start: {
-    // A tap undone (voided) before the push went out is not news any more.
-    isCurrent: (p) => p.voided !== true,
-    build(p, lang, ctx) {
-      const id = str(p, 'cycle_id');
-      if (id === null) return null;
-      const name =
-        localMachineName(str(p, 'machine_name') ?? '', lang) ||
-        (lang === 'es' ? 'Una lavadora' : 'A washer');
-      const offQueue = p.off_queue === true;
-      const title = offQueue
-        ? lang === 'es'
-          ? `${name}: carga fuera de la cola`
-          : `${name}: load not in the queue`
-        : lang === 'es'
-          ? `${name}: no era lo próximo de la cola`
-          : `${name}: not the next in the queue`;
-      const group = localName(p, 'wash_group_name', lang);
-      const expected = localName(p, 'expected_wash_group_name', lang);
-      const next =
-        expected === null
-          ? lang === 'es'
-            ? 'nada en la cola'
-            : 'nothing queued'
-          : lang === 'es'
-            ? `próximo: ${expected}`
-            : `queue next: ${expected}`;
-      const started = atText(str(p, 'started_at'), lang, ctx.timeZone);
-      const body = [group, next, started].filter(Boolean).join(' · ');
-      return { title, body, tag: `off-queue-${id}`, url: WASHERS_URL };
     },
   },
   account_locked: {

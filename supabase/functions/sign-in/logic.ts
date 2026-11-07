@@ -1,53 +1,51 @@
-// Pure decision logic for the sign-in Edge Function (owner-approved 2026-11-06: 6-digit passwords for
-// managers, with lockout). No env, no network: index.ts passes the real lockout RPCs and GoTrue call,
-// logic_test.ts passes fakes.
+// Pure decision logic for the sign-in Edge Function (owner-approved 2026-11-06: 6-digit passwords with a
+// lockout; 2026-11-07: pepper, escalating locks, trusted-IP header). No env, no network: index.ts passes
+// the real lockout RPCs, GoTrue and the pepper, logic_test.ts passes fakes.
 //
 // Flow for {username, password}:
 //   1. body: JSON object ≤ 2 KB with exactly `username` (what the person typed: a username, or an
 //      email for the owner's own account) and `password` (1–72 bytes). Else 400 VALIDATION_FAILED.
-//   2. login = toLoginEmail(username) (same rule as the app); a value that is neither a username nor an
-//      email is still counted under its trimmed, lowercased form, and is "wrong" without asking GoTrue.
-//   3. sign_in_begin(login, ip): while the login or the IP is locked → 429 {code: LOCKED,
-//      retry_after_seconds}. The same answer for known and unknown logins.
-//   4. GoTrue password grant. 200 → sign_in_succeeded, return the session (access_token,
-//      refresh_token, expires_in, expires_at, token_type, user) for supabase.auth.setSession.
-//      400 (wrong password, unknown user, banned user, …) → sign_in_failed: 401 {code: WRONG}, or 429
-//      LOCKED when this failure locked the login. Same shape for unknown logins.
-//      429 from GoTrue → 429 {code: RATE_LIMITED}; anything else → 502 {code: INTERNAL}.
-//   5. Any lockout-store error → 503 INTERNAL: never call GoTrue without the lockout check (fail closed).
+//   2. login = toLoginEmail(username) (same rule as the app); a value that is neither a username nor a
+//      strict ASCII email is still counted under its trimmed, lowercased form, and is "wrong" without
+//      asking GoTrue.
+//   3. _shared/passwordCheck.ts: the lockout (sign_in_begin / sign_in_failed / sign_in_succeeded), then
+//      GoTrue's password grant with the PEPPERED password (_shared/pepper.ts); for an account whose stored
+//      password predates the pepper, one grant with the typed value inside the same attempt.
+//   4. 200 → the session (access_token, refresh_token, expires_in, expires_at, token_type, user) for
+//      supabase.auth.setSession. When the typed (pre-pepper) password matched, the stored password is
+//      re-stored peppered (upgrade: app_metadata.pw_v = 2; must_change_password when the typed value
+//      breaks today's password rules). An upgrade failure never blocks the sign-in (it retries next time).
+//   5. Wrong → 401 WRONG; locked → 429 LOCKED {retry_after_seconds}; GoTrue 429 → 429 RATE_LIMITED;
+//      lockout store down → 503 INTERNAL (fail closed); GoTrue broken → 502 INTERNAL. Unknown logins get
+//      the same answers as real ones.
 //
 // Nothing here logs; index.ts logs only status codes (never usernames, passwords, tokens or bodies).
 import { toLoginEmail } from '../_shared/loginId.ts';
+import { checkPassword, type PasswordCheckDeps } from '../_shared/passwordCheck.ts';
+import { passwordProblem } from '../_shared/passwordRules.ts';
+
+export type {
+  FailResult,
+  GateResult,
+  GrantResult,
+  PasswordCheckDeps,
+} from '../_shared/passwordCheck.ts';
 
 export const MAX_BODY_BYTES = 2048;
 export const MAX_PASSWORD_BYTES = 72;
 const MAX_LOGIN_CHARS = 254;
 
-export interface GateResult {
-  allowed: boolean;
-  retry_after_seconds: number;
-}
-export interface FailResult {
-  locked: boolean;
-  retry_after_seconds: number;
-}
-export interface GrantResult {
-  status: number;
-  body: unknown;
-}
-
-export interface SignInDeps {
-  begin(login: string, ip: string | null): Promise<GateResult>;
-  failed(login: string, ip: string | null): Promise<FailResult>;
-  succeeded(login: string, ip: string | null): Promise<void>;
-  /** POST /auth/v1/token?grant_type=password. Throws on a network error. */
-  passwordGrant(email: string, password: string): Promise<GrantResult>;
+export interface SignInDeps extends PasswordCheckDeps {
+  /** Re-store a pre-pepper password peppered (admin update by user id). Throws on failure. */
+  upgradePassword(userId: string, peppered: string, mustChange: boolean): Promise<void>;
 }
 
 export type Code = 'VALIDATION_FAILED' | 'LOCKED' | 'WRONG' | 'RATE_LIMITED' | 'INTERNAL';
 export interface Outcome {
   status: number;
   body: Record<string, unknown>;
+  /** Set when a pre-pepper password was re-stored (true) or the upgrade failed (false); for logs. */
+  upgraded?: boolean;
 }
 
 const MESSAGES: Record<Code, string> = {
@@ -114,62 +112,113 @@ export function pickSession(body: unknown): Record<string, unknown> | null {
   return out;
 }
 
+function userId(session: Record<string, unknown>): string | null {
+  const user = session.user as { id?: unknown } | undefined;
+  return typeof user?.id === 'string' && user.id.length > 0 ? user.id : null;
+}
+
 export async function signIn(raw: string, ip: string | null, deps: SignInDeps): Promise<Outcome> {
   const creds = parseBody(raw);
   if (creds === null) return fail(400, 'VALIDATION_FAILED');
 
-  let gate: GateResult;
-  try {
-    gate = await deps.begin(creds.login, ip);
-  } catch {
-    return fail(503, 'INTERNAL');
+  const result = await checkPassword(deps, creds.login, creds.email, creds.password, ip);
+  switch (result.kind) {
+    case 'locked':
+      return locked(result.retryAfterSeconds);
+    case 'wrong':
+      return fail(401, 'WRONG');
+    case 'rate_limited':
+      return fail(429, 'RATE_LIMITED', { retry_after_seconds: 60 });
+    case 'error':
+      return fail(result.status, 'INTERNAL');
   }
-  if (!gate.allowed) return locked(gate.retry_after_seconds);
 
-  let grant: GrantResult | null = null;
-  if (creds.email !== null) {
+  const session = pickSession(result.grant.body);
+  if (session === null) return fail(502, 'INTERNAL');
+  const outcome: Outcome = { status: 200, body: session };
+  if (result.legacy && creds.email !== null) {
+    // One-time upgrade of a pre-pepper password. Never blocks the sign-in.
+    const id = userId(session);
     try {
-      grant = await deps.passwordGrant(creds.email, creds.password);
+      if (id === null) throw new Error('no user id');
+      await deps.upgradePassword(
+        id,
+        await deps.pepper(creds.email, creds.password),
+        passwordProblem(creds.password) !== null,
+      );
+      outcome.upgraded = true;
     } catch {
-      return fail(502, 'INTERNAL');
+      outcome.upgraded = false;
     }
-    if (grant.status === 200) {
-      const session = pickSession(grant.body);
-      if (session === null) return fail(502, 'INTERNAL');
-      try {
-        await deps.succeeded(creds.login, ip);
-      } catch {
-        // The person is signed in; a counter left behind expires with its window.
-      }
-      return { status: 200, body: session };
-    }
-    if (grant.status === 429) return fail(429, 'RATE_LIMITED', { retry_after_seconds: 60 });
-    if (grant.status !== 400) return fail(502, 'INTERNAL');
   }
+  return outcome;
+}
 
-  // A wrong password, an unknown or banned user, or a value that is not a login at all.
-  let result: FailResult;
-  try {
-    result = await deps.failed(creds.login, ip);
-  } catch {
-    return fail(503, 'INTERNAL');
-  }
-  return result.locked ? locked(result.retry_after_seconds) : fail(401, 'WRONG');
+/** The IP address characters we accept from a trusted header (IPv4 / IPv6, ≤ 64 chars). */
+function validIp(v: string | null | undefined): string | null {
+  const s = v?.trim() ?? '';
+  return s.length > 0 && s.length <= 64 && /^[0-9a-fA-F:.]+$/.test(s) ? s : null;
 }
 
 /**
- * The caller's IP as the platform reports it, or null. Best effort: used only for the per-IP limit
- * (30 attempts per 15 minutes); the per-login lock does not depend on it.
+ * The caller's IP for the per-IP limit, ONLY from the header the platform is known to set (security
+ * review M2: the leftmost X-Forwarded-For, and any header the caller can send, is attacker-controlled).
+ *
+ * `trusted` comes from the function secret SIGN_IN_TRUSTED_IP_HEADER:
+ *   * unset / empty (the default) → null: no per-IP limit; the per-login lock (with escalation) and the
+ *     pepper carry the protection. Chosen because a wrong guess here is worse than no IP limit: trusting
+ *     a spoofable header lets an attacker rotate fake IPs (no limit anyway) or send the plant's NAT IP and
+ *     lock every phone in the building out.
+ *   * a header name, e.g. `cf-connecting-ip` or `x-real-ip` → that header's value.
+ *   * `x-forwarded-for:N` → the N-th entry from the RIGHT (1 = the last one, the address the nearest
+ *     trusted proxy appended). Plain `x-forwarded-for` means `x-forwarded-for:1`.
+ * Set it only after the diagnostic (headerDiagnostic) showed which header the platform sets.
  */
-export function clientIp(headers: Headers): string | null {
-  const candidates = [
-    headers.get('cf-connecting-ip'),
-    headers.get('x-real-ip'),
-    headers.get('x-forwarded-for')?.split(',')[0] ?? null,
-  ];
-  for (const c of candidates) {
-    const v = c?.trim() ?? '';
-    if (v.length > 0 && v.length <= 64 && /^[0-9a-fA-F:.]+$/.test(v)) return v;
+export function clientIp(headers: Headers, trusted: string | null | undefined): string | null {
+  const spec = (trusted ?? '').trim().toLowerCase();
+  if (spec === '') return null;
+  const m = /^x-forwarded-for(?::([1-9]))?$/.exec(spec);
+  if (m) {
+    const parts = (headers.get('x-forwarded-for') ?? '').split(',').map((p) => p.trim());
+    const n = Number(m[1] ?? '1');
+    return parts.length >= n ? validIp(parts[parts.length - n]) : null;
   }
-  return null;
+  if (!/^[a-z0-9-]{1,64}$/.test(spec)) return null;
+  return validIp(headers.get(spec));
+}
+
+const DIAGNOSTIC_CANDIDATES = [
+  'cf-connecting-ip',
+  'cf-connecting-ipv6',
+  'true-client-ip',
+  'x-real-ip',
+  'x-forwarded-for',
+  'forwarded',
+  'x-client-ip',
+  'x-cluster-client-ip',
+  'x-envoy-external-address',
+  'fly-client-ip',
+];
+
+/**
+ * SIGN_IN_HEADER_DIAGNOSTIC=on (one-time check after deploy): which IP-carrying headers the platform
+ * passes, by NAME only (plus how many X-Forwarded-For entries), never a value. Also any other header
+ * whose name mentions "ip" or "forward". index.ts logs it once per function instance.
+ */
+export function headerDiagnostic(headers: Headers): string[] {
+  const out: string[] = [];
+  const names = new Set<string>();
+  headers.forEach((_v, k) => names.add(k.toLowerCase()));
+  for (const c of DIAGNOSTIC_CANDIDATES) {
+    if (!names.has(c)) continue;
+    out.push(
+      c === 'x-forwarded-for'
+        ? `x-forwarded-for(entries=${(headers.get(c) ?? '').split(',').length})`
+        : c,
+    );
+  }
+  for (const n of [...names].sort()) {
+    if (!DIAGNOSTIC_CANDIDATES.includes(n) && /(^|-)(ip|ipv6)($|-)|forward/.test(n)) out.push(n);
+  }
+  return out;
 }
