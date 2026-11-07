@@ -367,3 +367,30 @@ select app.generate_shift_instances(p.id, 7)
   from public.plants p
   join public.organizations o on o.id = p.org_id and o.slug = 'americas-dust-busters'
  where p.name = 'Miami';
+
+-- Outside customers (owner 2026-11-06; data migration 20261107003619_add_customers for the cloud): AA Linen
+-- and its own wash groups. Loads per bin are filled in by the owner in the app, except Mats = 4 per bin.
+-- No formula yet (the owner picks one per group in the app).
+insert into public.customers (org_id, plant_id, name, name_i18n, sort_order)
+select p.org_id, p.id, 'AA Linen', '{}'::jsonb, 10
+  from public.plants p
+  join public.organizations o on o.id = p.org_id and o.slug = 'americas-dust-busters'
+ where p.name = 'Miami';
+
+insert into public.wash_groups (org_id, plant_id, customer_id, name, name_i18n, color_hex, sort_order,
+                                loads_per_bin, allow_bin_estimates)
+select c.org_id, c.plant_id, c.id, v.name, jsonb_build_object('es', v.es), v.color, v.sort_order,
+       v.per_bin, v.per_bin is not null
+  from public.customers c
+  join public.plants p on p.id = c.plant_id and p.name = 'Miami'
+  join public.organizations o on o.id = p.org_id and o.slug = 'americas-dust-busters'
+ cross join (values
+   ('Kitchen towels',            'Toallas de cocina',             '#C2410C', 1000, null::numeric),
+   ('Aprons',                    'Delantales',                    '#0E7490', 1010, null),
+   ('Mats',                      'Mapos',                         '#A16207', 1020, 4),
+   ('Napkins',                   'Servilletas',                   '#15803D', 1030, null),
+   ('Tablecloths',               'Manteles',                      '#E11D48', 1040, null),
+   ('Stained white napkins',     'Servilletas blancas manchadas', '#9333EA', 1050, null),
+   ('Stained white tablecloths', 'Manteles blancos manchados',    '#0284C7', 1060, null),
+   ('Stained hotel towels',      'Toallas de hotel manchadas',    '#059669', 1070, null)) as v(name, es, color, sort_order, per_bin)
+ where c.name = 'AA Linen';
