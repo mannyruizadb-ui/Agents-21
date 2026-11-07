@@ -989,6 +989,20 @@ isOneToOne: false
       referencedColumns: ["id","org_id"]
     }
                   ]
+                },"sign_in_lockouts": {
+                  Row: {
+                    "attempts": number,"key_hash": string,"key_kind": string,"locked_until": string | null,"updated_at": string,"window_started_at": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "attempts"?: number,"key_hash": string,"key_kind": string,"locked_until"?: string | null,"updated_at"?: string,"window_started_at"?: string
+                  }
+                  Update: {
+                    "attempts"?: number,"key_hash"?: string,"key_kind"?: string,"locked_until"?: string | null,"updated_at"?: string,"window_started_at"?: string
+                  }
+                  Relationships: [
+                    
+                  ]
                 },"soil_estimates": {
                   Row: {
                     "client_id": string,"entered_at": string,"entered_by": string,"id": string,"note": string | null,"org_id": string,"plant_id": string,"qty": number,"recorded_at": string | null,"staff_id": string | null,"unit": "load"|"basket"|"bin"|"piece"|"pack","wash_group_id": string
@@ -1861,6 +1875,27 @@ isOneToOne: false
         isOneToOne: true
         isSetofReturn: false
       } },
+"sign_in_begin":
+{ Args: { "p_ip"?: string,"p_login": string }; Returns: {
+              "allowed": boolean,"retry_after_seconds": number
+            }[]
+                           },
+"sign_in_failed":
+{ Args: { "p_ip"?: string,"p_login": string }; Returns: {
+              "locked": boolean,"retry_after_seconds": number
+            }[]
+                           },
+"sign_in_lock_status":
+{ Args: { "p_logins": (string)[] }; Returns: {
+              "locked_until": string,"login": string
+            }[]
+                           },
+"sign_in_succeeded":
+{ Args: { "p_ip"?: string,"p_login": string }; Returns: undefined
+                           },
+"sign_in_unlock":
+{ Args: { "p_login": string }; Returns: boolean
+                           },
 "start_staff_session":
 { Args: { "p_pin": string,"p_staff_id": string }; Returns: Database["public"]['CompositeTypes']["staff_session_result"]
                           SetofOptions: {

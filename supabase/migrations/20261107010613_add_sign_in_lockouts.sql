@@ -275,7 +275,7 @@ begin
        where m.user_id = v_user.id and m.revoked_at is null
     loop
       perform app.raise_owner_alert(v_plant.org_id, v_plant.id, 'account_locked', v_user.id,
-                                    extract(epoch from v_row.locked_until)::bigint::text);
+                                    floor(extract(epoch from v_row.locked_until))::bigint::text);
     end loop;
   end if;
   return query select true, ceil(extract(epoch from v_row.locked_until - v_now))::int;
