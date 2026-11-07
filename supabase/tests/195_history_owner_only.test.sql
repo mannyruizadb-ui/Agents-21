@@ -24,8 +24,8 @@ select is(pg_temp.run_as('owner', $$select public.void_finished_goods(current_se
 
 select is(pg_temp.reads($$select 1 from public.audit_log where entity in ('washer_cycles', 'finished_goods_entries', 'soil_estimates') and plant_id = pg_temp.id('plantA')$$),
   array[(select count(*)::text from public.audit_log where entity in ('washer_cycles', 'finished_goods_entries', 'soil_estimates') and plant_id = pg_temp.id('plantA')),
-        '0', '0', '0', '0', '0', '0', '0'],
-  'audit_log: the owner reads it; manager, lead, viewer, display and others get 0 rows');
+        '0', '0', '0', '0', '0', '0', '42501'],
+  'audit_log: the owner reads it; manager, lead, viewer, display and others get 0 rows (anon: no privilege)');
 select ok((select count(*) from public.audit_log where entity in ('washer_cycles', 'finished_goods_entries', 'soil_estimates') and plant_id = pg_temp.id('plantA')) >= 5,
   'the activity was audited (insert, void, undo …)');
 select is(pg_temp.val_as('owner', $$select count(*)::text from public.audit_log

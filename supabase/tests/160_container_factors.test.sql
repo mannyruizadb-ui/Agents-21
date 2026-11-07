@@ -55,7 +55,7 @@ select is(pg_temp.as_service($$insert into public.soil_estimates (org_id, plant_
 
 -- ══ Setup edits: new factors editable, the deprecated one is not ═════════
 select is(pg_temp.writes($$update public.wash_groups set loads_per_bin = 2, allow_bin_estimates = true, loads_per_basket = 0.5 where id = pg_temp.id('gTowel')$$),
-  '{1,1,0,0,0,0,0,0}', 'loads per basket / bin: the owner edits; the manager''s identical values change nothing (others: no rows; see 192)');
+  '{1,1,0,0,0,0,0,42501}', 'loads per basket / bin: the owner edits; the manager''s identical values change nothing (others: no rows; see 192)');
 select is(pg_temp.run_as('owner', $$update public.wash_groups set baskets_per_load = 3 where id = pg_temp.id('gTowel')$$),
   '42501', 'baskets_per_load is deprecated: not client-editable');
 select is((select array[after ->> 'loads_per_bin', actor_user_id::text] from public.audit_log

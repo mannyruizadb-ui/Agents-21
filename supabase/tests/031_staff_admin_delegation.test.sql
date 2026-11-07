@@ -37,7 +37,7 @@ select is(pg_temp.run_as('manager', $$update public.memberships set can_manage_s
   '0', 'a manager cannot grant themselves the flag');
 select is(pg_temp.writes($$update public.memberships set can_manage_staff = true
                             where user_id = pg_temp.id('manager') and not can_manage_staff$$),
-  '{1,0,0,0,0,0,0,0}', 'memberships U (incl. the flag) is owner only');
+  '{1,0,0,0,0,0,0,42501}', 'memberships U (incl. the flag) is owner only');
 select is((select can_manage_staff from public.memberships where user_id = pg_temp.id('manager')), true, 'owner granted the flag');
 select is((select count(*)::int from public.audit_log
             where action = 'memberships.update' and actor_user_id = pg_temp.id('owner')

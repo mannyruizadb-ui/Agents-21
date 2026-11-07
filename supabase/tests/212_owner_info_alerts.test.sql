@@ -44,7 +44,7 @@ select is(array[
   pg_temp.run_as('owner', $$update public.memberships set alert_levels = '{"rewash_added":"loud"}' where id = pg_temp.mid('owner')$$)],
   '{0,23514}', 'direct writes: owners only (memberships RLS), and the CHECK still applies (the app uses set_alert_level)');
 select is(pg_temp.reads($$select alert_levels from public.memberships where id = pg_temp.mid('owner')$$),
-  '{1,0,0,0,0,0,0,0}', 'alert_levels is readable where the membership is (an org-wide owner membership: org owners only)');
+  '{1,0,0,0,0,0,0,42501}', 'alert_levels is readable where the membership is (an org-wide owner membership: org owners only)');
 
 -- ══ set_alert_level ══════════════════════════════════════════════════════
 select is(pg_temp.writes($$select public.set_alert_level(pg_temp.mid('owner'), 'rewash_added', 'quiet')$$),
@@ -91,6 +91,10 @@ select ok((select app.alert_payload(a)::text !~* '(Ben|Manager A|entered_by|staf
 select is(pg_temp.run_as('owner', $$select public.record_soil_estimate(pg_temp.id('gTowel'), 1, 'load', 'e3000000-0000-0000-0000-000000000003', pg_temp.ben())$$), '1',
   'another account enters an estimate …');
 select is((select count(*)::int from public.alert_events where kind = 'estimate_entered'), 2, '… which is its own batch');
+-- Batches are anchored on the first estimate's recorded_at (2026-11-07): move both back in time.
+alter table public.soil_estimates disable trigger soil_estimates_prevent_mutation;
+update public.soil_estimates set recorded_at = recorded_at - interval '11 minutes' where recorded_at is not null;
+alter table public.soil_estimates enable trigger soil_estimates_prevent_mutation;
 update public.alert_events set sent_at = now() - interval '11 minutes' where kind = 'estimate_entered';
 select is(pg_temp.run_as('manager', $$select public.record_soil_estimate(pg_temp.id('gNapkin'), 3, 'load', 'e3000000-0000-0000-0000-000000000004', pg_temp.ben())$$), '1',
   'more than 10 minutes after the batch started …');
@@ -166,6 +170,10 @@ select is((select count(*)::int from app.pending_push_notifications() p where p.
   'switching to push never pushes old (quiet) alerts');
 select is(pg_temp.run_as('manager', $$select public.record_soil_estimate(pg_temp.id('gMat'), 1, 'load', 'e3000000-0000-0000-0000-000000000005', pg_temp.ben())$$), '1',
   'a new estimate (same manager, same batch window as #4) …');
+-- Batches are anchored on the first estimate's recorded_at (2026-11-07): move both back in time.
+alter table public.soil_estimates disable trigger soil_estimates_prevent_mutation;
+update public.soil_estimates set recorded_at = recorded_at - interval '11 minutes' where recorded_at is not null;
+alter table public.soil_estimates enable trigger soil_estimates_prevent_mutation;
 update public.alert_events set sent_at = now() - interval '11 minutes' where kind = 'estimate_entered';
 select is(pg_temp.run_as('manager', $$select public.record_soil_estimate(pg_temp.id('gMat'), 2, 'load', 'e3000000-0000-0000-0000-000000000006', pg_temp.ben())$$), '1',
   '… and one in a new batch');

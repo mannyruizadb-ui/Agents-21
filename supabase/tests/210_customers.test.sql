@@ -78,7 +78,7 @@ select is(array[
   pg_temp.run_as('owner', $$insert into public.wash_groups (org_id, plant_id, name) values (pg_temp.id('orgA'), pg_temp.id('plantA'), 'Napkins')$$)],
   '{1,23505,23505}', 'group names are unique per (plant, customer): AA "Towels" next to ours, never twice for one owner');
 select is(pg_temp.reads($$select customer_id from public.wash_groups where id = pg_temp.c('gAA')$$),
-  '{1,1,1,1,1,0,0,0}', 'wash_groups.customer_id is readable wherever the group is (lead, viewer, display included; never another tenant)');
+  '{1,1,1,1,1,0,0,42501}', 'wash_groups.customer_id is readable wherever the group is (lead, viewer, display included; never another tenant)');
 
 -- ══ Snapshots: queue_items / washer_cycles ═══════════════════════════════
 select is(array[

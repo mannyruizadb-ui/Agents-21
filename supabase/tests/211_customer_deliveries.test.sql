@@ -101,7 +101,7 @@ select is(array[(select count(*)::int from public.customer_deliveries), (select 
   array[1, 2, 1], 'the retry wrote nothing: no second delivery, queue item or alert');
 select is(pg_temp.run_as('ownerB', $$select public.record_customer_delivery(pg_temp.id('plantB'), pg_temp.c('b'),
                                      '[{"wash_group_id":"71000000-0000-0000-0000-0000000aa0b1","bins":1}]', 'd1000000-0000-0000-0000-000000000001', null)$$),
-  'VALIDATION_FAILED', 'another plant''s client_id: VALIDATION_FAILED (never returns the other tenant''s delivery)');
+  'STAFF_SESSION_REQUIRED', 'another plant''s client_id is independent (unique per plant, 2026-11-07): no "already used" answer, the call goes on to the PIN check');
 
 -- ══ Validation (nothing is written) ══════════════════════════════════════
 select is(array[

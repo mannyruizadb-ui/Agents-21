@@ -4,7 +4,7 @@ select plan(14);
 
 select is(
   (select count(*)::int from pg_tables where schemaname = 'public'),
-  40, '§4.4: public tables (26 + wash_groups, machine_status_events, push_subscriptions, machine_down_reasons, plant_holidays, manager_shift_assignments, routes, load_out_lines, route_load_events, tasks, alert_dismissals, customers, customer_deliveries, customer_delivery_lines)');
+  41, '§4.4: public tables (26 + wash_groups, machine_status_events, push_subscriptions, machine_down_reasons, plant_holidays, manager_shift_assignments, routes, load_out_lines, route_load_events, tasks, alert_dismissals, customers, customer_deliveries, customer_delivery_lines, sign_in_lockouts)');
 
 -- Every FK has a non-partial index whose leading columns are exactly the FK columns (§4.8).
 select is(
@@ -25,7 +25,8 @@ select is(
     where t.schemaname = 'public'
       and not exists (select 1 from information_schema.columns c
                        where c.table_schema = 'public' and c.table_name = t.tablename and c.column_name = 'plant_id')),
-  array['languages','organizations','plants','profiles'], 'every operational table has plant_id');
+  array['languages','organizations','plants','profiles','sign_in_lockouts'],
+  'every operational table has plant_id (sign_in_lockouts: global auth state keyed by login/IP hash, service role only)');
 
 select is(
   (select array_agg(tablename::text order by tablename) from pg_publication_tables
