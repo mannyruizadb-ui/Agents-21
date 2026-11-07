@@ -67,7 +67,7 @@ Deno.test('create: can_manage_staff only with role manager', () => {
 });
 
 Deno.test('target actions need plant_id and user_id', () => {
-  for (const action of ['reset_password', 'deactivate']) {
+  for (const action of ['reset_password', 'deactivate', 'unlock']) {
     assert(parseRequest({ action, plant_id: PLANT, user_id: USER }).ok);
     assert(!parseRequest({ action, plant_id: PLANT }).ok);
     assert(!parseRequest({ action, user_id: USER }).ok);
@@ -132,4 +132,48 @@ Deno.test('cors: only listed origins are echoed', () => {
   assertEquals(corsHeaders(null, allowed)['Access-Control-Allow-Origin'], undefined);
   assertNotEquals(corsHeaders('https://a.example', allowed)['Access-Control-Allow-Origin'], '*');
   assertEquals(parseAllowedOrigins(undefined), ['http://127.0.0.1:5173', 'http://localhost:5173']);
+});
+
+Deno.test(
+  'change_own_password: 6 digits that are not a simple pattern are accepted at parse',
+  () => {
+    assert(parseRequest({ action: 'change_own_password', new_password: '483920' }).ok);
+    const simple = parseRequest({ action: 'change_own_password', new_password: '123456' });
+    assert(!simple.ok && simple.reason === 'password_too_simple');
+    const seven = parseRequest({ action: 'change_own_password', new_password: '4839201' });
+    assert(!seven.ok && seven.reason === 'password_too_short');
+    const letters = parseRequest({ action: 'change_own_password', new_password: 'abcdef' });
+    assert(!letters.ok && letters.reason === 'password_too_short');
+    const notString = parseRequest({ action: 'change_own_password', new_password: 483920 });
+    assert(!notString.ok && notString.reason === 'password_invalid');
+  },
+);
+
+Deno.test('create / reset_password: optional owner-chosen password, same rules', () => {
+  assert(parseRequest({ ...base, role: 'manager', password: '483920' }).ok);
+  const simple = parseRequest({ ...base, role: 'manager', password: '111111' });
+  assert(!simple.ok && simple.reason === 'password_too_simple');
+  if (!simple.ok) assertEquals(simple.fields, ['password']);
+  // An owner account is never created with 6 digits.
+  const owner = parseRequest({ ...base, role: 'owner', password: '483920' });
+  assert(!owner.ok && owner.reason === 'password_too_short');
+  assert(parseRequest({ ...base, role: 'owner', password: 'a-long-pass' }).ok);
+  assert(
+    parseRequest({ action: 'reset_password', plant_id: PLANT, user_id: USER, password: '483920' })
+      .ok,
+  );
+  const r = parseRequest({
+    action: 'reset_password',
+    plant_id: PLANT,
+    user_id: USER,
+    password: '654321',
+  });
+  assert(!r.ok && r.reason === 'password_too_simple');
+  assert(!JSON.stringify(r).includes('654321'));
+  assert(
+    !parseRequest({ action: 'deactivate', plant_id: PLANT, user_id: USER, password: '483920' }).ok,
+  );
+  assert(
+    !parseRequest({ action: 'unlock', plant_id: PLANT, user_id: USER, password: '483920' }).ok,
+  );
 });

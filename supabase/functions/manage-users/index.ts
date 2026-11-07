@@ -1,7 +1,12 @@
 // manage-users: owner-created username + password accounts (PRD A4, owner decision 2026-11-03).
 // No email is ever sent. One POST endpoint; `action` selects the operation:
-//   list | create | reset_password | deactivate   (owner of the plant)
-//   change_own_password                            (any signed-in user)
+//   list | create | reset_password | deactivate | unlock   (owner of the plant)
+//   change_own_password                                     (any signed-in user)
+//
+// Passwords (owner-approved 2026-11-06, _shared/passwordRules.ts): 6 digits that are not a simple
+// pattern, or ≥ 10 characters; accounts holding an owner membership need ≥ 10 characters. The sign-in
+// Edge Function locks a login after 5 wrong passwords in 15 minutes; `unlock` clears that lock and
+// `list` reports `locked_until` per person.
 //
 // Authorization order (.claude/rules/edge-functions.md): verify the JWT, read the caller's
 // memberships with a USER-scoped client (RLS), and only then use the service-role client for the
@@ -12,6 +17,7 @@
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import { corsHeaders, parseAllowedOrigins } from '../_shared/cors.ts';
 import { LOGIN_EMAIL_DOMAIN, usernameFromEmail } from '../_shared/loginId.ts';
+import { passwordProblem } from '../_shared/passwordRules.ts';
 import { canManageTarget, inPlantScope, ownsPlant, type Membership, type Plant } from './authz.ts';
 import { generateTempPassword, parseRequest } from './validation.ts';
 
@@ -103,7 +109,7 @@ async function audit(
   service: SupabaseClient,
   actorId: string,
   plant: Plant,
-  action: 'users.create' | 'users.reset_password' | 'users.deactivate',
+  action: 'users.create' | 'users.reset_password' | 'users.deactivate' | 'users.unlock',
   targetId: string,
   details: Record<string, unknown>,
 ): Promise<void> {
@@ -168,6 +174,17 @@ async function handle(req: Request): Promise<{ status: number; body: unknown }> 
 
   // 3a. Any signed-in user: change their own password.
   if (input.action === 'change_own_password') {
+    // Owners keep ≥ 10 characters (6 digits are for the other roles). Own memberships, read with the
+    // service client because leads and viewers cannot read memberships through RLS.
+    const own = await allMemberships(serviceClient(), callerId);
+    const isOwner = own.some((m) => m.role === 'owner' && m.revoked_at === null);
+    const problem = passwordProblem(input.new_password, isOwner);
+    if (problem !== null) {
+      throw new HttpError(400, 'VALIDATION_FAILED', 'Choose a longer password.', {
+        fields: ['new_password'],
+        reason: problem,
+      });
+    }
     // GoTrue's own endpoint, with the caller's token: it enforces minimum_password_length and
     // rejects a password equal to the current one (same_password).
     const res = await fetch(`${env('SUPABASE_URL')}/auth/v1/user`, {
@@ -237,6 +254,20 @@ async function handle(req: Request): Promise<{ status: number; body: unknown }> 
         Promise.all(ids.map((id) => service.auth.admin.getUserById(id))),
       ]);
       if (profiles.error) throw new HttpError(500, 'INTERNAL', 'Could not read names.');
+      // Sign-in locks (sign-in Edge Function), keyed by the normalised login = the auth email.
+      const emails = users
+        .map((u) => u?.data.user?.email?.toLowerCase() ?? '')
+        .filter((e) => e.length > 0);
+      const locks = new Map<string, string>();
+      if (emails.length > 0) {
+        const { data: lockRows, error: lockError } = await service.rpc('sign_in_lock_status', {
+          p_logins: emails,
+        });
+        if (lockError) throw new HttpError(500, 'INTERNAL', 'Could not read sign-in locks.');
+        for (const r of (lockRows ?? []) as { login: string; locked_until: string }[]) {
+          locks.set(r.login, r.locked_until);
+        }
+      }
       const names = new Map(
         (profiles.data ?? []).map((p: { user_id: string; full_name: string | null }) => [
           p.user_id,
@@ -258,6 +289,8 @@ async function handle(req: Request): Promise<{ status: number; body: unknown }> 
               can_manage_staff: r.can_manage_staff,
             })),
           is_self: id === callerId,
+          /** Set while the person's sign-in is locked (5 wrong passwords); People offers Unlock. */
+          locked_until: locks.get(email.toLowerCase()) ?? null,
           manageable: canManageTarget(
             callerId,
             caller,
@@ -277,7 +310,8 @@ async function handle(req: Request): Promise<{ status: number; body: unknown }> 
       // Only an owner reaches here, so owner / can_manage_staff grants are owner-made. The new
       // membership is always plant-scoped: a plant owner can never create an org-wide one.
       const service = serviceClient();
-      const tempPassword = generateTempPassword();
+      // The owner's chosen first password (validated: owners ≥ 10 chars), else a generated one.
+      const tempPassword = input.password ?? generateTempPassword();
       const { data: created, error: createError } = await service.auth.admin.createUser({
         email: `${input.username}@${LOGIN_EMAIL_DOMAIN}`,
         password: tempPassword,
@@ -320,13 +354,33 @@ async function handle(req: Request): Promise<{ status: number; body: unknown }> 
       });
       return {
         status: 201,
-        body: { user_id: newId, username: input.username, temp_password: tempPassword },
+        // A password the owner typed is never echoed back.
+        body: {
+          user_id: newId,
+          username: input.username,
+          temp_password: input.password === undefined ? tempPassword : null,
+        },
       };
     }
 
     case 'reset_password': {
-      const { service } = await requireManageableTarget(callerId, caller, input.user_id, plant);
-      const tempPassword = generateTempPassword();
+      const { service, target } = await requireManageableTarget(
+        callerId,
+        caller,
+        input.user_id,
+        plant,
+      );
+      if (input.password !== undefined) {
+        const isOwner = target.some((m) => m.role === 'owner');
+        const problem = passwordProblem(input.password, isOwner);
+        if (problem !== null) {
+          throw new HttpError(400, 'VALIDATION_FAILED', 'Choose a longer password.', {
+            fields: ['password'],
+            reason: problem,
+          });
+        }
+      }
+      const tempPassword = input.password ?? generateTempPassword();
       const { error } = await service.auth.admin.updateUserById(input.user_id, {
         password: tempPassword,
         app_metadata: { must_change_password: true },
@@ -340,8 +394,33 @@ async function handle(req: Request): Promise<{ status: number; body: unknown }> 
       });
       return {
         status: 200,
-        body: { user_id: input.user_id, temp_password: tempPassword },
+        body: {
+          user_id: input.user_id,
+          temp_password: input.password === undefined ? tempPassword : null,
+        },
       };
+    }
+
+    case 'unlock': {
+      // Same authorization as reset_password; the lock is keyed by the login (= the auth email).
+      const { service } = await requireManageableTarget(callerId, caller, input.user_id, plant);
+      const { data: target, error: userError } = await service.auth.admin.getUserById(
+        input.user_id,
+      );
+      const email = target?.user?.email?.toLowerCase() ?? '';
+      if (userError || email === '') {
+        console.error('manage-users: unlock user lookup failed', userError?.code ?? 'no email');
+        throw new HttpError(500, 'INTERNAL', 'Could not unlock.');
+      }
+      const { data: wasLocked, error } = await service.rpc('sign_in_unlock', { p_login: email });
+      if (error) {
+        console.error('manage-users: unlock failed', error.code);
+        throw new HttpError(500, 'INTERNAL', 'Could not unlock.');
+      }
+      await audit(service, callerId, plant, 'users.unlock', input.user_id, {
+        was_locked: wasLocked === true,
+      });
+      return { status: 200, body: { user_id: input.user_id, unlocked: true } };
     }
 
     case 'deactivate': {

@@ -9,7 +9,7 @@
 // A 6-digit password has 10^6 values; it is only acceptable because the `sign-in` Edge Function
 // locks a login after 5 wrong passwords in 15 minutes (5 guesses per 15 minutes ≈ 480 per day,
 // before the owner is alerted on the first lock). The obvious patterns below are the ones people pick
-// first; refusing them removes 213 of the 1,000,000 values (see passwordRules_test.ts), small enough to
+// first; refusing them removes 2,910 of the 1,000,000 values (0.3 %; see passwordRules_test.ts), small enough to
 // keep the rule easy to explain ("not a simple pattern").
 //
 // Simple patterns (6 digits), documented and kept small on purpose:

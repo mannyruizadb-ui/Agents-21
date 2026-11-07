@@ -12,7 +12,7 @@ on:
         type: boolean
         default: false
       deploy_functions:
-        description: 'Also deploy Edge Functions (manage-users, send-alerts) and their secrets'
+        description: 'Also deploy Edge Functions (manage-users, sign-in, send-alerts) and their secrets'
         type: boolean
         default: false
       include_seed:
@@ -53,6 +53,9 @@ jobs:
         run: |
           npx supabase secrets set ALLOWED_ORIGINS=https://adb-plantboard.netlify.app --project-ref "$PROJECT_REF" </dev/null
           npx supabase functions deploy manage-users --project-ref "$PROJECT_REF" </dev/null
+          # sign-in is public (the caller has no session yet): no gateway JWT check. It reads only
+          # auto-injected variables and ALLOWED_ORIGINS (set above).
+          npx supabase functions deploy sign-in --no-verify-jwt --project-ref "$PROJECT_REF" </dev/null
 
       # send-alerts (machine-down Web Push). Secrets are generated here only when missing, are never
       # printed, and are masked. Rotating the VAPID pair would break every saved subscription, so an

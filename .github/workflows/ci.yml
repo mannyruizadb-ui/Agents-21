@@ -43,6 +43,12 @@ jobs:
       - name: send-alerts tests
         working-directory: supabase/functions/send-alerts
         run: deno test --allow-env --allow-net --allow-read
+      - name: manage-users tests (password rules, validation, authz)
+        working-directory: supabase/functions/manage-users
+        run: deno test --allow-env --allow-net --allow-read
+      - name: sign-in tests (lockout decisions)
+        working-directory: supabase/functions/sign-in
+        run: deno test --allow-env --allow-net --allow-read
 
   database:
     name: Database (migrations + pgTAP)
