@@ -12,6 +12,9 @@ export default defineConfig({
     baseURL: 'http://localhost:5179',
     viewport: { width: 390, height: 844 },
     deviceScaleFactor: 1,
-    launchOptions: { executablePath: process.env.CHROME_PATH ?? '/opt/pw-browsers/chromium-1243/chrome-linux64/chrome' },
+    launchOptions: {
+      executablePath:
+        process.env.CHROME_PATH ?? '/opt/pw-browsers/chromium-1243/chrome-linux64/chrome',
+    },
   },
 });

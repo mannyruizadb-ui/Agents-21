@@ -153,14 +153,18 @@ export async function signIn(raw: string, ip: string | null, deps: SignInDeps): 
     // E2E bug B1 (2026-11-07): GoTrue ends the user's sessions when the admin API changes the
     // password, so the session from the legacy grant is already dead. Sign in again with the new
     // peppered password and hand THAT session to the app. Same reserved attempt; no extra count.
+    // If this fails, the password IS upgraded already: a retry works through the normal peppered path.
     let fresh: GrantResult;
     try {
       fresh = await deps.passwordGrant(creds.email, peppered);
     } catch {
-      return fail(502, 'INTERNAL');
+      return { ...fail(502, 'INTERNAL'), upgraded: true };
+    }
+    if (fresh.status === 429) {
+      return { ...fail(429, 'RATE_LIMITED', { retry_after_seconds: 60 }), upgraded: true };
     }
     const freshSession = fresh.status === 200 ? pickSession(fresh.body) : null;
-    if (freshSession === null) return fail(502, 'INTERNAL');
+    if (freshSession === null) return { ...fail(502, 'INTERNAL'), upgraded: true };
     outcome.body = freshSession;
   }
   return outcome;

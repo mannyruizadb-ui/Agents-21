@@ -2,11 +2,19 @@ import { test, expect, type Page } from 'playwright/test';
 import { execSync } from 'node:child_process';
 
 // Runs after pilot-auth.spec.ts (denise exists, owner upgraded). Local only.
-const OWNER = { user: 'mannyruiz.adb@gmail.com', pass: 'OwnerPass-2026' };
+// Local test owner only: never a real account or password.
+const OWNER = {
+  user: process.env.E2E_OWNER_EMAIL ?? 'owner@example.test',
+  pass: process.env.E2E_OWNER_PASSWORD ?? 'local-test-owner-1',
+};
 const DENISE = { user: 'denise', pass: '730514' };
-const SHOTS = process.env.SHOTS_DIR ?? '/tmp/claude-0/-home-user-Agents-21/e78dd717-40be-5a1d-ae72-3689e13533cc/scratchpad/shots';
+const SHOTS = process.env.SHOTS_DIR ?? 'test-results/shots';
 const sql = (q: string) =>
-  execSync(`docker exec -i supabase_db_plantboard psql -U postgres -tA -c "${q.replace(/"/g, '\\"')}"`).toString().trim();
+  execSync(
+    `docker exec -i supabase_db_plantboard psql -U postgres -tA -c "${q.replace(/"/g, '\\"')}"`,
+  )
+    .toString()
+    .trim();
 
 async function signIn(page: Page, user: string, pass: string) {
   await page.goto('/sign-in');
@@ -18,7 +26,14 @@ async function signIn(page: Page, user: string, pass: string) {
 const fresh = async (page: Page) => {
   await page.context().clearCookies();
   await page.goto('/sign-in');
-  await page.evaluate(() => { try { localStorage.clear(); sessionStorage.clear(); } catch { /* */ } });
+  await page.evaluate(() => {
+    try {
+      localStorage.clear();
+      sessionStorage.clear();
+    } catch {
+      /* */
+    }
+  });
 };
 
 test.describe.serial('pilot ops', () => {
@@ -35,7 +50,9 @@ test.describe.serial('pilot ops', () => {
     await page.screenshot({ path: `${SHOTS}/estimate-saved.png` });
   });
 
-  test('4b denise records an AA Linen delivery (no PIN), queue shows AA at bottom', async ({ page }) => {
+  test('4b denise records an AA Linen delivery (no PIN), queue shows AA at bottom', async ({
+    page,
+  }) => {
     await fresh(page);
     await signIn(page, DENISE.user, DENISE.pass);
     await page.goto('/control/deliveries/new');
@@ -49,13 +66,21 @@ test.describe.serial('pilot ops', () => {
     await page.getByRole('button', { name: 'Save delivery' }).click();
     await expect(page.getByText('Sent to the bottom of the queue.')).toBeVisible();
     await page.screenshot({ path: `${SHOTS}/delivery-saved.png` });
-    expect(sql(`select count(*) from public.queue_items where status<>'cancelled' and customer_id is not null`)).toBe('2');
+    expect(
+      sql(
+        `select count(*) from public.queue_items where status<>'cancelled' and customer_id is not null`,
+      ),
+    ).toBe('2');
     await page.goto('/control/queue');
     const items = page.locator('main li');
     await expect(page.getByText('AA', { exact: false }).first()).toBeVisible();
     await page.screenshot({ path: `${SHOTS}/queue-aa.png`, fullPage: true });
     // AA items are the last rows by position
-    expect(sql(`select string_agg((customer_id is not null)::text, ',' order by position) from public.queue_items where status<>'cancelled'`)).toMatch(/(^|,)true,true$/);
+    expect(
+      sql(
+        `select string_agg((customer_id is not null)::text, ',' order by position) from public.queue_items where status<>'cancelled'`,
+      ),
+    ).toMatch(/(^|,)true,true$/);
     void items;
     // 4c: cancel from the same phone (manager cancel list is per-device; history screen is owner-only)
     await page.goto('/control/deliveries/new');
@@ -64,7 +89,9 @@ test.describe.serial('pilot ops', () => {
     await page.getByRole('button', { name: 'Yes, cancel it' }).click();
     await expect(page.getByText('Delivery cancelled.')).toBeVisible();
     expect(sql(`select count(*) from public.queue_items where status='cancelled'`)).toBe('2');
-    expect(sql(`select count(*) from public.customer_deliveries where voided_at is not null`)).toBe('1');
+    expect(sql(`select count(*) from public.customer_deliveries where voided_at is not null`)).toBe(
+      '1',
+    );
     await page.screenshot({ path: `${SHOTS}/delivery-cancelled.png`, fullPage: true });
   });
 
@@ -83,20 +110,31 @@ test.describe.serial('pilot ops', () => {
     const levelCounts: Record<string, number> = {};
     for (let i = 0; i < n; i++) {
       const name = (await cards.nth(i).locator('h3').innerText()).trim();
-      levelCounts[name] = await cards.nth(i).locator('select, [role="radiogroup"], input[type="radio"]').count();
+      levelCounts[name] = await cards
+        .nth(i)
+        .locator('select, [role="radiogroup"], input[type="radio"]')
+        .count();
     }
-    test.info().annotations.push({ type: 'alert-level-controls', description: JSON.stringify(levelCounts) });
+    test
+      .info()
+      .annotations.push({ type: 'alert-level-controls', description: JSON.stringify(levelCounts) });
     await page.screenshot({ path: `${SHOTS}/people-levels.png`, fullPage: true });
     const own = Object.entries(levelCounts).find(([k]) => /Manny/.test(k));
     expect(own && own[1] > 0, 'owner row has alert-level controls').toBeTruthy();
-    for (const [k, v] of Object.entries(levelCounts)) if (!/Manny/.test(k)) expect(v, `${k} row has none`).toBe(0);
+    for (const [k, v] of Object.entries(levelCounts))
+      if (!/Manny/.test(k)) expect(v, `${k} row has none`).toBe(0);
   });
 
   test('6 Back button on a deeper screen; tablet screenshot', async ({ page }) => {
     await fresh(page);
     await signIn(page, OWNER.user, OWNER.pass);
     await page.goto('/control/deliveries/new');
-    await expect(page.getByRole('button', { name: /^Back$/ }).or(page.getByRole('link', { name: /^Back$/ })).first()).toBeVisible();
+    await expect(
+      page
+        .getByRole('button', { name: /^Back$/ })
+        .or(page.getByRole('link', { name: /^Back$/ }))
+        .first(),
+    ).toBeVisible();
     await page.screenshot({ path: `${SHOTS}/deeper-back.png` });
   });
 });

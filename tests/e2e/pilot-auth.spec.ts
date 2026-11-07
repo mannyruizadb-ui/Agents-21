@@ -2,13 +2,21 @@ import { test, expect, type Page } from 'playwright/test';
 import { execSync } from 'node:child_process';
 
 // Local-only pilot checks: legacy owner upgrade, People create, forced change, lockout + unlock.
-// Prereq: owner mannyruiz.adb@gmail.com / OwnerPass-2026 seeded without app_metadata.pw_v (see QA notes).
-const OWNER = { user: 'mannyruiz.adb@gmail.com', pass: 'OwnerPass-2026' };
+// Prereq: a LOCAL owner (E2E_OWNER_EMAIL / E2E_OWNER_PASSWORD, made-up values) seeded without app_metadata.pw_v.
+// Local test owner only: never a real account or password.
+const OWNER = {
+  user: process.env.E2E_OWNER_EMAIL ?? 'owner@example.test',
+  pass: process.env.E2E_OWNER_PASSWORD ?? 'local-test-owner-1',
+};
 const DENISE = { user: 'denise', start: '482913', next: '730514' };
-const SHOTS = process.env.SHOTS_DIR ?? '/tmp/claude-0/-home-user-Agents-21/e78dd717-40be-5a1d-ae72-3689e13533cc/scratchpad/shots';
+const SHOTS = process.env.SHOTS_DIR ?? 'test-results/shots';
 
 const sql = (q: string) =>
-  execSync(`docker exec -i supabase_db_plantboard psql -U postgres -tA -c "${q.replace(/"/g, '\\"')}"`).toString().trim();
+  execSync(
+    `docker exec -i supabase_db_plantboard psql -U postgres -tA -c "${q.replace(/"/g, '\\"')}"`,
+  )
+    .toString()
+    .trim();
 
 async function signIn(page: Page, user: string, pass: string) {
   await page.goto('/sign-in');
@@ -17,14 +25,28 @@ async function signIn(page: Page, user: string, pass: string) {
   await page.getByRole('button', { name: 'Sign in', exact: true }).click();
 }
 async function signOut(page: Page) {
-  await page.evaluate(() => { try { localStorage.clear(); sessionStorage.clear(); } catch { /* */ } });
+  await page.evaluate(() => {
+    try {
+      localStorage.clear();
+      sessionStorage.clear();
+    } catch {
+      /* */
+    }
+  });
   await page.context().clearCookies();
 }
 async function uiSignOut(page: Page) {
   await page.goto('/control/more');
-  await page.getByRole('button', { name: /sign out/i }).first().click();
+  await page
+    .getByRole('button', { name: /sign out/i })
+    .first()
+    .click();
   const send = page.getByRole('button', { name: /keep for next time|send now/i });
-  if (await send.count()) await send.first().click().catch(() => {});
+  if (await send.count())
+    await send
+      .first()
+      .click()
+      .catch(() => {});
 }
 
 test.describe.serial('pilot auth', () => {
@@ -37,12 +59,18 @@ test.describe.serial('pilot auth', () => {
   });
 
   test('1a owner legacy upgrade then peppered sign-in', async ({ page }) => {
-    expect(sql(`select coalesce(raw_app_meta_data->>'pw_v','none') from auth.users where email='${OWNER.user}'`)).toBe('none');
+    expect(
+      sql(
+        `select coalesce(raw_app_meta_data->>'pw_v','none') from auth.users where email='${OWNER.user}'`,
+      ),
+    ).toBe('none');
     await signIn(page, OWNER.user, OWNER.pass);
     // Bug B1 (fixed 2026-11-07): the upgrade used to end the session it returned. The FIRST sign-in
     // with a pre-pepper password must land on /control.
     await page.waitForURL(/\/control/, { timeout: 8000 });
-    expect(sql(`select raw_app_meta_data->>'pw_v' from auth.users where email='${OWNER.user}'`)).toBe('2');
+    expect(
+      sql(`select raw_app_meta_data->>'pw_v' from auth.users where email='${OWNER.user}'`),
+    ).toBe('2');
     await signOut(page);
     await signIn(page, OWNER.user, OWNER.pass);
     await page.waitForURL(/\/control/);
@@ -59,7 +87,11 @@ test.describe.serial('pilot auth', () => {
     await page.getByRole('button', { name: 'Create account' }).click();
     await expect(page.getByText(/denise/i).first()).toBeVisible();
     await page.screenshot({ path: `${SHOTS}/people-created.png`, fullPage: true });
-    expect(sql(`select coalesce(raw_app_meta_data->>'must_change_password','x')||'/'||coalesce(raw_app_meta_data->>'pw_v','x') from auth.users where email like 'denise@%'`)).toBe('true/2');
+    expect(
+      sql(
+        `select coalesce(raw_app_meta_data->>'must_change_password','x')||'/'||coalesce(raw_app_meta_data->>'pw_v','x') from auth.users where email like 'denise@%'`,
+      ),
+    ).toBe('true/2');
   });
 
   test('2b denise forced change', async ({ page }) => {
@@ -71,7 +103,13 @@ test.describe.serial('pilot auth', () => {
     await page.getByRole('button', { name: 'Save password' }).click();
     await page.waitForURL(/\/control/);
     await expect(page).not.toHaveURL(/password/);
-    await expect.poll(() => sql(`select coalesce(raw_app_meta_data->>'must_change_password','false') from auth.users where email like 'denise@%'`)).toBe('false');
+    await expect
+      .poll(() =>
+        sql(
+          `select coalesce(raw_app_meta_data->>'must_change_password','false') from auth.users where email like 'denise@%'`,
+        ),
+      )
+      .toBe('false');
     await signOut(page);
     await signIn(page, DENISE.user, DENISE.next);
     await page.waitForURL(/\/control/);
