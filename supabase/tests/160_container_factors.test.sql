@@ -97,7 +97,7 @@ select is((select array_agg(name order by name) from pg_temp.adb_groups() where 
 select is((select array[count(*), count(distinct color_hex), count(*) filter (where color_hex = '#64748B')]::int[] from pg_temp.adb_groups()),
   array[33, 33, 0], '33 groups, 33 distinct preset colors, none left at the default');
 select is((select array[count(*), count(distinct color_hex), count(*) filter (where color_hex = '#64748B')]::int[] from pg_temp.adb_all_groups()),
-  array[41, 41, 0], 'with AA Linen''s 8 groups: 41 groups, 41 distinct preset colors (AA chips never look like ours)');
+  array[45, 45, 0], 'with AA Linen''s 12 groups (2026-11-07): 45 groups, 45 distinct preset colors (AA chips never look like ours)');
 
 -- Chip contrast: every color is ≥ 3:1 against the white card or the TV's dark card (#0B0F14);
 -- colors whose name has no black/white/navy/bone/sheet meaning are ≥ 3:1 against both.

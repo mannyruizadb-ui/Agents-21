@@ -1,4 +1,5 @@
--- Outside-customer deliveries (owner 2026-11-06, B): record_customer_delivery (owner/manager + name + PIN),
+-- Outside-customer deliveries (owner 2026-11-06, B): record_customer_delivery (owner/manager; no name + PIN
+-- since 2026-11-07: the session id is ignored, staff_id null),
 -- lines of the customer's own groups, one queue item per line at the bottom of the washroom queue,
 -- idempotency, append-only tables, the owner-only read, and the customer_delivery alert.
 begin;
@@ -52,11 +53,10 @@ select is(pg_temp.reads($$select * from public.customer_deliveries$$), '{42501,4
 select is(pg_temp.reads($$select * from public.customer_delivery_lines$$), '{42501,42501,42501,42501,42501,42501,42501,42501}',
   'customer_delivery_lines: RPC-only (no client grants for any role)');
 
--- ══ Role matrix (role check first; no staff session) ═════════════════════
-select is(pg_temp.writes($$select public.record_customer_delivery(pg_temp.id('plantA'), pg_temp.c('aa'),
-                                 '[{"wash_group_id":"71000000-0000-0000-0000-0000000aa0a1","bins":1}]', gen_random_uuid(), null)$$),
-  '{STAFF_SESSION_REQUIRED,STAFF_SESSION_REQUIRED,NOT_AUTHORIZED,NOT_AUTHORIZED,NOT_AUTHORIZED,NOT_AUTHORIZED,NOT_AUTHORIZED,42501}',
-  'record_customer_delivery: owner or manager with name + PIN; lead, viewer, display, other tenant refused; anon cannot call');
+-- ══ Role matrix (role check first; empty lines so nothing is written) ═════
+select is(pg_temp.writes($$select public.record_customer_delivery(pg_temp.id('plantA'), pg_temp.c('aa'), '[]', gen_random_uuid(), null)$$),
+  '{VALIDATION_FAILED,VALIDATION_FAILED,NOT_AUTHORIZED,NOT_AUTHORIZED,NOT_AUTHORIZED,NOT_AUTHORIZED,NOT_AUTHORIZED,42501}',
+  'record_customer_delivery: owner or manager pass the role check (no PIN needed) and reach validation; lead, viewer, display, other tenant refused; anon cannot call');
 select is(pg_temp.run_as('ownerB', $$select public.record_customer_delivery(pg_temp.id('plantA'), pg_temp.c('b'), '[]', gen_random_uuid(), null)$$),
   'NOT_AUTHORIZED', 'another tenant learns nothing (role check before any validation)');
 select is(pg_temp.run_as('manager', $$select public.record_customer_delivery(gen_random_uuid(), pg_temp.c('aa'), '[]', gen_random_uuid(), null)$$),
@@ -67,10 +67,10 @@ select is(pg_temp.val_as('manager', format('select row((r).queue_item_ids is not
             pg_temp.rec('[{"wash_group_id":"71000000-0000-0000-0000-0000000aa0a1","bins":2.5},{"wash_group_id":"71000000-0000-0000-0000-0000000aa0a2","bins":0.25}]',
                         'd1000000-0000-0000-0000-000000000001'))),
   '(t,2,f)', 'a manager with name + PIN records a delivery of 2 groups: 2 queue items, not a duplicate');
-select is((select row(d.customer_id = pg_temp.c('aa'), d.entered_by = pg_temp.id('manager'), d.staff_id = 'b0000000-0000-0000-0000-0000000000a2',
+select is((select row(d.customer_id = pg_temp.c('aa'), d.entered_by = pg_temp.id('manager'), d.staff_id is null,
                       abs(extract(epoch from d.delivered_at - now())) < 1, d.voided_at is null)::text
              from public.customer_deliveries d where d.client_id = 'd1000000-0000-0000-0000-000000000001'),
-  '(t,t,t,t,t)', 'the delivery: customer, entered_by + staff (A8), delivered_at = now, not voided');
+  '(t,t,t,t,t)', 'the delivery: customer, entered_by = the account, no staff (the PIN session id was ignored), delivered_at = now, not voided');
 select is((select array_agg(row(l.line_no, l.bins, coalesce(l.loads::text, 'null'))::text order by l.line_no)
              from public.customer_delivery_lines l join public.customer_deliveries d on d.id = l.delivery_id
             where d.client_id = 'd1000000-0000-0000-0000-000000000001'),
@@ -100,8 +100,9 @@ select is(array[(select count(*)::int from public.customer_deliveries), (select 
                 (select count(*)::int from public.alert_events where kind = 'customer_delivery')],
   array[1, 2, 1], 'the retry wrote nothing: no second delivery, queue item or alert');
 select is(pg_temp.run_as('ownerB', $$select public.record_customer_delivery(pg_temp.id('plantB'), pg_temp.c('b'),
-                                     '[{"wash_group_id":"71000000-0000-0000-0000-0000000aa0b1","bins":1}]', 'd1000000-0000-0000-0000-000000000001', null)$$),
-  'STAFF_SESSION_REQUIRED', 'another plant''s client_id is independent (unique per plant, 2026-11-07): no "already used" answer, the call goes on to the PIN check');
+                                     '[{"wash_group_id":"71000000-0000-0000-0000-0000000aa0b1","bins":1}]', 'd1000000-0000-0000-0000-000000000001', null,
+                                     p_entered_at => now() - interval '9 hours')$$),
+  'OUT_OF_RANGE_TIMESTAMP', 'another plant''s client_id is independent (unique per plant, 2026-11-07): no "already used" answer, the call goes on to the time-window check');
 
 -- ══ Validation (nothing is written) ══════════════════════════════════════
 select is(array[
@@ -141,10 +142,8 @@ select is(array[(select count(*)::int from public.customer_deliveries), (select 
 select is(pg_temp.run_as('owner', $$select public.record_customer_delivery(pg_temp.id('plantA'), pg_temp.c('aa'), '[{"wash_group_id":"71000000-0000-0000-0000-0000000aa0a2","bins":4}]',
                                     'd1000000-0000-0000-0000-000000000002', pg_temp.ben(), p_note => 'Two bins wet', p_entered_at => now() - interval '2 hours')$$),
   '1', 'an owner records a delivery too (offline entry from 2 hours ago, with a note)');
-select set_config('test.spent', (select id::text from public.staff_sessions order by confirmed_at desc, id limit 1), true);
-select is(pg_temp.run_as('manager', format($$select public.record_customer_delivery(pg_temp.id('plantA'), pg_temp.c('aa'), '[{"wash_group_id":"71000000-0000-0000-0000-0000000aa0a2","bins":1}]',
-                                      gen_random_uuid(), %L)$$, current_setting('test.spent'))),
-  'STAFF_SESSION_REQUIRED', 'a spent (or another person''s) staff session is refused');
+select is((select array[count(*), count(staff_id)]::int[] from public.customer_deliveries), '{3,0}',
+  'no delivery carries a staff person (2026-11-07: the account is the attribution)');
 
 -- ══ Append-only and the line trigger (service role) ══════════════════════
 select is(array[
@@ -157,7 +156,7 @@ select is(array[
   pg_temp.as_service($$update public.customer_deliveries set voided_at = now(), voided_by = pg_temp.id('owner'), void_reason = 'wrong customer' where client_id = 'd1000000-0000-0000-0000-000000000002'$$),
   pg_temp.as_service($$update public.customer_deliveries set voided_at = now(), voided_by = pg_temp.id('owner'), void_reason = 'again' where client_id = 'd1000000-0000-0000-0000-000000000002'$$),
   pg_temp.as_service($$update public.customer_deliveries set voided_at = now() where client_id = 'd1000000-0000-0000-0000-000000000001'$$)],
-  '{1,VALIDATION_FAILED,23514}', 'a delivery can be voided once, with who and why (no void RPC yet)');
+  '{1,VALIDATION_FAILED,23514}', 'a delivery can be voided once, with who and why (the RPC void_customer_delivery is tested in 219)');
 select is(array[
   pg_temp.as_service($$insert into public.customer_delivery_lines (org_id, plant_id, delivery_id, line_no, wash_group_id, bins)
                         select org_id, plant_id, id, 9, pg_temp.c('gOther'), 1 from public.customer_deliveries where client_id = 'd1000000-0000-0000-0000-000000000001'$$),
@@ -180,8 +179,8 @@ select is(pg_temp.reads($$select * from public.get_customer_deliveries(pg_temp.i
   'get_customer_deliveries: owner only (managers see a delivery''s work in the queue)');
 select is(pg_temp.val_as('owner', $$select string_agg(customer_name || ':' || entered_by_name || ':' || voided || ':' || jsonb_array_length(lines), ',' order by voided, customer_name)
                                     from public.get_customer_deliveries(pg_temp.id('plantA'))$$),
-  'AA Test:Ben:false:2,Other Co:Ben:false:1,AA Test:Ben:true:2',
-  'rows: customer, who entered (the PIN''s name, owner screens only), voided, lines');
+  'AA Test:Manager A:false:2,Other Co:Manager A:false:1,AA Test:Owner A:true:2',
+  'rows: customer, who entered (the account''s name, owner screens only), voided, lines');
 select is(pg_temp.val_as('owner', $$select (lines -> 0 ->> 'wash_group_name') || '/' || (lines -> 0 ->> 'bins') || '/' || (lines -> 0 ->> 'loads') || '/' || (lines -> 0 ->> 'queue_status')
                                     from public.get_customer_deliveries(pg_temp.id('plantA')) where note is null and customer_name = 'AA Test'$$),
   'Kitchen towels/2.50/3.750/queued', 'a line: group, bins, loads, its queue item''s status');

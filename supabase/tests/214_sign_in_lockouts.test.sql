@@ -42,7 +42,7 @@ select is(
                     || has_function_privilege('service_role', p.oid, 'execute') order by p.proname)
      from pg_proc p join pg_namespace n on n.oid = p.pronamespace
     where n.nspname = 'public' and p.proname like 'sign\_in\_%'),
-  '{sign_in_begin:falsefalsetrue,sign_in_failed:falsefalsetrue,sign_in_lock_status:falsefalsetrue,sign_in_succeeded:falsefalsetrue,sign_in_unlock:falsefalsetrue}',
+  '{sign_in_account_state:falsefalsetrue,sign_in_begin:falsefalsetrue,sign_in_failed:falsefalsetrue,sign_in_lock_status:falsefalsetrue,sign_in_succeeded:falsefalsetrue,sign_in_unlock:falsefalsetrue}',
   'the sign_in_* RPCs: service role only (not authenticated, not anon)');
 select is(array[
   pg_temp.run_as('owner', $$select public.sign_in_unlock('denise@accounts.adbheadquarters.com')$$),
@@ -80,10 +80,10 @@ select is((select array_agg(login || '>' || (locked_until = now() + interval '15
              '{denise@accounts.adbheadquarters.com,lead@a.test}')),
   '{denise@accounts.adbheadquarters.com>true}', 'sign_in_lock_status lists the locked login and its lock end only');
 
--- ══ account_locked alert (owners only, quiet by default) ════════════════
+-- ══ account_locked alert (owners only, push by default since 2026-11-07) ═
 select is((select array_agg(a.plant_id::text || '/' || a.subject_id::text || '/' || a.recipients::text) from public.alert_events a where a.kind = 'account_locked'),
-  array[pg_temp.id('plantA')::text || '/' || pg_temp.id('manager')::text || '/{quiet}'],
-  'one account_locked alert per plant of the account (subject = the user); default level quiet (no push)');
+  array[pg_temp.id('plantA')::text || '/' || pg_temp.id('manager')::text || '/{}'],
+  'one account_locked alert per plant of the account (subject = the user); default level push (pending for the push)');
 select is((select app.alert_payload(a) - 'locked_until' from public.alert_events a where a.kind = 'account_locked'),
   jsonb_build_object('user_id', pg_temp.id('manager'), 'username', 'denise', 'failures', 5, 'still_locked', true),
   'payload: user id, username, failures, still_locked');
@@ -99,7 +99,7 @@ select is(pg_temp.val_as('owner', $$select (public.set_alert_level(pg_temp.mid('
   'push', 'an owner can turn account_locked to push');
 select is(array[app.alert_level_default('account_locked'), (select app.push_alert_kinds() @> '{account_locked}')::text,
                 (select app.owner_alert_kinds() @> '{account_locked}')::text],
-  '{quiet,true,true}', 'account_locked: an owner information kind, quiet by default, in the Alerts tab / push pipeline');
+  '{push,true,true}', 'account_locked: an owner information kind, PUSH by default (M4, 2026-11-07), in the Alerts tab / push pipeline');
 
 -- ══ Unknown logins behave the same (no oracle) ═══════════════════════════
 select is(array[pg_temp.fail('nobody-here@accounts.adbheadquarters.com', 4, '203.0.113.9'),
@@ -144,10 +144,11 @@ select is((select attempts from public.sign_in_lockouts where key_hash = app.sig
 -- ══ Purge ════════════════════════════════════════════════════════════════
 update public.sign_in_lockouts set updated_at = now() - interval '2 days';
 select cmp_ok(app.purge_sign_in_lockouts(), '>', 0, 'the daily purge removes old counters …');
-select is(not exists (select 1 from public.sign_in_lockouts where locked_until is null or locked_until < now())
+select is(not exists (select 1 from public.sign_in_lockouts where (locked_until is null or locked_until < now())
+                                                         and (last_locked_until is null or last_locked_until < now() - interval '24 hours'))
             and exists (select 1 from public.sign_in_lockouts where locked_until > now())
             and exists (select 1 from cron.job where jobname = 'purge-sign-in-lockouts' and schedule = '41 4 * * *'),
-  true, '… keeps live locks, and runs daily (pg_cron purge-sign-in-lockouts)');
+  true, '… keeps live locks and the 24-hour escalation memory of recent ones, and runs daily (pg_cron purge-sign-in-lockouts)');
 
 select * from finish();
 rollback;

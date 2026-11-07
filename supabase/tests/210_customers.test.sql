@@ -22,7 +22,7 @@ grant execute on function pg_temp.c(text) to authenticated, anon;
 -- ══ customers: structure and §4.7 matrix ═════════════════════════════════
 select ok((select relrowsecurity from pg_class where oid = 'public.customers'::regclass), 'customers: RLS enabled');
 select is(pg_temp.reads($$select * from public.customers where plant_id = pg_temp.id('plantA')$$),
-  '{2,2,0,0,0,0,0,42501}', 'customers R: owner and manager of the plant only (lead, viewer, display, other tenant: nothing; anon: no grant)');
+  '{2,2,2,0,2,0,0,42501}', 'customers R: owner, manager, lead and the plant''s display (2026-11-07: tablets/TVs show "AA Linen"); viewer, unpaired display, other tenant: nothing; anon: no grant');
 select is(pg_temp.reads($$select * from public.customers where plant_id = pg_temp.id('plantB')$$),
   '{0,0,0,0,0,0,1,42501}', 'customers R: cross-tenant rows are invisible');
 select is(pg_temp.writes($$insert into public.customers (org_id, plant_id, name) values (pg_temp.id('orgA'), pg_temp.id('plantA'), 'New Co')$$),
@@ -68,8 +68,8 @@ select is(array[
   pg_temp.run_as('manager', $$update public.wash_groups set sort_order = 5 where id = pg_temp.c('gAA')$$),
   pg_temp.run_as('owner',   $$update public.wash_groups set customer_id = pg_temp.c('aa2') where id = pg_temp.id('gMat')$$),
   pg_temp.run_as('owner',   $$update public.wash_groups set customer_id = null where id = pg_temp.id('gMat')$$)],
-  '{NOT_AUTHORIZED,NOT_AUTHORIZED,1,1,1}',
-  'wash_groups U customer_id: owner only; a manager keeps their other edits on a customer group');
+  '{NOT_AUTHORIZED,NOT_AUTHORIZED,NOT_AUTHORIZED,1,1}',
+  'wash_groups U customer_id: owner only; since 2026-11-07 a manager cannot edit ANY column of a customer group');
 select is(pg_temp.run_as('owner', $$update public.wash_groups set customer_id = pg_temp.c('b') where id = pg_temp.id('gMat')$$), '23503',
   'composite FK: a group cannot point at another tenant''s customer');
 select is(array[
@@ -124,15 +124,20 @@ create function pg_temp.aa_groups() returns setof public.wash_groups language sq
     join public.organizations o on o.id = p.org_id and o.slug = 'americas-dust-busters';
 $$;
 select is((select array_agg(name || '=' || (name_i18n ->> 'es') order by sort_order) from pg_temp.aa_groups()),
-  array['Kitchen towels=Toallas de cocina', 'Aprons=Delantales', 'Mats=Mapos', 'Napkins=Servilletas', 'Tablecloths=Manteles',
+  array['Kitchen towels=Toallas de cocina', 'White aprons=Delantales blancos', 'Black aprons=Delantales negros', 'Mats=Alfombras',
+        'White napkins=Servilletas blancas', 'Colored napkins=Servilletas de color', 'White tablecloths=Manteles blancos',
+        'Colored tablecloths=Manteles de color', 'Cotton tablecloths=Manteles de algodón',
         'Stained white napkins=Servilletas blancas manchadas', 'Stained white tablecloths=Manteles blancos manchados',
         'Stained hotel towels=Toallas de hotel manchadas'],
-  'ADB: AA Linen has its own 8 wash groups (EN + ES)');
+  'ADB: AA Linen has its own 12 wash groups (EN + ES; owner 2026-11-07)');
 select is((select array_agg(name || '=' || coalesce(loads_per_bin::text, 'null') || '/' || allow_bin_estimates order by sort_order)
              from pg_temp.aa_groups() where loads_per_bin is not null or allow_bin_estimates), array['Mats=4.000/true'],
   'only AA Mats have a bin factor (4 loads per full bin); the others wait for the owner (null, never guessed)');
-select is((select count(*)::int from pg_temp.aa_groups() where wash_formula_id is null and active), 8,
-  'no formula is invented: the owner picks one per AA group');
+select is((select array_agg(g.name || '=' || f.external_no order by g.sort_order) from pg_temp.aa_groups() g
+             left join public.wash_formulas f on f.id = g.wash_formula_id and f.plant_id = g.plant_id),
+  array['Kitchen towels=5', 'White aprons=5', 'Black aprons=4', 'Mats=1', 'White napkins=3', 'Colored napkins=4', 'White tablecloths=3',
+        'Colored tablecloths=4', 'Cotton tablecloths=3', 'Stained white napkins=5', 'Stained white tablecloths=5', 'Stained hotel towels=5'],
+  'the owner''s formula per AA group (2026-11-07; stained always 5; cotton tablecloths = our white tablecloths'' 3, flagged)');
 -- Re-run the migration's data statements: nothing changes.
 select is(pg_temp.as_service($$
 insert into public.customers (org_id, plant_id, name, name_i18n, sort_order)
@@ -149,7 +154,7 @@ select c.org_id, c.plant_id, c.id, v.name, pg_catalog.jsonb_build_object('es', v
   join public.organizations o on o.id = p.org_id and o.slug = 'americas-dust-busters'
  cross join (values
    ('Kitchen towels', 'Toallas de cocina', '#C2410C', 1000, null::numeric),
-   ('Mats', 'Mapos', '#A16207', 1020, 4)) as v(name, es, color, sort_order, per_bin)
+   ('Mats', 'Alfombras', '#A16207', 1020, 4)) as v(name, es, color, sort_order, per_bin)
  where c.name = 'AA Linen'
    and not exists (select 1 from public.wash_groups g where g.plant_id = c.plant_id and g.customer_id = c.id and g.name = v.name)$$),
   '0', 'data migration re-run: no AA group is added twice');

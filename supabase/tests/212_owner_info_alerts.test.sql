@@ -1,7 +1,7 @@
 -- Owner information alerts and levels (owner 2026-11-06, C): estimate_entered (one per batch),
--- rewash_added (a manager's rewash), off_queue_start (a start that is not what the queue had next),
--- per-owner levels push | quiet | off (memberships.alert_levels, set_alert_level), quiet never pushed,
--- off hidden, all informational and clearable, no names in payloads.
+-- rewash_added (a manager's rewash), per-owner levels push | quiet | off (memberships.alert_levels,
+-- set_alert_level: SELF-ONLY since 2026-11-07), quiet never pushed, off hidden, all informational and
+-- clearable, no names in payloads. off_queue_start was removed (owner 2026-11-07): starts write no alert.
 begin;
 \ir _fixtures.psql
 select plan(40);
@@ -30,8 +30,8 @@ insert into public.push_subscriptions (org_id, plant_id, user_id, endpoint, p256
 
 -- ══ Levels: storage and defaults ═════════════════════════════════════════
 select is((select alert_levels from public.memberships where id = pg_temp.mid('owner')),
-  '{"customer_delivery":"push","estimate_entered":"quiet","rewash_added":"quiet","off_queue_start":"quiet"}'::jsonb,
-  'defaults: customer_delivery push; estimate_entered, rewash_added, off_queue_start quiet');
+  '{"customer_delivery":"push","estimate_entered":"quiet","rewash_added":"quiet"}'::jsonb,
+  'defaults: customer_delivery push; estimate_entered, rewash_added quiet (account_locked: push via app.alert_level_default)');
 select is(array[
   pg_temp.as_service($$update public.memberships set alert_levels = '{"machine_down":"push"}' where id = pg_temp.mid('owner')$$),
   pg_temp.as_service($$update public.memberships set alert_levels = '{"rewash_added":"loud"}' where id = pg_temp.mid('owner')$$),
@@ -53,24 +53,27 @@ select is(pg_temp.writes($$select public.set_alert_level(pg_temp.mid('owner'), '
 select is(array[
   pg_temp.run_as('ownerP', $$select public.set_alert_level(pg_temp.mid('owner'), 'rewash_added', 'off')$$),
   pg_temp.run_as('owner',  $$select public.set_alert_level(pg_temp.mid('ownerP'), 'rewash_added', 'push')$$),
+  pg_temp.run_as('ownerP', $$select public.set_alert_level(pg_temp.mid('ownerP'), 'rewash_added', 'push')$$),
   pg_temp.run_as('owner',  $$select public.set_alert_level(gen_random_uuid(), 'rewash_added', 'push')$$),
   pg_temp.run_as('ownerB', $$select public.set_alert_level(pg_temp.mid('ownerP'), 'rewash_added', 'off')$$)],
-  '{NOT_AUTHORIZED,1,NOT_AUTHORIZED,NOT_AUTHORIZED}',
-  'an org-wide membership needs an org owner; an org owner sets a plant owner''s level; unknown and foreign ids: same NOT_AUTHORIZED');
+  '{NOT_AUTHORIZED,NOT_AUTHORIZED,1,NOT_AUTHORIZED,NOT_AUTHORIZED}',
+  'self-only (2026-11-07): neither owner changes the other''s level (not even an org owner); each sets their own; unknown and foreign ids: same NOT_AUTHORIZED');
 select is(array[
   pg_temp.run_as('owner', $$select public.set_alert_level(pg_temp.mid('manager'), 'rewash_added', 'push')$$),
+  pg_temp.run_as('owner', $$select public.set_alert_level(pg_temp.mid('owner'), 'off_queue_start', 'push')$$),
   pg_temp.run_as('owner', $$select public.set_alert_level(pg_temp.mid('owner'), 'machine_down', 'push')$$),
   pg_temp.run_as('owner', $$select public.set_alert_level(pg_temp.mid('owner'), 'rewash_added', 'loud')$$),
   pg_temp.run_as('owner', $$select public.set_alert_level(pg_temp.mid('owner'), null, 'push')$$),
   pg_temp.run_as('owner', $$select public.set_alert_level(pg_temp.mid('owner'), 'rewash_added', null)$$)],
-  '{VALIDATION_FAILED,VALIDATION_FAILED,VALIDATION_FAILED,VALIDATION_FAILED,VALIDATION_FAILED}',
-  'only owner memberships; only the four owner information kinds (existing kinds keep their switches); only push | quiet | off');
-select is(pg_temp.val_as('owner', $$select (public.set_alert_level(pg_temp.mid('ownerP'), 'off_queue_start', 'off')).alert_levels ->> 'off_queue_start'$$),
+  '{NOT_AUTHORIZED,VALIDATION_FAILED,VALIDATION_FAILED,VALIDATION_FAILED,VALIDATION_FAILED,VALIDATION_FAILED}',
+  'a manager''s membership is not the caller''s own; only the four owner information kinds (off_queue_start removed; existing kinds keep their switches); only push | quiet | off');
+select is(pg_temp.val_as('ownerP', $$select (public.set_alert_level(pg_temp.mid('ownerP'), 'account_locked', 'off')).alert_levels ->> 'account_locked'$$),
   'off', 'returns the membership with the new level');
-update public.memberships set revoked_at = now() where id = pg_temp.mid('ownerP');
-select is(pg_temp.run_as('owner', $$select public.set_alert_level((select id from public.memberships where user_id = pg_temp.id('ownerP')), 'rewash_added', 'push')$$),
+-- A revoked plant membership of the (org-wide) owner: still the owner's own, still owned by them.
+insert into public.memberships (id, user_id, org_id, plant_id, role, revoked_at)
+values ('a1000000-0000-0000-0000-0000000000f1', pg_temp.id('owner'), pg_temp.id('orgA'), pg_temp.id('plantA'), 'owner', now());
+select is(pg_temp.run_as('owner', $$select public.set_alert_level('a1000000-0000-0000-0000-0000000000f1', 'rewash_added', 'push')$$),
   'VALIDATION_FAILED', 'a revoked membership: VALIDATION_FAILED');
-update public.memberships set revoked_at = null where user_id = pg_temp.id('ownerP');
 select is((select count(*)::int from public.audit_log where entity = 'memberships' and action = 'memberships.update'
              and before -> 'alert_levels' is distinct from after -> 'alert_levels'), 3,
   'level changes are audited (3 real changes so far)');
@@ -114,7 +117,7 @@ select is((select app.alert_payload(a) - 'queue_item_id' - 'area_id' - 'created_
                      'qty', 1.00, 'unit', 'bin', 'qty_loads', null, 'status', 'queued'),
   'payload: area, group, qty + unit (+ loads; null without a bin factor), status; no names, no note');
 
--- ══ off_queue_start ══════════════════════════════════════════════════════
+-- ══ Starts write no off_queue_start alert (removed 2026-11-07) ══════════
 -- Queue now (normal items in creation order): the manager's Towels rewash (1 bin, no bin factor: never
 -- auto-completes) is next for Washer 1; then the owner's Towels rewash; then Napkins (2 loads).
 select is(array[
@@ -127,39 +130,31 @@ select is(array[
   pg_temp.run_as('lead', $$select public.start_washer_load(pg_temp.id('machine'), 'e5000000-0000-0000-0000-000000000005',
                              p_queue_item_id => (select id from public.queue_items where client_id = 'e4000000-0000-0000-0000-000000000002'))$$)],
   '{1,1,1,1,1}', 'starts: the queue''s next item; an off-queue Mats load; Napkins picked out of order (and its retry); the other Towels item (same group as next)');
-select is((select array_agg(w.client_id::text || ':' || coalesce(a.dedupe_key, 'none') order by w.client_id)
-             from public.alert_events a join public.washer_cycles w on w.id = a.subject_id where a.kind = 'off_queue_start'),
-  array['e5000000-0000-0000-0000-000000000002:' || pg_temp.id('gTowel'), 'e5000000-0000-0000-0000-000000000003:' || pg_temp.id('gTowel')],
-  'off_queue_start for the off-queue load and the out-of-order group (expected = Towels); none for the queue''s next item, a same-group item or the retry');
-select is((select app.alert_payload(a) - 'cycle_id' - 'machine_id' - 'started_at' - 'wash_group_id' - 'expected_wash_group_id' - 'queue_item_id'
-             from public.alert_events a join public.washer_cycles w on w.id = a.subject_id
-            where a.kind = 'off_queue_start' and w.client_id = 'e5000000-0000-0000-0000-000000000002'),
-  jsonb_build_object('machine_name', 'Washer 1', 'area_name', 'Washroom', 'wash_group_name', 'Mats', 'wash_group_name_i18n', '{}'::jsonb,
-                     'customer_id', null, 'is_rewash', false, 'off_queue', true, 'expected_wash_group_name', 'Towels',
-                     'expected_wash_group_name_i18n', '{}'::jsonb, 'voided', false),
-  'payload: washer, group started, expected group, off_queue; no tapper');
+select is((select count(*)::int from public.alert_events where kind = 'off_queue_start'), 0,
+  'no off_queue_start alert any more (owner 2026-11-07): not for the off-queue load, not for the out-of-order group');
+select ok(not (app.owner_alert_kinds() @> '{off_queue_start}') and not (app.push_alert_kinds() @> '{off_queue_start}')
+          and app.alert_level_default('off_queue_start') is null,
+  'off_queue_start is in no kind list and has no default level');
 update public.queue_items set status = 'cancelled' where status in ('queued', 'in_progress');
 select is(pg_temp.run_as('lead', $$select public.start_washer_load(pg_temp.id('machine'), 'e5000000-0000-0000-0000-000000000004', p_wash_group_id => pg_temp.id('gTowel'), p_confirm_running => true)$$), '1',
   'a start with nothing queued …');
-select is((select coalesce(a.dedupe_key, 'none') || ':' || (app.alert_payload(a) ->> 'off_queue') from public.alert_events a join public.washer_cycles w on w.id = a.subject_id
-            where a.kind = 'off_queue_start' and w.client_id = 'e5000000-0000-0000-0000-000000000004'),
-  'none:true', '… is an off-queue load (no expected group)');
+select is((select count(*)::int from public.alert_events where kind = 'off_queue_start'), 0, '… and writes no alert either');
 
 -- ══ Visibility, push and levels ══════════════════════════════════════════
 select is(array[pg_temp.my('owner'), pg_temp.my('manager'), pg_temp.my('ownerP')],
-  array['estimate_entered=3,off_queue_start=3,rewash_added=1', '-', 'estimate_entered=3,rewash_added=1'],
-  'quiet kinds show in the owners'' Alerts tab; never managers''; ownerP turned off_queue_start off');
+  array['estimate_entered=3,rewash_added=1', '-', 'estimate_entered=3,rewash_added=1'],
+  'quiet kinds show in the owners'' Alerts tab; never managers''');
 select is((select array_agg(distinct a.recipients::text) from public.alert_events a where a.kind in ('estimate_entered', 'off_queue_start')),
   array['{quiet}'], 'quiet for every owner: stored as delivered-with-nothing-to-send …');
 select is((select count(*)::int from app.pending_push_notifications() p where p.kind in ('estimate_entered', 'rewash_added', 'off_queue_start')), 0,
   '… and never pushed (the owner, who has a phone subscribed, keeps them quiet)');
 select is((select array_agg(u) from public.alert_events a cross join lateral app.alert_recipient_users(a) u where a.kind = 'rewash_added'),
   array[pg_temp.id('ownerP')], 'levels are per owner: ownerP set rewash_added to push, so only ownerP is a push recipient');
-select ok(pg_temp.val_as('owner', $$select public.get_my_alert_count(pg_temp.id('plantA'))$$)::int >= 7, 'quiet alerts count in the badge');
+select ok(pg_temp.val_as('owner', $$select public.get_my_alert_count(pg_temp.id('plantA'))$$)::int >= 4, 'quiet alerts count in the badge');
 select is(array[
   pg_temp.val_as('owner', $$select (public.set_alert_level(pg_temp.mid('owner'), 'estimate_entered', 'off')).alert_levels ->> 'estimate_entered'$$),
   pg_temp.my('owner')],
-  array['off', 'off_queue_start=3,rewash_added=1'], 'off hides the kind from that owner''s Alerts tab …');
+  array['off', 'rewash_added=1'], 'off hides the kind from that owner''s Alerts tab …');
 select is(pg_temp.my('ownerP'), 'estimate_entered=3,rewash_added=1', '… only for that owner');
 select is(pg_temp.run_as('owner', format($$select * from public.clear_my_alerts(pg_temp.id('plantA'), %L)$$,
                                          (select array_agg(a.id) from public.alert_events a where a.kind = 'estimate_entered'))),

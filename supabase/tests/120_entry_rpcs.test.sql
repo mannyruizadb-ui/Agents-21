@@ -1,6 +1,7 @@
--- M2 name + PIN entry RPCs (PRD A8, B1, E1, E4): record_soil_estimate, record_finished_goods,
--- void_finished_goods. Role matrix, staff-session rules, validation, shift attribution, idempotency,
--- no-oracle checks.
+-- M2 entry RPCs (PRD B1, E1, E4): record_soil_estimate, record_finished_goods, void_finished_goods.
+-- Role matrix, validation, shift attribution, idempotency, no-oracle checks. Since 2026-11-07 (owner: one
+-- sign-in method) entries need NO name + PIN: p_staff_session_id is optional and ignored, staff_id is null,
+-- entered_by = the account, and the finished-goods shift is the area's clock shift (app.clock_entry_shift).
 -- Matrix arrays: [owner, manager, lead, viewer, display, display-without-device, owner of B, anon].
 begin;
 \ir _fixtures.psql
@@ -31,10 +32,10 @@ grant execute on function pg_temp.ana() to authenticated, anon;
 select is(pg_temp.writes($$select public.record_soil_estimate(pg_temp.id('gNapkin'), 4, 'load', gen_random_uuid(), pg_temp.ana())$$),
   '{1,1,NOT_AUTHORIZED,NOT_AUTHORIZED,NOT_AUTHORIZED,NOT_AUTHORIZED,NOT_AUTHORIZED,42501}',
   'record_soil_estimate: owner/manager with a staff session (lead, viewer, display, other tenant: NOT_AUTHORIZED; anon: no EXECUTE)');
-select is((select array[count(*)::text, bool_and(staff_id = 'b0000000-0000-0000-0000-0000000000a1')::text,
+select is((select array[count(*)::text, bool_and(staff_id is null)::text,
                         string_agg(entered_by::text, ',' order by entered_by)]
              from public.soil_estimates where wash_group_id = pg_temp.id('gNapkin')),
-  array['2', 'true', pg_temp.id('owner')::text || ',' || pg_temp.id('manager')::text], 'staff_id = the confirmed person; entered_by = the account');
+  array['2', 'true', pg_temp.id('owner')::text || ',' || pg_temp.id('manager')::text], 'no PIN: staff_id is null even when a session id is sent; entered_by = the account');
 
 select set_config('test.s1', pg_temp.sess('manager', 'b0000000-0000-0000-0000-0000000000a2', '1470')::text, true);
 select is(pg_temp.run_as('manager', $$select public.record_soil_estimate(pg_temp.id('gTowel'), 6, 'basket', pg_temp.cid(1), current_setting('test.s1')::uuid, ' recount ')$$),
@@ -42,7 +43,7 @@ select is(pg_temp.run_as('manager', $$select public.record_soil_estimate(pg_temp
 select is((select array[qty::text, unit::text, note] from public.soil_estimates where client_id = pg_temp.cid(1)),
   array['6.00', 'basket', 'recount'], 'stored as entered (note trimmed)');
 select is(pg_temp.run_as('manager', $$select public.record_soil_estimate(pg_temp.id('gTowel'), 7, 'basket', gen_random_uuid(), current_setting('test.s1')::uuid)$$),
-  'STAFF_SESSION_REQUIRED', 'PIN reuse 0: a session is single-use');
+  '1', 'a spent session id is ignored (no PIN since 2026-11-07)');
 select is(pg_temp.run_as('manager', $$select public.record_soil_estimate(pg_temp.id('gTowel'), 6, 'basket', pg_temp.cid(1), current_setting('test.s1')::uuid)$$),
   '1', 'an offline retry of a saved entry succeeds although its session is spent');
 select is((select count(*)::int from public.soil_estimates where client_id = pg_temp.cid(1)), 1, 'idempotent: one row');
@@ -50,17 +51,17 @@ select is((select count(*)::int from public.soil_estimates where client_id = pg_
 -- Session rules: the caller's own, unexpired, active person.
 select set_config('test.s2', pg_temp.sess('lead', 'b0000000-0000-0000-0000-0000000000a2', '1470')::text, true);
 select is(pg_temp.run_as('manager', $$select public.record_soil_estimate(pg_temp.id('gMat'), 1, 'load', gen_random_uuid(), current_setting('test.s2')::uuid)$$),
-  'STAFF_SESSION_REQUIRED', 'another account''s session cannot be used');
+  '1', 'another account''s session id is ignored too (never used for attribution)');
 select set_config('test.s3', pg_temp.sess('manager', 'b0000000-0000-0000-0000-0000000000a2', '1470')::text, true);
 update public.staff_sessions set confirmed_at = now() - interval '10 minutes', expires_at = now() - interval '1 minute' where id = current_setting('test.s3')::uuid;
 select is(pg_temp.run_as('manager', $$select public.record_soil_estimate(pg_temp.id('gMat'), 1, 'load', gen_random_uuid(), current_setting('test.s3')::uuid)$$),
-  'STAFF_SESSION_REQUIRED', 'an expired session is rejected');
+  '1', 'an expired session id is ignored');
 select set_config('test.s4', pg_temp.sess('manager', 'b0000000-0000-0000-0000-0000000000a3', '3690')::text, true);
 update public.entry_staff set active = false where id = 'b0000000-0000-0000-0000-0000000000a3';
 select is(array[pg_temp.run_as('manager', $$select public.record_soil_estimate(pg_temp.id('gMat'), 1, 'load', gen_random_uuid(), current_setting('test.s4')::uuid)$$),
                 pg_temp.run_as('manager', $$select public.record_soil_estimate(pg_temp.id('gMat'), 1, 'load', gen_random_uuid(), null)$$),
                 pg_temp.run_as('manager', $$select public.record_soil_estimate(pg_temp.id('gMat'), 1, 'load', gen_random_uuid(), gen_random_uuid())$$)],
-  '{STAFF_SESSION_REQUIRED,STAFF_SESSION_REQUIRED,STAFF_SESSION_REQUIRED}', 'a deactivated person, no session, an unknown session → STAFF_SESSION_REQUIRED');
+  '{1,1,1}', 'a deactivated person''s session, no session, an unknown session: all accepted (the account is the attribution)');
 -- PIN reuse window: the session stays valid for several entries.
 update public.plants set staff_pin_reuse_minutes = 10 where id = pg_temp.id('plantA');
 select set_config('test.s5', pg_temp.sess('manager', 'b0000000-0000-0000-0000-0000000000a2', '1470')::text, true);
@@ -85,8 +86,8 @@ select is(array[pg_temp.run_as('ownerB', $$select public.record_soil_estimate(pg
   '{NOT_AUTHORIZED,NOT_AUTHORIZED,NOT_AUTHORIZED}', 'no oracle: plant A group with / without baskets vs a missing group → NOT_AUTHORIZED for owner B');
 select is(pg_temp.run_as('manager', $$select public.record_soil_estimate(pg_temp.id('groupA2'), 1, 'load', gen_random_uuid(), pg_temp.ana())$$),
   'NOT_AUTHORIZED', 'same org, other plant: the plant A manager is not authorized on plant A2');
-select is((select count(*)::int from public.staff_sessions where staff_id = 'b0000000-0000-0000-0000-0000000000a1' and consumed_at is null), 0,
-  'failed calls never leave a session behind half-used (each call rolls back as a whole)');
+select is((select count(*)::int from public.staff_sessions where plant_id = pg_temp.id('plantA') and consumed_at is not null), 0,
+  'entries no longer consume staff sessions');
 
 -- ══ record_finished_goods (E1) ════════════════════════════════════════════
 select is(pg_temp.writes($$select public.record_finished_goods(pg_temp.id('mat'), 0, 5, gen_random_uuid(), pg_temp.ana(), p_occurred_at => pg_temp.ny('2026-11-03 11:30'))$$),
@@ -101,9 +102,9 @@ select is(pg_temp.val_as('manager', $$select row(r.pack_size_used, r.pieces, r.w
 select is(pg_temp.val_as('manager', $$select (public.record_finished_goods(pg_temp.id('napkin'), 7, 34, pg_temp.cid(10), null)).duplicate$$),
   'true', 'idempotent retry (no session needed for an entry already saved)');
 select is((select count(*)::int from public.finished_goods_entries where client_id = pg_temp.cid(10)), 1, 'one row');
-select is((select array[area_id::text, staff_id::text, entered_by::text, source::text] from public.finished_goods_entries where client_id = pg_temp.cid(10)),
-  array[pg_temp.id('fin')::text, 'b0000000-0000-0000-0000-0000000000a1', pg_temp.id('manager')::text, 'manual'],
-  'area defaults to the plant''s finishing area; staff = Ana; entered_by = the account');
+select is((select array[area_id::text, coalesce(staff_id::text, 'none'), entered_by::text, source::text] from public.finished_goods_entries where client_id = pg_temp.cid(10)),
+  array[pg_temp.id('fin')::text, 'none', pg_temp.id('manager')::text, 'manual'],
+  'area defaults to the plant''s finishing area; no staff; entered_by = the account');
 select is(array[
   pg_temp.run_as('manager', $$select public.record_finished_goods(pg_temp.id('mat'), 1, 0, gen_random_uuid(), pg_temp.ana())$$),
   pg_temp.run_as('manager', $$select public.record_finished_goods(pg_temp.id('mat'), 0, 3, gen_random_uuid(), pg_temp.ana(), 10)$$)],
@@ -125,13 +126,14 @@ select is(array[
   pg_temp.run_as('manager', $$select public.record_finished_goods(pg_temp.id('mat'), 0, 1, gen_random_uuid(), pg_temp.ana(), p_occurred_at => now() - interval '31 days')$$)],
   '{OUT_OF_RANGE_TIMESTAMP,OUT_OF_RANGE_TIMESTAMP}', 'occurred_at: at most 5 min ahead, 30 days back');
 select is(pg_temp.run_as('manager', $$select public.record_finished_goods(pg_temp.id('mat'), 0, 1, gen_random_uuid(), null)$$),
-  'STAFF_SESSION_REQUIRED', 'finished goods need name + PIN');
+  '1', 'finished goods need no name + PIN any more (null session id)');
 
--- Shift attribution (A8): Ana's home shift is finishing Evening.
+-- Shift attribution (2026-11-07): the area's shift at occurred_at, not the (ignored) PIN person's home shift
+-- (Ana's home shift is finishing Evening; it no longer matters).
 select is(pg_temp.val_as('manager', $$select (public.record_finished_goods(pg_temp.id('mat'), 0, 2, gen_random_uuid(), pg_temp.ana(), p_shift_choice => 'my', p_occurred_at => pg_temp.ny('2026-11-03 01:00'))).shift_instance_id$$),
-  pg_temp.si(pg_temp.id('fin'), 'Evening', '2026-11-02')::text, '"My shift": 01:00 still counts for the Evening shift that ended at 00:00 (6-hour window)');
+  pg_temp.si(pg_temp.id('fin'), 'Night', '2026-11-03')::text, '"My shift" at 01:00: the finishing shift running at 01:00 (Night), not Ana''s Evening');
 select is(pg_temp.val_as('manager', $$select (public.record_finished_goods(pg_temp.id('mat'), 0, 2, gen_random_uuid(), pg_temp.ana(), p_shift_choice => 'next', p_occurred_at => pg_temp.ny('2026-11-03 01:00'))).shift_instance_id$$),
-  pg_temp.si(pg_temp.id('fin'), 'Night', '2026-11-03')::text, '"Next shift": the next finishing instance');
+  pg_temp.si(pg_temp.id('fin'), 'Day', '2026-11-03')::text, '"Next shift": the finishing instance after that one');
 select set_config('test.s6', pg_temp.sess('manager', 'b0000000-0000-0000-0000-0000000000a2', '1470')::text, true);
 select is(pg_temp.val_as('manager', $$select (public.record_finished_goods(pg_temp.id('mat'), 0, 2, gen_random_uuid(), current_setting('test.s6')::uuid, p_occurred_at => pg_temp.ny('2026-11-03 11:30'))).shift_instance_id$$),
   pg_temp.si(pg_temp.id('fin'), 'Day', '2026-11-03')::text, 'no home shift: the area''s clock-based shift');

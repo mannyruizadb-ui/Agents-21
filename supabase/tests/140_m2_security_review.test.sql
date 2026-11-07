@@ -29,7 +29,7 @@ select set_config('test.a2s', pg_temp.val_as('manager', $$select (public.start_s
 select ok(current_setting('test.a2s') ~ '^[0-9a-f-]{36}$', 'the manager confirms Ava (plant A2)');
 select is(array[pg_temp.run_as('manager', $$select public.record_finished_goods(pg_temp.id('mat'), 0, 1, gen_random_uuid(), current_setting('test.a2s')::uuid)$$),
                 pg_temp.run_as('manager', $$select public.record_soil_estimate(pg_temp.id('gMat'), 1, 'load', gen_random_uuid(), current_setting('test.a2s')::uuid)$$)],
-  '{STAFF_SESSION_REQUIRED,STAFF_SESSION_REQUIRED}', 'a plant A2 staff session cannot sign a plant A entry, even for a manager of both');
+  '{1,1}', 'since 2026-11-07 the session id is ignored: a plant A2 session never attributes a plant A entry (staff_id stays null)');
 
 -- ── No-oracle pairs on references ─────────────────────────────────────────
 select is(array[pg_temp.run_as('owner', $$select public.reorder_queue_item('e0000000-0000-0000-0000-0000000000a2', 1, 'e0000000-0000-0000-0000-0000000000b1')$$),
