@@ -1,5 +1,7 @@
 import { useRef, useState, type FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
+import { groupOptionText } from '../customers/customerLookup';
+import { useCustomerNameOf } from '../customers/useCustomerLookup';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../../lib/supabase';
 import { useLocalizedName } from '../washroom/localizedName';
@@ -31,6 +33,7 @@ export function RewashForm({
   const { t, i18n } = useTranslation();
   const qc = useQueryClient();
   const localized = useLocalizedName();
+  const customerOf = useCustomerNameOf();
   const groups = useWashGroups(plantId);
   const [groupId, setGroupId] = useState('');
   const [unit, setUnit] = useState<Unit>('load');
@@ -113,7 +116,7 @@ export function RewashForm({
             <option value="">{t('queue.choose')}</option>
             {(groups.data ?? []).map((g) => (
               <option key={g.id} value={g.id}>
-                {localized(g.name, g.name_i18n)}
+                {groupOptionText(localized(g.name, g.name_i18n), customerOf(g.id))}
               </option>
             ))}
           </select>

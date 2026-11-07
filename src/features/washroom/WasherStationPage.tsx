@@ -234,6 +234,7 @@ export function WasherStationPage() {
               name={row.wash_group_name}
               nameI18n={row.wash_group_name_i18n}
               colorHex={row.wash_group_color_hex}
+              washGroupId={row.wash_group_id}
             />
             {row.is_rewash && (
               <p className="meta">
@@ -289,6 +290,7 @@ export function WasherStationPage() {
                 name={row.next_wash_group_name}
                 nameI18n={row.next_wash_group_name_i18n}
                 colorHex={row.next_wash_group_color_hex}
+                washGroupId={row.next_wash_group_id}
               />
               <p className="meta">
                 <span>{qtyText(row.next_loads_remaining, row.next_qty, row.next_unit)}</span>
@@ -475,7 +477,12 @@ export function WasherStationPage() {
                         startRef.current?.focus();
                       }}
                     >
-                      <WashGroupLabel name={g.name} nameI18n={g.name_i18n} colorHex={g.color_hex} />
+                      <WashGroupLabel
+                        name={g.name}
+                        nameI18n={g.name_i18n}
+                        colorHex={g.color_hex}
+                        washGroupId={g.id}
+                      />
                     </button>
                   </li>
                 ))}
