@@ -12,8 +12,9 @@ import {
 export const ASSIGNABLE_ROLES = ['owner', 'manager', 'lead', 'viewer'] as const;
 
 /**
- * Password rules (owner-approved 2026-11-06): 6 digits that are not a simple pattern, or at least 10
- * characters; owners at least 10 characters; at most 72 bytes (bcrypt). See _shared/passwordRules.ts.
+ * Password rules (owner-approved 2026-11-06; owner 2026-11-07: the same for every account, owners
+ * included): 6 digits that are not a simple pattern, or at least 10 characters; at most 72 bytes
+ * (bcrypt). See _shared/passwordRules.ts.
  */
 export { PASSWORD_MAX_BYTES, PASSWORD_MIN_CHARS };
 
@@ -24,12 +25,11 @@ const PASSWORD_PROBLEMS: readonly string[] = [
 ] satisfies PasswordProblem[];
 
 /**
- * A password in the shape every account may use (6 digits that are not a simple pattern, or ≥ 10
- * characters; ≤ 72 bytes). Whether the ACCOUNT may use 6 digits (owners may not) is checked by
- * index.ts once it knows the account's memberships. The issue message is the reason code.
+ * A password every account may use (6 digits that are not a simple pattern, or ≥ 10 characters;
+ * ≤ 72 bytes). The issue message is the reason code.
  */
 const password = z.string().superRefine((pw, ctx) => {
-  const problem = passwordProblem(pw, false);
+  const problem = passwordProblem(pw);
   if (problem !== null) ctx.addIssue({ code: 'custom', message: problem });
 });
 
@@ -83,11 +83,6 @@ export const requestSchema = z
     changeOwnSchema,
   ])
   .superRefine((v, ctx) => {
-    // Owners keep ≥ 10 characters: an owner account is never created with a 6-digit password.
-    if (v.action === 'create' && v.role === 'owner' && v.password !== undefined) {
-      const problem = passwordProblem(v.password, true);
-      if (problem !== null) ctx.addIssue({ code: 'custom', path: ['password'], message: problem });
-    }
     // Mirrors CHECK memberships_can_manage_staff_manager_only (the DB enforces it too).
     if (v.action === 'create' && v.can_manage_staff && v.role !== 'manager') {
       ctx.addIssue({

@@ -1,9 +1,8 @@
-// Password rules (owner-approved 2026-11-06: 6-digit sign-in for managers, with lockout).
+// Password rules (owner-approved 2026-11-06: 6-digit sign-in, with lockout; owner decision 2026-11-07:
+// the same rule for EVERY account, owners included — "keep it simple").
 //
-// * Non-owner accounts: EITHER exactly 6 digits that are not an obvious pattern, OR at least 10
-//   characters (as before). 7–9 characters, and 6 characters that are not all digits, are refused.
-// * Owner accounts (any active owner membership, plant or org-wide): at least 10 characters. A 6-digit
-//   password is refused for them even when it is not a simple pattern.
+// * Every account: EITHER exactly 6 digits that are not an obvious pattern, OR at least 10 characters
+//   (as before). 7–9 characters, and 6 characters that are not all digits, are refused.
 // * Everyone: at most 72 bytes (Supabase Auth hashes with bcrypt, which ignores the rest).
 //
 // A 6-digit password has 10^6 values; it is only acceptable because the `sign-in` Edge Function
@@ -48,20 +47,14 @@ export function isSimpleSixDigits(pw: string): boolean {
   );
 }
 
-/** True when the password is a 6-digit PIN-style password (allowed for non-owners only). */
+/** True when the password is a 6-digit PIN-style password. */
 export function isSixDigitPassword(pw: string): boolean {
   return SIX_DIGITS.test(pw);
 }
 
-/**
- * The first rule the password breaks, or null when it is acceptable.
- * `isOwner`: the account holds (or, on create, will hold) an active owner membership.
- */
-export function passwordProblem(pw: string, isOwner: boolean): PasswordProblem | null {
+/** The first rule the password breaks, or null when it is acceptable (same rule for every account). */
+export function passwordProblem(pw: string): PasswordProblem | null {
   if (new TextEncoder().encode(pw).length > PASSWORD_MAX_BYTES) return 'password_too_long';
-  if (SIX_DIGITS.test(pw)) {
-    if (isOwner) return 'password_too_short';
-    return isSimpleSixDigits(pw) ? 'password_too_simple' : null;
-  }
+  if (SIX_DIGITS.test(pw)) return isSimpleSixDigits(pw) ? 'password_too_simple' : null;
   return [...pw].length < PASSWORD_MIN_CHARS ? 'password_too_short' : null;
 }

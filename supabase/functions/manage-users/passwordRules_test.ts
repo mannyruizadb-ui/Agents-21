@@ -6,19 +6,17 @@ import {
   passwordProblem,
 } from '../_shared/passwordRules.ts';
 
-Deno.test('6 digits: allowed for non-owners when not a simple pattern', () => {
-  for (const pw of ['483920', '205817', '730164', '019283', '564738']) {
-    assertEquals(passwordProblem(pw, false), null, pw);
-    assert(isSixDigitPassword(pw));
-  }
-});
-
-Deno.test('6 digits: never for owners (they keep ≥ 10 characters)', () => {
-  assertEquals(passwordProblem('483920', true), 'password_too_short');
-  assertEquals(passwordProblem('123456', true), 'password_too_short');
-  assertEquals(passwordProblem('correct horse', true), null);
-  assertEquals(passwordProblem('a'.repeat(9), true), 'password_too_short');
-});
+Deno.test(
+  '6 digits: allowed for every account (owners too, 2026-11-07) when not a simple pattern',
+  () => {
+    for (const pw of ['483920', '205817', '730164', '019283', '564738']) {
+      assertEquals(passwordProblem(pw), null, pw);
+      assert(isSixDigitPassword(pw));
+    }
+    assertEquals(passwordProblem('correct horse'), null);
+    assertEquals(passwordProblem('a'.repeat(9)), 'password_too_short');
+  },
+);
 
 Deno.test('simple 6-digit patterns are refused (all six documented rules)', () => {
   const simple = [
@@ -61,7 +59,7 @@ Deno.test('simple 6-digit patterns are refused (all six documented rules)', () =
   ];
   for (const pw of simple) {
     assert(isSimpleSixDigits(pw), pw);
-    assertEquals(passwordProblem(pw, false), 'password_too_simple', pw);
+    assertEquals(passwordProblem(pw), 'password_too_simple', pw);
   }
 });
 
@@ -77,7 +75,7 @@ Deno.test('near misses of the patterns are allowed', () => {
     '135792',
   ]) {
     assertEquals(isSimpleSixDigits(pw), false, pw);
-    assertEquals(passwordProblem(pw, false), null, pw);
+    assertEquals(passwordProblem(pw), null, pw);
   }
 });
 
@@ -100,17 +98,17 @@ Deno.test('other lengths: 7–9 characters and 6 non-digits are too short; ≥ 1
     '12345 ',
     ' 12345',
   ]) {
-    assertEquals(passwordProblem(pw, false), 'password_too_short', JSON.stringify(pw));
+    assertEquals(passwordProblem(pw), 'password_too_short', JSON.stringify(pw));
   }
   for (const pw of ['1234567890', 'a'.repeat(10), 'Lavadora-4!']) {
-    assertEquals(passwordProblem(pw, false), null, pw);
+    assertEquals(passwordProblem(pw), null, pw);
   }
   // Full-width or Arabic-Indic digits are not the ASCII digits of the number pad.
-  assertEquals(passwordProblem('４８３９２０', false), 'password_too_short');
+  assertEquals(passwordProblem('４８３９２０'), 'password_too_short');
 });
 
 Deno.test('at most 72 bytes (bcrypt) for everyone', () => {
-  assertEquals(passwordProblem('a'.repeat(PASSWORD_MAX_BYTES), false), null);
-  assertEquals(passwordProblem('a'.repeat(PASSWORD_MAX_BYTES + 1), false), 'password_too_long');
-  assertEquals(passwordProblem('€'.repeat(25), true), 'password_too_long');
+  assertEquals(passwordProblem('a'.repeat(PASSWORD_MAX_BYTES)), null);
+  assertEquals(passwordProblem('a'.repeat(PASSWORD_MAX_BYTES + 1)), 'password_too_long');
+  assertEquals(passwordProblem('€'.repeat(25)), 'password_too_long');
 });

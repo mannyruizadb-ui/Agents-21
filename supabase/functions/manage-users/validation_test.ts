@@ -154,9 +154,8 @@ Deno.test('create / reset_password: optional owner-chosen password, same rules',
   const simple = parseRequest({ ...base, role: 'manager', password: '111111' });
   assert(!simple.ok && simple.reason === 'password_too_simple');
   if (!simple.ok) assertEquals(simple.fields, ['password']);
-  // An owner account is never created with 6 digits.
-  const owner = parseRequest({ ...base, role: 'owner', password: '483920' });
-  assert(!owner.ok && owner.reason === 'password_too_short');
+  // Owners may use 6 digits too (owner decision 2026-11-07).
+  assert(parseRequest({ ...base, role: 'owner', password: '483920' }).ok);
   assert(parseRequest({ ...base, role: 'owner', password: 'a-long-pass' }).ok);
   assert(
     parseRequest({ action: 'reset_password', plant_id: PLANT, user_id: USER, password: '483920' })

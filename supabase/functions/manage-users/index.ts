@@ -4,7 +4,7 @@
 //   change_own_password                                     (any signed-in user)
 //
 // Passwords (owner-approved 2026-11-06, _shared/passwordRules.ts): 6 digits that are not a simple
-// pattern, or ≥ 10 characters; accounts holding an owner membership need ≥ 10 characters. The sign-in
+// pattern, or ≥ 10 characters, for every account (owners too: owner 2026-11-07). The sign-in
 // Edge Function locks a login after 5 wrong passwords in 15 minutes; `unlock` clears that lock and
 // `list` reports `locked_until` per person.
 //
@@ -17,7 +17,6 @@
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import { corsHeaders, parseAllowedOrigins } from '../_shared/cors.ts';
 import { LOGIN_EMAIL_DOMAIN, usernameFromEmail } from '../_shared/loginId.ts';
-import { passwordProblem } from '../_shared/passwordRules.ts';
 import { canManageTarget, inPlantScope, ownsPlant, type Membership, type Plant } from './authz.ts';
 import { generateTempPassword, parseRequest } from './validation.ts';
 
@@ -174,17 +173,6 @@ async function handle(req: Request): Promise<{ status: number; body: unknown }> 
 
   // 3a. Any signed-in user: change their own password.
   if (input.action === 'change_own_password') {
-    // Owners keep ≥ 10 characters (6 digits are for the other roles). Own memberships, read with the
-    // service client because leads and viewers cannot read memberships through RLS.
-    const own = await allMemberships(serviceClient(), callerId);
-    const isOwner = own.some((m) => m.role === 'owner' && m.revoked_at === null);
-    const problem = passwordProblem(input.new_password, isOwner);
-    if (problem !== null) {
-      throw new HttpError(400, 'VALIDATION_FAILED', 'Choose a longer password.', {
-        fields: ['new_password'],
-        reason: problem,
-      });
-    }
     // GoTrue's own endpoint, with the caller's token: it enforces minimum_password_length and
     // rejects a password equal to the current one (same_password).
     const res = await fetch(`${env('SUPABASE_URL')}/auth/v1/user`, {
@@ -310,7 +298,7 @@ async function handle(req: Request): Promise<{ status: number; body: unknown }> 
       // Only an owner reaches here, so owner / can_manage_staff grants are owner-made. The new
       // membership is always plant-scoped: a plant owner can never create an org-wide one.
       const service = serviceClient();
-      // The owner's chosen first password (validated: owners ≥ 10 chars), else a generated one.
+      // The owner's chosen first password (validated at parse), else a generated one.
       const tempPassword = input.password ?? generateTempPassword();
       const { data: created, error: createError } = await service.auth.admin.createUser({
         email: `${input.username}@${LOGIN_EMAIL_DOMAIN}`,
@@ -364,22 +352,8 @@ async function handle(req: Request): Promise<{ status: number; body: unknown }> 
     }
 
     case 'reset_password': {
-      const { service, target } = await requireManageableTarget(
-        callerId,
-        caller,
-        input.user_id,
-        plant,
-      );
-      if (input.password !== undefined) {
-        const isOwner = target.some((m) => m.role === 'owner');
-        const problem = passwordProblem(input.password, isOwner);
-        if (problem !== null) {
-          throw new HttpError(400, 'VALIDATION_FAILED', 'Choose a longer password.', {
-            fields: ['password'],
-            reason: problem,
-          });
-        }
-      }
+      const { service } = await requireManageableTarget(callerId, caller, input.user_id, plant);
+      // The owner's chosen temporary password (validated at parse), else a generated one.
       const tempPassword = input.password ?? generateTempPassword();
       const { error } = await service.auth.admin.updateUserById(input.user_id, {
         password: tempPassword,
