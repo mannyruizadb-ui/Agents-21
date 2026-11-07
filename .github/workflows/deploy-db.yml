@@ -60,6 +60,13 @@ jobs:
           # every stored password wrong (everyone would need a reset by the owner). Both functions refuse
           # to work without it (fail closed).
           names=$(npx supabase secrets list --project-ref "$PROJECT_REF" -o json </dev/null | jq -r '.[].name')
+          # Guard (security review 2026-11-07): ALLOWED_ORIGINS was set two lines above, so it MUST be in
+          # the list. If it isn't, the list could not be read (CLI output changed, API error) and "pepper
+          # missing" can't be trusted: stop instead of overwriting the pepper and locking everyone out.
+          if ! grep -qx ALLOWED_ORIGINS <<<"$names"; then
+            echo "::error::Could not read the function secrets list; refusing to touch SIGN_IN_PEPPER."
+            exit 1
+          fi
           if ! grep -qx SIGN_IN_PEPPER <<<"$names"; then
             pepper=$(openssl rand -hex 32)
             echo "::add-mask::$pepper"
@@ -90,6 +97,12 @@ jobs:
             rm -f /tmp/q.json
           }
           names=$(npx supabase secrets list --project-ref "$PROJECT_REF" -o json </dev/null | jq -r '.[].name')
+          # Same guard as SIGN_IN_PEPPER: an unreadable list must never look like "keys missing", or a new
+          # VAPID pair would silently break every saved push subscription.
+          if ! grep -qx ALLOWED_ORIGINS <<<"$names"; then
+            echo "::error::Could not read the function secrets list; refusing to touch the VAPID keys."
+            exit 1
+          fi
           if ! grep -qx VAPID_PRIVATE_KEY <<<"$names" || ! grep -qx VAPID_PUBLIC_KEY <<<"$names"; then
             keys=$(node scripts/generate-vapid-keys.ts)
             pub=$(sed -n 's/^VAPID_PUBLIC_KEY=//p' <<<"$keys")
