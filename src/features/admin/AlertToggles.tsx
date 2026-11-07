@@ -19,16 +19,21 @@ import './alertLevels.css';
 // "Washer idle alarms" (owner 2026-11-06): on/off for owner memberships only, via
 // set_washer_idle_alert; the manager on duty always gets them, so a washer is never left idle unseen.
 // Owner information alerts (owner 2026-11-06 C): for owner memberships, Buzz / Quiet / Off per kind
-// (AA Linen delivery, estimates entered, rewash added, off-queue start) via set_alert_level.
+// (AA Linen delivery, estimates entered, rewash added, account locked) via set_alert_level.
+// Self-only (owner 2026-11-07): levels and the washer-idle switch show only on the signed-in owner's
+// OWN owner rows; machine-down shows for managers and for the owner's own row (never another owner's).
 
 export function AlertToggles({
   userId,
+  selfId,
   name,
   plant,
   memberships,
   onStatus,
 }: {
   userId: string;
+  /** The signed-in owner. */
+  selfId: string;
   name: string;
   plant: { id: string; org_id: string };
   memberships: AlertMembership[];
@@ -37,7 +42,8 @@ export function AlertToggles({
   const { t } = useTranslation();
   const qc = useQueryClient();
   const key = ['alert-memberships', plant.id];
-  const rows = alertRowsFor(memberships, userId, plant).filter((r) => r.canEnable || r.on);
+  const all = alertRowsFor(memberships, userId, plant, selfId);
+  const rows = all.filter((r) => r.canToggleMachineDown && (r.canEnable || r.on));
 
   const set = useMutation({
     mutationFn: async (v: { membershipId: string; on: boolean }) =>
@@ -124,9 +130,9 @@ export function AlertToggles({
     },
     onSettled: () => void qc.invalidateQueries({ queryKey: key }),
   });
-  const ownerRows = rows.filter((r) => r.role === 'owner');
+  const ownerRows = all.filter((r) => r.ownSettings);
 
-  if (rows.length === 0) return null;
+  if (rows.length === 0 && ownerRows.length === 0) return null;
   return (
     <div className="field check">
       {rows.map((r) => (
@@ -145,7 +151,7 @@ export function AlertToggles({
             : t('people.alertsLabel')}
         </label>
       ))}
-      <p className="hint">{t('people.alertsHint')}</p>
+      {rows.length > 0 && <p className="hint">{t('people.alertsHint')}</p>}
       {ownerRows.map((r) => (
         <label key={`idle-${r.membershipId}`}>
           <input

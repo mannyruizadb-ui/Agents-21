@@ -3,16 +3,25 @@ import { useNavigate } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import { supabase } from '../../lib/supabase';
 import { toLoginEmail } from '../../lib/loginId';
+import { callSignIn } from './signInApi';
 import { BRAND_LOGO_SRC } from '../../lib/brand';
 import { LanguageSwitch } from './LanguageSwitch';
 import { readSignInPrefs, saveSignInPrefs, usesNumberPad } from './signInPrefs';
 import '../../lib/forms.css';
 import './signin.css';
 
-type Status = 'idle' | 'signing-in' | 'wrong' | 'failed';
+type Status =
+  | { kind: 'idle' }
+  | { kind: 'signing-in' }
+  | { kind: 'wrong' }
+  | { kind: 'locked'; minutes: number }
+  | { kind: 'rate_limited' }
+  | { kind: 'failed' };
 
 // Username + password (PRD A4, owner decision 2026-11-03). Magic links were dropped: they open in
 // Safari, not the installed iOS PWA, so the session never reached the app.
+// 2026-11-07: the password is checked by the `sign-in` Edge Function (lockout after 5 wrong passwords,
+// password pepper); it returns the session, which is handed to supabase.auth.setSession.
 // Big and simple (owner 2026-11-06: older managers): large text and buttons, the last username is
 // remembered on this phone, and managers' 6-digit passwords get the number pad. A username with "@"
 // (the owners' email sign-in) or "my password has letters" switches to the normal keyboard.
@@ -24,28 +33,43 @@ export function SignInPage() {
   const [letters, setLetters] = useState(prefs.letters);
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [status, setStatus] = useState<Status>('idle');
+  const [status, setStatus] = useState<Status>({ kind: 'idle' });
 
   async function onSubmit(event: FormEvent) {
     event.preventDefault();
-    const email = toLoginEmail(username);
     // A value that can't be a username gets the same message as a wrong password.
-    if (!email || password.length === 0) {
-      setStatus('wrong');
+    if (!toLoginEmail(username) || password.length === 0) {
+      setStatus({ kind: 'wrong' });
       return;
     }
-    setStatus('signing-in');
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    if (!error) {
+    setStatus({ kind: 'signing-in' });
+    const result = await callSignIn(username.trim(), password);
+    if (result.kind === 'ok') {
+      const { error } = await supabase.auth.setSession({
+        access_token: result.accessToken,
+        refresh_token: result.refreshToken,
+      });
+      if (error) {
+        setStatus({ kind: 'failed' });
+        return;
+      }
       saveSignInPrefs({ lastUsername: username.trim(), letters });
       void navigate('/control', { replace: true });
       return;
     }
-    // 4xx = bad credentials (never says whether the user exists); anything else = try again.
-    setStatus(
-      error.status !== undefined && error.status >= 400 && error.status < 500 ? 'wrong' : 'failed',
-    );
+    setStatus(result);
   }
+
+  const message =
+    status.kind === 'wrong'
+      ? t('auth.wrongCredentials')
+      : status.kind === 'locked'
+        ? t('auth.locked', { count: status.minutes })
+        : status.kind === 'rate_limited'
+          ? t('auth.rateLimited')
+          : status.kind === 'failed'
+            ? t('auth.signInFailed')
+            : null;
 
   const numberPad = usesNumberPad(username, letters);
   useEffect(() => {
@@ -122,18 +146,17 @@ export function SignInPage() {
             {letters ? t('auth.useNumbers') : t('auth.useLetters')}
           </button>
         )}
-        <button type="submit" className="signin-submit" disabled={status === 'signing-in'}>
-          {status === 'signing-in' ? t('auth.signingIn') : t('auth.signIn')}
+        <button type="submit" className="signin-submit" disabled={status.kind === 'signing-in'}>
+          {status.kind === 'signing-in' ? t('auth.signingIn') : t('auth.signIn')}
         </button>
       </form>
       <p role="status" aria-live="polite" className="error">
-        {(status === 'wrong' || status === 'failed') && (
+        {message !== null && (
           <span aria-hidden="true" className="error-icon">
             ⚠
           </span>
         )}
-        {status === 'wrong' && t('auth.wrongCredentials')}
-        {status === 'failed' && t('auth.signInFailed')}
+        {message}
       </p>
     </main>
   );

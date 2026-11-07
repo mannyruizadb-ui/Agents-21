@@ -3,6 +3,9 @@ import { useTranslation } from 'react-i18next';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useRequiredSession } from '../../app/auth/sessionContext';
 import { isValidUsername } from '../../lib/loginId';
+import { isPasswordProblem, passwordProblem, passwordProblemKey } from '../../lib/passwordRules';
+import { useNow } from '../../lib/useNow';
+import { NewPasswordField } from '../../app/auth/NewPasswordField';
 import {
   ASSIGNABLE_ROLES,
   callManageUsers,
@@ -21,9 +24,12 @@ import '../../lib/forms.css';
 
 // Owner "People" screen (PRD A4, owner decision 2026-11-03): owner-created username + password
 // accounts. Temporary passwords are shown once and kept only in component state.
+// 2026-11-07: the owner may type the starting password (6 numbers that are not a simple pattern, or
+// ≥ 10 characters; never echoed back), and unlocks people locked out by 5 wrong passwords.
 
 function errorKey(e: unknown): string {
   if (e instanceof ManageUsersError) {
+    if (isPasswordProblem(e.reason)) return `password.problems.${passwordProblemKey(e.reason)}`;
     if (e.code === 'NOT_AUTHORIZED') return 'people.errors.notAuthorized';
     if (e.code === 'USERNAME_TAKEN') return 'people.errors.usernameTaken';
     if (e.code === 'VALIDATION_FAILED') return 'people.errors.invalid';
@@ -34,6 +40,44 @@ function errorKey(e: unknown): string {
 interface Secret {
   username: string;
   password: string;
+}
+
+/** A locked_until in the future, else null. */
+function activeLock(lockedUntil: string | null, now: number): Date | null {
+  if (!lockedUntil) return null;
+  const d = new Date(lockedUntil);
+  return Number.isNaN(d.getTime()) || d.getTime() <= now ? null : d;
+}
+
+/** Optional owner-typed starting password: empty = the app makes one. */
+function StartPasswordField({
+  id,
+  value,
+  onChange,
+}: {
+  id: string;
+  value: string;
+  onChange: (v: string) => void;
+}) {
+  const { t } = useTranslation();
+  const [letters, setLetters] = useState(false);
+  return (
+    <>
+      <NewPasswordField
+        id={id}
+        label={t('people.startPasswordLabel')}
+        value={value}
+        onChange={onChange}
+        letters={letters}
+        onLettersChange={setLetters}
+        shown
+        describedBy={`${id}-optional`}
+      />
+      <p id={`${id}-optional`} className="hint">
+        {t('people.startPasswordHint')}
+      </p>
+    </>
+  );
 }
 
 function SecretBox({ secret, onDone }: { secret: Secret; onDone: () => void }) {
@@ -82,6 +126,7 @@ function SecretBox({ secret, onDone }: { secret: Secret; onDone: () => void }) {
 
 function PersonCard({
   person,
+  selfId,
   plantId,
   plant,
   alertMemberships,
@@ -91,6 +136,7 @@ function PersonCard({
   onStatus,
 }: {
   person: Person;
+  selfId: string;
   plantId: string;
   plant: { id: string; org_id: string };
   alertMemberships: AlertMembership[];
@@ -99,10 +145,15 @@ function PersonCard({
   onSecret: (s: Secret) => void;
   onStatus: (message: string) => void;
 }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const queryClient = useQueryClient();
+  const now = useNow(30_000);
   const [confirming, setConfirming] = useState(false);
+  const [resetting, setResetting] = useState(false);
+  const [resetPassword, setResetPassword] = useState('');
+  const [resetError, setResetError] = useState<string | null>(null);
   const name = person.display_name ?? person.username ?? t('people.noUsername');
+  const lock = activeLock(person.locked_until, now);
 
   const reset = useMutation({
     mutationFn: () =>
@@ -110,8 +161,32 @@ function PersonCard({
         action: 'reset_password',
         plant_id: plantId,
         user_id: person.user_id,
+        ...(resetPassword.length > 0 ? { password: resetPassword } : {}),
       }),
-    onSuccess: (r) => onSecret({ username: person.username ?? name, password: r.temp_password }),
+    onSuccess: (r) => {
+      setResetting(false);
+      setResetPassword('');
+      setResetError(null);
+      if (r.temp_password) onSecret({ username: person.username ?? name, password: r.temp_password });
+      else onStatus(t('people.passwordSet', { name }));
+    },
+    onError: (e) => setResetError(t(errorKey(e))),
+  });
+
+  function onReset() {
+    const problem = resetPassword.length > 0 ? passwordProblem(resetPassword) : null;
+    if (problem) return setResetError(t(`password.problems.${passwordProblemKey(problem)}`));
+    setResetError(null);
+    reset.mutate();
+  }
+
+  const unlock = useMutation({
+    mutationFn: () =>
+      callManageUsers({ action: 'unlock', plant_id: plantId, user_id: person.user_id }),
+    onSuccess: async () => {
+      onStatus(t('people.unlocked', { name }));
+      await queryClient.invalidateQueries({ queryKey: ['people', plantId] });
+    },
     onError: (e) => onStatus(t(errorKey(e))),
   });
 
@@ -146,8 +221,29 @@ function PersonCard({
       </h3>
       <p>{t('people.usernameValue', { username: person.username ?? t('people.noUsername') })}</p>
       <p>{t('people.roleValue', { roles })}</p>
+      {lock && (
+        <div className="notice person-lock" role="group" aria-label={t('people.lockedLabel')}>
+          <p>
+            <span aria-hidden="true">🔒 </span>
+            <strong>
+              {t('people.lockedUntil', {
+                time: new Intl.DateTimeFormat(i18n.language, {
+                  hour: '2-digit',
+                  minute: '2-digit',
+                }).format(lock),
+              })}
+            </strong>
+          </p>
+          {person.manageable && (
+            <button type="button" disabled={unlock.isPending} onClick={() => unlock.mutate()}>
+              {t('people.unlock')}
+            </button>
+          )}
+        </div>
+      )}
       <AlertToggles
         userId={person.user_id}
+        selfId={selfId}
         name={name}
         plant={plant}
         memberships={alertMemberships}
@@ -163,14 +259,37 @@ function PersonCard({
         onStatus={onStatus}
       />
       {!person.is_self && !person.manageable && <p className="hint">{t('people.notManageable')}</p>}
-      {person.manageable && !confirming && (
+      {person.manageable && resetting && (
+        <div role="group" aria-label={t('people.resetPassword')}>
+          <StartPasswordField
+            id={`reset-${person.user_id}`}
+            value={resetPassword}
+            onChange={setResetPassword}
+          />
+          <div className="actions">
+            <button type="button" disabled={reset.isPending} onClick={onReset}>
+              {t('people.resetConfirm')}
+            </button>
+            <button
+              type="button"
+              className="secondary"
+              onClick={() => {
+                setResetting(false);
+                setResetPassword('');
+                setResetError(null);
+              }}
+            >
+              {t('people.cancel')}
+            </button>
+          </div>
+          <p role="status" aria-live="polite" className="error">
+            {resetError}
+          </p>
+        </div>
+      )}
+      {person.manageable && !confirming && !resetting && (
         <div className="actions">
-          <button
-            type="button"
-            className="secondary"
-            disabled={reset.isPending}
-            onClick={() => reset.mutate()}
-          >
+          <button type="button" className="secondary" onClick={() => setResetting(true)}>
             {t('people.resetPassword')}
           </button>
           <button type="button" className="secondary" onClick={() => setConfirming(true)}>
@@ -202,13 +321,22 @@ function PersonCard({
   );
 }
 
-function CreateForm({ plantId, onSecret }: { plantId: string; onSecret: (s: Secret) => void }) {
+function CreateForm({
+  plantId,
+  onSecret,
+  onStatus,
+}: {
+  plantId: string;
+  onSecret: (s: Secret) => void;
+  onStatus: (message: string) => void;
+}) {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
   const [displayName, setDisplayName] = useState('');
   const [username, setUsername] = useState('');
   const [role, setRole] = useState<AssignableRole>('manager');
   const [canManageStaff, setCanManageStaff] = useState(false);
+  const [startPassword, setStartPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
 
   const create = useMutation({
@@ -220,13 +348,16 @@ function CreateForm({ plantId, onSecret }: { plantId: string; onSecret: (s: Secr
         display_name: displayName.trim(),
         role,
         can_manage_staff: role === 'manager' && canManageStaff,
+        ...(startPassword.length > 0 ? { password: startPassword } : {}),
       }),
     onSuccess: async (r) => {
-      onSecret({ username, password: r.temp_password });
+      if (r.temp_password) onSecret({ username, password: r.temp_password });
+      else onStatus(t('people.createdWithPassword', { username }));
       setDisplayName('');
       setUsername('');
       setRole('manager');
       setCanManageStaff(false);
+      setStartPassword('');
       await queryClient.invalidateQueries({ queryKey: ['people', plantId] });
     },
     onError: (e) => setError(t(errorKey(e))),
@@ -236,6 +367,8 @@ function CreateForm({ plantId, onSecret }: { plantId: string; onSecret: (s: Secr
     event.preventDefault();
     if (displayName.trim().length === 0) return setError(t('people.errors.nameRequired'));
     if (!isValidUsername(username)) return setError(t('people.errors.usernameInvalid'));
+    const problem = startPassword.length > 0 ? passwordProblem(startPassword) : null;
+    if (problem) return setError(t(`password.problems.${passwordProblemKey(problem)}`));
     setError(null);
     create.mutate();
   }
@@ -300,6 +433,7 @@ function CreateForm({ plantId, onSecret }: { plantId: string; onSecret: (s: Secr
           </label>
         </div>
       )}
+      <StartPasswordField id="new-start-password" value={startPassword} onChange={setStartPassword} />
       <button type="submit" disabled={create.isPending}>
         {create.isPending ? t('people.creating') : t('people.create')}
       </button>
@@ -378,6 +512,7 @@ export function PeoplePage() {
                 <PersonCard
                   key={p.user_id}
                   person={p}
+                  selfId={session.user.id}
                   plantId={plantId}
                   plant={plant ?? { id: plantId, org_id: '' }}
                   alertMemberships={alertMemberships.data ?? []}
@@ -399,6 +534,7 @@ export function PeoplePage() {
               setStatus('');
               setSecret(s);
             }}
+            onStatus={setStatus}
           />
         </>
       )}

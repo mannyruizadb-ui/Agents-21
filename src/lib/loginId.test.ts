@@ -61,9 +61,46 @@ describe.each([
     }
     expect(m.usernameFromEmail(dashboardEmail)).toBe('manny');
   });
+
+  it('"@" logins must be strict ASCII emails (security review L4)', () => {
+    for (const ok of [
+      'owner.name@example.com',
+      'owner+plant@example.co',
+      'a@b.cd',
+      'maria@accounts.adbheadquarters.com',
+    ]) {
+      expect(m.isValidEmail(ok)).toBe(true);
+      expect(m.toLoginEmail(` ${ok.toUpperCase()} `)).toBe(ok);
+    }
+    for (const bad of [
+      'a@b',
+      '@example.com',
+      'owner@',
+      '.owner@example.com',
+      'owner.@example.com',
+      'ow..ner@example.com',
+      'owner@-example.com',
+      'owner@example-.com',
+      'owner@example..com',
+      'owner@example.c',
+      'owner@example.123',
+      'o wner@example.com',
+      'owner@exa mple.com',
+      '"owner"@example.com',
+      'owner@[127.0.0.1]',
+      'josé@example.com',
+      'owner@exämple.com',
+      'a@b@example.com',
+      `${'a'.repeat(65)}@example.com`,
+      `owner@${'a'.repeat(250)}.com`,
+    ]) {
+      expect(m.toLoginEmail(bad)).toBeNull();
+    }
+  });
 });
 
-it('both copies use the same domain and pattern', () => {
+it('both copies use the same domain and patterns', () => {
   expect(edge.LOGIN_EMAIL_DOMAIN).toBe(app.LOGIN_EMAIL_DOMAIN);
   expect(edge.USERNAME_PATTERN.source).toBe(app.USERNAME_PATTERN.source);
+  expect(edge.EMAIL_PATTERN.source).toBe(app.EMAIL_PATTERN.source);
 });

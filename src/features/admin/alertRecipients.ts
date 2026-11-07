@@ -1,6 +1,9 @@
 // Machine-down alert recipients on the People screen (owner 2026-11-04). The flag lives on each
 // membership (memberships.notify_machine_down); only owner and manager memberships can be turned on
 // (set_alert_recipient enforces it). Pure part, for tests.
+// Self-only (owner 2026-11-07, 20261107021209): an owner changes the Buzz / Quiet / Off levels and the
+// washer-idle switch only on their OWN owner memberships, and machine-down alerts for managers and for
+// their own owner memberships, never for another owner (the server refuses).
 
 export interface AlertMembership {
   id: string;
@@ -22,15 +25,15 @@ export const OWNER_ALERT_KINDS = [
   'customer_delivery',
   'estimate_entered',
   'rewash_added',
-  'off_queue_start',
+  'account_locked',
 ] as const;
 export type OwnerAlertKind = (typeof OWNER_ALERT_KINDS)[number];
 export type AlertLevel = 'push' | 'quiet' | 'off';
 export const ALERT_LEVELS: readonly AlertLevel[] = ['push', 'quiet', 'off'];
 
-/** app.alert_level_default: deliveries buzz; the rest are quiet. */
+/** app.alert_level_default: deliveries and account locks buzz; the rest are quiet. */
 export function defaultAlertLevel(kind: OwnerAlertKind): AlertLevel {
-  return kind === 'customer_delivery' ? 'push' : 'quiet';
+  return kind === 'customer_delivery' || kind === 'account_locked' ? 'push' : 'quiet';
 }
 
 /** The level a membership's alert_levels gives a kind (missing or unreadable = the default). */
@@ -61,17 +64,25 @@ export interface AlertRow {
   on: boolean;
   /** Owner and manager only; anything else can't receive machine-down alerts. */
   canEnable: boolean;
+  /** The signed-in owner may change this row's machine-down switch (managers, or their own row). */
+  canToggleMachineDown: boolean;
+  /** The signed-in owner's own owner membership: levels and washer-idle switch are shown. */
+  ownSettings: boolean;
   /** Washer idle alarms: on/off exists for owner memberships only. */
   idleOn: boolean;
   /** Owner information alert levels (meaningful for owner memberships only). */
   levels: Record<OwnerAlertKind, AlertLevel>;
 }
 
-/** This person's active memberships that apply to `plantId` (plant-level or org-wide). */
+/**
+ * This person's active memberships that apply to `plantId` (plant-level or org-wide). `selfId` is the
+ * signed-in owner: only their own owner rows get the owner settings.
+ */
 export function alertRowsFor(
   memberships: readonly AlertMembership[],
   userId: string,
   plant: { id: string; org_id: string },
+  selfId: string,
 ): AlertRow[] {
   return memberships
     .filter(
@@ -86,6 +97,8 @@ export function alertRowsFor(
       orgWide: m.plant_id === null,
       on: m.notify_machine_down,
       canEnable: m.role === 'owner' || m.role === 'manager',
+      canToggleMachineDown: m.role === 'manager' || (m.role === 'owner' && m.user_id === selfId),
+      ownSettings: m.role === 'owner' && m.user_id === selfId,
       idleOn: m.notify_washer_idle,
       levels: withAlertLevelsAll(m.alert_levels),
     }));

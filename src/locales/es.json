@@ -20,22 +20,27 @@
     "signInFailed": "No se pudo iniciar sesión. Revise su conexión e intente de nuevo.",
     "signOut": "Cerrar sesión",
     "useLetters": "Mi contraseña tiene letras",
-    "useNumbers": "Mi contraseña es solo números"
+    "useNumbers": "Mi contraseña es solo números",
+    "locked_one": "Demasiados intentos. Intente en {{count}} minuto, o pida al dueño que lo desbloquee.",
+    "locked_many": "Demasiados intentos. Intente en {{count}} minutos, o pida al dueño que lo desbloquee.",
+    "locked_other": "Demasiados intentos. Intente en {{count}} minutos, o pida al dueño que lo desbloquee.",
+    "rateLimited": "Demasiados inicios de sesión ahora. Espere un minuto e intente de nuevo."
   },
   "changePassword": {
     "title": "Elija una contraseña nueva",
-    "intro": "Entró con una contraseña temporal. Elija la suya para continuar. Use al menos {{count}} caracteres.",
+    "intro": "Entró con una contraseña temporal. Elija la suya para continuar.",
     "newLabel": "Contraseña nueva",
     "confirmLabel": "Escríbala otra vez",
     "save": "Guardar contraseña",
     "saving": "Guardando…",
     "errors": {
-      "tooShort": "Muy corta. Use al menos {{count}} caracteres.",
-      "tooLong": "Muy larga. Use una contraseña más corta.",
+      "currentRequired": "Escriba su contraseña actual (con la que entró).",
+      "wrongCurrent": "La contraseña actual no es correcta. Escriba la que usó para entrar.",
       "mismatch": "Las dos contraseñas no coinciden. Escriba la misma en ambos campos.",
       "same": "Esa es la contraseña que tiene ahora. Elija otra.",
       "failed": "No se pudo guardar la contraseña. Revise su conexión e intente de nuevo."
-    }
+    },
+    "currentLabel": "Contraseña actual"
   },
   "roles": {
     "owner": "Dueño",
@@ -112,13 +117,22 @@
       "customer_delivery": "Entrega de cliente",
       "estimate_entered": "Estimados puestos",
       "rewash_added": "Relavar añadido",
-      "off_queue_start": "Carga fuera de la cola"
+      "account_locked": "Cuenta bloqueada"
     },
     "level": {
       "push": "Sonar",
       "quiet": "Silencio",
       "off": "Apagado"
-    }
+    },
+    "startPasswordLabel": "Contraseña inicial (opcional)",
+    "startPasswordHint": "Déjela vacía y la app crea una. La persona debe cambiarla la primera vez que entre.",
+    "resetConfirm": "Restablecer ahora",
+    "passwordSet": "Nueva contraseña inicial para {{name}}. Debe cambiarla la primera vez que entre.",
+    "createdWithPassword": "Cuenta {{username}} creada con la contraseña que escribió. Debe cambiarla la primera vez que entre.",
+    "lockedLabel": "Inicio de sesión bloqueado",
+    "lockedUntil": "Bloqueado hasta las {{time}}",
+    "unlock": "Desbloquear",
+    "unlocked": "{{name}} ya puede entrar otra vez."
   },
   "control": {
     "placeholder": "Elige una pantalla.",
@@ -754,8 +768,7 @@
       "estimateEntered_one": "Estimados puestos: {{count}} grupo",
       "estimateEntered_other": "Estimados puestos: {{count}} grupos",
       "rewashAdded": "Relavar añadido: {{group}} {{amount}}",
-      "offQueue": "{{name}} empezó {{group}} (fuera de la cola)",
-      "offQueueOther": "{{name}} empezó {{group}} (la cola tenía {{expected}})"
+      "accountLocked": "Cuenta bloqueada: {{username}}"
     },
     "state": {
       "open": {
@@ -767,7 +780,7 @@
         "customer_delivery": "Entregada",
         "estimate_entered": "Puestos",
         "rewash_added": "Añadido",
-        "off_queue_start": "Empezada"
+        "account_locked": "Bloqueada"
       },
       "resolved": {
         "machine_down": "Arreglada",
@@ -778,7 +791,7 @@
         "customer_delivery": "Anulada",
         "estimate_entered": "Puestos",
         "rewash_added": "Añadido",
-        "off_queue_start": "Deshecha"
+        "account_locked": "Desbloqueada"
       },
       "done": {
         "machine_down": "Arreglada",
@@ -789,7 +802,7 @@
         "customer_delivery": "Entregada",
         "estimate_entered": "Puestos",
         "rewash_added": "Añadido",
-        "off_queue_start": "Empezada"
+        "account_locked": "Desbloqueada"
       }
     },
     "clear": "Quitar",
@@ -797,7 +810,9 @@
     "aGroup": "un grupo",
     "deliveryLine": "{{group}} {{amount}}",
     "moreLines_one": "+ {{count}} más",
-    "moreLines_other": "+ {{count}} más"
+    "moreLines_other": "+ {{count}} más",
+    "anAccount": "una cuenta de dueño",
+    "lockedUntil": "Bloqueada hasta las {{time}}. Toque para desbloquear."
   },
   "board": {
     "pill": {
@@ -901,5 +916,14 @@
     "rejected": "Una entrega de {{customer}} no se guardó.",
     "voided": "Anulada",
     "by": "por {{name}}"
+  },
+  "password": {
+    "rule": "Use 6 números, o al menos 10 letras y números.",
+    "ok": "Contraseña buena.",
+    "problems": {
+      "tooShort": "Muy corta. Use 6 números, o al menos 10 letras y números.",
+      "tooLong": "Muy larga. Use una contraseña más corta.",
+      "tooSimple": "Muy fácil de adivinar. No use repeticiones ni series como 111111 o 123456."
+    }
   }
 }

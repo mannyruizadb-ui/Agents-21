@@ -144,30 +144,32 @@ describe('owner information alerts', () => {
     });
   });
 
-  it('off-queue start: washer, group, what the queue had; undone = resolved', () => {
+  it('account locked: open while still locked, links to People', () => {
+    const id = '0000000a-0000-0000-0000-000000000001';
     expect(
       describeAlert(
-        row('off_queue_start', {
-          cycle_id: 'c',
-          machine_name: 'Washer 3',
-          wash_group_name: 'Napkins',
-          expected_wash_group_name: 'Tablecloths',
-          off_queue: false,
-          voided: false,
-        }),
+        row(
+          'account_locked',
+          { user_id: id, username: 'maria', locked_until: '2026-11-07T12:00:00Z' },
+          true,
+        ),
       ),
     ).toMatchObject({
-      kind: 'off_queue_start',
-      to: '/control/washers',
-      open: false,
+      kind: 'account_locked',
+      to: '/control/people',
+      open: true,
       resolved: false,
-      machineName: 'Washer 3',
-      group: { name: 'Napkins' },
-      expectedGroup: { name: 'Tablecloths' },
+      username: 'maria',
+      lockedUntil: '2026-11-07T12:00:00Z',
     });
     expect(
-      describeAlert(row('off_queue_start', { cycle_id: 'c', voided: true, off_queue: true })),
-    ).toMatchObject({ resolved: true, expectedGroup: null });
+      describeAlert(row('account_locked', { user_id: id, username: null }, false)),
+    ).toMatchObject({ open: false, resolved: true, username: null });
+    expect(describeAlert(row('account_locked', { username: 'x' }))).toBeNull();
+  });
+
+  it('off_queue_start is no longer an alert kind (removed 2026-11-07)', () => {
+    expect(describeAlert(row('off_queue_start', { cycle_id: 'c' }))).toBeNull();
   });
 
   it('owner information alerts go under Earlier', () => {

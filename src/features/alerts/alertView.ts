@@ -13,7 +13,8 @@ export type AlertKind =
   | 'customer_delivery'
   | 'estimate_entered'
   | 'rewash_added'
-  | 'off_queue_start';
+  // 2026-11-07: a sign-in locked by wrong passwords (owners); open while it is still locked.
+  | 'account_locked';
 
 /** A wash group named in an alert (localized by the page). */
 export interface AlertGroup {
@@ -66,10 +67,12 @@ export interface AlertView {
   moreLines?: number;
   /** estimate_entered: groups estimated in the batch */
   count?: number;
-  /** rewash_added / off_queue_start: the group */
+  /** rewash_added: the group */
   group?: AlertGroup | null;
-  /** off_queue_start: what the queue had next for that washer (null = nothing / off-queue) */
-  expectedGroup?: AlertGroup | null;
+  /** account_locked: the username (null for an account without one, e.g. an owner's email) */
+  username?: string | null;
+  /** account_locked: when the lock ends */
+  lockedUntil?: string | null;
   qty?: number | null;
   unit?: string | null;
 }
@@ -239,20 +242,19 @@ export function describeAlert(row: AlertRow): AlertView | null {
         unit: unit && UNITS.has(unit) ? unit : null,
       };
     }
-    case 'off_queue_start': {
-      if (!str(payload, 'cycle_id')) return null;
+    case 'account_locked': {
+      const userId = str(payload, 'user_id');
+      if (!userId || !UUIDISH.test(userId)) return null;
+      const username = str(payload, 'username');
       return {
         ...base,
-        kind: 'off_queue_start',
-        tone: 'info',
-        to: '/control/washers',
-        open: false,
-        // the load was undone
-        resolved: payload.voided === true,
-        machineName: clean(str(payload, 'machine_name') ?? ''),
-        group: groupOf(payload),
-        expectedGroup: groupOf(payload, 'expected_'),
-        since: str(payload, 'started_at'),
+        kind: 'account_locked',
+        tone: 'warn',
+        to: '/control/people',
+        open: row.still_current,
+        resolved: !row.still_current,
+        username: username ? clean(username) : null,
+        lockedUntil: str(payload, 'locked_until'),
       };
     }
     default:

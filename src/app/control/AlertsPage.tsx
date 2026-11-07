@@ -30,8 +30,8 @@ import {
   IconReady,
   IconRewash,
   IconTasks,
+  IconPeople,
   IconTruck,
-  IconWasher,
 } from '../../features/washroom/Icons';
 import { useAmountText } from '../../features/estimates/useAmountText';
 import { useLocalizedName } from '../../features/washroom/localizedName';
@@ -85,8 +85,8 @@ function KindIcon({ kind }: { kind: AlertView['kind'] }) {
       return <IconBins size="1.6em" />;
     case 'rewash_added':
       return <IconRewash size="1.6em" />;
-    case 'off_queue_start':
-      return <IconWasher size="1.6em" />;
+    case 'account_locked':
+      return <IconPeople size="1.6em" />;
   }
 }
 
@@ -157,12 +157,13 @@ function AlertItem({ a, onClear }: { a: AlertView; onClear?: (id: string) => voi
         amount: a.qty !== null && a.qty !== undefined && a.unit ? amount(a.qty, a.unit) : '',
       }).trim();
       break;
-    case 'off_queue_start': {
-      const name = names.machine(a.machineName) || t('alerts.aWasher');
-      const group = groupText(a.group) || t('alerts.aGroup');
-      title = a.expectedGroup
-        ? t('alerts.title.offQueueOther', { name, group, expected: groupText(a.expectedGroup) })
-        : t('alerts.title.offQueue', { name, group });
+    case 'account_locked': {
+      title = t('alerts.title.accountLocked', { username: a.username ?? t('alerts.anAccount') });
+      const until = a.lockedUntil ? new Date(a.lockedUntil) : null;
+      body =
+        a.open && until && !Number.isNaN(until.getTime())
+          ? t('alerts.lockedUntil', { time: clock(until) })
+          : '';
       break;
     }
   }
