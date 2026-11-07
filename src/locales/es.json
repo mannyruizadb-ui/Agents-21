@@ -162,7 +162,7 @@
     "rateLimited": "Demasiados cambios a la vez. Espera unos segundos e intenta de nuevo.",
     "network": "No hay conexión con el servidor. Revisa el Wi-Fi e intenta de nuevo.",
     "machineDown": "Esa lavadora está fuera de servicio. Elige otra, o márcala como arreglada primero.",
-    "pinAgain": "Hay que poner el PIN otra vez. Escríbelo y guarda.",
+    "pinAgain": "Esta entrada no se guardó. Escríbala otra vez.",
     "washerRunning": "Esta lavadora todavía está trabajando. Confirma para empezar otra carga."
   },
   "units": {
@@ -391,7 +391,7 @@
   },
   "estimates": {
     "title": "Ropa sucia esperando",
-    "intro": "Para cada grupo de lavado, di cuánta ropa sucia está esperando. Revisa y guarda una sola vez con tu PIN.",
+    "intro": "Para cada grupo de lavado, diga cuánto trabajo sucio está esperando. Revise y guárdelos todos juntos.",
     "notAllowed": "Solo el dueño y los gerentes ponen estimados.",
     "summaryTitle": "Esperando ahora",
     "totalLoads_one": "≈ {{n}} carga esperando",
@@ -427,13 +427,6 @@
     "reviewTitle_other": "Revisa {{count}} estimados",
     "fixFirst_one": "Corrige {{count}} cantidad arriba primero.",
     "fixFirst_other": "Corrige {{count}} cantidades arriba primero.",
-    "whoLabel": "¿Quién lo pone?",
-    "noStaff": "Nadie tiene PIN todavía. El dueño configura los nombres y PIN.",
-    "pinLabel": "Tu PIN de 4 números",
-    "pinHint": "Un solo PIN guarda todos.",
-    "pinStillGood_one": "El PIN de {{name}} sigue bueno en este teléfono por {{count}} minuto más.",
-    "pinStillGood_other": "El PIN de {{name}} sigue bueno en este teléfono por {{count}} minutos más.",
-    "enterPinAnyway": "Poner PIN de todos modos",
     "saveAll_one": "Guardar {{count}} estimado",
     "saveAll_other": "Guardar {{count}} estimados",
     "saving": "Guardando…",
@@ -443,13 +436,7 @@
     "savedOnPhone_one": "{{count}} estimado está guardado en este teléfono y se enviará cuando vuelva la conexión.",
     "savedOnPhone_other": "{{count}} estimados están guardados en este teléfono y se enviarán cuando vuelva la conexión.",
     "notStored": "Este teléfono no pudo guardar los estimados. Deja esta página abierta hasta que vuelva la conexión.",
-    "needsPin": "Hay estimados esperando que se ponga el PIN otra vez (PIN equivocado, cambiado o bloqueado).",
-    "sendNow": "Enviar ahora",
     "errors": {
-      "who": "Elige quién lo pone.",
-      "pin": "Escribe el PIN de 4 números.",
-      "wrongPin": "PIN equivocado. Intenta otra vez.",
-      "locked": "Demasiados PIN equivocados. Espera 5 minutos e intenta otra vez.",
       "tooOld": "Tiene más de 6 horas, así que el servidor no lo puede guardar. Ponlo otra vez."
     },
     "noTimeGroups_one": "{{count}} grupo no tiene tiempo de lavadora, así que el tiempo no lo incluye.",
@@ -581,37 +568,6 @@
       "name": "Escribe un nombre de 1 a 60 caracteres.",
       "area": "Escoge un área.",
       "englishLabel": "Escribe el texto en inglés (de 1 a 60 caracteres)."
-    },
-    "pins": {
-      "title": "Configuración: PIN de registro",
-      "intro": "Las personas que confirman los estimados y los productos terminados con su nombre y un PIN de 4 dígitos. El PIN solo muestra quién registró algo; no es una contraseña. Desactiva a quien se vaya; nunca se borra, porque sus registros anteriores lo mencionan.",
-      "none": "Todavía no hay nadie. Agrega a la primera persona abajo.",
-      "name": "Nombre",
-      "language": "Idioma",
-      "homeShift": "Turno habitual",
-      "noShift": "Sin turno habitual",
-      "homeShiftHint": "Los registros cuentan para este turno, salvo que elijan el siguiente.",
-      "hasPin": "PIN listo",
-      "noPin": "Sin PIN",
-      "setPin": "Poner PIN",
-      "resetPin": "Cambiar PIN",
-      "savePin": "Guardar PIN",
-      "pin": "PIN nuevo (4 dígitos)",
-      "pinAgain": "Escribe el PIN otra vez",
-      "pinHint": "Que no sea 1234 ni el mismo dígito 4 veces. Cada persona necesita un PIN distinto.",
-      "pinSaved": "PIN nuevo guardado para {{name}}.",
-      "addTitle": "Agregar una persona",
-      "add": "Agregar persona",
-      "added": "Se agregó a {{name}} con su PIN.",
-      "addedNoPin": "Se agregó a {{name}}, pero el PIN no se guardó.",
-      "deactivateHint": "Una persona desactivada no puede confirmar registros; sus registros anteriores se quedan.",
-      "errors": {
-        "digits": "El PIN debe tener exactamente 4 dígitos.",
-        "easy": "Ese PIN es muy fácil de adivinar. Elige otro.",
-        "mismatch": "Los dos PIN no son iguales.",
-        "inUse": "Otra persona ya tiene ese PIN. Elige otro.",
-        "name": "Escribe un nombre (hasta 60 caracteres)."
-      }
     }
   },
   "loadOut": {
@@ -915,7 +871,29 @@
     "waitingToSend_other": "{{count}} entregas esperan en este teléfono para enviarse.",
     "rejected": "Una entrega de {{customer}} no se guardó.",
     "voided": "Anulada",
-    "by": "por {{name}}"
+    "by": "por {{name}}",
+    "cancel": {
+      "button": "Cancelar esta entrega",
+      "question": "¿Cancelar esta entrega? Sus cargas que no han empezado salen de la cola.",
+      "reasonLabel": "Motivo",
+      "reasonNeeded": "Escriba primero un motivo corto.",
+      "confirm": "Sí, cancelarla",
+      "keep": "Dejarla",
+      "working": "Cancelando…",
+      "done": "Entrega cancelada.",
+      "already": "Esta entrega ya estaba cancelada.",
+      "removed_one": "Sacado de la cola ({{count}}):",
+      "removed_many": "Sacados de la cola ({{count}}):",
+      "removed_other": "Sacados de la cola ({{count}}):",
+      "keptTitle_one": "{{count}} carga ya empezó — no se canceló:",
+      "keptTitle_many": "{{count}} cargas ya empezaron — no se cancelaron:",
+      "keptTitle_other": "{{count}} cargas ya empezaron — no se cancelaron:",
+      "kept": "{{group}}: ya empezó — no se canceló",
+      "anItem": "Un artículo de la cola"
+    },
+    "recentTitle": "Guardadas en este teléfono",
+    "cancelled": "Cancelada",
+    "voidReason": "Motivo: {{reason}}"
   },
   "password": {
     "rule": "Use 6 números, o al menos 10 letras y números.",

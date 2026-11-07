@@ -161,7 +161,7 @@
     "rateLimited": "Too many changes at once. Wait a few seconds and try again.",
     "network": "Couldn't reach the server. Check the Wi-Fi and try again.",
     "machineDown": "That washer is marked down. Choose another washer, or mark it back up first.",
-    "pinAgain": "The PIN has to be entered again. Enter it and save.",
+    "pinAgain": "This entry was not saved. Enter it again.",
     "washerRunning": "This washer is still running. Confirm to start another load."
   },
   "units": {
@@ -390,7 +390,7 @@
   },
   "estimates": {
     "title": "Dirty work waiting",
-    "intro": "For each wash group, say how much dirty work is waiting. Review, then save once with your PIN.",
+    "intro": "For each wash group, say how much dirty work is waiting. Review, then save them all at once.",
     "notAllowed": "Only the owner and managers enter estimates.",
     "summaryTitle": "Waiting now",
     "totalLoads_one": "≈ {{n}} load waiting",
@@ -426,13 +426,6 @@
     "reviewTitle_other": "Check {{count}} estimates",
     "fixFirst_one": "Fix {{count}} amount above first.",
     "fixFirst_other": "Fix {{count}} amounts above first.",
-    "whoLabel": "Who is entering?",
-    "noStaff": "No one with a PIN yet. The owner sets up names and PINs.",
-    "pinLabel": "Your 4-digit PIN",
-    "pinHint": "One PIN saves all of them.",
-    "pinStillGood_one": "{{name}}'s PIN is still good on this phone for {{count}} more minute.",
-    "pinStillGood_other": "{{name}}'s PIN is still good on this phone for {{count}} more minutes.",
-    "enterPinAnyway": "Enter a PIN anyway",
     "saveAll_one": "Save {{count}} estimate",
     "saveAll_other": "Save {{count}} estimates",
     "saving": "Saving…",
@@ -442,13 +435,7 @@
     "savedOnPhone_one": "{{count}} estimate is saved on this phone and will send when the connection is back.",
     "savedOnPhone_other": "{{count}} estimates are saved on this phone and will send when the connection is back.",
     "notStored": "This phone couldn't keep the estimates. Keep this page open until the connection is back.",
-    "needsPin": "Some estimates are waiting for the PIN to be entered again (wrong, changed or locked PIN).",
-    "sendNow": "Send now",
     "errors": {
-      "who": "Choose who is entering.",
-      "pin": "Type the 4-digit PIN.",
-      "wrongPin": "Wrong PIN. Try again.",
-      "locked": "Too many wrong PINs. Wait 5 minutes and try again.",
       "tooOld": "It is more than 6 hours old, so the server can't save it. Enter it again."
     },
     "noTimeGroups_one": "{{count}} group has no washer time set, so the time leaves it out.",
@@ -580,37 +567,6 @@
       "name": "Type a name of 1 to 60 characters.",
       "area": "Choose an area.",
       "englishLabel": "Type the English label (1 to 60 characters)."
-    },
-    "pins": {
-      "title": "Setup: entry PINs",
-      "intro": "The people who confirm estimates and finished goods with their name and a 4-digit PIN. The PIN only shows who entered something; it is not a password. Deactivate someone who leaves; they are never deleted, because their past entries point at them.",
-      "none": "Nobody yet. Add the first person below.",
-      "name": "Name",
-      "language": "Language",
-      "homeShift": "Home shift",
-      "noShift": "No home shift",
-      "homeShiftHint": "Entries count toward this shift unless they pick the next one.",
-      "hasPin": "PIN set",
-      "noPin": "No PIN yet",
-      "setPin": "Set PIN",
-      "resetPin": "Reset PIN",
-      "savePin": "Save PIN",
-      "pin": "New PIN (4 digits)",
-      "pinAgain": "Type the PIN again",
-      "pinHint": "Not 1234 and not one digit 4 times. Each person needs a different PIN.",
-      "pinSaved": "New PIN saved for {{name}}.",
-      "addTitle": "Add a person",
-      "add": "Add person",
-      "added": "{{name}} was added with a PIN.",
-      "addedNoPin": "{{name}} was added, but the PIN was not saved.",
-      "deactivateHint": "A deactivated person can't confirm entries; their past entries stay.",
-      "errors": {
-        "digits": "The PIN must be exactly 4 digits.",
-        "easy": "That PIN is too easy to guess. Pick another.",
-        "mismatch": "The two PINs don't match.",
-        "inUse": "Someone else already has that PIN. Pick another.",
-        "name": "Type a name (up to 60 characters)."
-      }
     }
   },
   "loadOut": {
@@ -914,7 +870,27 @@
     "waitingToSend_other": "{{count}} deliveries are waiting on this phone to send.",
     "rejected": "A {{customer}} delivery was not saved.",
     "voided": "Voided",
-    "by": "by {{name}}"
+    "by": "by {{name}}",
+    "cancel": {
+      "button": "Cancel this delivery",
+      "question": "Cancel this delivery? Its loads that haven't started come off the queue.",
+      "reasonLabel": "Reason",
+      "reasonNeeded": "Type a short reason first.",
+      "confirm": "Yes, cancel it",
+      "keep": "Keep it",
+      "working": "Cancelling…",
+      "done": "Delivery cancelled.",
+      "already": "This delivery was already cancelled.",
+      "removed_one": "Taken off the queue ({{count}}):",
+      "removed_other": "Taken off the queue ({{count}}):",
+      "keptTitle_one": "{{count}} load already started — not cancelled:",
+      "keptTitle_other": "{{count}} loads already started — not cancelled:",
+      "kept": "{{group}}: already started — not cancelled",
+      "anItem": "A queue item"
+    },
+    "recentTitle": "Saved from this phone",
+    "cancelled": "Cancelled",
+    "voidReason": "Reason: {{reason}}"
   },
   "password": {
     "rule": "Use 6 numbers, or at least 10 letters and numbers.",

@@ -1,7 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import * as app from './passwordRules';
-// The server's copy (it cannot import from src/). Same answers, both copies.
-import * as edge from '../../supabase/functions/_shared/passwordRules';
+
+// The server's copy (it cannot import from src/). Same answers, both copies. Loaded by a computed
+// path so the app's type check does not include the Deno file (it is checked under Deno, with its
+// own compiler settings).
+const EDGE_PATH = '../../supabase/functions/_shared/passwordRules.ts';
+const edge = (await import(/* @vite-ignore */ EDGE_PATH)) as typeof app;
 
 describe.each([
   ['src/lib/passwordRules', app],

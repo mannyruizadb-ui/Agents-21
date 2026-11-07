@@ -50,7 +50,9 @@ export function NewPasswordField({
         {...(letters ? {} : { pattern: '[0-9]*' })}
         required
         aria-invalid={invalid || problem === 'password_too_long' || undefined}
-        aria-describedby={[rule ? feedbackId : null, describedBy].filter(Boolean).join(' ') || undefined}
+        aria-describedby={
+          [rule ? feedbackId : null, describedBy].filter(Boolean).join(' ') || undefined
+        }
         value={value}
         onChange={(e) => onChange(e.target.value)}
       />

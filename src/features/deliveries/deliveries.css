@@ -71,3 +71,15 @@
   padding: 2px 0;
   overflow-wrap: anywhere;
 }
+.dl-cancel-ask,
+.dl-cancel-result {
+  margin-top: 10px;
+}
+.form-page .dl-cancel {
+  margin-top: 8px;
+}
+.dl-recent {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}

@@ -19,7 +19,7 @@ import { runStartupStorageSweep } from './app/startupStorage';
 import { env } from './lib/env';
 import { registerServiceWorker } from './features/notifications/pushClient';
 
-// Security re-review notes 2 and 5: expire stored PINs for every account and drop legacy keys.
+// Security re-review notes 2 and 5: wipe entry-PIN-era data for every account and drop legacy keys.
 runStartupStorageSweep();
 
 // Push service worker (machine-down alerts). Only in production builds or when push is set up, so a

@@ -7,17 +7,28 @@ import { useAmountText } from '../estimates/useAmountText';
 import { DataAge } from '../washroom/DataAge';
 import { IconEdit, IconWarning } from '../washroom/Icons';
 import { useLocalizedName } from '../washroom/localizedName';
-import { errorMessageKey } from '../washroom/rpcError';
+import { errorMessageKey, unwrap } from '../washroom/rpcError';
 import { useMyRoles } from '../washroom/useMyRoles';
 import { useAreas, type I18nJson } from '../washroom/washroomData';
+import { supabase } from '../../lib/supabase';
 import { parseHistoryLines } from './deliveryMath';
+import { CancelDelivery } from './CancelDelivery';
 import { useCustomerDeliveries, type DeliveryHistoryRow } from './deliveriesData';
 import '../../lib/forms.css';
 import './deliveries.css';
 
 // Customer deliveries, last 7 days (owner 2026-11-06 B). OWNER ONLY (get_customer_deliveries): when,
 // which customer, bins per wash group, and who entered it (owner screens only, never totals by
-// person). Managers who open it see only the button to record a delivery.
+// person). Managers who open it see only the button to record a delivery. 2026-11-07: the owner can
+// cancel a delivery here ("Cancel this delivery", void_customer_delivery).
+
+/** Owner: queue item id → wash group id (owners read every queue item of the plant). */
+async function queueItemGroups(ids: string[]): Promise<Map<string, string>> {
+  if (ids.length === 0) return new Map();
+  const rows =
+    unwrap(await supabase.from('queue_items').select('id, wash_group_id').in('id', ids)) ?? [];
+  return new Map(rows.flatMap((r) => (r.wash_group_id ? [[r.id, r.wash_group_id] as const] : [])));
+}
 
 export function DeliveriesPage() {
   const { t } = useTranslation();
@@ -105,6 +116,9 @@ function HistoryItem({ d }: { d: DeliveryHistoryRow }) {
           <IconWarning /> {t('deliveries.voided')}
         </p>
       )}
+      {d.voided && d.void_reason && (
+        <p className="hint">{t('deliveries.voidReason', { reason: d.void_reason })}</p>
+      )}
       <ul className="dl-lines">
         {lines.map((l) => (
           <li key={l.washGroupId}>
@@ -119,6 +133,16 @@ function HistoryItem({ d }: { d: DeliveryHistoryRow }) {
       {d.note && <p className="hint">{t('queue.note', { note: d.note })}</p>}
       {d.entered_by_name && (
         <p className="hint">{t('deliveries.by', { name: d.entered_by_name })}</p>
+      )}
+      {!d.voided && (
+        <CancelDelivery
+          deliveryId={d.delivery_id}
+          groupsFor={queueItemGroups}
+          groupName={(id) => {
+            const l = lines.find((x) => x.washGroupId === id);
+            return l ? localized(l.name, l.nameI18n as I18nJson) : t('deliveries.cancel.anItem');
+          }}
+        />
       )}
     </li>
   );

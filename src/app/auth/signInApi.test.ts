@@ -32,9 +32,9 @@ describe('classifySignInResponse', () => {
   });
 
   it('429 RATE_LIMITED → rate_limited', () => {
-    expect(
-      classifySignInResponse(429, { code: 'RATE_LIMITED', retry_after_seconds: 60 }),
-    ).toEqual({ kind: 'rate_limited' });
+    expect(classifySignInResponse(429, { code: 'RATE_LIMITED', retry_after_seconds: 60 })).toEqual({
+      kind: 'rate_limited',
+    });
   });
 
   it('5xx → failed', () => {

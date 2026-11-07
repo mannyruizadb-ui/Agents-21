@@ -167,7 +167,8 @@ function PersonCard({
       setResetting(false);
       setResetPassword('');
       setResetError(null);
-      if (r.temp_password) onSecret({ username: person.username ?? name, password: r.temp_password });
+      if (r.temp_password)
+        onSecret({ username: person.username ?? name, password: r.temp_password });
       else onStatus(t('people.passwordSet', { name }));
     },
     onError: (e) => setResetError(t(errorKey(e))),
@@ -433,7 +434,11 @@ function CreateForm({
           </label>
         </div>
       )}
-      <StartPasswordField id="new-start-password" value={startPassword} onChange={setStartPassword} />
+      <StartPasswordField
+        id="new-start-password"
+        value={startPassword}
+        onChange={setStartPassword}
+      />
       <button type="submit" disabled={create.isPending}>
         {create.isPending ? t('people.creating') : t('people.create')}
       </button>

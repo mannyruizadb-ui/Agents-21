@@ -2,16 +2,7 @@ import { useState, type FormEvent } from 'react';
 import { Link } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import { useRequiredSession } from '../../app/auth/sessionContext';
-import { userStore } from '../../lib/scopedStore';
-import { useNow, useOnline } from '../../lib/useNow';
-import { PinInput, RePin } from '../estimates/PinInput';
-import { useEntryStaff, usePinReuseMinutes } from '../estimates/estimatesData';
-import { readSession, rememberSession, sessionEnd, validSession } from '../estimates/sessionCache';
-import {
-  LAST_STAFF_KEY,
-  readLastStaff,
-  startSessionDetailed,
-} from '../estimates/useEstimateOutbox';
+import { useOnline } from '../../lib/useNow';
 import { useAmountText } from '../estimates/useAmountText';
 import { IconOffline, IconReady, IconWarning } from '../washroom/Icons';
 import { WashGroupLabel } from '../washroom/WashGroupLabel';
@@ -27,7 +18,9 @@ import {
   stepBins,
   type DeliveryLine,
 } from './deliveryMath';
-import type { PendingDelivery } from './deliveryOutbox';
+import type { PendingDelivery, RecentDelivery } from './deliveryOutbox';
+import { groupMapFromLines } from './deliveryVoid';
+import { CancelDelivery } from './CancelDelivery';
 import { useCustomers, useCustomerWashGroups, type CustomerGroup } from './deliveriesData';
 import { useDeliveryOutbox } from './useDeliveryOutbox';
 import '../../lib/forms.css';
@@ -37,9 +30,10 @@ import './deliveries.css';
 
 // Record an outside customer's delivery (owner 2026-11-06 B; first: AA Linen). Owner or manager:
 // pick the customer (the only active one is preselected), bins per wash group in quarters, an
-// optional note, then name + PIN (the same staff session and 10-minute reuse as estimates). Each
+// optional note, then save (2026-11-07: no entry PIN; the signed-in account is the attribution). Each
 // group becomes a queue item at the bottom of the queue. The delivery is stored on the phone
-// before the first attempt (client_id made once), so it is never lost offline.
+// before the first attempt (client_id made once), so it is never lost offline. Deliveries saved from
+// this phone can be cancelled here ("Cancel this delivery"; managers can't list deliveries).
 
 const NOTE_MAX = 200;
 
@@ -71,7 +65,6 @@ export function DeliveryEntryPage() {
 
 function DeliveryEntryScreen({ userId, plantId }: { userId: string; plantId: string }) {
   const { t } = useTranslation();
-  const now = useNow(15_000);
   const online = useOnline();
   const localized = useLocalizedName();
   const { amount, fmt } = useAmountText();
@@ -82,16 +75,10 @@ function DeliveryEntryScreen({ userId, plantId }: { userId: string; plantId: str
   const customerId = pickedCustomer ?? active[0]?.id ?? null;
   const customer = active.find((c) => c.id === customerId);
   const groups = useCustomerWashGroups(plantId, customerId);
-  const staff = useEntryStaff(plantId);
-  const reuse = usePinReuseMinutes(plantId);
-  const reuseMinutes = reuse.data ?? 0;
-  const outbox = useDeliveryOutbox(userId, reuseMinutes);
+  const outbox = useDeliveryOutbox(userId);
 
   const [texts, setTexts] = useState<Record<string, string>>({});
   const [note, setNote] = useState('');
-  const [staffId, setStaffId] = useState(() => readLastStaff(userId));
-  const [pin, setPin] = useState('');
-  const [usePinAnyway, setUsePinAnyway] = useState(false);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<{ kind: 'ok' | 'warn' | 'bad'; text: string } | null>(
     null,
@@ -109,13 +96,6 @@ function DeliveryEntryScreen({ userId, plantId }: { userId: string; plantId: str
     groupList.map((g) => g.id),
     bins,
   );
-  const cached = validSession(readSession(userStore(userId)), now, {
-    userId,
-    plantId,
-    staffId: staffId || null,
-  });
-  const needPin = !cached || usePinAnyway;
-  const staffName = staff.data?.find((s) => s.id === staffId)?.display_name;
 
   function setText(groupId: string, text: string) {
     setMessage(null);
@@ -131,46 +111,9 @@ function DeliveryEntryScreen({ userId, plantId }: { userId: string; plantId: str
   async function onSave(e: FormEvent) {
     e.preventDefault();
     if (!customerId || lines.length === 0 || bad.length > 0) return;
-    if (!staffId) return setMessage({ kind: 'bad', text: t('estimates.errors.who') });
-    if (needPin && !/^\d{4}$/.test(pin)) {
-      return setMessage({ kind: 'bad', text: t('estimates.errors.pin') });
-    }
     setBusy(true);
     setMessage(null);
     try {
-      let sessionId = needPin ? null : (cached?.sessionId ?? null);
-      if (needPin) {
-        // Check the PIN now when online, so a typo is caught here and nothing is stored with it.
-        const s = await startSessionDetailed(staffId, pin);
-        if (s.kind === 'pin') {
-          setMessage({
-            kind: 'bad',
-            text:
-              s.error === 'STAFF_LOCKED'
-                ? t('estimates.errors.locked')
-                : t('estimates.errors.wrongPin'),
-          });
-          return;
-        }
-        if (s.kind === 'rejected') {
-          setMessage({ kind: 'bad', text: t(errorMessageKey({ message: s.errorCode })) });
-          return;
-        }
-        if (s.kind === 'ok') {
-          sessionId = s.sessionId;
-          const end = sessionEnd(s.expiresAt, Date.now(), reuseMinutes);
-          if (end !== null) {
-            rememberSession(userStore(userId), {
-              userId,
-              plantId,
-              staffId,
-              sessionId: s.sessionId,
-              expiresAt: end,
-            });
-          }
-        }
-        // s.kind === 'retry': offline. Stored with the PIN; a session opens when it sends.
-      }
       const at = new Date().toISOString();
       const delivery: PendingDelivery = {
         clientId: crypto.randomUUID(), // made once, before the first attempt
@@ -179,20 +122,10 @@ function DeliveryEntryScreen({ userId, plantId }: { userId: string; plantId: str
         lines,
         note: note.trim() === '' ? null : note.trim().slice(0, NOTE_MAX),
         enteredAt: at,
-        staffId,
-        pin: needPin ? pin : '',
-        sessionId,
         createdAt: at,
         lastError: null,
       };
-      try {
-        userStore(userId).setItem(LAST_STAFF_KEY, staffId);
-      } catch {
-        // not remembered; chosen again next time
-      }
       const r = await outbox.submit(delivery);
-      setPin('');
-      setUsePinAnyway(false);
       if (r.stored || r.saved) {
         setTexts({});
         setNote('');
@@ -249,7 +182,6 @@ function DeliveryEntryScreen({ userId, plantId }: { userId: string; plantId: str
           <IconOffline /> {t('estimates.offline')}
         </p>
       )}
-      {outbox.needsPin && <RePin staffId={outbox.needsPin.staffId} onPin={outbox.retryWithPin} />}
       {outbox.rejected.map((r) => (
         <div key={r.clientId} className="notice notice-bad" role="alert">
           <p>
@@ -342,33 +274,6 @@ function DeliveryEntryScreen({ userId, plantId }: { userId: string; plantId: str
             {bad.length > 0 && (
               <p className="error">{t('deliveries.fixFirst', { count: bad.length })}</p>
             )}
-            <div className="field">
-              <label htmlFor="dl-who">{t('estimates.whoLabel')}</label>
-              <select id="dl-who" value={staffId} onChange={(e) => setStaffId(e.target.value)}>
-                <option value="">{t('queue.choose')}</option>
-                {(staff.data ?? []).map((s) => (
-                  <option key={s.id} value={s.id}>
-                    {s.display_name}
-                  </option>
-                ))}
-              </select>
-              {staff.data && staff.data.length === 0 && (
-                <p className="hint">{t('estimates.noStaff')}</p>
-              )}
-            </div>
-            {cached && !usePinAnyway ? (
-              <p className="hint">
-                {t('estimates.pinStillGood', {
-                  name: staffName ?? '',
-                  count: Math.max(1, Math.round((cached.expiresAt - now) / 60000)),
-                })}{' '}
-                <button type="button" className="linkish" onClick={() => setUsePinAnyway(true)}>
-                  {t('estimates.enterPinAnyway')}
-                </button>
-              </p>
-            ) : (
-              <PinInput id="dl-pin" value={pin} onChange={setPin} />
-            )}
             <button type="submit" disabled={busy || lines.length === 0 || bad.length > 0}>
               {busy ? t('estimates.saving') : t('deliveries.save')}
             </button>
@@ -376,10 +281,78 @@ function DeliveryEntryScreen({ userId, plantId }: { userId: string; plantId: str
           </section>
         </form>
       )}
+      {outbox.recent.length > 0 && (
+        <section aria-labelledby="dl-recent">
+          <h2 id="dl-recent">{t('deliveries.recentTitle')}</h2>
+          <ul className="dl-recent">
+            {outbox.recent.map((r) => (
+              <RecentItem
+                key={r.deliveryId}
+                r={r}
+                customerName={customerName(r.customerId)}
+                groupName={groupName}
+                linesText={linesText(r.lines)}
+                onVoided={(at) => outbox.markVoided(r.deliveryId, at)}
+              />
+            ))}
+          </ul>
+        </section>
+      )}
       <p>
         <Link to="/control/queue">{t('deliveries.openQueue')}</Link>
       </p>
     </main>
+  );
+}
+
+/** A delivery saved from this phone, with "Cancel this delivery". */
+function RecentItem({
+  r,
+  customerName,
+  groupName,
+  linesText,
+  onVoided,
+}: {
+  r: RecentDelivery;
+  customerName: string;
+  groupName: (id: string) => string;
+  linesText: string;
+  onVoided: (voidedAt: string) => void;
+}) {
+  const { t, i18n } = useTranslation();
+  // Keeps the cancel result on screen after the phone marks the delivery cancelled.
+  const [justVoided, setJustVoided] = useState(false);
+  const when = new Date(r.savedAt);
+  return (
+    <li className={r.voidedAt ? 'card dl-item voided' : 'card dl-item'}>
+      <p className="dl-item-head">
+        <strong>{customerName}</strong>{' '}
+        <time className="mono" dateTime={r.savedAt}>
+          {Number.isNaN(when.getTime())
+            ? ''
+            : new Intl.DateTimeFormat(i18n.language, {
+                hour: 'numeric',
+                minute: '2-digit',
+              }).format(when)}
+        </time>
+      </p>
+      <p className="dl-lines">{linesText}</p>
+      {r.voidedAt && !justVoided ? (
+        <p className="status-pill warn">
+          <IconWarning /> {t('deliveries.cancelled')}
+        </p>
+      ) : (
+        <CancelDelivery
+          deliveryId={r.deliveryId}
+          groupsFor={async () => groupMapFromLines(r.queueItemIds, r.lines)}
+          groupName={groupName}
+          onVoided={(at) => {
+            setJustVoided(true);
+            onVoided(at);
+          }}
+        />
+      )}
+    </li>
   );
 }
 

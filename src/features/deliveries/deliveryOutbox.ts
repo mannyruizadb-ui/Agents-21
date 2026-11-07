@@ -1,13 +1,14 @@
 // Outbox for customer deliveries (owner 2026-11-06 B), the same pattern as the estimates outbox
 // (estimateOutbox.ts): a delivery is written to device storage BEFORE the first attempt, with its
-// client_id, the entry person's id and PIN, and the staff session if one is open. The record, PIN
-// included, is wiped as soon as the delivery is saved or refused; a refused delivery keeps no PIN.
-// PINs are attribution only (A8); a stored PIN is wiped after 6 hours. Pure module: storage and the
-// server calls are injected.
+// client_id, and removed as soon as it is saved or refused. 2026-11-07 (one sign-in method): no entry
+// PIN; the signed-in account is the attribution. Deliveries stored by an older version with a staff
+// id / PIN / session are read without them and rewritten at the next sweep (the PIN is wiped).
+// Saved deliveries are remembered for a while (recent list), so the person who recorded one on this
+// phone can cancel it (void_customer_delivery) without the owner-only history.
+// Pure module: storage and the server calls are injected.
 
 import type { KeyValueStore } from '../../lib/scopedStore';
-import { ENTRY_MAX_AGE_MS, PIN_MAX_AGE_MS } from '../estimates/estimateOutbox';
-import type { RecordOutcome, SessionOutcome } from '../estimates/estimateOutbox';
+import { ENTRY_MAX_AGE_MS } from '../estimates/estimateOutbox';
 import type { DeliveryLine } from './deliveryMath';
 
 export interface PendingDelivery {
@@ -18,15 +19,11 @@ export interface PendingDelivery {
   note: string | null;
   /** When it was entered (ISO); sent as p_entered_at when it waited on the phone. */
   enteredAt: string;
-  staffId: string;
-  pin: string;
-  sessionId: string | null;
   createdAt: string;
-  pinStoredAt?: string;
   lastError: string | null;
 }
 
-/** A refused delivery: what was entered and why, never the PIN or session. */
+/** A refused delivery: what was entered and why. */
 export interface RejectedDelivery {
   clientId: string;
   customerId: string;
@@ -35,8 +32,28 @@ export interface RejectedDelivery {
   errorCode: string;
 }
 
+/** A delivery saved from this phone (for "Cancel this delivery"). */
+export interface RecentDelivery {
+  deliveryId: string;
+  clientId: string;
+  plantId: string;
+  customerId: string;
+  lines: DeliveryLine[];
+  /** Queue item ids in line order (record_customer_delivery). */
+  queueItemIds: string[];
+  savedAt: string;
+  /** Set once it was cancelled from this phone. */
+  voidedAt?: string;
+}
+
 export const DELIVERY_OUTBOX_KEY = 'deliveries.outbox.v1';
 export const REJECTED_DELIVERIES_KEY = 'deliveries.rejected.v1';
+export const RECENT_DELIVERIES_KEY = 'deliveries.recent.v1';
+/** How many saved deliveries this phone remembers, and for how long. */
+export const RECENT_MAX = 5;
+export const RECENT_MAX_AGE_MS = 12 * 60 * 60 * 1000;
+
+const LEGACY_FIELDS = ['staffId', 'pin', 'sessionId', 'pinStoredAt'] as const;
 
 function isLine(v: unknown): v is DeliveryLine {
   if (typeof v !== 'object' || v === null) return false;
@@ -44,24 +61,32 @@ function isLine(v: unknown): v is DeliveryLine {
   return typeof o.washGroupId === 'string' && typeof o.bins === 'number';
 }
 
-function isPending(v: unknown): v is PendingDelivery {
-  if (typeof v !== 'object' || v === null) return false;
+function toPending(v: unknown): PendingDelivery | null {
+  if (typeof v !== 'object' || v === null) return null;
   const o = v as Record<string, unknown>;
-  return (
-    typeof o.clientId === 'string' &&
-    typeof o.plantId === 'string' &&
-    typeof o.customerId === 'string' &&
-    Array.isArray(o.lines) &&
-    o.lines.length > 0 &&
-    o.lines.every(isLine) &&
-    (o.note === null || typeof o.note === 'string') &&
-    typeof o.enteredAt === 'string' &&
-    typeof o.staffId === 'string' &&
-    typeof o.pin === 'string' &&
-    (o.sessionId === null || typeof o.sessionId === 'string') &&
-    typeof o.createdAt === 'string' &&
-    (o.pinStoredAt === undefined || typeof o.pinStoredAt === 'string')
-  );
+  if (
+    typeof o.clientId !== 'string' ||
+    typeof o.plantId !== 'string' ||
+    typeof o.customerId !== 'string' ||
+    !Array.isArray(o.lines) ||
+    o.lines.length === 0 ||
+    !o.lines.every(isLine) ||
+    !(o.note === null || typeof o.note === 'string') ||
+    typeof o.enteredAt !== 'string' ||
+    typeof o.createdAt !== 'string'
+  ) {
+    return null;
+  }
+  return {
+    clientId: o.clientId,
+    plantId: o.plantId,
+    customerId: o.customerId,
+    lines: o.lines.map((l: DeliveryLine) => ({ washGroupId: l.washGroupId, bins: l.bins })),
+    note: o.note,
+    enteredAt: o.enteredAt,
+    createdAt: o.createdAt,
+    lastError: typeof o.lastError === 'string' ? o.lastError : null,
+  };
 }
 
 function isRejected(v: unknown): v is RejectedDelivery {
@@ -77,12 +102,29 @@ function isRejected(v: unknown): v is RejectedDelivery {
   );
 }
 
-function read<T>(store: KeyValueStore, key: string, guard: (v: unknown) => v is T): T[] {
+function isRecent(v: unknown): v is RecentDelivery {
+  if (typeof v !== 'object' || v === null) return false;
+  const o = v as Record<string, unknown>;
+  return (
+    typeof o.deliveryId === 'string' &&
+    typeof o.clientId === 'string' &&
+    typeof o.plantId === 'string' &&
+    typeof o.customerId === 'string' &&
+    Array.isArray(o.lines) &&
+    o.lines.every(isLine) &&
+    Array.isArray(o.queueItemIds) &&
+    o.queueItemIds.every((x) => typeof x === 'string') &&
+    typeof o.savedAt === 'string' &&
+    (o.voidedAt === undefined || typeof o.voidedAt === 'string')
+  );
+}
+
+function readRaw(store: KeyValueStore, key: string): unknown[] {
   try {
     const raw = store.getItem(key);
     if (!raw) return [];
     const parsed: unknown = JSON.parse(raw);
-    return Array.isArray(parsed) ? parsed.filter(guard) : [];
+    return Array.isArray(parsed) ? parsed : [];
   } catch {
     return [];
   }
@@ -98,11 +140,53 @@ function write(store: KeyValueStore, key: string, value: readonly unknown[]): bo
 }
 
 export function readPendingDeliveries(store: KeyValueStore): PendingDelivery[] {
-  return read(store, DELIVERY_OUTBOX_KEY, isPending);
+  return readRaw(store, DELIVERY_OUTBOX_KEY)
+    .map(toPending)
+    .filter((d): d is PendingDelivery => d !== null);
 }
 
 export function readRejectedDeliveries(store: KeyValueStore): RejectedDelivery[] {
-  return read(store, REJECTED_DELIVERIES_KEY, isRejected);
+  return readRaw(store, REJECTED_DELIVERIES_KEY).filter(isRejected);
+}
+
+/** Saved deliveries of this phone, newest first, younger than RECENT_MAX_AGE_MS. */
+export function readRecentDeliveries(
+  store: KeyValueStore,
+  nowMs: number = Date.now(),
+): RecentDelivery[] {
+  return readRaw(store, RECENT_DELIVERIES_KEY)
+    .filter(isRecent)
+    .filter((r) => {
+      const t = Date.parse(r.savedAt);
+      return !Number.isNaN(t) && nowMs - t <= RECENT_MAX_AGE_MS;
+    })
+    .sort((a, b) => b.savedAt.localeCompare(a.savedAt));
+}
+
+/** Remembers a saved delivery (at most RECENT_MAX, newest kept; same delivery id replaced). */
+export function rememberRecentDelivery(
+  store: KeyValueStore,
+  r: RecentDelivery,
+  nowMs: number = Date.now(),
+): void {
+  const rest = readRecentDeliveries(store, nowMs).filter((x) => x.deliveryId !== r.deliveryId);
+  write(store, RECENT_DELIVERIES_KEY, [r, ...rest].slice(0, RECENT_MAX));
+}
+
+/** Marks a remembered delivery as cancelled from this phone. */
+export function markRecentVoided(
+  store: KeyValueStore,
+  deliveryId: string,
+  voidedAt: string,
+  nowMs: number = Date.now(),
+): void {
+  write(
+    store,
+    RECENT_DELIVERIES_KEY,
+    readRecentDeliveries(store, nowMs).map((r) =>
+      r.deliveryId === deliveryId ? { ...r, voidedAt } : r,
+    ),
+  );
 }
 
 function toRejected(d: PendingDelivery, errorCode: string): RejectedDelivery {
@@ -131,8 +215,7 @@ export function dismissRejectedDelivery(store: KeyValueStore, clientId: string):
 /** Saves a delivery before any attempt. False = the device refused to store it. */
 export function addPendingDelivery(store: KeyValueStore, d: PendingDelivery): boolean {
   const rest = readPendingDeliveries(store).filter((x) => x.clientId !== d.clientId);
-  const stamped = d.pin && !d.pinStoredAt ? { ...d, pinStoredAt: d.createdAt } : d;
-  return write(store, DELIVERY_OUTBOX_KEY, [...rest, stamped]);
+  return write(store, DELIVERY_OUTBOX_KEY, [...rest, d]);
 }
 
 function replace(store: KeyValueStore, clientId: string, d: PendingDelivery | null): void {
@@ -146,60 +229,43 @@ function replace(store: KeyValueStore, clientId: string, d: PendingDelivery | nu
   );
 }
 
-/** The PIN was entered again for this person's waiting deliveries (restarts its 6-hour clock). */
-export function updateDeliveryPin(
-  store: KeyValueStore,
-  staffId: string,
-  pin: string,
-  nowMs: number = Date.now(),
-): void {
-  const at = new Date(nowMs).toISOString();
-  write(
-    store,
-    DELIVERY_OUTBOX_KEY,
-    readPendingDeliveries(store).map((d) =>
-      d.staffId === staffId ? { ...d, pin, pinStoredAt: at, sessionId: null, lastError: null } : d,
-    ),
-  );
-}
-
 export interface DeliverySweep {
   tooOld: number;
-  pinsWiped: number;
+  /** Deliveries from the entry-PIN era rewritten without their PIN. */
+  legacyWiped: number;
 }
 
 /**
  * Housekeeping that never sends (before every flush and at app start): a delivery entered more than
- * 6 h ago can no longer be saved → refused list (OUT_OF_RANGE_TIMESTAMP); a PIN stored more than 6 h
- * ago is wiped and the delivery waits for the PIN.
+ * 6 h ago can no longer be saved → refused list (OUT_OF_RANGE_TIMESTAMP); a delivery stored by an
+ * older version is rewritten without its staff id / PIN / session.
  */
 export function sweepDeliveries(store: KeyValueStore, nowMs: number = Date.now()): DeliverySweep {
   const age = (iso: string | undefined) => {
     const t = iso ? Date.parse(iso) : NaN;
     return Number.isNaN(t) ? Infinity : nowMs - t;
   };
-  const report: DeliverySweep = { tooOld: 0, pinsWiped: 0 };
+  const legacyWiped = readRaw(store, DELIVERY_OUTBOX_KEY).filter(
+    (v) => typeof v === 'object' && v !== null && LEGACY_FIELDS.some((k) => k in v),
+  ).length;
   const kept: PendingDelivery[] = [];
   const old: RejectedDelivery[] = [];
   for (const d of readPendingDeliveries(store)) {
-    if (age(d.enteredAt) > ENTRY_MAX_AGE_MS) {
-      old.push(toRejected(d, 'OUT_OF_RANGE_TIMESTAMP'));
-      continue;
-    }
-    if (d.pin && age(d.pinStoredAt ?? d.createdAt) > PIN_MAX_AGE_MS) {
-      kept.push({ ...d, pin: '', sessionId: null, lastError: 'PIN_EXPIRED' });
-      report.pinsWiped += 1;
-    } else kept.push(d);
+    if (age(d.enteredAt) > ENTRY_MAX_AGE_MS) old.push(toRejected(d, 'OUT_OF_RANGE_TIMESTAMP'));
+    else kept.push(d);
   }
-  report.tooOld = old.length;
   addRejected(store, old);
-  if (report.tooOld > 0 || report.pinsWiped > 0) write(store, DELIVERY_OUTBOX_KEY, kept);
-  return report;
+  if (old.length > 0 || legacyWiped > 0) write(store, DELIVERY_OUTBOX_KEY, kept);
+  return { tooOld: old.length, legacyWiped };
 }
 
+export type DeliveryRecordOutcome =
+  | { kind: 'saved'; deliveryId: string | null; queueItemIds: string[] }
+  | { kind: 'retry'; error: string }
+  | { kind: 'rejected'; errorCode: string };
+
 export interface DeliveryApi {
-  record(d: PendingDelivery, sessionId: string): Promise<RecordOutcome>;
-  startSession(staffId: string, pin: string): Promise<SessionOutcome>;
+  record(d: PendingDelivery): Promise<DeliveryRecordOutcome>;
   /** Checked before every server call; false stops the flush (signed out / other account). */
   shouldContinue?(): Promise<boolean>;
 }
@@ -208,83 +274,52 @@ export interface DeliveryFlushReport {
   saved: PendingDelivery[];
   rejected: RejectedDelivery[];
   remaining: PendingDelivery[];
-  needsPin: { staffId: string; error: string } | null;
 }
 
 /**
- * Sends every waiting delivery, oldest first. A missing or spent staff session is replaced by one
- * opened with the stored PIN; a refused PIN is dropped at once (5 misses lock the person out).
- * Storage is updated after every step, so nothing is lost or sent twice (client_id makes a resend
- * harmless anyway).
+ * Sends every waiting delivery, oldest first. Storage is updated after every step, so nothing is lost
+ * or sent twice (client_id makes a resend harmless anyway). A saved delivery with a delivery id goes
+ * into the recent list.
  */
 export async function flushDeliveries(
   store: KeyValueStore,
   api: DeliveryApi,
   nowMs: number = Date.now(),
 ): Promise<DeliveryFlushReport> {
-  const report: DeliveryFlushReport = { saved: [], rejected: [], remaining: [], needsPin: null };
+  const report: DeliveryFlushReport = { saved: [], rejected: [], remaining: [] };
   const swept = sweepDeliveries(store, nowMs);
   if (swept.tooOld > 0) report.rejected.push(...readRejectedDeliveries(store).slice(-swept.tooOld));
-  const go = async () => !api.shouldContinue || (await api.shouldContinue());
-  const reject = (d: PendingDelivery, code: string) => {
-    const r = toRejected(d, code);
-    addRejected(store, [r]);
-    report.rejected.push(r);
-    replace(store, d.clientId, null);
-  };
 
-  all: for (const initial of readPendingDeliveries(store)) {
-    let d = { ...initial };
-    let fresh = false;
-    for (let attempt = 0; attempt < 3; attempt += 1) {
-      if (!d.sessionId) {
-        if (!d.pin) {
-          report.needsPin = { staffId: d.staffId, error: d.lastError ?? 'PIN_NEEDED' };
-          continue all;
-        }
-        if (!(await go())) break all;
-        const s = await api.startSession(d.staffId, d.pin);
-        if (s.kind === 'pin') {
-          d = { ...d, pin: '', lastError: s.error };
-          replace(store, d.clientId, d);
-          report.needsPin = { staffId: d.staffId, error: s.error };
-          continue all;
-        }
-        if (s.kind === 'retry') {
-          replace(store, d.clientId, { ...d, lastError: s.error });
-          break all;
-        }
-        if (s.kind === 'rejected') {
-          reject(d, s.errorCode);
-          continue all;
-        }
-        d = { ...d, sessionId: s.sessionId, lastError: null };
-        fresh = true;
-        replace(store, d.clientId, d);
-      }
-      if (!(await go())) break all;
-      const r = await api.record(d, d.sessionId as string);
-      if (r.kind === 'saved') {
-        report.saved.push(d);
-        replace(store, d.clientId, null);
-        continue all;
-      }
-      if (r.kind === 'rejected') {
-        reject(d, r.errorCode);
-        continue all;
-      }
-      if (r.kind === 'session') {
-        if (fresh) {
-          reject(d, 'STAFF_SESSION_REQUIRED');
-          continue all;
-        }
-        d = { ...d, sessionId: null };
-        replace(store, d.clientId, d);
-        continue;
-      }
+  for (const d of readPendingDeliveries(store)) {
+    if (api.shouldContinue && !(await api.shouldContinue())) break;
+    const r = await api.record(d);
+    if (r.kind === 'retry') {
       replace(store, d.clientId, { ...d, lastError: r.error });
-      break all;
+      break; // offline: try everything later, in order
     }
+    if (r.kind === 'saved') {
+      report.saved.push(d);
+      if (r.deliveryId) {
+        rememberRecentDelivery(
+          store,
+          {
+            deliveryId: r.deliveryId,
+            clientId: d.clientId,
+            plantId: d.plantId,
+            customerId: d.customerId,
+            lines: d.lines,
+            queueItemIds: r.queueItemIds,
+            savedAt: new Date(nowMs).toISOString(),
+          },
+          nowMs,
+        );
+      }
+    } else {
+      const rej = toRejected(d, r.errorCode);
+      addRejected(store, [rej]);
+      report.rejected.push(rej);
+    }
+    replace(store, d.clientId, null);
   }
   report.remaining = readPendingDeliveries(store);
   return report;

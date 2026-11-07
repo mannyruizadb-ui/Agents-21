@@ -13,8 +13,8 @@ import {
 
 // Customer tags for wash groups on every screen that shows a group (queue, board, station,
 // estimates). Reads every customer wash group the user can see (inactive ones too: history) and the
-// customers' names. Customers are owner/manager only; for other roles RLS returns no rows (or the
-// read fails) and the tag says "Customer". Cached; many badges share one query.
+// customers' names. Owners, managers, leads and displays read customers (2026-11-07); only when the
+// read fails (or for viewers) does the tag fall back to "Customer". Cached; many badges share one query.
 
 const NOT_FOUND = (): null => null;
 

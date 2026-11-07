@@ -1,6 +1,7 @@
 // Which outside customer a wash group belongs to (owner 2026-11-06 A: AA Linen's goods are their own
-// wash groups). Pure part. A group with a customer the viewer can't read (customers is owner/manager
-// only) still gets a generic "Customer" tag, so their goods are never mistaken for ours.
+// wash groups). Pure part. A group whose customer the viewer can't read (viewers, or a failed read;
+// leads and displays read customers since 2026-11-07) still gets a generic "Customer" tag, so their
+// goods are never mistaken for ours.
 
 export interface GroupCustomerRow {
   id: string;
