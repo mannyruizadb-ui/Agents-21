@@ -18,7 +18,9 @@
     "signingIn": "Iniciando sesión…",
     "wrongCredentials": "Usuario o contraseña incorrectos. Revise ambos e intente de nuevo.",
     "signInFailed": "No se pudo iniciar sesión. Revise su conexión e intente de nuevo.",
-    "signOut": "Cerrar sesión"
+    "signOut": "Cerrar sesión",
+    "useLetters": "Mi contraseña tiene letras",
+    "useNumbers": "Mi contraseña es solo números"
   },
   "changePassword": {
     "title": "Elija una contraseña nueva",

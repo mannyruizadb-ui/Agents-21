@@ -18,7 +18,9 @@
     "signingIn": "Signing in…",
     "wrongCredentials": "Wrong username or password. Check both and try again.",
     "signInFailed": "Couldn't sign in. Check your connection and try again.",
-    "signOut": "Sign out"
+    "signOut": "Sign out",
+    "useLetters": "My password has letters",
+    "useNumbers": "My password is only numbers"
   },
   "changePassword": {
     "title": "Choose a new password",
