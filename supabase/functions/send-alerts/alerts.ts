@@ -346,6 +346,235 @@ export const BUILDERS: Record<string, KindBuilder> = {
   },
 };
 
+// ---------------------------------------------------------------------------------------------
+// Owner information kinds (owner 2026-11-06, C; payloads: app.alert_payload, 20261107003625) and
+// account_locked (security event for owners, 2026-11-07). Payloads carry no person names (except
+// account_locked's username, which IS the subject of the alert) and no free text (notes never).
+
+const QUEUE_URL = '/control/queue';
+const ESTIMATES_URL = '/control/estimates';
+const DELIVERIES_URL = '/control/deliveries';
+const PEOPLE_URL = '/control/people';
+const WASHERS_URL = '/control/washers';
+/** At most this many groups are listed in one notification; the rest are "+N more". */
+const MAX_LIST_ITEMS = 4;
+
+/** A setup name in the recipient's language: name_i18n[lang], else the base name. */
+function localName(p: Record<string, unknown>, nameKey: string, lang: Lang): string | null {
+  const i18n = labelFrom(labels(p, `${nameKey}_i18n`), lang);
+  if (i18n) return i18n;
+  const base = str(p, nameKey);
+  const clean = base === null ? '' : cleanName(base);
+  return clean || null;
+}
+
+/** 0.25 → "¼", 1.5 → "1½", 2 → "2", 1.2 → "1.2" (quarters get fractions; never more than 2 decimals). */
+export function formatQty(n: number): string {
+  const whole = Math.trunc(n);
+  const frac = Math.round((n - whole) * 100) / 100;
+  const fractions: Record<string, string> = {
+    '0.25': '¼',
+    '0.5': '½',
+    '0.75': '¾',
+  };
+  const f = fractions[String(frac)];
+  if (f !== undefined) return whole === 0 ? f : `${whole}${f}`;
+  return String(Math.round(n * 100) / 100);
+}
+
+type Unit = 'load' | 'basket' | 'bin';
+const UNIT_WORDS: Record<Lang, Record<Unit, [string, string]>> = {
+  // "bin" stays English in Spanish (owner 2026-11-05); = src/locales units.*
+  en: {
+    load: ['load', 'loads'],
+    basket: ['basket', 'baskets'],
+    bin: ['bin', 'bins'],
+  },
+  es: {
+    load: ['carga', 'cargas'],
+    basket: ['canasta', 'canastas'],
+    bin: ['bin', 'bins'],
+  },
+};
+
+/** "2 bins", "¼ bin", "1 carga"; null for a unit outside load/basket/bin or an unusable number. */
+export function qtyText(qty: unknown, unit: unknown, lang: Lang): string | null {
+  const n = typeof qty === 'number' ? qty : typeof qty === 'string' ? Number(qty) : NaN;
+  if (!Number.isFinite(n) || n < 0 || typeof unit !== 'string') return null;
+  if (!Object.hasOwn(UNIT_WORDS[lang], unit)) return null;
+  const [one, many] = UNIT_WORDS[lang][unit as Unit];
+  return `${formatQty(n)} ${n > 0 && n <= 1 ? one : many}`;
+}
+
+/** "a, b, c, d +2 more" / "… +2 más". */
+function listText(parts: string[], lang: Lang): string {
+  const shown = parts.slice(0, MAX_LIST_ITEMS).join(', ');
+  const rest = parts.length - MAX_LIST_ITEMS;
+  return rest > 0 ? `${shown} ${lang === 'es' ? `+${rest} más` : `+${rest} more`}` : shown;
+}
+
+function objects(p: Record<string, unknown>, key: string): Record<string, unknown>[] {
+  const v = Object.hasOwn(p, key) ? p[key] : undefined;
+  return Array.isArray(v)
+    ? v.filter(
+        (x): x is Record<string, unknown> =>
+          x !== null && typeof x === 'object' && !Array.isArray(x),
+      )
+    : [];
+}
+
+/** "a las 9:42 p. m." / "at 9:42 PM"; null for an unreadable time. */
+function atText(iso: string | null, lang: Lang, timeZone: string): string | null {
+  if (iso === null) return null;
+  const time = formatTime(iso, lang, timeZone);
+  if (time === null) return null;
+  return lang === 'es' ? `a ${hourIsOne(iso, timeZone) ? 'la' : 'las'} ${time}` : `at ${time}`;
+}
+
+export const OWNER_INFO_BUILDERS: Record<string, KindBuilder> = {
+  customer_delivery: {
+    // A delivery voided before the push went out is not news any more.
+    isCurrent: (p) => p.voided !== true,
+    build(p, lang, ctx) {
+      const id = str(p, 'delivery_id');
+      if (id === null) return null;
+      const customer = localName(p, 'customer_name', lang);
+      const title = customer
+        ? lang === 'es'
+          ? `Entrega de ${customer}`
+          : `${customer} delivered`
+        : lang === 'es'
+          ? 'Entrega de un cliente'
+          : 'Customer delivery';
+      const lines = objects(p, 'lines')
+        .map((l) => {
+          const qty = qtyText(l.bins, 'bin', lang);
+          const group = localName(l, 'wash_group_name', lang);
+          if (qty === null || group === null) return null;
+          return lang === 'es' ? `${qty} de ${group}` : `${qty} ${group}`;
+        })
+        .filter((x): x is string => x !== null);
+      const at = atText(str(p, 'delivered_at'), lang, ctx.timeZone);
+      const body = capitalize([listText(lines, lang), at].filter(Boolean).join(' · '));
+      return { title, body, tag: `delivery-${id}`, url: DELIVERIES_URL };
+    },
+  },
+  estimate_entered: {
+    // Estimates are never updated or voided: always current.
+    isCurrent: () => true,
+    build(p, lang) {
+      const id = str(p, 'first_estimate_id');
+      if (id === null) return null;
+      const estimates = objects(p, 'estimates');
+      const count = Math.max(num(p, 'count') ?? 0, estimates.length);
+      const title =
+        count > 1
+          ? lang === 'es'
+            ? `${count} estimados nuevos`
+            : `${count} new estimates`
+          : lang === 'es'
+            ? 'Estimado nuevo'
+            : 'New estimate';
+      const parts = estimates
+        .map((e) => {
+          const group = localName(e, 'wash_group_name', lang);
+          const qty = qtyText(e.qty, e.unit, lang);
+          return group === null || qty === null ? null : `${group} ${qty}`;
+        })
+        .filter((x): x is string => x !== null);
+      return {
+        title,
+        body: listText(parts, lang),
+        tag: `estimates-${id}`,
+        url: ESTIMATES_URL,
+      };
+    },
+  },
+  rewash_added: {
+    // A rewash item cancelled before the push went out is not news any more.
+    isCurrent: (p) => p.status !== 'cancelled',
+    build(p, lang) {
+      const id = str(p, 'queue_item_id');
+      if (id === null) return null;
+      const title = lang === 'es' ? 'Relavado agregado a la cola' : 'Rewash added to the queue';
+      const group = localName(p, 'wash_group_name', lang);
+      const qty = qtyText(p.qty, p.unit, lang);
+      const body = [group, qty].filter(Boolean).join(' · ');
+      return { title, body, tag: `rewash-${id}`, url: QUEUE_URL };
+    },
+  },
+  off_queue_start: {
+    // A tap undone (voided) before the push went out is not news any more.
+    isCurrent: (p) => p.voided !== true,
+    build(p, lang, ctx) {
+      const id = str(p, 'cycle_id');
+      if (id === null) return null;
+      const name =
+        localMachineName(str(p, 'machine_name') ?? '', lang) ||
+        (lang === 'es' ? 'Una lavadora' : 'A washer');
+      const offQueue = p.off_queue === true;
+      const title = offQueue
+        ? lang === 'es'
+          ? `${name}: carga fuera de la cola`
+          : `${name}: load not in the queue`
+        : lang === 'es'
+          ? `${name}: no era lo próximo de la cola`
+          : `${name}: not the next in the queue`;
+      const group = localName(p, 'wash_group_name', lang);
+      const expected = localName(p, 'expected_wash_group_name', lang);
+      const next =
+        expected === null
+          ? lang === 'es'
+            ? 'nada en la cola'
+            : 'nothing queued'
+          : lang === 'es'
+            ? `próximo: ${expected}`
+            : `queue next: ${expected}`;
+      const started = atText(str(p, 'started_at'), lang, ctx.timeZone);
+      const body = [group, next, started].filter(Boolean).join(' · ');
+      return { title, body, tag: `off-queue-${id}`, url: WASHERS_URL };
+    },
+  },
+  account_locked: {
+    // Unlocked (by time or by an owner) before the push went out: not news any more.
+    isCurrent: (p) => p.still_locked === true,
+    build(p, lang, ctx) {
+      const id = str(p, 'user_id');
+      if (id === null) return null;
+      const username = str(p, 'username');
+      const who = username === null ? null : cleanText(username, 32);
+      const title =
+        lang === 'es'
+          ? who
+            ? `Cuenta bloqueada: ${who}`
+            : 'Cuenta de dueño bloqueada'
+          : who
+            ? `Account locked: ${who}`
+            : 'Owner account locked';
+      const failures = num(p, 'failures') ?? 5;
+      const untilIso = str(p, 'locked_until');
+      const until = untilIso === null ? null : formatTime(untilIso, lang, ctx.timeZone);
+      const body =
+        lang === 'es'
+          ? [
+              `${failures} contraseñas incorrectas`,
+              until &&
+                untilIso &&
+                `hasta ${hourIsOne(untilIso, ctx.timeZone) ? 'la' : 'las'} ${until}`,
+              'Desbloquear en Personas',
+            ]
+              .filter(Boolean)
+              .join(' · ')
+          : [`${failures} wrong passwords`, until && `until ${until}`, 'Unlock in People']
+              .filter(Boolean)
+              .join(' · ');
+      return { title, body, tag: `locked-${id}`, url: PEOPLE_URL };
+    },
+  },
+};
+
+Object.assign(BUILDERS, OWNER_INFO_BUILDERS);
+
 /** Spanish for the seeded route names ("Route 21" → "Ruta 21"); other names are kept as entered. */
 export function localRouteName(name: string, lang: Lang): string {
   const clean = cleanName(name);
