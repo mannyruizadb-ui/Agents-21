@@ -78,6 +78,8 @@ select is(array[pg_temp.run_as('owner', $$select reviewed_by from public.tasks$$
   '{42501,2,42501}', 'reviewed_by is never selectable; reviewed_at is; no direct writes');
 
 -- ══ Names (D): owners only ═══════════════════════════════════════════════
+-- 2026-11-07: the fallback is the USERNAME of a mapped login, never part of another email.
+update auth.users set email = 'plant-owner@accounts.adbheadquarters.com' where id = 'aaaaaaaa-0000-0000-0000-00000000000c';
 select is(pg_temp.val_as('owner', $$select concat_ws('|', created_by_name, done_by_name, reviewed_by_name) from public.get_tasks(pg_temp.id('plantA'), true) where body = 'Check the trucks'$$),
   'Owner A|Manager A|plant-owner', 'owner: who sent, closed and reviewed it (profile name, else the username)');
 select is(pg_temp.val_as('owner', $$select concat_ws('|', created_by_name, coalesce(done_by_name, '-'), coalesce(reviewed_by_name, '-')) from public.get_tasks(pg_temp.id('plantA')) where body = 'Sweep the dock'$$),

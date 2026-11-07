@@ -42,7 +42,7 @@ export const router = createBrowserRouter([
         }),
       },
       {
-        // Soil estimates (B1): owner and managers, one name + PIN per batch (owner 2026-11-04).
+        // Soil estimates (B1): owner and managers (no entry PIN since 2026-11-07).
         path: 'estimates',
         lazy: async () => ({
           Component: (await import('./features/estimates/EstimatesPage')).EstimatesPage,
@@ -67,17 +67,23 @@ export const router = createBrowserRouter([
         }),
       },
       {
+        // Customer deliveries (owner 2026-11-06 B): history for owners; record for owners + managers.
+        path: 'deliveries',
+        lazy: async () => ({
+          Component: (await import('./features/deliveries/DeliveriesPage')).DeliveriesPage,
+        }),
+      },
+      {
+        path: 'deliveries/new',
+        lazy: async () => ({
+          Component: (await import('./features/deliveries/DeliveryEntryPage')).DeliveryEntryPage,
+        }),
+      },
+      {
         // Owner Setup (owner 2026-11-05): machines and machine-down reasons are app data.
         path: 'setup/machines',
         lazy: async () => ({
           Component: (await import('./features/setup/SetupMachinesPage')).SetupMachinesPage,
-        }),
-      },
-      {
-        // Setup → Entry PINs (owner 2026-11-06): the people who confirm entries with name + PIN.
-        path: 'setup/pins',
-        lazy: async () => ({
-          Component: (await import('./features/setup/SetupPinsPage')).SetupPinsPage,
         }),
       },
       {

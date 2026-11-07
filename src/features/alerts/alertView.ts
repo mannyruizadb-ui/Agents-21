@@ -4,7 +4,28 @@
 // unusable payloads give null (never shown), the same rule as the push sender.
 
 export type AlertKind =
-  'machine_down' | 'washer_idle' | 'task_assigned' | 'task_done' | 'route_loaded';
+  | 'machine_down'
+  | 'washer_idle'
+  | 'task_assigned'
+  | 'task_done'
+  | 'route_loaded'
+  // Owner information alerts (owner 2026-11-06 C): never 'open', always clearable once seen.
+  | 'customer_delivery'
+  | 'estimate_entered'
+  | 'rewash_added'
+  // 2026-11-07: a sign-in locked by wrong passwords (owners); open while it is still locked.
+  | 'account_locked';
+
+/** A wash group named in an alert (localized by the page). */
+export interface AlertGroup {
+  name: string;
+  nameI18n: unknown;
+}
+
+/** One line of a customer delivery alert. */
+export interface AlertDeliveryLine extends AlertGroup {
+  bins: number;
+}
 export type AlertTone = 'danger' | 'warn' | 'info';
 
 export interface AlertRow {
@@ -39,7 +60,39 @@ export interface AlertView {
   routeName?: string;
   loadTime?: string | null;
   loadedAt?: string | null;
+  customerName?: string;
+  customerNameI18n?: unknown;
+  /** customer_delivery: the lines (at most MAX_LINES) and how many more there are */
+  deliveryLines?: AlertDeliveryLine[];
+  moreLines?: number;
+  /** estimate_entered: groups estimated in the batch */
+  count?: number;
+  /** rewash_added: the group */
+  group?: AlertGroup | null;
+  /** account_locked: the username (null for an account without one, e.g. an owner's email) */
+  username?: string | null;
+  /** account_locked: when the lock ends */
+  lockedUntil?: string | null;
+  qty?: number | null;
+  unit?: string | null;
 }
+
+/** Lines shown in a delivery alert before "+ N more". */
+export const MAX_LINES = 4;
+
+function num(p: Record<string, unknown>, key: string): number | null {
+  const v = Object.hasOwn(p, key) ? p[key] : undefined;
+  const n = typeof v === 'number' ? v : typeof v === 'string' && v.trim() !== '' ? Number(v) : NaN;
+  return Number.isFinite(n) ? n : null;
+}
+
+function groupOf(p: Record<string, unknown>, prefix = ''): AlertGroup | null {
+  const name = str(p, `${prefix}wash_group_name`);
+  if (!name) return null;
+  return { name: clean(name), nameI18n: p[`${prefix}wash_group_name_i18n`] ?? null };
+}
+
+const UNITS = new Set(['load', 'basket', 'bin', 'piece', 'pack']);
 
 const MAX_TEXT = 200;
 
@@ -136,6 +189,74 @@ export function describeAlert(row: AlertRow): AlertView | null {
         loadTime: str(payload, 'load_time'),
         loadedAt: str(payload, 'loaded_at'),
       };
+    case 'customer_delivery': {
+      if (!str(payload, 'delivery_id')) return null;
+      const raw = Array.isArray(payload.lines) ? (payload.lines as unknown[]) : [];
+      const lines = raw.flatMap((l): AlertDeliveryLine[] => {
+        if (typeof l !== 'object' || l === null || Array.isArray(l)) return [];
+        const o = l as Record<string, unknown>;
+        const g = groupOf(o);
+        const bins = num(o, 'bins');
+        return g && bins !== null ? [{ ...g, bins }] : [];
+      });
+      const voided = payload.voided === true;
+      return {
+        ...base,
+        kind: 'customer_delivery',
+        tone: 'info',
+        to: '/control/deliveries',
+        open: false,
+        resolved: voided,
+        customerName: clean(str(payload, 'customer_name') ?? ''),
+        customerNameI18n: payload.customer_name_i18n ?? null,
+        deliveryLines: lines.slice(0, MAX_LINES),
+        moreLines: Math.max(0, lines.length - MAX_LINES),
+        since: str(payload, 'delivered_at'),
+      };
+    }
+    case 'estimate_entered': {
+      if (!str(payload, 'first_estimate_id')) return null;
+      const list = Array.isArray(payload.estimates) ? payload.estimates.length : 0;
+      return {
+        ...base,
+        kind: 'estimate_entered',
+        tone: 'info',
+        to: '/control/estimates',
+        open: false,
+        resolved: false,
+        count: Math.max(num(payload, 'count') ?? 0, list),
+      };
+    }
+    case 'rewash_added': {
+      if (!str(payload, 'queue_item_id')) return null;
+      const unit = str(payload, 'unit');
+      return {
+        ...base,
+        kind: 'rewash_added',
+        tone: 'info',
+        to: '/control/queue',
+        open: false,
+        resolved: false,
+        group: groupOf(payload),
+        qty: num(payload, 'qty'),
+        unit: unit && UNITS.has(unit) ? unit : null,
+      };
+    }
+    case 'account_locked': {
+      const userId = str(payload, 'user_id');
+      if (!userId || !UUIDISH.test(userId)) return null;
+      const username = str(payload, 'username');
+      return {
+        ...base,
+        kind: 'account_locked',
+        tone: 'warn',
+        to: '/control/people',
+        open: row.still_current,
+        resolved: !row.still_current,
+        username: username ? clean(username) : null,
+        lockedUntil: str(payload, 'locked_until'),
+      };
+    }
     default:
       return null;
   }

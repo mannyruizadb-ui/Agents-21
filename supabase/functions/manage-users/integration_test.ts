@@ -2,11 +2,13 @@
 // Skipped unless MANAGE_USERS_IT=1. Run (stack started, function served):
 //   MANAGE_USERS_IT=1 FN_URL=http://127.0.0.1:54321/functions/v1/manage-users \
 //   SUPABASE_URL=http://127.0.0.1:54321 SUPABASE_ANON_KEY=... SUPABASE_SERVICE_ROLE_KEY=... \
+//   SIGN_IN_PEPPER=<the same value the served function has> \
 //   deno test --allow-net --allow-env integration_test.ts
 // It creates its own local owner, manager and outsider accounts (unique per run).
 import { assert, assertEquals } from '@std/assert';
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import { LOGIN_EMAIL_DOMAIN, toLoginEmail } from '../_shared/loginId.ts';
+import { pepperPassword } from '../_shared/pepper.ts';
 
 const enabled = Deno.env.get('MANAGE_USERS_IT') === '1';
 const url = Deno.env.get('SUPABASE_URL') ?? '';
@@ -35,11 +37,16 @@ async function call(token: string | null, body: unknown, origin?: string) {
   return { status: res.status, body: await res.json(), headers: res.headers };
 }
 
-// Same mapping as the sign-in screen (src/lib/loginId.ts ≡ _shared/loginId.ts).
+// Same mapping as the sign-in screen (src/lib/loginId.ts ≡ _shared/loginId.ts). GoTrue directly, like
+// the sign-in function does: first the PEPPERED password (accounts made or reset by manage-users), then
+// the typed one (fixture accounts created here with a plain password, like pre-pepper accounts).
 async function signIn(typedUsername: string, password: string) {
   const client = anon();
   const email = toLoginEmail(typedUsername);
   if (!email) throw new Error('invalid username');
+  const peppered = await pepperPassword(Deno.env.get('SIGN_IN_PEPPER') ?? '', email, password);
+  const first = await client.auth.signInWithPassword({ email, password: peppered });
+  if (!first.error) return { client, session: first.data.session, error: null };
   const { data, error } = await client.auth.signInWithPassword({ email, password });
   return { client, session: data.session, error };
 }
@@ -262,18 +269,27 @@ Deno.test({
       const { client, session: maybeSession } = await signIn(newName, tempPassword);
       assert(maybeSession);
       const session = maybeSession;
+      const wrong = await call(session.access_token, {
+        action: 'change_own_password',
+        current_password: 'not-the-temp-password',
+        new_password: 'my new password 1',
+      });
+      assertEquals([wrong.status, wrong.body.reason], [400, 'wrong_current_password']);
       const short = await call(session.access_token, {
         action: 'change_own_password',
+        current_password: tempPassword,
         new_password: 'short',
       });
       assertEquals([short.status, short.body.reason], [400, 'password_too_short']);
       const same = await call(session.access_token, {
         action: 'change_own_password',
+        current_password: tempPassword,
         new_password: tempPassword,
       });
       assertEquals([same.status, same.body.reason], [400, 'same_password']);
       const ok = await call(session.access_token, {
         action: 'change_own_password',
+        current_password: tempPassword,
         new_password: 'my new password 1',
       });
       assertEquals(ok.status, 200, JSON.stringify(ok.body));

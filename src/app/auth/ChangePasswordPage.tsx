@@ -1,80 +1,105 @@
 import { useState, type FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { SignOutButton } from './SignOutButton';
+import { NewPasswordField } from './NewPasswordField';
+import { changePasswordProblem, type Problem } from './changePasswordErrors';
+import { readSignInPrefs } from './signInPrefs';
 import { supabase } from '../../lib/supabase';
-import { callManageUsers, ManageUsersError } from '../../features/admin/manageUsers';
+import { passwordProblem, passwordProblemKey } from '../../lib/passwordRules';
+import { callManageUsers } from '../../features/admin/manageUsers';
 import '../../lib/forms.css';
-
-const MIN_CHARS = 10;
-const MAX_BYTES = 72;
-
-type ErrorKey = 'tooShort' | 'tooLong' | 'mismatch' | 'same' | 'failed';
+import './signin.css';
 
 /**
  * The only screen reachable while app_metadata.must_change_password is true (first sign-in with
- * a temporary password, or after an owner reset). Only manage-users clears the flag.
+ * a temporary password, or after an owner reset). Only manage-users clears the flag; it checks the
+ * current password through the sign-in lockout first (2026-11-07). Big and simple, like sign-in.
  */
 export function ChangePasswordPage() {
   const { t } = useTranslation();
+  const [current, setCurrent] = useState('');
+  // Temporary passwords the app generates have letters; the sign-in screen remembers the choice.
+  const [currentLetters, setCurrentLetters] = useState(() => readSignInPrefs().letters);
   const [password, setPassword] = useState('');
+  const [letters, setLetters] = useState(false);
   const [confirm, setConfirm] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<ErrorKey | null>(null);
+  const [problem, setProblem] = useState<Problem | null>(null);
 
   async function onSubmit(event: FormEvent) {
     event.preventDefault();
-    if (password.length < MIN_CHARS) return setError('tooShort');
-    if (new TextEncoder().encode(password).length > MAX_BYTES) return setError('tooLong');
-    if (password !== confirm) return setError('mismatch');
-    setError(null);
+    if (current.length === 0) return setProblem({ kind: 'currentRequired' });
+    const rule = passwordProblem(password);
+    if (rule !== null) return setProblem({ kind: 'rule', key: passwordProblemKey(rule) });
+    if (password !== confirm) return setProblem({ kind: 'mismatch' });
+    if (password === current) return setProblem({ kind: 'same' });
+    setProblem(null);
     setSaving(true);
     try {
-      await callManageUsers({ action: 'change_own_password', new_password: password });
+      await callManageUsers({
+        action: 'change_own_password',
+        current_password: current,
+        new_password: password,
+      });
       // New token without the flag; RequireAuth re-renders from onAuthStateChange.
       await supabase.auth.refreshSession();
     } catch (e) {
-      const reason = e instanceof ManageUsersError ? e.reason : undefined;
-      setError(
-        reason === 'same_password'
-          ? 'same'
-          : reason === 'password_too_short'
-            ? 'tooShort'
-            : reason === 'password_too_long'
-              ? 'tooLong'
-              : 'failed',
-      );
+      setProblem(changePasswordProblem(e));
       setSaving(false);
     }
   }
 
+  const message =
+    problem === null
+      ? null
+      : problem.kind === 'rule'
+        ? t(`password.problems.${problem.key}`)
+        : problem.kind === 'locked'
+          ? t('auth.locked', { count: problem.minutes })
+          : problem.kind === 'rateLimited'
+            ? t('auth.rateLimited')
+            : t(`changePassword.errors.${problem.kind}`);
+
   return (
-    <main className="form-page">
+    <main className="form-page theme-dark signin-page">
       <h1>{t('changePassword.title')}</h1>
-      <p>{t('changePassword.intro', { count: MIN_CHARS })}</p>
+      <p>{t('changePassword.intro')}</p>
       <form onSubmit={onSubmit} noValidate>
-        <div className="field">
-          <label htmlFor="new-password">{t('changePassword.newLabel')}</label>
-          <input
-            id="new-password"
-            type={showPassword ? 'text' : 'password'}
-            autoComplete="new-password"
-            required
-            minLength={MIN_CHARS}
-            aria-invalid={error === 'tooShort' || error === 'tooLong' || error === 'same'}
-            aria-describedby="change-password-status"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-          />
-        </div>
+        <NewPasswordField
+          id="current-password"
+          label={t('changePassword.currentLabel')}
+          value={current}
+          onChange={setCurrent}
+          letters={currentLetters}
+          onLettersChange={setCurrentLetters}
+          shown={showPassword}
+          rule={false}
+          autoComplete="current-password"
+          invalid={problem?.kind === 'wrongCurrent' || problem?.kind === 'currentRequired'}
+          describedBy="change-password-status"
+        />
+        <NewPasswordField
+          id="new-password"
+          label={t('changePassword.newLabel')}
+          value={password}
+          onChange={setPassword}
+          letters={letters}
+          onLettersChange={setLetters}
+          shown={showPassword}
+          invalid={problem?.kind === 'rule' || problem?.kind === 'same'}
+          describedBy="change-password-status"
+        />
         <div className="field">
           <label htmlFor="confirm-password">{t('changePassword.confirmLabel')}</label>
           <input
             id="confirm-password"
             type={showPassword ? 'text' : 'password'}
             autoComplete="new-password"
+            inputMode={letters ? 'text' : 'numeric'}
+            {...(letters ? {} : { pattern: '[0-9]*' })}
             required
-            aria-invalid={error === 'mismatch'}
+            aria-invalid={problem?.kind === 'mismatch'}
             aria-describedby="change-password-status"
             value={confirm}
             onChange={(e) => setConfirm(e.target.value)}
@@ -90,16 +115,21 @@ export function ChangePasswordPage() {
             {t('auth.showPassword')}
           </label>
         </div>
-        <div className="actions">
-          <button type="submit" disabled={saving}>
-            {saving ? t('changePassword.saving') : t('changePassword.save')}
-          </button>
-          <SignOutButton canSend={false} />
-        </div>
+        <button type="submit" className="signin-submit" disabled={saving}>
+          {saving ? t('changePassword.saving') : t('changePassword.save')}
+        </button>
       </form>
       <p id="change-password-status" role="status" aria-live="polite" className="error">
-        {error && t(`changePassword.errors.${error}`, { count: MIN_CHARS })}
+        {message !== null && (
+          <span aria-hidden="true" className="error-icon">
+            ⚠
+          </span>
+        )}
+        {message}
       </p>
+      <div className="actions">
+        <SignOutButton canSend={false} />
+      </div>
     </main>
   );
 }

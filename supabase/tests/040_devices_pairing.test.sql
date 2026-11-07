@@ -14,7 +14,7 @@ select is(pg_temp.run_as('display', $$select 1 where (app.my_device()).id = pg_t
 select is(pg_temp.run_as('manager', $$select 1 where (app.my_device()).id is null$$, true), '1', 'my_device() is null for a non-device user');
 
 -- devices: owner/manager R C U, lead R, display own row R.
-select is(pg_temp.reads($$select 1 from public.devices where plant_id = pg_temp.id('plantA')$$), '{2,2,2,0,1,0,0,0}', 'devices R (display: own row)');
+select is(pg_temp.reads($$select 1 from public.devices where plant_id = pg_temp.id('plantA')$$), '{2,2,2,0,1,0,0,42501}', 'devices R (display: own row)');
 select is(pg_temp.run_as('display', $$select 1 from public.devices where id = pg_temp.id('device')$$, true), '1', 'display reads its own row');
 select is(pg_temp.writes($$update public.devices set name = name where plant_id = pg_temp.id('plantA')$$), '{2,2,0,0,0,0,0,42501}',
   'devices U owner/manager (name/area/languages/revoke only)');
@@ -60,7 +60,7 @@ select is(array[pg_temp.run_as('manager', $$select public.create_pairing_code(pg
 -- pairing_codes table: owner/manager R C U, lead R.
 insert into public.pairing_codes (code, org_id, plant_id, area_id, device_name, created_by, expires_at, consumed_at)
 values ('HJKMNP', pg_temp.id('orgA'), pg_temp.id('plantA'), pg_temp.id('wash'), 'Fixed', pg_temp.id('owner'), now() + interval '15 minutes', now());
-select is(pg_temp.reads($$select 1 from public.pairing_codes where code = 'HJKMNP'$$), '{1,1,1,0,0,0,0,0}', 'pairing_codes R');
+select is(pg_temp.reads($$select 1 from public.pairing_codes where code = 'HJKMNP'$$), '{1,1,1,0,0,0,0,42501}', 'pairing_codes R');
 select is(pg_temp.writes($$insert into public.pairing_codes (code, org_id, plant_id, area_id, device_name, created_by, expires_at)
   values (substr(translate(upper(md5(random()::text)), '01', '23'), 1, 6), pg_temp.id('orgA'), pg_temp.id('plantA'),
           pg_temp.id('wash'), 'TV', (select auth.uid()), now() + interval '15 minutes')$$),

@@ -6,16 +6,16 @@ begin;
 select plan(104);
 
 -- ── shifts / shift_instances matrix ──────────────────────────────────────
-select is(pg_temp.reads($$select 1 from public.shifts where plant_id = pg_temp.id('plantA')$$), '{8,8,8,8,8,0,0,0}', 'shifts R');
-select is(pg_temp.reads($$select 1 from public.shift_instances where plant_id = pg_temp.id('plantA')$$), '{25,25,25,25,25,0,0,0}', 'shift_instances R');
+select is(pg_temp.reads($$select 1 from public.shifts where plant_id = pg_temp.id('plantA')$$), '{8,8,8,8,8,0,0,42501}', 'shifts R');
+select is(pg_temp.reads($$select 1 from public.shift_instances where plant_id = pg_temp.id('plantA')$$), '{25,25,25,25,25,0,0,42501}', 'shift_instances R');
 select is(pg_temp.writes($$insert into public.shifts (org_id, plant_id, area_id, name, start_local, end_local, days_of_week, active)
   values (pg_temp.id('orgA'), pg_temp.id('plantA'), pg_temp.id('spare'), 'S-' || substr(md5(random()::text), 1, 6), '20:00', '21:00', '{0}', false)$$),
   '{1,1,42501,42501,42501,42501,42501,42501}', 'shifts C owner/manager');
-select is(pg_temp.writes($$update public.shifts set active = active where plant_id = pg_temp.id('plantA')$$), '{10,10,0,0,0,0,0,0}', 'shifts U owner/manager');
+select is(pg_temp.writes($$update public.shifts set active = active where plant_id = pg_temp.id('plantA')$$), '{10,10,0,0,0,0,0,42501}', 'shifts U owner/manager');
 select is(pg_temp.writes($$insert into public.shift_instances (org_id, plant_id, area_id, shift_id, business_date, starts_at, ends_at)
   values (pg_temp.id('orgA'), pg_temp.id('plantA'), pg_temp.id('fin'), pg_temp.id('finDay'), '2026-12-01', now(), now() + interval '1 hour')$$),
   '{42501,42501,42501,42501,42501,42501,42501,42501}', 'shift_instances C denied (generated only)');
-select is(pg_temp.writes($$update public.shift_instances set skipped_at = now()$$), '{0,0,0,0,0,0,0,0}', 'shift_instances U denied (set_shift_skipped only)');
+select is(pg_temp.writes($$update public.shift_instances set skipped_at = now()$$), '{0,0,0,0,0,0,0,42501}', 'shift_instances U denied (set_shift_skipped only)');
 
 -- ── generation: a normal week from a fixed p_from (fixtures: Mon 2026-11-02, 7 days) ──
 select is((select count(*)::int from public.shift_instances where area_id = pg_temp.id('fin')), 15, 'finishing: 6 Evening + 5 Night + 4 Day');

@@ -29,17 +29,10 @@ export interface CurrentEstimate {
   freshness: string | null;
 }
 
-export interface StaffOption {
-  id: string;
-  display_name: string;
-}
-
 export const estimateKeys = {
   groups: (plantId: string) => ['estimate-groups', plantId] as const,
   formulas: (plantId: string) => ['wash-formulas', plantId] as const,
   current: (plantId: string) => ['soil', plantId] as const,
-  staff: (plantId: string) => ['entry-staff', plantId] as const,
-  plant: (plantId: string) => ['plant-settings', plantId] as const,
   capacity: (plantId: string) => ['washer-capacity', plantId] as const,
 };
 
@@ -98,44 +91,6 @@ export function useCurrentEstimates(plantId: string | undefined) {
       return new Map(rows.map((r) => [r.wash_group_id, r]));
     },
     refetchInterval: 60_000,
-  });
-}
-
-/** People who confirm entries with a PIN (entry_staff_public never exposes the PIN hash). */
-export function useEntryStaff(plantId: string | undefined) {
-  return useQuery({
-    queryKey: estimateKeys.staff(plantId ?? ''),
-    enabled: !!plantId,
-    queryFn: async (): Promise<StaffOption[]> =>
-      unwrap(
-        await supabase
-          .from('entry_staff_public')
-          .select('id, display_name')
-          .eq('plant_id', plantId ?? '')
-          .eq('active', true)
-          .eq('has_pin', true)
-          .order('display_name'),
-      ) ?? [],
-    staleTime: 5 * 60_000,
-  });
-}
-
-/** The plant's PIN reuse window in minutes (0 = a PIN on every save). */
-export function usePinReuseMinutes(plantId: string | undefined) {
-  return useQuery({
-    queryKey: estimateKeys.plant(plantId ?? ''),
-    enabled: !!plantId,
-    queryFn: async (): Promise<number> => {
-      const row = unwrap(
-        await supabase
-          .from('plants')
-          .select('staff_pin_reuse_minutes')
-          .eq('id', plantId ?? '')
-          .maybeSingle(),
-      );
-      return row?.staff_pin_reuse_minutes ?? 0;
-    },
-    staleTime: 5 * 60_000,
   });
 }
 

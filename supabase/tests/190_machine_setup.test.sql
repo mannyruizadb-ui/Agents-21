@@ -10,7 +10,7 @@ select enum_has_labels('app', 'machine_kind', array['washer','dryer','ironer','f
 select is(pg_temp.writes($$insert into public.machines (org_id, plant_id, area_id, name, kind) values (pg_temp.id('orgA'), pg_temp.id('plantA'), pg_temp.id('wash'), 'Boiler-' || substr(md5(random()::text), 1, 6), 'utility')$$),
   '{1,42501,42501,42501,42501,42501,42501,42501}', 'add a machine: owner only');
 select is(pg_temp.writes($$update public.machines set name = 'Washer 1A' where id = pg_temp.id('machine')$$),
-  '{1,0,0,0,0,0,0,0}', 'rename: owner only (others change no rows)');
+  '{1,0,0,0,0,0,0,42501}', 'rename: owner only (others change no rows)');
 select is(pg_temp.run_as('owner', $$update public.machines set active = false where kind = 'utility' and plant_id = pg_temp.id('plantA')$$),
   '1', 'deactivate: owner');
 select is(pg_temp.run_as('owner', $$delete from public.machines where kind = 'utility'$$), '0', 'no deletes (no DELETE policy: deactivate instead)');

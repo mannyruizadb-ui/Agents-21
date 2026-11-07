@@ -1,5 +1,7 @@
 import { useRef, useState, type FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
+import { groupOptionText } from '../customers/customerLookup';
+import { useCustomerNameOf } from '../customers/useCustomerLookup';
 import { useLocalNames } from '../../lib/seededNames';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../../lib/supabase';
@@ -92,6 +94,7 @@ function AddForm({
   const { t } = useTranslation();
   const qc = useQueryClient();
   const localized = useLocalizedName();
+  const customerOf = useCustomerNameOf();
   const groups = useWashGroups(plantId);
   const [groupId, setGroupId] = useState('');
   const [loads, setLoads] = useState('1');
@@ -163,7 +166,7 @@ function AddForm({
             <option value="">{t('queue.choose')}</option>
             {(groups.data ?? []).map((g) => (
               <option key={g.id} value={g.id}>
-                {localized(g.name, g.name_i18n)}
+                {groupOptionText(localized(g.name, g.name_i18n), customerOf(g.id))}
               </option>
             ))}
           </select>
@@ -310,6 +313,7 @@ function QueueItemCard({
         name={item.wash_group_name}
         nameI18n={item.wash_group_name_i18n}
         colorHex={item.wash_group_color_hex}
+        washGroupId={item.wash_group_id}
       />
       {item.item_name && <p>{localized(item.item_name, item.item_name_i18n)}</p>}
       <p className="q-qty">

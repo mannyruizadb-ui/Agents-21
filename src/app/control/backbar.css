@@ -1,0 +1,32 @@
+/* Back button (owner 2026-11-06): top-left, sticky, a ≥ 48 px target with an arrow and the word. */
+.back-bar {
+  position: sticky;
+  top: 0;
+  z-index: 15;
+  padding: var(--sp-sm) var(--sp-md) 0;
+  padding-top: max(var(--sp-sm), env(safe-area-inset-top));
+  background: var(--c-surface-lowest);
+}
+.back-button {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-sm);
+  min-height: 48px;
+  padding: 0 var(--sp-md);
+  border: 2px solid var(--c-seam);
+  border-radius: var(--radius-lg);
+  background: var(--c-surface-high);
+  color: var(--c-text);
+  font: inherit;
+  font-weight: 700;
+  font-size: var(--fs-md);
+  cursor: pointer;
+}
+.back-button span {
+  font-size: 1.6em;
+  line-height: 1;
+}
+.back-button:focus-visible {
+  outline: 3px solid var(--c-focus);
+  outline-offset: 2px;
+}

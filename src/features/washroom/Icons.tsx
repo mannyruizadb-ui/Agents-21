@@ -192,3 +192,10 @@ export const IconList = (p: IconProps) => (
     <path d="M8 8h8M8 12h8M8 16h5" />
   </Svg>
 );
+/** Outside customer's goods (AA Linen): a tag. */
+export const IconCustomer = (p: IconProps) => (
+  <Svg {...p}>
+    <path d="M3 12V4h8l10 10-8 8z" />
+    <circle cx="7.5" cy="8.5" r="1.5" />
+  </Svg>
+);

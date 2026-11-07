@@ -112,6 +112,7 @@ function Tile({ row, fetchedAt, now }: { row: WasherBoardRow; fetchedAt: number;
             name={row.wash_group_name}
             nameI18n={row.wash_group_name_i18n}
             colorHex={row.wash_group_color_hex}
+            washGroupId={row.wash_group_id}
           />
         ) : (
           <span className="wb-empty">{t('washroom.empty')}</span>
@@ -162,6 +163,7 @@ function Tile({ row, fetchedAt, now }: { row: WasherBoardRow; fetchedAt: number;
               name={row.next_wash_group_name}
               nameI18n={row.next_wash_group_name_i18n}
               colorHex={row.next_wash_group_color_hex}
+              washGroupId={row.next_wash_group_id}
             />
             <span className="wb-meta">
               {qtyText(row.next_loads_remaining, row.next_qty, row.next_unit)}
@@ -209,6 +211,7 @@ function NextInQueue({ items }: { items: QueueRow[] }) {
               name={top.wash_group_name}
               nameI18n={top.wash_group_name_i18n}
               colorHex={top.wash_group_color_hex}
+              washGroupId={top.wash_group_id}
             />
             <span className="wb-meta">{qtyText(top.loads_remaining, top.qty, top.unit)}</span>
             {shown.length > 1 && (

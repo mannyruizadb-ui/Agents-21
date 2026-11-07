@@ -6,24 +6,24 @@ begin;
 select plan(44);
 
 -- languages: global R for every signed-in user; nobody writes.
-select is(pg_temp.reads($$select 1 from public.languages$$), '{3,3,3,3,3,3,3,0}', 'languages R');
+select is(pg_temp.reads($$select 1 from public.languages$$), '{3,3,3,3,3,3,3,42501}', 'languages R');
 select is(pg_temp.writes($$insert into public.languages (code, name_native) values ('fr', 'Français')$$),
   '{42501,42501,42501,42501,42501,42501,42501,42501}', 'languages C denied');
 
 -- organizations: R members (display with device), U owner.
 select is(pg_temp.reads($$select 1 from public.organizations where id = pg_temp.id('orgA')$$),
-  '{1,1,1,1,1,0,0,0}', 'organizations R (own org only)');
+  '{1,1,1,1,1,0,0,42501}', 'organizations R (own org only)');
 select is(pg_temp.writes($$update public.organizations set name = name || '!' where id = pg_temp.id('orgA')$$),
-  '{1,0,0,0,0,0,0,0}', 'organizations U owner only');
+  '{1,0,0,0,0,0,0,42501}', 'organizations U owner only');
 select is(pg_temp.writes($$insert into public.organizations (name, slug) values ('X', 'x-' || substr(md5(random()::text), 1, 8))$$),
   '{42501,42501,42501,42501,42501,42501,42501,42501}', 'organizations C denied');
 select throws_ok($$insert into public.organizations (name, slug) values ('Bad', 'Bad Slug')$$, '23514', null, 'org slug CHECK');
 
 -- plants: R all roles (display own plant), U owner.
 select is(pg_temp.reads($$select 1 from public.plants where id = pg_temp.id('plantA')$$),
-  '{1,1,1,1,1,0,0,0}', 'plants R (own plant; not cross-tenant)');
+  '{1,1,1,1,1,0,0,42501}', 'plants R (own plant; not cross-tenant)');
 select is(pg_temp.writes($$update public.plants set estimate_amber_minutes = 100 where id = pg_temp.id('plantA')$$),
-  '{1,0,0,0,0,0,0,0}', 'plants U owner only');
+  '{1,0,0,0,0,0,0,42501}', 'plants U owner only');
 select is(pg_temp.writes($$insert into public.plants (org_id, name) values (pg_temp.id('orgA'), 'P2')$$),
   '{42501,42501,42501,42501,42501,42501,42501,42501}', 'plants C denied');
 select is(pg_temp.run_as('owner', $$update public.plants set timezone = 'Mars/Olympus' where id = pg_temp.id('plantA')$$),
@@ -37,7 +37,7 @@ select is(pg_temp.run_as('owner', $$update public.plants set enabled_languages =
 
 -- profiles: own row R U; no client insert; display accounts excluded (security L7).
 insert into public.profiles (user_id, full_name, language) values (pg_temp.id('display'), 'Washroom TV', 'es');
-select is(pg_temp.reads($$select 1 from public.profiles$$), '{1,1,0,0,0,0,1,0}', 'profiles R own row only');
+select is(pg_temp.reads($$select 1 from public.profiles$$), '{1,1,0,0,0,0,1,42501}', 'profiles R own row only');
 select is(pg_temp.run_as('manager', $$update public.profiles set full_name = 'M'$$), '1', 'profiles U own row');
 select is(pg_temp.run_as('manager', $$update public.profiles set full_name = 'X' where user_id = pg_temp.id('owner')$$),
   '0', 'profiles U of another user affects nothing');
@@ -53,12 +53,12 @@ select is(pg_temp.run_as('owner', $$update public.profiles set a11y_prefs = '{"r
 
 -- memberships: owner R C U, manager R (plant-scoped rows).
 select is(pg_temp.reads($$select 1 from public.memberships where org_id = pg_temp.id('orgA')$$),
-  '{6,5,0,0,0,0,0,0}', 'memberships R owner (all) / manager (plant rows)');
+  '{6,5,0,0,0,0,0,42501}', 'memberships R owner (all) / manager (plant rows)');
 select is(pg_temp.writes($$insert into public.memberships (user_id, org_id, plant_id, role)
                             values (pg_temp.id('nobody'), pg_temp.id('orgA'), pg_temp.id('plantA'), 'viewer')$$),
   '{1,42501,42501,42501,42501,42501,42501,42501}', 'memberships C owner only (no cross-tenant grants)');
 select is(pg_temp.writes($$update public.memberships set revoked_at = now() where user_id = pg_temp.id('nobody')$$),
-  '{1,0,0,0,0,0,0,0}', 'memberships U owner only');
+  '{1,0,0,0,0,0,0,42501}', 'memberships U owner only');
 
 -- Attack (a): a plant-scoped manager of A sees nothing of plant A2 in the same org.
 insert into public.memberships (user_id, org_id, plant_id, role) values
@@ -81,10 +81,10 @@ select is(pg_temp.run_as('ownerP', $$update public.organizations set name = 'Hij
 
 -- audit_log: owner/manager R; nobody writes (app.audit() only).
 select is(pg_temp.reads($$select 1 from public.audit_log where org_id = pg_temp.id('orgA') limit 1$$),
-  '{1,0,0,0,0,0,0,0}', 'audit_log R: owner only (security review 2026-11-06 H1)');
+  '{1,0,0,0,0,0,0,42501}', 'audit_log R: owner only (security review 2026-11-06 H1)');
 select is(pg_temp.writes($$insert into public.audit_log (org_id, action, entity) values (pg_temp.id('orgA'), 'x', 'x')$$),
   '{42501,42501,42501,42501,42501,42501,42501,42501}', 'audit_log C denied');
-select is(pg_temp.writes($$update public.audit_log set action = 'x'$$), '{0,0,0,0,0,0,0,0}', 'audit_log U denied');
+select is(pg_temp.writes($$update public.audit_log set action = 'x'$$), '{0,0,0,0,0,0,0,42501}', 'audit_log U denied');
 select is(array[pg_temp.run_as('owner', $$select 1 from public.audit_log where entity = 'organizations' and org_id = pg_temp.id('orgA')$$, true),
                 pg_temp.run_as('manager', $$select 1 from public.audit_log where entity = 'organizations'$$, true)],
   '{2,0}', 'org-level audit rows: org-wide owner R, plant manager not');
@@ -105,8 +105,8 @@ select is(pg_temp.run_as('lead', $$insert into public.app_events (org_id, plant_
 select throws_ok($$insert into public.app_events (org_id, plant_id, name) values (pg_temp.id('orgB'), pg_temp.id('plantA'), 'x')$$,
   '23503', null, 'app_events plant must belong to its org');
 select is(pg_temp.reads($$select 1 from public.app_events where org_id = pg_temp.id('orgA')$$),
-  '{5,5,0,0,0,0,0,0}', 'app_events R owner/manager');
-select is(pg_temp.writes($$update public.app_events set name = 'x'$$), '{0,0,0,0,0,0,0,0}', 'app_events U denied');
+  '{5,5,0,0,0,0,0,42501}', 'app_events R owner/manager');
+select is(pg_temp.writes($$update public.app_events set name = 'x'$$), '{0,0,0,0,0,0,0,42501}', 'app_events U denied');
 -- Security L5: device_id must be the caller's own device; props are bounded.
 select is(array[pg_temp.run_as('display', $$insert into public.app_events (org_id, plant_id, user_id, device_id, name)
                   values (pg_temp.id('orgA'), pg_temp.id('plantA'), (select auth.uid()), pg_temp.id('device'), 'display_online')$$),

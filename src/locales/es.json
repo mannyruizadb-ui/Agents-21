@@ -18,22 +18,29 @@
     "signingIn": "Iniciando sesión…",
     "wrongCredentials": "Usuario o contraseña incorrectos. Revise ambos e intente de nuevo.",
     "signInFailed": "No se pudo iniciar sesión. Revise su conexión e intente de nuevo.",
-    "signOut": "Cerrar sesión"
+    "signOut": "Cerrar sesión",
+    "useLetters": "Mi contraseña tiene letras",
+    "useNumbers": "Mi contraseña es solo números",
+    "locked_one": "Demasiados intentos. Intente en {{count}} minuto, o pida al dueño que lo desbloquee.",
+    "locked_many": "Demasiados intentos. Intente en {{count}} minutos, o pida al dueño que lo desbloquee.",
+    "locked_other": "Demasiados intentos. Intente en {{count}} minutos, o pida al dueño que lo desbloquee.",
+    "rateLimited": "Demasiados inicios de sesión ahora. Espere un minuto e intente de nuevo."
   },
   "changePassword": {
     "title": "Elija una contraseña nueva",
-    "intro": "Entró con una contraseña temporal. Elija la suya para continuar. Use al menos {{count}} caracteres.",
+    "intro": "Entró con una contraseña temporal. Elija la suya para continuar.",
     "newLabel": "Contraseña nueva",
     "confirmLabel": "Escríbala otra vez",
     "save": "Guardar contraseña",
     "saving": "Guardando…",
     "errors": {
-      "tooShort": "Muy corta. Use al menos {{count}} caracteres.",
-      "tooLong": "Muy larga. Use una contraseña más corta.",
+      "currentRequired": "Escriba su contraseña actual (con la que entró).",
+      "wrongCurrent": "La contraseña actual no es correcta. Escriba la que usó para entrar.",
       "mismatch": "Las dos contraseñas no coinciden. Escriba la misma en ambos campos.",
       "same": "Esa es la contraseña que tiene ahora. Elija otra.",
       "failed": "No se pudo guardar la contraseña. Revise su conexión e intente de nuevo."
-    }
+    },
+    "currentLabel": "Contraseña actual"
   },
   "roles": {
     "owner": "Dueño",
@@ -102,7 +109,30 @@
     "idleLabel": "Alarmas de lavadora parada",
     "idleHint": "El gerente de turno siempre recibe las alarmas de lavadora parada, aunque esto esté apagado.",
     "idleOn": "Alarmas de lavadora parada encendidas para {{name}}.",
-    "idleOff": "Alarmas de lavadora parada apagadas para {{name}}."
+    "idleOff": "Alarmas de lavadora parada apagadas para {{name}}.",
+    "levelsTitle": "Alertas del dueño",
+    "levelsHint": "Sonar: notificación y pestaña Alertas. Silencio: solo la pestaña Alertas. Apagado: no se muestra.",
+    "levelSaved": "{{kind}} para {{name}}: {{level}}.",
+    "levelKind": {
+      "customer_delivery": "Entrega de cliente",
+      "estimate_entered": "Estimados puestos",
+      "rewash_added": "Relavar añadido",
+      "account_locked": "Cuenta bloqueada"
+    },
+    "level": {
+      "push": "Sonar",
+      "quiet": "Silencio",
+      "off": "Apagado"
+    },
+    "startPasswordLabel": "Contraseña inicial (opcional)",
+    "startPasswordHint": "Déjela vacía y la app crea una. La persona debe cambiarla la primera vez que entre.",
+    "resetConfirm": "Restablecer ahora",
+    "passwordSet": "Nueva contraseña inicial para {{name}}. Debe cambiarla la primera vez que entre.",
+    "createdWithPassword": "Cuenta {{username}} creada con la contraseña que escribió. Debe cambiarla la primera vez que entre.",
+    "lockedLabel": "Inicio de sesión bloqueado",
+    "lockedUntil": "Bloqueado hasta las {{time}}",
+    "unlock": "Desbloquear",
+    "unlocked": "{{name}} ya puede entrar otra vez."
   },
   "control": {
     "placeholder": "Elige una pantalla.",
@@ -132,7 +162,7 @@
     "rateLimited": "Demasiados cambios a la vez. Espera unos segundos e intenta de nuevo.",
     "network": "No hay conexión con el servidor. Revisa el Wi-Fi e intenta de nuevo.",
     "machineDown": "Esa lavadora está fuera de servicio. Elige otra, o márcala como arreglada primero.",
-    "pinAgain": "Hay que poner el PIN otra vez. Escríbelo y guarda.",
+    "pinAgain": "Esta entrada no se guardó. Escríbala otra vez.",
     "washerRunning": "Esta lavadora todavía está trabajando. Confirma para empezar otra carga."
   },
   "units": {
@@ -361,7 +391,7 @@
   },
   "estimates": {
     "title": "Ropa sucia esperando",
-    "intro": "Para cada grupo de lavado, di cuánta ropa sucia está esperando. Revisa y guarda una sola vez con tu PIN.",
+    "intro": "Para cada grupo de lavado, diga cuánto trabajo sucio está esperando. Revise y guárdelos todos juntos.",
     "notAllowed": "Solo el dueño y los gerentes ponen estimados.",
     "summaryTitle": "Esperando ahora",
     "totalLoads_one": "≈ {{n}} carga esperando",
@@ -397,13 +427,6 @@
     "reviewTitle_other": "Revisa {{count}} estimados",
     "fixFirst_one": "Corrige {{count}} cantidad arriba primero.",
     "fixFirst_other": "Corrige {{count}} cantidades arriba primero.",
-    "whoLabel": "¿Quién lo pone?",
-    "noStaff": "Nadie tiene PIN todavía. El dueño configura los nombres y PIN.",
-    "pinLabel": "Tu PIN de 4 números",
-    "pinHint": "Un solo PIN guarda todos.",
-    "pinStillGood_one": "El PIN de {{name}} sigue bueno en este teléfono por {{count}} minuto más.",
-    "pinStillGood_other": "El PIN de {{name}} sigue bueno en este teléfono por {{count}} minutos más.",
-    "enterPinAnyway": "Poner PIN de todos modos",
     "saveAll_one": "Guardar {{count}} estimado",
     "saveAll_other": "Guardar {{count}} estimados",
     "saving": "Guardando…",
@@ -413,13 +436,7 @@
     "savedOnPhone_one": "{{count}} estimado está guardado en este teléfono y se enviará cuando vuelva la conexión.",
     "savedOnPhone_other": "{{count}} estimados están guardados en este teléfono y se enviarán cuando vuelva la conexión.",
     "notStored": "Este teléfono no pudo guardar los estimados. Deja esta página abierta hasta que vuelva la conexión.",
-    "needsPin": "Hay estimados esperando que se ponga el PIN otra vez (PIN equivocado, cambiado o bloqueado).",
-    "sendNow": "Enviar ahora",
     "errors": {
-      "who": "Elige quién lo pone.",
-      "pin": "Escribe el PIN de 4 números.",
-      "wrongPin": "PIN equivocado. Intenta otra vez.",
-      "locked": "Demasiados PIN equivocados. Espera 5 minutos e intenta otra vez.",
       "tooOld": "Tiene más de 6 horas, así que el servidor no lo puede guardar. Ponlo otra vez."
     },
     "noTimeGroups_one": "{{count}} grupo no tiene tiempo de lavadora, así que el tiempo no lo incluye.",
@@ -551,37 +568,6 @@
       "name": "Escribe un nombre de 1 a 60 caracteres.",
       "area": "Escoge un área.",
       "englishLabel": "Escribe el texto en inglés (de 1 a 60 caracteres)."
-    },
-    "pins": {
-      "title": "Configuración: PIN de registro",
-      "intro": "Las personas que confirman los estimados y los productos terminados con su nombre y un PIN de 4 dígitos. El PIN solo muestra quién registró algo; no es una contraseña. Desactiva a quien se vaya; nunca se borra, porque sus registros anteriores lo mencionan.",
-      "none": "Todavía no hay nadie. Agrega a la primera persona abajo.",
-      "name": "Nombre",
-      "language": "Idioma",
-      "homeShift": "Turno habitual",
-      "noShift": "Sin turno habitual",
-      "homeShiftHint": "Los registros cuentan para este turno, salvo que elijan el siguiente.",
-      "hasPin": "PIN listo",
-      "noPin": "Sin PIN",
-      "setPin": "Poner PIN",
-      "resetPin": "Cambiar PIN",
-      "savePin": "Guardar PIN",
-      "pin": "PIN nuevo (4 dígitos)",
-      "pinAgain": "Escribe el PIN otra vez",
-      "pinHint": "Que no sea 1234 ni el mismo dígito 4 veces. Cada persona necesita un PIN distinto.",
-      "pinSaved": "PIN nuevo guardado para {{name}}.",
-      "addTitle": "Agregar una persona",
-      "add": "Agregar persona",
-      "added": "Se agregó a {{name}} con su PIN.",
-      "addedNoPin": "Se agregó a {{name}}, pero el PIN no se guardó.",
-      "deactivateHint": "Una persona desactivada no puede confirmar registros; sus registros anteriores se quedan.",
-      "errors": {
-        "digits": "El PIN debe tener exactamente 4 dígitos.",
-        "easy": "Ese PIN es muy fácil de adivinar. Elige otro.",
-        "mismatch": "Los dos PIN no son iguales.",
-        "inUse": "Otra persona ya tiene ese PIN. Elige otro.",
-        "name": "Escribe un nombre (hasta 60 caracteres)."
-      }
     }
   },
   "loadOut": {
@@ -732,7 +718,13 @@
       "washerIdle": "{{name}} parada — hay trabajo",
       "taskNew": "Nueva tarea",
       "taskDone": "Tarea hecha",
-      "routeLoaded": "{{name}} cargada"
+      "routeLoaded": "{{name}} cargada",
+      "customerDelivery": "Entrega de {{customer}}: {{lines}}",
+      "customerDeliveryShort": "Entrega de {{customer}}",
+      "estimateEntered_one": "Estimados puestos: {{count}} grupo",
+      "estimateEntered_other": "Estimados puestos: {{count}} grupos",
+      "rewashAdded": "Relavar añadido: {{group}} {{amount}}",
+      "accountLocked": "Cuenta bloqueada: {{username}}"
     },
     "state": {
       "open": {
@@ -740,25 +732,43 @@
         "washer_idle": "Parada",
         "task_assigned": "Abierta",
         "task_done": "Hecha",
-        "route_loaded": "Cargada"
+        "route_loaded": "Cargada",
+        "customer_delivery": "Entregada",
+        "estimate_entered": "Puestos",
+        "rewash_added": "Añadido",
+        "account_locked": "Bloqueada"
       },
       "resolved": {
         "machine_down": "Arreglada",
         "washer_idle": "Empezada",
         "task_assigned": "Hecha",
         "task_done": "Hecha",
-        "route_loaded": "Desmarcada"
+        "route_loaded": "Desmarcada",
+        "customer_delivery": "Anulada",
+        "estimate_entered": "Puestos",
+        "rewash_added": "Añadido",
+        "account_locked": "Desbloqueada"
       },
       "done": {
         "machine_down": "Arreglada",
         "washer_idle": "Empezada",
         "task_assigned": "Hecha",
         "task_done": "Hecha",
-        "route_loaded": "Cargada"
+        "route_loaded": "Cargada",
+        "customer_delivery": "Entregada",
+        "estimate_entered": "Puestos",
+        "rewash_added": "Añadido",
+        "account_locked": "Desbloqueada"
       }
     },
     "clear": "Quitar",
-    "clearAll": "Quitar todas las terminadas"
+    "clearAll": "Quitar todas las terminadas",
+    "aGroup": "un grupo",
+    "deliveryLine": "{{group}} {{amount}}",
+    "moreLines_one": "+ {{count}} más",
+    "moreLines_other": "+ {{count}} más",
+    "anAccount": "una cuenta de dueño",
+    "lockedUntil": "Bloqueada hasta las {{time}}. Toque para desbloquear."
   },
   "board": {
     "pill": {
@@ -826,5 +836,72 @@
     "by": "por {{name}}",
     "addedBy": "Agregado por {{name}}",
     "markedBy": "Marcado por {{name}}"
+  },
+  "customers": {
+    "generic": "Cliente"
+  },
+  "deliveries": {
+    "title": "Entregas de clientes",
+    "recordTitle": "Registrar entrega",
+    "intro": "Bins por grupo, como llegan. Cada grupo va al final de la cola.",
+    "notAllowed": "Solo el dueño y los gerentes registran entregas.",
+    "historyTitle": "Últimos 7 días",
+    "none": "No hay entregas en los últimos 7 días.",
+    "customerLabel": "Cliente",
+    "customerIs": "Cliente: {{name}}",
+    "noCustomers": "No hay clientes. Pregunta al dueño.",
+    "noGroups": "Este cliente todavía no tiene grupos de lavado. Pregunta al dueño.",
+    "binsUnit": "bins",
+    "badBins": "Usa de 0 a {{max}}, en cuartos (¼, ½, ¾).",
+    "approxLoads_one": "≈ {{n}} carga",
+    "approxLoads_other": "≈ {{n}} cargas",
+    "loadsUnknown": "cargas sin calcular",
+    "noteLabel": "Nota (opcional)",
+    "confirmTitle": "Confirmar",
+    "nothingYet": "Pon bins en al menos un grupo.",
+    "fixFirst_one": "Corrige {{count}} cantidad primero.",
+    "fixFirst_other": "Corrige {{count}} cantidades primero.",
+    "save": "Guardar entrega",
+    "goesToQueue": "Cada grupo va al final de la cola.",
+    "openQueue": "Abrir la cola",
+    "sent": "Enviada al final de la cola.",
+    "savedOnPhone": "Guardada en este teléfono. Se enviará cuando vuelva la conexión.",
+    "notStored": "Este teléfono no pudo guardar la entrega. Deja esta página abierta hasta que vuelva la conexión.",
+    "waitingToSend_one": "{{count}} entrega espera en este teléfono para enviarse.",
+    "waitingToSend_other": "{{count}} entregas esperan en este teléfono para enviarse.",
+    "rejected": "Una entrega de {{customer}} no se guardó.",
+    "voided": "Anulada",
+    "by": "por {{name}}",
+    "cancel": {
+      "button": "Cancelar esta entrega",
+      "question": "¿Cancelar esta entrega? Sus cargas que no han empezado salen de la cola.",
+      "reasonLabel": "Motivo",
+      "reasonNeeded": "Escriba primero un motivo corto.",
+      "confirm": "Sí, cancelarla",
+      "keep": "Dejarla",
+      "working": "Cancelando…",
+      "done": "Entrega cancelada.",
+      "already": "Esta entrega ya estaba cancelada.",
+      "removed_one": "Sacado de la cola ({{count}}):",
+      "removed_many": "Sacados de la cola ({{count}}):",
+      "removed_other": "Sacados de la cola ({{count}}):",
+      "keptTitle_one": "{{count}} carga ya empezó — no se canceló:",
+      "keptTitle_many": "{{count}} cargas ya empezaron — no se cancelaron:",
+      "keptTitle_other": "{{count}} cargas ya empezaron — no se cancelaron:",
+      "kept": "{{group}}: ya empezó — no se canceló",
+      "anItem": "Un artículo de la cola"
+    },
+    "recentTitle": "Guardadas en este teléfono",
+    "cancelled": "Cancelada",
+    "voidReason": "Motivo: {{reason}}"
+  },
+  "password": {
+    "rule": "Use 6 números, o al menos 10 letras y números.",
+    "ok": "Contraseña buena.",
+    "problems": {
+      "tooShort": "Muy corta. Use 6 números, o al menos 10 letras y números.",
+      "tooLong": "Muy larga. Use una contraseña más corta.",
+      "tooSimple": "Muy fácil de adivinar. No use repeticiones ni series como 111111 o 123456."
+    }
   }
 }

@@ -1,11 +1,14 @@
 import { scopedStore, type KeyValueStore } from '../lib/scopedStore';
 import { OUTBOX_KEY, sweepOutbox } from '../features/estimates/estimateOutbox';
+import { DELIVERY_OUTBOX_KEY, sweepDeliveries } from '../features/deliveries/deliveryOutbox';
 
 // Run once at app start, before anyone signs in (security re-review notes 2 and 5). Sends nothing.
 //  - Deletes the keys from before per-account storage (they could hold another person's PIN).
-//  - For EVERY account with an estimates outbox on this device: expires PINs older than 6 h and
-//    moves entries the server can no longer accept to that account's refused list. Without this, a
-//    PIN would stay on a shared phone until that same account signed in again.
+//  - For EVERY account with an estimates outbox on this device: moves entries the server can no
+//    longer accept to that account's refused list, and rewrites batches saved in the entry-PIN era
+//    (before 2026-11-07) without their PIN, so no PIN stays on a shared phone.
+//  - The same for every account's customer-deliveries outbox (2026-11-07).
+//  - Deletes every account's entry-PIN-era keys (last staff chosen, open staff session).
 
 export interface EnumerableStore extends KeyValueStore {
   keys(): string[];
@@ -22,14 +25,23 @@ export const LEGACY_KEYS = [
   'plantboard.washerTaps.rejected.v1',
 ] as const;
 
+/** Per-account keys of the entry-PIN era (before 2026-11-07): last staff chosen, open staff session. */
+const PIN_ERA_PATTERN =
+  /^plantboard\.[0-9a-fA-F-]{36}\.(estimates\.lastStaff\.v1|staffSession\.v1)$/;
+
 const OUTBOX_PATTERN = new RegExp(
   `^plantboard\\.([0-9a-fA-F-]{36})\\.${OUTBOX_KEY.replace(/\./g, '\\.')}$`,
+);
+
+const DELIVERY_PATTERN = new RegExp(
+  `^plantboard\\.([0-9a-fA-F-]{36})\\.${DELIVERY_OUTBOX_KEY.replace(/\./g, '\\.')}$`,
 );
 
 export interface StartupReport {
   legacyRemoved: number;
   accounts: number;
-  pinsWiped: number;
+  /** Batches / deliveries from the entry-PIN era rewritten without their PIN. */
+  legacyPinsWiped: number;
   tooOld: number;
 }
 
@@ -37,7 +49,12 @@ export function startupStorageSweep(
   base: EnumerableStore,
   nowMs: number = Date.now(),
 ): StartupReport {
-  const report: StartupReport = { legacyRemoved: 0, accounts: 0, pinsWiped: 0, tooOld: 0 };
+  const report: StartupReport = {
+    legacyRemoved: 0,
+    accounts: 0,
+    legacyPinsWiped: 0,
+    tooOld: 0,
+  };
   for (const key of LEGACY_KEYS) {
     if (base.getItem(key) !== null) {
       base.removeItem(key);
@@ -45,11 +62,23 @@ export function startupStorageSweep(
     }
   }
   for (const key of base.keys()) {
+    if (PIN_ERA_PATTERN.test(key)) {
+      base.removeItem(key);
+      report.legacyRemoved += 1;
+      continue;
+    }
     const userId = OUTBOX_PATTERN.exec(key)?.[1];
-    if (!userId) continue;
-    report.accounts += 1;
-    const r = sweepOutbox(scopedStore(base, userId), nowMs);
-    report.pinsWiped += r.pinsWiped;
+    if (userId) {
+      report.accounts += 1;
+      const r = sweepOutbox(scopedStore(base, userId), nowMs);
+      report.legacyPinsWiped += r.legacyWiped;
+      report.tooOld += r.tooOld;
+      continue;
+    }
+    const deliveryUser = DELIVERY_PATTERN.exec(key)?.[1];
+    if (!deliveryUser) continue;
+    const r = sweepDeliveries(scopedStore(base, deliveryUser), nowMs);
+    report.legacyPinsWiped += r.legacyWiped;
     report.tooOld += r.tooOld;
   }
   return report;
