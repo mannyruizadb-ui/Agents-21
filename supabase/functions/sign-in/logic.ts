@@ -23,6 +23,7 @@
 import { toLoginEmail } from '../_shared/loginId.ts';
 import { checkPassword, type PasswordCheckDeps } from '../_shared/passwordCheck.ts';
 import { passwordProblem } from '../_shared/passwordRules.ts';
+import type { GrantResult } from '../_shared/passwordCheck.ts';
 
 export type {
   FailResult,
@@ -139,17 +140,28 @@ export async function signIn(raw: string, ip: string | null, deps: SignInDeps): 
   if (result.legacy && creds.email !== null) {
     // One-time upgrade of a pre-pepper password. Never blocks the sign-in.
     const id = userId(session);
+    const peppered = await deps.pepper(creds.email, creds.password);
     try {
       if (id === null) throw new Error('no user id');
-      await deps.upgradePassword(
-        id,
-        await deps.pepper(creds.email, creds.password),
-        passwordProblem(creds.password) !== null,
-      );
-      outcome.upgraded = true;
+      await deps.upgradePassword(id, peppered, passwordProblem(creds.password) !== null);
     } catch {
+      // Not re-stored: the legacy session is still valid; the upgrade is tried again next time.
       outcome.upgraded = false;
+      return outcome;
     }
+    outcome.upgraded = true;
+    // E2E bug B1 (2026-11-07): GoTrue ends the user's sessions when the admin API changes the
+    // password, so the session from the legacy grant is already dead. Sign in again with the new
+    // peppered password and hand THAT session to the app. Same reserved attempt; no extra count.
+    let fresh: GrantResult;
+    try {
+      fresh = await deps.passwordGrant(creds.email, peppered);
+    } catch {
+      return fail(502, 'INTERNAL');
+    }
+    const freshSession = fresh.status === 200 ? pickSession(fresh.body) : null;
+    if (freshSession === null) return fail(502, 'INTERNAL');
+    outcome.body = freshSession;
   }
   return outcome;
 }

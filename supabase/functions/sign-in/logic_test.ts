@@ -54,6 +54,8 @@ function fake(
   const calls: Calls = { begin: [], failed: [], succeeded: [], grant: [], legacy: [], upgrade: [] };
   const failures = new Map<string, number>();
   const typed = opts.password ?? '483920';
+  // A real admin password change re-stores the peppered form and ends existing sessions (E2E B1).
+  let upgraded = false;
   const deps: SignInDeps = {
     begin(login, ip) {
       calls.begin.push([login, ip]);
@@ -86,9 +88,9 @@ function fake(
     async passwordGrant(email, pw) {
       calls.grant.push([email, pw]);
       if (opts.grant) return await opts.grant(email, pw);
-      const stored = opts.legacy ? typed : await pepperPassword(PEPPER, DENISE, typed);
+      const stored = opts.legacy && !upgraded ? typed : await pepperPassword(PEPPER, DENISE, typed);
       return email === DENISE && pw === stored
-        ? { status: 200, body: SESSION }
+        ? { status: 200, body: upgraded ? { ...SESSION, access_token: 'after-upgrade' } : SESSION }
         : {
             status: 400,
             body: { error_code: 'invalid_credentials', msg: 'Invalid login credentials' },
@@ -103,7 +105,9 @@ function fake(
     legacyUpgrade: opts.legacyUpgrade ?? true,
     upgradePassword(userId, peppered, mustChange) {
       calls.upgrade.push([userId, peppered, mustChange]);
-      return opts.upgradeThrows ? Promise.reject(new Error('admin')) : Promise.resolve();
+      if (opts.upgradeThrows) return Promise.reject(new Error('admin'));
+      upgraded = true;
+      return Promise.resolve();
     },
   };
   return { deps, calls };
@@ -391,8 +395,11 @@ Deno.test(
     assertEquals(out.upgraded, true);
     assertEquals(
       calls.grant.map((g) => g[1] === 'old dashboard pw 1'),
-      [false, true],
+      [false, true, false],
+      'peppered, typed (legacy), then a fresh peppered grant after the upgrade',
     );
+    // E2E B1: the upgrade ends the legacy session, so the app must get the fresh one.
+    assertEquals(out.body.access_token, 'after-upgrade');
     assertEquals(calls.upgrade, [
       ['u1', await pepperPassword(PEPPER, DENISE, 'old dashboard pw 1'), false],
     ]);
@@ -432,5 +439,23 @@ Deno.test(
     const down = fake({ legacy: true, password: 'old dashboard pw 1', storeThrows: 'legacy' });
     const r3 = await signIn(body('denise', 'old dashboard pw 1'), null, down.deps);
     assertEquals([r3.status, r3.body.code], [503, 'INTERNAL']);
+  },
+);
+
+Deno.test(
+  'pre-pepper upgrade: a failed fresh sign-in after the upgrade is an error, not a dead session',
+  async () => {
+    let n = 0;
+    const { deps } = fake({
+      legacy: true,
+      password: 'old dashboard pw 1',
+      grant: (_email, pw) => {
+        n += 1;
+        if (n === 2 && pw === 'old dashboard pw 1') return { status: 200, body: SESSION };
+        return { status: 400, body: { error_code: 'invalid_credentials' } };
+      },
+    });
+    const out = await signIn(body('denise', 'old dashboard pw 1'), null, deps);
+    assertEquals([out.status, out.body.code], [502, 'INTERNAL']);
   },
 );
