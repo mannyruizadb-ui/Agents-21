@@ -13,6 +13,45 @@ export interface AlertMembership {
   notify_washer_idle: boolean;
   /** Owner 2026-11-06: this manager may type the load-out. */
   can_enter_load_out: boolean;
+  /** Owner 2026-11-06 (C): per owner, the level of each owner information alert (missing = default). */
+  alert_levels?: unknown;
+}
+
+/** The owner information alert kinds that have a level (app.owner_alert_kinds). */
+export const OWNER_ALERT_KINDS = [
+  'customer_delivery',
+  'estimate_entered',
+  'rewash_added',
+  'off_queue_start',
+] as const;
+export type OwnerAlertKind = (typeof OWNER_ALERT_KINDS)[number];
+export type AlertLevel = 'push' | 'quiet' | 'off';
+export const ALERT_LEVELS: readonly AlertLevel[] = ['push', 'quiet', 'off'];
+
+/** app.alert_level_default: deliveries buzz; the rest are quiet. */
+export function defaultAlertLevel(kind: OwnerAlertKind): AlertLevel {
+  return kind === 'customer_delivery' ? 'push' : 'quiet';
+}
+
+/** The level a membership's alert_levels gives a kind (missing or unreadable = the default). */
+export function alertLevelFor(levels: unknown, kind: OwnerAlertKind): AlertLevel {
+  if (levels && typeof levels === 'object' && !Array.isArray(levels)) {
+    const v = (levels as Record<string, unknown>)[kind];
+    if (v === 'push' || v === 'quiet' || v === 'off') return v;
+  }
+  return defaultAlertLevel(kind);
+}
+
+/** alert_levels with one kind changed (for the optimistic update). */
+export function withAlertLevel(
+  levels: unknown,
+  kind: OwnerAlertKind,
+  level: AlertLevel,
+): Record<string, AlertLevel> {
+  const out: Record<string, AlertLevel> = {};
+  for (const k of OWNER_ALERT_KINDS) out[k] = alertLevelFor(levels, k);
+  out[kind] = level;
+  return out;
 }
 
 export interface AlertRow {
@@ -24,6 +63,8 @@ export interface AlertRow {
   canEnable: boolean;
   /** Washer idle alarms: on/off exists for owner memberships only. */
   idleOn: boolean;
+  /** Owner information alert levels (meaningful for owner memberships only). */
+  levels: Record<OwnerAlertKind, AlertLevel>;
 }
 
 /** This person's active memberships that apply to `plantId` (plant-level or org-wide). */
@@ -46,5 +87,13 @@ export function alertRowsFor(
       on: m.notify_machine_down,
       canEnable: m.role === 'owner' || m.role === 'manager',
       idleOn: m.notify_washer_idle,
+      levels: withAlertLevelsAll(m.alert_levels),
     }));
+}
+
+function withAlertLevelsAll(levels: unknown): Record<OwnerAlertKind, AlertLevel> {
+  return Object.fromEntries(OWNER_ALERT_KINDS.map((k) => [k, alertLevelFor(levels, k)])) as Record<
+    OwnerAlertKind,
+    AlertLevel
+  >;
 }

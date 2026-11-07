@@ -104,7 +104,21 @@
     "idleLabel": "Washer idle alarms",
     "idleHint": "The manager on duty always gets washer idle alarms, even when this is off.",
     "idleOn": "Washer idle alarms on for {{name}}.",
-    "idleOff": "Washer idle alarms off for {{name}}."
+    "idleOff": "Washer idle alarms off for {{name}}.",
+    "levelsTitle": "Owner alerts",
+    "levelsHint": "Buzz: a notification and the Alerts tab. Quiet: the Alerts tab only. Off: not shown.",
+    "levelSaved": "{{kind}} for {{name}}: {{level}}.",
+    "levelKind": {
+      "customer_delivery": "Customer delivery",
+      "estimate_entered": "Estimates entered",
+      "rewash_added": "Rewash added",
+      "off_queue_start": "Off-queue start"
+    },
+    "level": {
+      "push": "Buzz",
+      "quiet": "Quiet",
+      "off": "Off"
+    }
   },
   "control": {
     "placeholder": "Choose a screen.",
@@ -734,7 +748,14 @@
       "washerIdle": "{{name}} idle — work waiting",
       "taskNew": "New task",
       "taskDone": "Task done",
-      "routeLoaded": "{{name}} loaded"
+      "routeLoaded": "{{name}} loaded",
+      "customerDelivery": "{{customer}} delivered: {{lines}}",
+      "customerDeliveryShort": "{{customer}} delivered",
+      "estimateEntered_one": "Estimates entered: {{count}} group",
+      "estimateEntered_other": "Estimates entered: {{count}} groups",
+      "rewashAdded": "Rewash added: {{group}} {{amount}}",
+      "offQueue": "{{name}} started {{group}} (off-queue load)",
+      "offQueueOther": "{{name}} started {{group}} (queue had {{expected}})"
     },
     "state": {
       "open": {
@@ -742,25 +763,41 @@
         "washer_idle": "Idle",
         "task_assigned": "Open",
         "task_done": "Done",
-        "route_loaded": "Loaded"
+        "route_loaded": "Loaded",
+        "customer_delivery": "Delivered",
+        "estimate_entered": "Entered",
+        "rewash_added": "Added",
+        "off_queue_start": "Started"
       },
       "resolved": {
         "machine_down": "Fixed",
         "washer_idle": "Started",
         "task_assigned": "Done",
         "task_done": "Done",
-        "route_loaded": "Unmarked"
+        "route_loaded": "Unmarked",
+        "customer_delivery": "Voided",
+        "estimate_entered": "Entered",
+        "rewash_added": "Added",
+        "off_queue_start": "Undone"
       },
       "done": {
         "machine_down": "Fixed",
         "washer_idle": "Started",
         "task_assigned": "Done",
         "task_done": "Done",
-        "route_loaded": "Loaded"
+        "route_loaded": "Loaded",
+        "customer_delivery": "Delivered",
+        "estimate_entered": "Entered",
+        "rewash_added": "Added",
+        "off_queue_start": "Started"
       }
     },
     "clear": "Clear",
-    "clearAll": "Clear all finished"
+    "clearAll": "Clear all finished",
+    "aGroup": "a group",
+    "deliveryLine": "{{group}} {{amount}}",
+    "moreLines_one": "+ {{count}} more",
+    "moreLines_other": "+ {{count}} more"
   },
   "board": {
     "pill": {
@@ -828,5 +865,41 @@
     "by": "by {{name}}",
     "addedBy": "Added by {{name}}",
     "markedBy": "Marked by {{name}}"
+  },
+  "customers": {
+    "generic": "Customer"
+  },
+  "deliveries": {
+    "title": "Customer deliveries",
+    "recordTitle": "Record a delivery",
+    "intro": "Bins per group as they arrive. Each group goes to the bottom of the queue.",
+    "notAllowed": "Only the owner and managers record deliveries.",
+    "historyTitle": "Last 7 days",
+    "none": "No deliveries in the last 7 days.",
+    "customerLabel": "Customer",
+    "customerIs": "Customer: {{name}}",
+    "noCustomers": "No customers are set up. Ask the owner.",
+    "noGroups": "This customer has no wash groups yet. Ask the owner.",
+    "binsUnit": "bins",
+    "badBins": "Use 0 to {{max}}, in quarters (¼, ½, ¾).",
+    "approxLoads_one": "≈ {{n}} load",
+    "approxLoads_other": "≈ {{n}} loads",
+    "loadsUnknown": "loads unknown",
+    "noteLabel": "Note (optional)",
+    "confirmTitle": "Confirm",
+    "nothingYet": "Add bins to at least one group.",
+    "fixFirst_one": "Fix {{count}} amount first.",
+    "fixFirst_other": "Fix {{count}} amounts first.",
+    "save": "Save delivery",
+    "goesToQueue": "Each group goes to the bottom of the queue.",
+    "openQueue": "Open the queue",
+    "sent": "Sent to the bottom of the queue.",
+    "savedOnPhone": "Saved on this phone. It will send when the connection is back.",
+    "notStored": "This phone couldn't keep the delivery. Keep this page open until the connection is back.",
+    "waitingToSend_one": "{{count}} delivery is waiting on this phone to send.",
+    "waitingToSend_other": "{{count}} deliveries are waiting on this phone to send.",
+    "rejected": "A {{customer}} delivery was not saved.",
+    "voided": "Voided",
+    "by": "by {{name}}"
   }
 }

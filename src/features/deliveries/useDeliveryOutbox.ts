@@ -28,7 +28,10 @@ import {
 
 const RETRY_EVERY_MS = 15_000;
 
-function apiFor(userId: string, onSession: (staffId: string, id: string, exp: string | null) => void): DeliveryApi {
+function apiFor(
+  userId: string,
+  onSession: (staffId: string, id: string, exp: string | null) => void,
+): DeliveryApi {
   return {
     shouldContinue: () => isSignedInAs(userId),
     async startSession(staffId, pin) {
@@ -84,7 +87,8 @@ function read(userId: string, needsPin: DeliverySnapshot['needsPin']): DeliveryS
     pending,
     rejected: readRejectedDeliveries(store),
     needsPin:
-      needsPin ?? (stuck ? { staffId: stuck.staffId, error: stuck.lastError ?? 'PIN_NEEDED' } : null),
+      needsPin ??
+      (stuck ? { staffId: stuck.staffId, error: stuck.lastError ?? 'PIN_NEEDED' } : null),
   };
 }
 
@@ -121,7 +125,8 @@ export function flushDeliveries(userId: string, ctx?: DeliveryFlushContext): Pro
         const plantId = plantOf.get(staffId);
         if (!ctx || !plantId) return;
         const end = sessionEnd(exp, Date.now(), ctx.reuseMinutes);
-        if (end !== null) rememberSession(store, { userId, plantId, staffId, sessionId, expiresAt: end });
+        if (end !== null)
+          rememberSession(store, { userId, plantId, staffId, sessionId, expiresAt: end });
       });
       const r = await flushStore(store, api);
       s.needsPin = r.needsPin;

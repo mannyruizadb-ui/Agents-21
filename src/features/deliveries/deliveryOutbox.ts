@@ -140,7 +140,9 @@ function replace(store: KeyValueStore, clientId: string, d: PendingDelivery | nu
   write(
     store,
     DELIVERY_OUTBOX_KEY,
-    d ? list.map((x) => (x.clientId === clientId ? d : x)) : list.filter((x) => x.clientId !== clientId),
+    d
+      ? list.map((x) => (x.clientId === clientId ? d : x))
+      : list.filter((x) => x.clientId !== clientId),
   );
 }
 

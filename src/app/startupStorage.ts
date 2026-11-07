@@ -1,11 +1,13 @@
 import { scopedStore, type KeyValueStore } from '../lib/scopedStore';
 import { OUTBOX_KEY, sweepOutbox } from '../features/estimates/estimateOutbox';
+import { DELIVERY_OUTBOX_KEY, sweepDeliveries } from '../features/deliveries/deliveryOutbox';
 
 // Run once at app start, before anyone signs in (security re-review notes 2 and 5). Sends nothing.
 //  - Deletes the keys from before per-account storage (they could hold another person's PIN).
 //  - For EVERY account with an estimates outbox on this device: expires PINs older than 6 h and
 //    moves entries the server can no longer accept to that account's refused list. Without this, a
 //    PIN would stay on a shared phone until that same account signed in again.
+//  - The same for every account's customer-deliveries outbox (2026-11-07).
 
 export interface EnumerableStore extends KeyValueStore {
   keys(): string[];
@@ -24,6 +26,10 @@ export const LEGACY_KEYS = [
 
 const OUTBOX_PATTERN = new RegExp(
   `^plantboard\\.([0-9a-fA-F-]{36})\\.${OUTBOX_KEY.replace(/\./g, '\\.')}$`,
+);
+
+const DELIVERY_PATTERN = new RegExp(
+  `^plantboard\\.([0-9a-fA-F-]{36})\\.${DELIVERY_OUTBOX_KEY.replace(/\./g, '\\.')}$`,
 );
 
 export interface StartupReport {
@@ -46,9 +52,16 @@ export function startupStorageSweep(
   }
   for (const key of base.keys()) {
     const userId = OUTBOX_PATTERN.exec(key)?.[1];
-    if (!userId) continue;
-    report.accounts += 1;
-    const r = sweepOutbox(scopedStore(base, userId), nowMs);
+    if (userId) {
+      report.accounts += 1;
+      const r = sweepOutbox(scopedStore(base, userId), nowMs);
+      report.pinsWiped += r.pinsWiped;
+      report.tooOld += r.tooOld;
+      continue;
+    }
+    const deliveryUser = DELIVERY_PATTERN.exec(key)?.[1];
+    if (!deliveryUser) continue;
+    const r = sweepDeliveries(scopedStore(base, deliveryUser), nowMs);
     report.pinsWiped += r.pinsWiped;
     report.tooOld += r.tooOld;
   }

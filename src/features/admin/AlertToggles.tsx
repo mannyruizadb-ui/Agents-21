@@ -2,13 +2,24 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { supabase } from '../../lib/supabase';
 import { errorMessageKey, unwrap } from '../washroom/rpcError';
-import { alertRowsFor, type AlertMembership } from './alertRecipients';
+import {
+  ALERT_LEVELS,
+  alertRowsFor,
+  OWNER_ALERT_KINDS,
+  withAlertLevel,
+  type AlertLevel,
+  type AlertMembership,
+  type OwnerAlertKind,
+} from './alertRecipients';
+import './alertLevels.css';
 
 // "Machine down alerts" on/off per person (owner only: PeoplePage is reachable only by owners, and
 // set_alert_recipient re-checks the owner role). The flag is read from memberships directly (RLS:
 // owners and managers can read their plant's memberships), not from the manage-users function.
 // "Washer idle alarms" (owner 2026-11-06): on/off for owner memberships only, via
 // set_washer_idle_alert; the manager on duty always gets them, so a washer is never left idle unseen.
+// Owner information alerts (owner 2026-11-06 C): for owner memberships, Buzz / Quiet / Off per kind
+// (AA Linen delivery, estimates entered, rewash added, off-queue start) via set_alert_level.
 
 export function AlertToggles({
   userId,
@@ -78,6 +89,41 @@ export function AlertToggles({
     },
     onSettled: () => void qc.invalidateQueries({ queryKey: key }),
   });
+  const setLevel = useMutation({
+    mutationFn: async (v: { membershipId: string; kind: OwnerAlertKind; level: AlertLevel }) =>
+      unwrap(
+        await supabase.rpc('set_alert_level', {
+          p_membership_id: v.membershipId,
+          p_kind: v.kind,
+          p_level: v.level,
+        }),
+      ),
+    onMutate: async (v) => {
+      await qc.cancelQueries({ queryKey: key });
+      const previous = qc.getQueryData<AlertMembership[]>(key);
+      qc.setQueryData<AlertMembership[]>(key, (list) =>
+        list?.map((m) =>
+          m.id === v.membershipId
+            ? { ...m, alert_levels: withAlertLevel(m.alert_levels, v.kind, v.level) }
+            : m,
+        ),
+      );
+      return { previous };
+    },
+    onSuccess: (_r, v) =>
+      onStatus(
+        t('people.levelSaved', {
+          name,
+          kind: t(`people.levelKind.${v.kind}`),
+          level: t(`people.level.${v.level}`),
+        }),
+      ),
+    onError: (e, _v, ctx) => {
+      if (ctx?.previous) qc.setQueryData(key, ctx.previous);
+      onStatus(t(errorMessageKey(e)));
+    },
+    onSettled: () => void qc.invalidateQueries({ queryKey: key }),
+  });
   const ownerRows = rows.filter((r) => r.role === 'owner');
 
   if (rows.length === 0) return null;
@@ -112,6 +158,37 @@ export function AlertToggles({
         </label>
       ))}
       {ownerRows.length > 0 && <p className="hint">{t('people.idleHint')}</p>}
+      {ownerRows.map((r) => (
+        <div key={`levels-${r.membershipId}`} className="alert-levels">
+          <p className="pick-label">{t('people.levelsTitle')}</p>
+          {OWNER_ALERT_KINDS.map((kind) => {
+            const group = `lvl-${r.membershipId}-${kind}`;
+            return (
+              <fieldset key={kind} className="alert-level">
+                <legend>{t(`people.levelKind.${kind}`)}</legend>
+                <div className="segmented">
+                  {ALERT_LEVELS.map((level) => (
+                    <label key={level}>
+                      <input
+                        type="radio"
+                        name={group}
+                        value={level}
+                        checked={r.levels[kind] === level}
+                        disabled={setLevel.isPending}
+                        onChange={() =>
+                          setLevel.mutate({ membershipId: r.membershipId, kind, level })
+                        }
+                      />
+                      <span>{t(`people.level.${level}`)}</span>
+                    </label>
+                  ))}
+                </div>
+              </fieldset>
+            );
+          })}
+          <p className="hint">{t('people.levelsHint')}</p>
+        </div>
+      ))}
     </div>
   );
 }

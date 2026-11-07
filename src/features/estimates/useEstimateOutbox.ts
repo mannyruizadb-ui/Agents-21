@@ -190,7 +190,7 @@ export function pendingEstimateCount(userId: string): number {
   return readOutbox(userStore(userId)).reduce((n, b) => n + b.entries.length, 0);
 }
 
-const LAST_STAFF_KEY = 'estimates.lastStaff.v1';
+export const LAST_STAFF_KEY = 'estimates.lastStaff.v1';
 
 export function readLastStaff(userId: string): string {
   try {

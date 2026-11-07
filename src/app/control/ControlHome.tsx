@@ -63,6 +63,14 @@ export function ControlHome() {
       show: isStaff,
     },
     { to: '/control/alerts', label: t('nav.alerts'), icon: <IconBell />, show: isStaff },
+    // Customer deliveries (owner 2026-11-06 B): owners see the history; owners and managers record.
+    { to: '/control/deliveries', label: t('deliveries.title'), icon: <IconTruck />, show: isOwner },
+    {
+      to: '/control/deliveries/new',
+      label: t('deliveries.recordTitle'),
+      icon: <IconBins />,
+      show: isStaff,
+    },
     {
       to: '/control/machines',
       label: t('machines.linkLabel'),

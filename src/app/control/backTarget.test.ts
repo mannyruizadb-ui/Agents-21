@@ -18,6 +18,8 @@ describe('backTarget', () => {
     expect(backTarget('/control/people')).toBe('/control/more');
     expect(backTarget('/control/tasks')).toBe('/control/more');
     expect(backTarget('/control/alerts')).toBe('/control');
+    expect(backTarget('/control/deliveries')).toBe('/control/more');
+    expect(backTarget('/control/deliveries/new')).toBe('/control/more');
   });
   it('ignores screens outside the control app', () => {
     expect(backTarget('/station/washer/1')).toBeNull();

@@ -104,7 +104,21 @@
     "idleLabel": "Alarmas de lavadora parada",
     "idleHint": "El gerente de turno siempre recibe las alarmas de lavadora parada, aunque esto esté apagado.",
     "idleOn": "Alarmas de lavadora parada encendidas para {{name}}.",
-    "idleOff": "Alarmas de lavadora parada apagadas para {{name}}."
+    "idleOff": "Alarmas de lavadora parada apagadas para {{name}}.",
+    "levelsTitle": "Alertas del dueño",
+    "levelsHint": "Sonar: notificación y pestaña Alertas. Silencio: solo la pestaña Alertas. Apagado: no se muestra.",
+    "levelSaved": "{{kind}} para {{name}}: {{level}}.",
+    "levelKind": {
+      "customer_delivery": "Entrega de cliente",
+      "estimate_entered": "Estimados puestos",
+      "rewash_added": "Relavar añadido",
+      "off_queue_start": "Carga fuera de la cola"
+    },
+    "level": {
+      "push": "Sonar",
+      "quiet": "Silencio",
+      "off": "Apagado"
+    }
   },
   "control": {
     "placeholder": "Elige una pantalla.",
@@ -734,7 +748,14 @@
       "washerIdle": "{{name}} parada — hay trabajo",
       "taskNew": "Nueva tarea",
       "taskDone": "Tarea hecha",
-      "routeLoaded": "{{name}} cargada"
+      "routeLoaded": "{{name}} cargada",
+      "customerDelivery": "Entrega de {{customer}}: {{lines}}",
+      "customerDeliveryShort": "Entrega de {{customer}}",
+      "estimateEntered_one": "Estimados puestos: {{count}} grupo",
+      "estimateEntered_other": "Estimados puestos: {{count}} grupos",
+      "rewashAdded": "Relavar añadido: {{group}} {{amount}}",
+      "offQueue": "{{name}} empezó {{group}} (fuera de la cola)",
+      "offQueueOther": "{{name}} empezó {{group}} (la cola tenía {{expected}})"
     },
     "state": {
       "open": {
@@ -742,25 +763,41 @@
         "washer_idle": "Parada",
         "task_assigned": "Abierta",
         "task_done": "Hecha",
-        "route_loaded": "Cargada"
+        "route_loaded": "Cargada",
+        "customer_delivery": "Entregada",
+        "estimate_entered": "Puestos",
+        "rewash_added": "Añadido",
+        "off_queue_start": "Empezada"
       },
       "resolved": {
         "machine_down": "Arreglada",
         "washer_idle": "Empezada",
         "task_assigned": "Hecha",
         "task_done": "Hecha",
-        "route_loaded": "Desmarcada"
+        "route_loaded": "Desmarcada",
+        "customer_delivery": "Anulada",
+        "estimate_entered": "Puestos",
+        "rewash_added": "Añadido",
+        "off_queue_start": "Deshecha"
       },
       "done": {
         "machine_down": "Arreglada",
         "washer_idle": "Empezada",
         "task_assigned": "Hecha",
         "task_done": "Hecha",
-        "route_loaded": "Cargada"
+        "route_loaded": "Cargada",
+        "customer_delivery": "Entregada",
+        "estimate_entered": "Puestos",
+        "rewash_added": "Añadido",
+        "off_queue_start": "Empezada"
       }
     },
     "clear": "Quitar",
-    "clearAll": "Quitar todas las terminadas"
+    "clearAll": "Quitar todas las terminadas",
+    "aGroup": "un grupo",
+    "deliveryLine": "{{group}} {{amount}}",
+    "moreLines_one": "+ {{count}} más",
+    "moreLines_other": "+ {{count}} más"
   },
   "board": {
     "pill": {
@@ -828,5 +865,41 @@
     "by": "por {{name}}",
     "addedBy": "Agregado por {{name}}",
     "markedBy": "Marcado por {{name}}"
+  },
+  "customers": {
+    "generic": "Cliente"
+  },
+  "deliveries": {
+    "title": "Entregas de clientes",
+    "recordTitle": "Registrar entrega",
+    "intro": "Bins por grupo, como llegan. Cada grupo va al final de la cola.",
+    "notAllowed": "Solo el dueño y los gerentes registran entregas.",
+    "historyTitle": "Últimos 7 días",
+    "none": "No hay entregas en los últimos 7 días.",
+    "customerLabel": "Cliente",
+    "customerIs": "Cliente: {{name}}",
+    "noCustomers": "No hay clientes. Pregunta al dueño.",
+    "noGroups": "Este cliente todavía no tiene grupos de lavado. Pregunta al dueño.",
+    "binsUnit": "bins",
+    "badBins": "Usa de 0 a {{max}}, en cuartos (¼, ½, ¾).",
+    "approxLoads_one": "≈ {{n}} carga",
+    "approxLoads_other": "≈ {{n}} cargas",
+    "loadsUnknown": "cargas sin calcular",
+    "noteLabel": "Nota (opcional)",
+    "confirmTitle": "Confirmar",
+    "nothingYet": "Pon bins en al menos un grupo.",
+    "fixFirst_one": "Corrige {{count}} cantidad primero.",
+    "fixFirst_other": "Corrige {{count}} cantidades primero.",
+    "save": "Guardar entrega",
+    "goesToQueue": "Cada grupo va al final de la cola.",
+    "openQueue": "Abrir la cola",
+    "sent": "Enviada al final de la cola.",
+    "savedOnPhone": "Guardada en este teléfono. Se enviará cuando vuelva la conexión.",
+    "notStored": "Este teléfono no pudo guardar la entrega. Deja esta página abierta hasta que vuelva la conexión.",
+    "waitingToSend_one": "{{count}} entrega espera en este teléfono para enviarse.",
+    "waitingToSend_other": "{{count}} entregas esperan en este teléfono para enviarse.",
+    "rejected": "Una entrega de {{customer}} no se guardó.",
+    "voided": "Anulada",
+    "by": "por {{name}}"
   }
 }

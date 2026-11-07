@@ -8,6 +8,11 @@ import {
   readRejectedEstimates,
   type OutboxBatch,
 } from '../features/estimates/estimateOutbox';
+import {
+  addPendingDelivery,
+  readPendingDeliveries,
+  readRejectedDeliveries,
+} from '../features/deliveries/deliveryOutbox';
 import { LEGACY_KEYS, startupStorageSweep, type EnumerableStore } from './startupStorage';
 
 function mapStore(): EnumerableStore & { map: Map<string, string> } {
@@ -56,6 +61,39 @@ describe('startup storage sweep (re-review notes 2 and 5)', () => {
     expect(readRejectedEstimates(scopedStore(base, B))[0]?.errorCode).toBe(
       'OUT_OF_RANGE_TIMESTAMP',
     );
+    expect([...base.map.values()].join()).not.toContain('1234');
+  });
+
+  it("also sweeps every account's customer-delivery outbox", () => {
+    const base = mapStore();
+    const d = {
+      plantId: 'p',
+      customerId: 'aa',
+      lines: [{ washGroupId: 'g', bins: 1 }],
+      note: null,
+      staffId: 's1',
+      pin: '1234',
+      sessionId: null,
+      lastError: null,
+    };
+    addPendingDelivery(scopedStore(base, A), {
+      ...d,
+      clientId: 'fresh-entry-old-pin',
+      enteredAt: new Date(NOW - 60_000).toISOString(),
+      createdAt: new Date(NOW - 60_000).toISOString(),
+      pinStoredAt: new Date(NOW - PIN_MAX_AGE_MS - 1).toISOString(),
+    });
+    addPendingDelivery(scopedStore(base, B), {
+      ...d,
+      clientId: 'too-old',
+      enteredAt: new Date(NOW - ENTRY_MAX_AGE_MS - 1).toISOString(),
+      createdAt: new Date(NOW - ENTRY_MAX_AGE_MS - 1).toISOString(),
+    });
+    const r = startupStorageSweep(base, NOW);
+    expect(r).toMatchObject({ pinsWiped: 1, tooOld: 1 });
+    expect(readPendingDeliveries(scopedStore(base, A))[0]?.pin).toBe('');
+    expect(readPendingDeliveries(scopedStore(base, B))).toEqual([]);
+    expect(readRejectedDeliveries(scopedStore(base, B))[0]?.clientId).toBe('too-old');
     expect([...base.map.values()].join()).not.toContain('1234');
   });
 

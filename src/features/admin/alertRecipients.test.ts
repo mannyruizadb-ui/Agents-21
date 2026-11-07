@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { alertRowsFor, type AlertMembership } from './alertRecipients';
+import {
+  alertLevelFor,
+  alertRowsFor,
+  defaultAlertLevel,
+  withAlertLevel,
+  type AlertMembership,
+} from './alertRecipients';
 
 const plant = { id: 'p1', org_id: 'o1' };
 const m = (over: Partial<AlertMembership>): AlertMembership => ({
@@ -41,5 +47,36 @@ describe('alertRowsFor', () => {
       ['viewer', false],
       ['owner', true],
     ]);
+  });
+});
+
+describe('owner alert levels', () => {
+  it('defaults: deliveries buzz, the rest are quiet', () => {
+    expect(defaultAlertLevel('customer_delivery')).toBe('push');
+    expect(defaultAlertLevel('off_queue_start')).toBe('quiet');
+    expect(alertLevelFor(null, 'customer_delivery')).toBe('push');
+    expect(alertLevelFor({ rewash_added: 'loud' }, 'rewash_added')).toBe('quiet');
+  });
+  it('reads a stored level and changes one kind', () => {
+    expect(alertLevelFor({ estimate_entered: 'off' }, 'estimate_entered')).toBe('off');
+    expect(withAlertLevel({ rewash_added: 'push' }, 'customer_delivery', 'off')).toEqual({
+      customer_delivery: 'off',
+      estimate_entered: 'quiet',
+      rewash_added: 'push',
+      off_queue_start: 'quiet',
+    });
+  });
+  it('every membership row carries its levels', () => {
+    const rows = alertRowsFor(
+      [m({ role: 'owner', alert_levels: { off_queue_start: 'push' } })],
+      'u1',
+      plant,
+    );
+    expect(rows[0]?.levels).toEqual({
+      customer_delivery: 'push',
+      estimate_entered: 'quiet',
+      rewash_added: 'quiet',
+      off_queue_start: 'push',
+    });
   });
 });

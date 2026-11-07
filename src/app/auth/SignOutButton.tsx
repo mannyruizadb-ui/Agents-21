@@ -3,11 +3,12 @@ import { useTranslation } from 'react-i18next';
 import { supabase } from '../../lib/supabase';
 import { flushTaps, pendingTapCount } from '../../features/washroom/useTapSync';
 import { flushEstimates, pendingEstimateCount } from '../../features/estimates/useEstimateOutbox';
+import { flushDeliveries, pendingDeliveryCount } from '../../features/deliveries/useDeliveryOutbox';
 import { removeThisDevicePush } from '../../features/notifications/pushClient';
 import { pendingTotal, signOutWith, type PendingSource, type SignOutChoice } from './signOutFlow';
 
 // Guarded sign-out (security review 2026-11-04, H1). With nothing pending it signs out at once.
-// With taps or estimates waiting in this account's storage it asks: "Send now" (send, then sign out)
+// With taps, estimates or deliveries waiting in this account's storage it asks: "Send now" (send, then sign out)
 // or "Keep for next time" (sign out, leave them for this account). `canSend` is false while the
 // account must change its password: the server refuses every write until then.
 // Every sign-out first removes this device's push subscription, so the next person on the phone
@@ -22,6 +23,7 @@ function sourcesFor(userId: string): PendingSource[] {
   return [
     { count: () => pendingTapCount(userId), flush: () => flushTaps(userId) },
     { count: () => pendingEstimateCount(userId), flush: () => flushEstimates(userId) },
+    { count: () => pendingDeliveryCount(userId), flush: () => flushDeliveries(userId) },
   ];
 }
 

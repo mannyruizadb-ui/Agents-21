@@ -67,6 +67,19 @@ export const router = createBrowserRouter([
         }),
       },
       {
+        // Customer deliveries (owner 2026-11-06 B): history for owners; record for owners + managers.
+        path: 'deliveries',
+        lazy: async () => ({
+          Component: (await import('./features/deliveries/DeliveriesPage')).DeliveriesPage,
+        }),
+      },
+      {
+        path: 'deliveries/new',
+        lazy: async () => ({
+          Component: (await import('./features/deliveries/DeliveryEntryPage')).DeliveryEntryPage,
+        }),
+      },
+      {
         // Owner Setup (owner 2026-11-05): machines and machine-down reasons are app data.
         path: 'setup/machines',
         lazy: async () => ({

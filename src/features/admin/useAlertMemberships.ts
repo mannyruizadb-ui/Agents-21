@@ -13,7 +13,7 @@ export function useAlertMemberships(plant: { id: string; org_id: string } | unde
         await supabase
           .from('memberships')
           .select(
-            'id, user_id, org_id, plant_id, role, notify_machine_down, notify_washer_idle, can_enter_load_out',
+            'id, user_id, org_id, plant_id, role, notify_machine_down, notify_washer_idle, can_enter_load_out, alert_levels',
           )
           .eq('org_id', plant?.org_id ?? '')
           .is('revoked_at', null),
