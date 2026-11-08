@@ -259,3 +259,13 @@ body:has(.form-page) {
 .form-page .person-card > p {
   margin: 0.2rem 0;
 }
+
+/* Password fields (2026-11-07): rule feedback and the number pad / letters toggle. */
+.form-page .password-field .password-keyboard {
+  margin-top: var(--sp-sm);
+  width: 100%;
+}
+.form-page .password-ok-icon {
+  color: var(--c-ok);
+  font-weight: 700;
+}

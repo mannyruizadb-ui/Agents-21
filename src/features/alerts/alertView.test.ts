@@ -70,6 +70,118 @@ describe('describeAlert', () => {
   });
 });
 
+describe('owner information alerts', () => {
+  it('customer delivery: lines, never open, voided = resolved, + N more', () => {
+    const lines = [1, 2, 3, 4, 5].map((i) => ({
+      wash_group_id: `g${i}`,
+      wash_group_name: `Group ${i}`,
+      wash_group_name_i18n: { es: `Grupo ${i}` },
+      bins: i === 1 ? '0.5' : i,
+      loads: null,
+    }));
+    const v = describeAlert(
+      row('customer_delivery', {
+        delivery_id: 'd',
+        customer_name: 'AA Linen',
+        customer_name_i18n: {},
+        lines,
+        voided: false,
+      }),
+    );
+    expect(v).toMatchObject({
+      kind: 'customer_delivery',
+      tone: 'info',
+      to: '/control/deliveries',
+      open: false,
+      resolved: false,
+      customerName: 'AA Linen',
+      moreLines: 1,
+    });
+    expect(v?.deliveryLines).toHaveLength(4);
+    expect(v?.deliveryLines?.[0]).toEqual({
+      name: 'Group 1',
+      nameI18n: { es: 'Grupo 1' },
+      bins: 0.5,
+    });
+    expect(
+      describeAlert(row('customer_delivery', { delivery_id: 'd', voided: true })),
+    ).toMatchObject({ resolved: true, deliveryLines: [], moreLines: 0 });
+    expect(describeAlert(row('customer_delivery', { lines }))).toBeNull();
+  });
+
+  it('estimates entered: the group count', () => {
+    expect(
+      describeAlert(row('estimate_entered', { first_estimate_id: 'e', count: 3, estimates: [] })),
+    ).toMatchObject({ kind: 'estimate_entered', to: '/control/estimates', open: false, count: 3 });
+    expect(
+      describeAlert(row('estimate_entered', { first_estimate_id: 'e', estimates: [{}, {}] }))
+        ?.count,
+    ).toBe(2);
+  });
+
+  it('rewash added: group, amount and a known unit only', () => {
+    expect(
+      describeAlert(
+        row('rewash_added', {
+          queue_item_id: 'q',
+          wash_group_name: 'Napkins',
+          qty: 0.5,
+          unit: 'bin',
+        }),
+      ),
+    ).toMatchObject({
+      kind: 'rewash_added',
+      to: '/control/queue',
+      open: false,
+      group: { name: 'Napkins' },
+      qty: 0.5,
+      unit: 'bin',
+    });
+    expect(describeAlert(row('rewash_added', { queue_item_id: 'q', unit: 'x' }))).toMatchObject({
+      group: null,
+      unit: null,
+      qty: null,
+    });
+  });
+
+  it('account locked: open while still locked, links to People', () => {
+    const id = '0000000a-0000-0000-0000-000000000001';
+    expect(
+      describeAlert(
+        row(
+          'account_locked',
+          { user_id: id, username: 'maria', locked_until: '2026-11-07T12:00:00Z' },
+          true,
+        ),
+      ),
+    ).toMatchObject({
+      kind: 'account_locked',
+      to: '/control/people',
+      open: true,
+      resolved: false,
+      username: 'maria',
+      lockedUntil: '2026-11-07T12:00:00Z',
+    });
+    expect(
+      describeAlert(row('account_locked', { user_id: id, username: null }, false)),
+    ).toMatchObject({ open: false, resolved: true, username: null });
+    expect(describeAlert(row('account_locked', { username: 'x' }))).toBeNull();
+  });
+
+  it('off_queue_start is no longer an alert kind (removed 2026-11-07)', () => {
+    expect(describeAlert(row('off_queue_start', { cycle_id: 'c' }))).toBeNull();
+  });
+
+  it('owner information alerts go under Earlier', () => {
+    const s = splitAlerts([
+      row('customer_delivery', { delivery_id: 'd' }),
+      row('rewash_added', { queue_item_id: 'q' }),
+    ]);
+    expect(s.open).toEqual([]);
+    expect(s.earlier).toHaveLength(2);
+  });
+});
+
 describe('splitAlerts', () => {
   it('puts open alerts first, newest first, and skips unusable rows', () => {
     const s = splitAlerts([

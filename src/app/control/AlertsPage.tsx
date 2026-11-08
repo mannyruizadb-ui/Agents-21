@@ -24,12 +24,18 @@ import { DataAge } from '../../features/washroom/DataAge';
 import { useReasonLabeler } from '../../features/washroom/downReasons';
 import {
   IconBell,
+  IconBins,
   IconIdle,
   IconMachineDown,
   IconReady,
+  IconRewash,
   IconTasks,
+  IconPeople,
   IconTruck,
 } from '../../features/washroom/Icons';
+import { useAmountText } from '../../features/estimates/useAmountText';
+import { useLocalizedName } from '../../features/washroom/localizedName';
+import type { I18nJson } from '../../features/washroom/washroomData';
 import { errorMessageKey, unwrap } from '../../features/washroom/rpcError';
 import { useMyRoles } from '../../features/washroom/useMyRoles';
 import { useAreas } from '../../features/washroom/washroomData';
@@ -73,6 +79,14 @@ function KindIcon({ kind }: { kind: AlertView['kind'] }) {
       return <IconReady size="1.6em" />;
     case 'route_loaded':
       return <IconTruck size="1.6em" />;
+    case 'customer_delivery':
+      return <IconTruck size="1.6em" />;
+    case 'estimate_entered':
+      return <IconBins size="1.6em" />;
+    case 'rewash_added':
+      return <IconRewash size="1.6em" />;
+    case 'account_locked':
+      return <IconPeople size="1.6em" />;
   }
 }
 
@@ -81,6 +95,10 @@ function AlertItem({ a, onClear }: { a: AlertView; onClear?: (id: string) => voi
   const names = useLocalNames();
   const labeler = useReasonLabeler();
   const timeText = useTimeText();
+  const localized = useLocalizedName();
+  const { amount } = useAmountText();
+  const groupText = (g: { name: string; nameI18n: unknown } | null | undefined) =>
+    g ? localized(g.name, g.nameI18n as I18nJson) : '';
   const clock = (d: Date, utc = false) =>
     new Intl.DateTimeFormat(i18n.language, {
       hour: 'numeric',
@@ -116,6 +134,36 @@ function AlertItem({ a, onClear }: { a: AlertView; onClear?: (id: string) => voi
       });
       const truck = wallTimeDate(a.loadTime);
       body = truck ? t('alerts.truckAt', { time: clock(truck, true) }) : '';
+      break;
+    }
+    case 'customer_delivery': {
+      const parts = (a.deliveryLines ?? []).map((l) =>
+        t('alerts.deliveryLine', { amount: amount(l.bins, 'bin'), group: groupText(l) }),
+      );
+      if (a.moreLines) parts.push(t('alerts.moreLines', { count: a.moreLines }));
+      const customer =
+        localized(a.customerName, a.customerNameI18n as I18nJson) || t('customers.generic');
+      title = parts.length
+        ? t('alerts.title.customerDelivery', { customer, lines: parts.join(', ') })
+        : t('alerts.title.customerDeliveryShort', { customer });
+      break;
+    }
+    case 'estimate_entered':
+      title = t('alerts.title.estimateEntered', { count: a.count ?? 0 });
+      break;
+    case 'rewash_added':
+      title = t('alerts.title.rewashAdded', {
+        group: groupText(a.group) || t('alerts.aGroup'),
+        amount: a.qty !== null && a.qty !== undefined && a.unit ? amount(a.qty, a.unit) : '',
+      }).trim();
+      break;
+    case 'account_locked': {
+      title = t('alerts.title.accountLocked', { username: a.username ?? t('alerts.anAccount') });
+      const until = a.lockedUntil ? new Date(a.lockedUntil) : null;
+      body =
+        a.open && until && !Number.isNaN(until.getTime())
+          ? t('alerts.lockedUntil', { time: clock(until) })
+          : '';
       break;
     }
   }

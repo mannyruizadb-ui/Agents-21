@@ -5,12 +5,12 @@ begin;
 select plan(55);
 
 -- R: every plant role incl. a paired display; never another tenant or anon.
-select is(pg_temp.reads($$select 1 from public.areas where plant_id = pg_temp.id('plantA')$$), '{3,3,3,3,3,0,0,0}', 'areas R');
-select is(pg_temp.reads($$select 1 from public.stations where plant_id = pg_temp.id('plantA')$$), '{1,1,1,1,1,0,0,0}', 'stations R');
-select is(pg_temp.reads($$select 1 from public.machines where plant_id = pg_temp.id('plantA')$$), '{1,1,1,1,1,0,0,0}', 'machines R');
-select is(pg_temp.reads($$select 1 from public.wash_groups where plant_id = pg_temp.id('plantA')$$), '{3,3,3,3,3,0,0,0}', 'wash_groups R');
-select is(pg_temp.reads($$select 1 from public.item_types where plant_id = pg_temp.id('plantA')$$), '{3,3,3,3,3,0,0,0}', 'item_types R');
-select is(pg_temp.reads($$select 1 from public.wash_formulas where plant_id = pg_temp.id('plantA')$$), '{1,1,1,1,1,0,0,0}', 'wash_formulas R');
+select is(pg_temp.reads($$select 1 from public.areas where plant_id = pg_temp.id('plantA')$$), '{3,3,3,3,3,0,0,42501}', 'areas R');
+select is(pg_temp.reads($$select 1 from public.stations where plant_id = pg_temp.id('plantA')$$), '{1,1,1,1,1,0,0,42501}', 'stations R');
+select is(pg_temp.reads($$select 1 from public.machines where plant_id = pg_temp.id('plantA')$$), '{1,1,1,1,1,0,0,42501}', 'machines R');
+select is(pg_temp.reads($$select 1 from public.wash_groups where plant_id = pg_temp.id('plantA')$$), '{3,3,3,3,3,0,0,42501}', 'wash_groups R');
+select is(pg_temp.reads($$select 1 from public.item_types where plant_id = pg_temp.id('plantA')$$), '{3,3,3,3,3,0,0,42501}', 'item_types R');
+select is(pg_temp.reads($$select 1 from public.wash_formulas where plant_id = pg_temp.id('plantA')$$), '{1,1,1,1,1,0,0,42501}', 'wash_formulas R');
 select is(pg_temp.run_as('ownerB', $$select 1 from public.areas$$, true), '1', 'owner B sees only tenant B areas');
 
 -- C: owner/manager only (owner B cannot write into tenant A).
@@ -34,16 +34,16 @@ select is(pg_temp.writes($$insert into public.wash_formulas (org_id, plant_id, e
   '{1,1,42501,42501,42501,42501,42501,42501}', 'wash_formulas C');
 
 -- U: owner/manager only.
-select is(pg_temp.writes($$update public.areas set sort_order = 1 where plant_id = pg_temp.id('plantA')$$), '{5,5,0,0,0,0,0,0}', 'areas U');
-select is(pg_temp.writes($$update public.stations set active = true where plant_id = pg_temp.id('plantA')$$), '{3,3,0,0,0,0,0,0}', 'stations U');
-select is(pg_temp.writes($$update public.machines set active = true where plant_id = pg_temp.id('plantA')$$), '{2,0,0,0,0,0,0,0}', 'machines U: owner only (owner 2026-11-05)');
-select is(pg_temp.writes($$update public.wash_groups set sort_order = 1 where plant_id = pg_temp.id('plantA')$$), '{5,5,0,0,0,0,0,0}', 'wash_groups U');
-select is(pg_temp.writes($$update public.item_types set sort_order = 1 where plant_id = pg_temp.id('plantA')$$), '{5,5,0,0,0,0,0,0}', 'item_types U');
-select is(pg_temp.writes($$delete from public.wash_groups where plant_id = pg_temp.id('plantA')$$), '{0,0,0,0,0,0,0,0}',
+select is(pg_temp.writes($$update public.areas set sort_order = 1 where plant_id = pg_temp.id('plantA')$$), '{5,5,0,0,0,0,0,42501}', 'areas U');
+select is(pg_temp.writes($$update public.stations set active = true where plant_id = pg_temp.id('plantA')$$), '{3,3,0,0,0,0,0,42501}', 'stations U');
+select is(pg_temp.writes($$update public.machines set active = true where plant_id = pg_temp.id('plantA')$$), '{2,0,0,0,0,0,0,42501}', 'machines U: owner only (owner 2026-11-05)');
+select is(pg_temp.writes($$update public.wash_groups set sort_order = 1 where plant_id = pg_temp.id('plantA')$$), '{5,5,0,0,0,0,0,42501}', 'wash_groups U');
+select is(pg_temp.writes($$update public.item_types set sort_order = 1 where plant_id = pg_temp.id('plantA')$$), '{5,5,0,0,0,0,0,42501}', 'item_types U');
+select is(pg_temp.writes($$delete from public.wash_groups where plant_id = pg_temp.id('plantA')$$), '{0,0,0,0,0,0,0,42501}',
   'wash_groups: no DELETE policy for any role (deactivate instead)');
 select is(pg_temp.run_as('ownerB', $$update public.wash_groups set name = 'x' where id = pg_temp.id('gMat')$$), '0',
   'other tenant cannot update a wash group');
-select is(pg_temp.writes($$update public.wash_formulas set name = 'n' where plant_id = pg_temp.id('plantA')$$), '{3,3,0,0,0,0,0,0}', 'wash_formulas U');
+select is(pg_temp.writes($$update public.wash_formulas set name = 'n' where plant_id = pg_temp.id('plantA')$$), '{3,3,0,0,0,0,0,42501}', 'wash_formulas U');
 select is(pg_temp.run_as('owner', $$update public.areas set plant_id = pg_temp.id('plantB'), org_id = pg_temp.id('orgB') where id = pg_temp.id('spare')$$),
   '42501', 'cannot move a row into another tenant');
 

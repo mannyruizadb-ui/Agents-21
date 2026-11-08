@@ -18,22 +18,28 @@
     "signingIn": "Signing in…",
     "wrongCredentials": "Wrong username or password. Check both and try again.",
     "signInFailed": "Couldn't sign in. Check your connection and try again.",
-    "signOut": "Sign out"
+    "signOut": "Sign out",
+    "useLetters": "My password has letters",
+    "useNumbers": "My password is only numbers",
+    "locked_one": "Too many wrong tries. Try again in {{count}} minute, or ask the owner to unlock you.",
+    "locked_other": "Too many wrong tries. Try again in {{count}} minutes, or ask the owner to unlock you.",
+    "rateLimited": "Too many sign-ins right now. Wait a minute and try again."
   },
   "changePassword": {
     "title": "Choose a new password",
-    "intro": "You signed in with a temporary password. Choose your own to continue. Use at least {{count}} characters.",
+    "intro": "You signed in with a temporary password. Choose your own to continue.",
     "newLabel": "New password",
     "confirmLabel": "Type it again",
     "save": "Save password",
     "saving": "Saving…",
     "errors": {
-      "tooShort": "Too short. Use at least {{count}} characters.",
-      "tooLong": "Too long. Use a shorter password.",
+      "currentRequired": "Type your current password (the one you signed in with).",
+      "wrongCurrent": "The current password is wrong. Type the one you signed in with.",
       "mismatch": "The two passwords don't match. Type the same password in both boxes.",
       "same": "That is the password you have now. Choose a different one.",
       "failed": "Couldn't save the password. Check your connection and try again."
-    }
+    },
+    "currentLabel": "Current password"
   },
   "roles": {
     "owner": "Owner",
@@ -102,7 +108,30 @@
     "idleLabel": "Washer idle alarms",
     "idleHint": "The manager on duty always gets washer idle alarms, even when this is off.",
     "idleOn": "Washer idle alarms on for {{name}}.",
-    "idleOff": "Washer idle alarms off for {{name}}."
+    "idleOff": "Washer idle alarms off for {{name}}.",
+    "levelsTitle": "Owner alerts",
+    "levelsHint": "Buzz: a notification and the Alerts tab. Quiet: the Alerts tab only. Off: not shown.",
+    "levelSaved": "{{kind}} for {{name}}: {{level}}.",
+    "levelKind": {
+      "customer_delivery": "Customer delivery",
+      "estimate_entered": "Estimates entered",
+      "rewash_added": "Rewash added",
+      "account_locked": "Account locked"
+    },
+    "level": {
+      "push": "Buzz",
+      "quiet": "Quiet",
+      "off": "Off"
+    },
+    "startPasswordLabel": "Starting password (optional)",
+    "startPasswordHint": "Leave it empty and the app makes one for you. They must change it the first time they sign in.",
+    "resetConfirm": "Reset now",
+    "passwordSet": "New starting password set for {{name}}. They must change it the first time they sign in.",
+    "createdWithPassword": "Account {{username}} created with the password you typed. They must change it the first time they sign in.",
+    "lockedLabel": "Sign-in locked",
+    "lockedUntil": "Locked until {{time}}",
+    "unlock": "Unlock",
+    "unlocked": "{{name}} can sign in again."
   },
   "control": {
     "placeholder": "Choose a screen.",
@@ -132,7 +161,7 @@
     "rateLimited": "Too many changes at once. Wait a few seconds and try again.",
     "network": "Couldn't reach the server. Check the Wi-Fi and try again.",
     "machineDown": "That washer is marked down. Choose another washer, or mark it back up first.",
-    "pinAgain": "The PIN has to be entered again. Enter it and save.",
+    "pinAgain": "This entry was not saved. Enter it again.",
     "washerRunning": "This washer is still running. Confirm to start another load."
   },
   "units": {
@@ -361,7 +390,7 @@
   },
   "estimates": {
     "title": "Dirty work waiting",
-    "intro": "For each wash group, say how much dirty work is waiting. Review, then save once with your PIN.",
+    "intro": "For each wash group, say how much dirty work is waiting. Review, then save them all at once.",
     "notAllowed": "Only the owner and managers enter estimates.",
     "summaryTitle": "Waiting now",
     "totalLoads_one": "≈ {{n}} load waiting",
@@ -397,13 +426,6 @@
     "reviewTitle_other": "Check {{count}} estimates",
     "fixFirst_one": "Fix {{count}} amount above first.",
     "fixFirst_other": "Fix {{count}} amounts above first.",
-    "whoLabel": "Who is entering?",
-    "noStaff": "No one with a PIN yet. The owner sets up names and PINs.",
-    "pinLabel": "Your 4-digit PIN",
-    "pinHint": "One PIN saves all of them.",
-    "pinStillGood_one": "{{name}}'s PIN is still good on this phone for {{count}} more minute.",
-    "pinStillGood_other": "{{name}}'s PIN is still good on this phone for {{count}} more minutes.",
-    "enterPinAnyway": "Enter a PIN anyway",
     "saveAll_one": "Save {{count}} estimate",
     "saveAll_other": "Save {{count}} estimates",
     "saving": "Saving…",
@@ -413,13 +435,7 @@
     "savedOnPhone_one": "{{count}} estimate is saved on this phone and will send when the connection is back.",
     "savedOnPhone_other": "{{count}} estimates are saved on this phone and will send when the connection is back.",
     "notStored": "This phone couldn't keep the estimates. Keep this page open until the connection is back.",
-    "needsPin": "Some estimates are waiting for the PIN to be entered again (wrong, changed or locked PIN).",
-    "sendNow": "Send now",
     "errors": {
-      "who": "Choose who is entering.",
-      "pin": "Type the 4-digit PIN.",
-      "wrongPin": "Wrong PIN. Try again.",
-      "locked": "Too many wrong PINs. Wait 5 minutes and try again.",
       "tooOld": "It is more than 6 hours old, so the server can't save it. Enter it again."
     },
     "noTimeGroups_one": "{{count}} group has no washer time set, so the time leaves it out.",
@@ -551,37 +567,6 @@
       "name": "Type a name of 1 to 60 characters.",
       "area": "Choose an area.",
       "englishLabel": "Type the English label (1 to 60 characters)."
-    },
-    "pins": {
-      "title": "Setup: entry PINs",
-      "intro": "The people who confirm estimates and finished goods with their name and a 4-digit PIN. The PIN only shows who entered something; it is not a password. Deactivate someone who leaves; they are never deleted, because their past entries point at them.",
-      "none": "Nobody yet. Add the first person below.",
-      "name": "Name",
-      "language": "Language",
-      "homeShift": "Home shift",
-      "noShift": "No home shift",
-      "homeShiftHint": "Entries count toward this shift unless they pick the next one.",
-      "hasPin": "PIN set",
-      "noPin": "No PIN yet",
-      "setPin": "Set PIN",
-      "resetPin": "Reset PIN",
-      "savePin": "Save PIN",
-      "pin": "New PIN (4 digits)",
-      "pinAgain": "Type the PIN again",
-      "pinHint": "Not 1234 and not one digit 4 times. Each person needs a different PIN.",
-      "pinSaved": "New PIN saved for {{name}}.",
-      "addTitle": "Add a person",
-      "add": "Add person",
-      "added": "{{name}} was added with a PIN.",
-      "addedNoPin": "{{name}} was added, but the PIN was not saved.",
-      "deactivateHint": "A deactivated person can't confirm entries; their past entries stay.",
-      "errors": {
-        "digits": "The PIN must be exactly 4 digits.",
-        "easy": "That PIN is too easy to guess. Pick another.",
-        "mismatch": "The two PINs don't match.",
-        "inUse": "Someone else already has that PIN. Pick another.",
-        "name": "Type a name (up to 60 characters)."
-      }
     }
   },
   "loadOut": {
@@ -732,7 +717,13 @@
       "washerIdle": "{{name}} idle — work waiting",
       "taskNew": "New task",
       "taskDone": "Task done",
-      "routeLoaded": "{{name}} loaded"
+      "routeLoaded": "{{name}} loaded",
+      "customerDelivery": "{{customer}} delivered: {{lines}}",
+      "customerDeliveryShort": "{{customer}} delivered",
+      "estimateEntered_one": "Estimates entered: {{count}} group",
+      "estimateEntered_other": "Estimates entered: {{count}} groups",
+      "rewashAdded": "Rewash added: {{group}} {{amount}}",
+      "accountLocked": "Account locked: {{username}}"
     },
     "state": {
       "open": {
@@ -740,25 +731,43 @@
         "washer_idle": "Idle",
         "task_assigned": "Open",
         "task_done": "Done",
-        "route_loaded": "Loaded"
+        "route_loaded": "Loaded",
+        "customer_delivery": "Delivered",
+        "estimate_entered": "Entered",
+        "rewash_added": "Added",
+        "account_locked": "Locked"
       },
       "resolved": {
         "machine_down": "Fixed",
         "washer_idle": "Started",
         "task_assigned": "Done",
         "task_done": "Done",
-        "route_loaded": "Unmarked"
+        "route_loaded": "Unmarked",
+        "customer_delivery": "Voided",
+        "estimate_entered": "Entered",
+        "rewash_added": "Added",
+        "account_locked": "Unlocked"
       },
       "done": {
         "machine_down": "Fixed",
         "washer_idle": "Started",
         "task_assigned": "Done",
         "task_done": "Done",
-        "route_loaded": "Loaded"
+        "route_loaded": "Loaded",
+        "customer_delivery": "Delivered",
+        "estimate_entered": "Entered",
+        "rewash_added": "Added",
+        "account_locked": "Unlocked"
       }
     },
     "clear": "Clear",
-    "clearAll": "Clear all finished"
+    "clearAll": "Clear all finished",
+    "aGroup": "a group",
+    "deliveryLine": "{{group}} {{amount}}",
+    "moreLines_one": "+ {{count}} more",
+    "moreLines_other": "+ {{count}} more",
+    "anAccount": "an owner account",
+    "lockedUntil": "Locked until {{time}}. Tap to unlock."
   },
   "board": {
     "pill": {
@@ -826,5 +835,70 @@
     "by": "by {{name}}",
     "addedBy": "Added by {{name}}",
     "markedBy": "Marked by {{name}}"
+  },
+  "customers": {
+    "generic": "Customer"
+  },
+  "deliveries": {
+    "title": "Customer deliveries",
+    "recordTitle": "Record a delivery",
+    "intro": "Bins per group as they arrive. Each group goes to the bottom of the queue.",
+    "notAllowed": "Only the owner and managers record deliveries.",
+    "historyTitle": "Last 7 days",
+    "none": "No deliveries in the last 7 days.",
+    "customerLabel": "Customer",
+    "customerIs": "Customer: {{name}}",
+    "noCustomers": "No customers are set up. Ask the owner.",
+    "noGroups": "This customer has no wash groups yet. Ask the owner.",
+    "binsUnit": "bins",
+    "badBins": "Use 0 to {{max}}, in quarters (¼, ½, ¾).",
+    "approxLoads_one": "≈ {{n}} load",
+    "approxLoads_other": "≈ {{n}} loads",
+    "loadsUnknown": "loads unknown",
+    "noteLabel": "Note (optional)",
+    "confirmTitle": "Confirm",
+    "nothingYet": "Add bins to at least one group.",
+    "fixFirst_one": "Fix {{count}} amount first.",
+    "fixFirst_other": "Fix {{count}} amounts first.",
+    "save": "Save delivery",
+    "goesToQueue": "Each group goes to the bottom of the queue.",
+    "openQueue": "Open the queue",
+    "sent": "Sent to the bottom of the queue.",
+    "savedOnPhone": "Saved on this phone. It will send when the connection is back.",
+    "notStored": "This phone couldn't keep the delivery. Keep this page open until the connection is back.",
+    "waitingToSend_one": "{{count}} delivery is waiting on this phone to send.",
+    "waitingToSend_other": "{{count}} deliveries are waiting on this phone to send.",
+    "rejected": "A {{customer}} delivery was not saved.",
+    "voided": "Voided",
+    "by": "by {{name}}",
+    "cancel": {
+      "button": "Cancel this delivery",
+      "question": "Cancel this delivery? Its loads that haven't started come off the queue.",
+      "reasonLabel": "Reason",
+      "reasonNeeded": "Type a short reason first.",
+      "confirm": "Yes, cancel it",
+      "keep": "Keep it",
+      "working": "Cancelling…",
+      "done": "Delivery cancelled.",
+      "already": "This delivery was already cancelled.",
+      "removed_one": "Taken off the queue ({{count}}):",
+      "removed_other": "Taken off the queue ({{count}}):",
+      "keptTitle_one": "{{count}} load already started — not cancelled:",
+      "keptTitle_other": "{{count}} loads already started — not cancelled:",
+      "kept": "{{group}}: already started — not cancelled",
+      "anItem": "A queue item"
+    },
+    "recentTitle": "Saved from this phone",
+    "cancelled": "Cancelled",
+    "voidReason": "Reason: {{reason}}"
+  },
+  "password": {
+    "rule": "Use 6 numbers, or at least 10 letters and numbers.",
+    "ok": "Good password.",
+    "problems": {
+      "tooShort": "Too short. Use 6 numbers, or at least 10 letters and numbers.",
+      "tooLong": "Too long. Use a shorter password.",
+      "tooSimple": "Too easy to guess. Don't use repeats or runs like 111111 or 123456."
+    }
   }
 }

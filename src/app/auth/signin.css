@@ -1,0 +1,42 @@
+/* Sign-in (owner 2026-11-06: big and simple for older managers): larger text, inputs and buttons. */
+.signin-page {
+  font-size: 1.25rem;
+}
+.signin-page h1 {
+  font-size: 2.25rem;
+}
+.signin-page label {
+  font-size: 1.375rem;
+  font-weight: 700;
+}
+.signin-page input[type='text'],
+.signin-page input[type='password'] {
+  min-height: 64px;
+  font-size: 1.75rem;
+  letter-spacing: 0.05em;
+}
+.signin-page .field.check input {
+  width: 32px;
+  height: 32px;
+}
+.signin-page button {
+  min-height: 64px;
+  font-size: 1.375rem;
+}
+.signin-page .signin-submit {
+  width: 100%;
+  min-height: 72px;
+  font-size: 1.75rem;
+  margin-top: var(--sp-md);
+}
+.signin-page .signin-keyboard {
+  width: 100%;
+}
+.signin-page .error {
+  font-size: 1.25rem;
+}
+.signin-page .hint,
+.signin-page legend,
+.signin-page p {
+  font-size: 1.125rem;
+}

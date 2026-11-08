@@ -207,7 +207,11 @@ Deno.test('unknown kinds and bad payloads build nothing', () => {
   assertEquals(buildMessage('__proto__', {}, 'en', ctx), null);
   assertEquals(buildMessage('machine_down', null, 'en', ctx), null);
   assertEquals(Object.keys(BUILDERS).sort(), [
+    'account_locked',
+    'customer_delivery',
+    'estimate_entered',
     'machine_down',
+    'rewash_added',
     'route_loaded',
     'task_assigned',
     'task_done',
@@ -531,4 +535,267 @@ Deno.test('run: task kinds are sent and never stale', async () => {
   const counts = await run(deps, NOW);
   assertEquals(rec.marks, { t1: ['x'], t2: ['y'] });
   assertEquals(counts.stale, 0);
+});
+
+// ------------------------------------------------------------------------------------------------
+// Owner information kinds (customer_delivery, estimate_entered, rewash_added) and
+// account_locked. Payload shapes = app.alert_payload (20261107003625, 20261107120000).
+
+const DELIVERY = '33333333-3333-3333-3333-333333333333';
+// 2026-11-07 02:15 UTC = 9:15 PM on 11-06 in Miami (EST)
+const delivery = {
+  delivery_id: DELIVERY,
+  customer_id: 'c1',
+  customer_name: 'AA Linen',
+  customer_name_i18n: {},
+  delivered_at: '2026-11-07T02:15:00Z',
+  voided: false,
+  total_bins: 3.5,
+  lines: [
+    {
+      wash_group_id: 'g1',
+      wash_group_name: 'AA napkins',
+      wash_group_name_i18n: { es: 'Servilletas AA' },
+      bins: 2,
+      loads: 4,
+    },
+    {
+      wash_group_id: 'g2',
+      wash_group_name: 'AA mats',
+      wash_group_name_i18n: {},
+      bins: 1,
+      loads: null,
+    },
+    {
+      wash_group_id: 'g3',
+      wash_group_name: 'AA aprons',
+      wash_group_name_i18n: {},
+      bins: 0.5,
+      loads: 1,
+    },
+  ],
+};
+
+Deno.test('customer_delivery: EN/ES text with bins per group, tag per delivery', () => {
+  assertEquals(msg('customer_delivery', delivery, 'en'), {
+    title: 'AA Linen delivered',
+    body: '2 bins AA napkins, 1 bin AA mats, ½ bin AA aprons · at 9:15 PM',
+    tag: `delivery-${DELIVERY}`,
+    url: '/control/deliveries',
+  });
+  const es = msg('customer_delivery', delivery, 'es');
+  assertEquals(es.title, 'Entrega de AA Linen');
+  // ICU spells "p. m." differently across versions: compare up to the hour.
+  assert(
+    es.body.startsWith(
+      '2 bins de Servilletas AA, 1 bin de AA mats, ½ bin de AA aprons · a las 9:15',
+    ),
+    es.body,
+  );
+});
+
+Deno.test('customer_delivery: no names, notes or ids beyond the subject reach the text', () => {
+  const m = msg(
+    'customer_delivery',
+    { ...delivery, note: 'secret note', entered_by_name: 'Denise' },
+    'en',
+  );
+  assertFalse(JSON.stringify(m).includes('secret'));
+  assertFalse(JSON.stringify(m).includes('Denise'));
+});
+
+Deno.test('customer_delivery: long lists are capped; bad lines skipped; voided is stale', () => {
+  const many = {
+    ...delivery,
+    lines: Array.from({ length: 7 }, (_, i) => ({ wash_group_name: `G${i}`, bins: 0.25 })),
+  };
+  assertEquals(
+    msg('customer_delivery', many, 'en').body,
+    '¼ bin G0, ¼ bin G1, ¼ bin G2, ¼ bin G3 +3 more · at 9:15 PM',
+  );
+  assert(msg('customer_delivery', many, 'es').body.includes('+3 más'));
+  const bad = {
+    ...delivery,
+    lines: [{ wash_group_name: 'X', bins: 'a lot' }, null, 7],
+  };
+  assertEquals(msg('customer_delivery', bad, 'en').body, 'At 9:15 PM');
+  const unnamed = { ...delivery, customer_name: null };
+  assertEquals(msg('customer_delivery', unnamed, 'en').title, 'Customer delivery');
+  assertEquals(msg('customer_delivery', unnamed, 'es').title, 'Entrega de un cliente');
+  assertEquals(buildMessage('customer_delivery', { ...delivery, delivery_id: null }, 'en'), null);
+  assert(BUILDERS.customer_delivery.isCurrent(delivery));
+  assertFalse(BUILDERS.customer_delivery.isCurrent({ ...delivery, voided: true }));
+});
+
+const estimates = {
+  first_estimate_id: 'e1',
+  count: 3,
+  estimates: [
+    {
+      wash_group_name: 'Mats 3x5',
+      wash_group_name_i18n: { es: 'Mapos 3x5' },
+      qty: 2.5,
+      unit: 'basket',
+    },
+    {
+      wash_group_name: 'Napkins',
+      wash_group_name_i18n: {},
+      qty: 1,
+      unit: 'bin',
+    },
+    {
+      wash_group_name: 'Sheets',
+      wash_group_name_i18n: {},
+      qty: 0.75,
+      unit: 'load',
+    },
+  ],
+};
+
+Deno.test('estimate_entered: EN/ES text, one tag per batch, never stale', () => {
+  assertEquals(msg('estimate_entered', estimates, 'en'), {
+    title: '3 new estimates',
+    body: 'Mats 3x5 2½ baskets, Napkins 1 bin, Sheets ¾ load',
+    tag: 'estimates-e1',
+    url: '/control/estimates',
+  });
+  const es = msg('estimate_entered', estimates, 'es');
+  assertEquals(es.title, '3 estimados nuevos');
+  assertEquals(es.body, 'Mapos 3x5 2½ canastas, Napkins 1 bin, Sheets ¾ carga');
+  const one = {
+    first_estimate_id: 'e1',
+    count: 1,
+    estimates: [estimates.estimates[0]],
+  };
+  assertEquals(msg('estimate_entered', one, 'en').title, 'New estimate');
+  assertEquals(msg('estimate_entered', one, 'es').title, 'Estimado nuevo');
+  assertEquals(
+    msg(
+      'estimate_entered',
+      {
+        ...one,
+        estimates: [{ wash_group_name: 'X', qty: 0, unit: 'load' }],
+      },
+      'en',
+    ).body,
+    'X 0 loads',
+  );
+  assertEquals(buildMessage('estimate_entered', { count: 1 }, 'en'), null);
+  assert(BUILDERS.estimate_entered.isCurrent(estimates));
+});
+
+const rewash = {
+  queue_item_id: 'q1',
+  area_id: 'a1',
+  area_name: 'Washroom',
+  wash_group_name: 'Kitchen towels',
+  wash_group_name_i18n: { es: 'Toallas de cocina' },
+  qty: 1.5,
+  unit: 'bin',
+  qty_loads: 3,
+  status: 'queued',
+  created_at: '2026-11-07T02:15:00Z',
+};
+
+Deno.test('rewash_added: EN/ES text; cancelled is stale', () => {
+  assertEquals(msg('rewash_added', rewash, 'en'), {
+    title: 'Rewash added to the queue',
+    body: 'Kitchen towels · 1½ bins',
+    tag: 'rewash-q1',
+    url: '/control/queue',
+  });
+  assertEquals(msg('rewash_added', rewash, 'es').title, 'Relavado agregado a la cola');
+  assertEquals(msg('rewash_added', rewash, 'es').body, 'Toallas de cocina · 1½ bins');
+  assertEquals(msg('rewash_added', { ...rewash, unit: 'pack' }, 'en').body, 'Kitchen towels');
+  assertEquals(buildMessage('rewash_added', { ...rewash, queue_item_id: 7 }, 'en'), null);
+  assert(BUILDERS.rewash_added.isCurrent(rewash));
+  assert(BUILDERS.rewash_added.isCurrent({ ...rewash, status: 'in_progress' }));
+  assertFalse(BUILDERS.rewash_added.isCurrent({ ...rewash, status: 'cancelled' }));
+});
+
+Deno.test('off_queue_start was removed (owner 2026-11-07): no builder, nothing is built', () => {
+  assertFalse(Object.hasOwn(BUILDERS, 'off_queue_start'));
+  assertEquals(
+    buildMessage('off_queue_start', { cycle_id: 'w1', machine_name: 'Washer 3' }, 'en', ctx),
+    null,
+  );
+});
+
+const locked = {
+  user_id: 'u1',
+  username: 'denise',
+  failures: 5,
+  locked_until: '2026-11-07T02:30:00Z',
+  still_locked: true,
+};
+
+Deno.test('account_locked: username only, EN/ES, stale once unlocked', () => {
+  assertEquals(msg('account_locked', locked, 'en'), {
+    title: 'Account locked: denise',
+    body: '5 wrong passwords · until 9:30 PM · Unlock in People',
+    tag: 'locked-u1',
+    url: '/control/people',
+  });
+  const es = msg('account_locked', locked, 'es');
+  assertEquals(es.title, 'Cuenta bloqueada: denise');
+  assert(es.body.startsWith('5 contraseñas incorrectas · hasta las 9:30'), es.body);
+  assert(es.body.endsWith(' · Desbloquear en Personas'), es.body);
+  assertEquals(
+    msg('account_locked', { ...locked, username: null }, 'en').title,
+    'Owner account locked',
+  );
+  assertEquals(buildMessage('account_locked', { ...locked, user_id: null }, 'en'), null);
+  assertFalse(BUILDERS.account_locked.isCurrent({ ...locked, still_locked: false }));
+});
+
+Deno.test('every kind the DB can push has a builder', () => {
+  // = app.push_alert_kinds() (20261107021207)
+  for (const kind of [
+    'machine_down',
+    'washer_idle',
+    'task_assigned',
+    'task_done',
+    'route_loaded',
+    'customer_delivery',
+    'estimate_entered',
+    'rewash_added',
+    'account_locked',
+  ]) {
+    assert(Object.hasOwn(BUILDERS, kind), kind);
+  }
+});
+
+Deno.test('run: owner kinds are sent; stale ones are marked stale', async () => {
+  const { deps, rec } = mockDeps(
+    [
+      row({
+        alert_id: 'd1',
+        kind: 'customer_delivery',
+        payload: delivery,
+        subscription_id: 'x',
+      }),
+      row({
+        alert_id: 'd2',
+        kind: 'customer_delivery',
+        payload: { ...delivery, voided: true },
+        subscription_id: 'y',
+      }),
+      row({
+        alert_id: 'l1',
+        kind: 'account_locked',
+        payload: locked,
+        subscription_id: 'z',
+        language: 'es',
+      }),
+    ],
+    () => 'ok',
+  );
+  const counts = await run(deps, NOW);
+  assertEquals(rec.marks, { d1: ['x'], d2: ['stale'], l1: ['z'] });
+  assertEquals(counts.sent, 2);
+  assertEquals(counts.stale, 1);
+  assertEquals(
+    rec.sends.find((s) => s.payload.tag === 'locked-u1')?.payload.title,
+    'Cuenta bloqueada: denise',
+  );
 });

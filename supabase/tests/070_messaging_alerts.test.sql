@@ -10,7 +10,7 @@ insert into public.display_messages (id, org_id, plant_id, area_id, body, body_l
   ('d1000000-0000-0000-0000-0000000000a3', pg_temp.id('orgA'), pg_temp.id('plantA'), pg_temp.id('fin'), 'Mats first', 'en', '{}', 'info', now() + interval '1 hour', pg_temp.id('manager')),
   ('d1000000-0000-0000-0000-0000000000b1', pg_temp.id('orgB'), pg_temp.id('plantB'), null, 'B only', 'en', '{}', 'info', now() + interval '1 hour', pg_temp.id('ownerB'));
 
-select is(pg_temp.reads($$select 1 from public.display_messages where plant_id = pg_temp.id('plantA')$$), '{3,3,3,3,2,0,0,0}',
+select is(pg_temp.reads($$select 1 from public.display_messages where plant_id = pg_temp.id('plantA')$$), '{3,3,3,3,2,0,0,42501}',
   'display_messages R (display: own area + all-areas)');
 select is(pg_temp.run_as('display', $$select 1 from public.display_messages where area_id = pg_temp.id('fin')$$, true), '0',
   'display cannot read another area''s message');
@@ -18,7 +18,7 @@ select is(pg_temp.writes($$insert into public.display_messages (org_id, plant_id
   values (pg_temp.id('orgA'), pg_temp.id('plantA'), 'Hola', 'es', now() + interval '1 hour', (select auth.uid()))$$),
   '{1,1,42501,42501,42501,42501,42501,42501}', 'display_messages C owner/manager');
 select is(pg_temp.writes($$update public.display_messages set retracted_at = now() where id = 'd1000000-0000-0000-0000-0000000000a1'$$),
-  '{1,1,0,0,0,0,0,0}', 'display_messages U (retract) owner/manager');
+  '{1,1,0,0,0,0,0,42501}', 'display_messages U (retract) owner/manager');
 select is(pg_temp.run_as('manager', $$insert into public.display_messages (org_id, plant_id, body, body_lang, expires_at, created_by)
   values (pg_temp.id('orgA'), pg_temp.id('plantA'), 'Bonjou', 'ht', now() + interval '1 hour', (select auth.uid()))$$),
   'VALIDATION_FAILED', 'message language must be enabled for the plant');
@@ -40,7 +40,7 @@ select is(pg_temp.run_as('manager', $$insert into public.display_messages (org_i
 
 -- alert_events: no client access at all.
 insert into public.alert_events (org_id, plant_id, kind, recipients) values (pg_temp.id('orgA'), pg_temp.id('plantA'), 'device_offline', '{owner@a.test}');
-select is(pg_temp.reads($$select 1 from public.alert_events$$), '{0,0,0,0,0,0,0,0}', 'alert_events R denied (service role only)');
+select is(pg_temp.reads($$select 1 from public.alert_events$$), '{0,0,0,0,0,0,0,42501}', 'alert_events R denied (service role only)');
 select is(pg_temp.writes($$insert into public.alert_events (org_id, plant_id, kind, recipients)
   values (pg_temp.id('orgA'), pg_temp.id('plantA'), 'import_failed', '{x@a.test}')$$),
   '{42501,42501,42501,42501,42501,42501,42501,42501}', 'alert_events C denied');

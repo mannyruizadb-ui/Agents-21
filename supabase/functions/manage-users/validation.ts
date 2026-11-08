@@ -2,12 +2,36 @@
 // Pure module: no network, no Deno.env, so validation_test.ts can cover it fully.
 import { z } from 'zod';
 import { USERNAME_PATTERN } from '../_shared/loginId.ts';
+import {
+  PASSWORD_MAX_BYTES,
+  PASSWORD_MIN_CHARS,
+  type PasswordProblem,
+  passwordProblem,
+} from '../_shared/passwordRules.ts';
 
 export const ASSIGNABLE_ROLES = ['owner', 'manager', 'lead', 'viewer'] as const;
 
-/** Supabase Auth (bcrypt) only uses the first 72 bytes of a password. */
-export const PASSWORD_MIN_CHARS = 10;
-export const PASSWORD_MAX_BYTES = 72;
+/**
+ * Password rules (owner-approved 2026-11-06; owner 2026-11-07: the same for every account, owners
+ * included): 6 digits that are not a simple pattern, or at least 10 characters; at most 72 bytes
+ * (bcrypt). See _shared/passwordRules.ts.
+ */
+export { PASSWORD_MAX_BYTES, PASSWORD_MIN_CHARS };
+
+const PASSWORD_PROBLEMS: readonly string[] = [
+  'password_too_short',
+  'password_too_long',
+  'password_too_simple',
+] satisfies PasswordProblem[];
+
+/**
+ * A password every account may use (6 digits that are not a simple pattern, or ≥ 10 characters;
+ * ≤ 72 bytes). The issue message is the reason code.
+ */
+const password = z.string().superRefine((pw, ctx) => {
+  const problem = passwordProblem(pw);
+  if (problem !== null) ctx.addIssue({ code: 'custom', message: problem });
+});
 
 // No control characters; profiles.full_name CHECK is ≤ 120 chars, trimmed, no control chars.
 const displayName = z
@@ -27,30 +51,46 @@ const createSchema = z.strictObject({
   display_name: displayName,
   role: z.enum(ASSIGNABLE_ROLES),
   can_manage_staff: z.boolean().optional().default(false),
+  /** Optional first password chosen by the owner (else a generated one); still must be changed. */
+  password: password.optional(),
 });
 
 const listSchema = z.strictObject({ action: z.literal('list'), plant_id: plantId });
 
-const targetSchema = (action: 'reset_password' | 'deactivate') =>
+const targetSchema = (action: 'deactivate' | 'unlock') =>
   z.strictObject({ action: z.literal(action), plant_id: plantId, user_id: z.guid() });
+
+const resetSchema = z.strictObject({
+  action: z.literal('reset_password'),
+  plant_id: plantId,
+  user_id: z.guid(),
+  /** Optional temporary password chosen by the owner (else a generated one); still must be changed. */
+  password: password.optional(),
+});
+
+/** The current password as typed (any old password: only its length is checked here). */
+const currentPassword = z
+  .string()
+  .min(1)
+  .refine((pw) => new TextEncoder().encode(pw).length <= PASSWORD_MAX_BYTES, 'password_too_long');
 
 const changeOwnSchema = z.strictObject({
   action: z.literal('change_own_password'),
-  new_password: z
-    .string()
-    .min(PASSWORD_MIN_CHARS, `at least ${PASSWORD_MIN_CHARS} characters`)
-    .refine(
-      (p) => new TextEncoder().encode(p).length <= PASSWORD_MAX_BYTES,
-      `at most ${PASSWORD_MAX_BYTES} bytes`,
-    ),
+  /**
+   * 2026-11-07 (pepper): required. It is checked through the sign-in lockout before anything changes,
+   * so a stolen session cannot set a new password, nor guess the current one around the lockout.
+   */
+  current_password: currentPassword,
+  new_password: password,
 });
 
 export const requestSchema = z
   .discriminatedUnion('action', [
     createSchema,
     listSchema,
-    targetSchema('reset_password'),
+    resetSchema,
     targetSchema('deactivate'),
+    targetSchema('unlock'),
     changeOwnSchema,
   ])
   .superRefine((v, ctx) => {
@@ -74,13 +114,14 @@ export function parseRequest(body: unknown): ParseResult {
   const result = requestSchema.safeParse(body);
   if (result.success) return { ok: true, value: result.data };
   const fields = [...new Set(result.error.issues.map((i) => i.path.join('.') || 'body'))].sort();
-  const pw = result.error.issues.find((i) => i.path[0] === 'new_password');
+  const pw = result.error.issues.find(
+    (i) => i.path[0] === 'new_password' || i.path[0] === 'password',
+  );
+  // current_password problems never get a password-rule reason (it may be any old password).
   const reason = pw
-    ? pw.code === 'too_small'
-      ? 'password_too_short'
-      : pw.code === 'custom'
-        ? 'password_too_long'
-        : 'password_invalid'
+    ? pw.code === 'custom' && PASSWORD_PROBLEMS.includes(pw.message)
+      ? pw.message
+      : 'password_invalid'
     : undefined;
   return { ok: false, fields, reason };
 }

@@ -6,7 +6,7 @@ begin;
 select plan(10);
 
 select is(pg_temp.writes($$update public.wash_groups set loads_per_bin = loads_per_bin_new from (select coalesce(max(loads_per_bin), 1) + 1 as loads_per_bin_new from public.wash_groups where id = pg_temp.id('gNapkin')) x where id = pg_temp.id('gNapkin')$$),
-  '{1,NOT_AUTHORIZED,0,0,0,0,0,0}', 'changing a load factor: owner only (the manager gets NOT_AUTHORIZED)');
+  '{1,NOT_AUTHORIZED,0,0,0,0,0,42501}', 'changing a load factor: owner only (the manager gets NOT_AUTHORIZED)');
 select is(array[
   pg_temp.run_as('manager', $$update public.wash_groups set loads_per_basket = 9 where id = pg_temp.id('gTowel')$$),
   pg_temp.run_as('manager', $$update public.wash_groups set allow_basket_estimates = false where id = pg_temp.id('gTowel')$$),

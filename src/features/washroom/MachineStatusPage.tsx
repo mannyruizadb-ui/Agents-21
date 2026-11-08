@@ -240,7 +240,7 @@ export function MachineStatusPage() {
                         className="secondary"
                         onClick={() => setConfirmingUp(null)}
                       >
-                        {t('common.back')}
+                        {t('common.cancel')}
                       </button>
                     </div>
                   </div>
@@ -369,7 +369,7 @@ export function MachineStatusPage() {
                   {t('machines.yesDown')}
                 </button>
                 <button type="button" className="secondary" onClick={() => setConfirming(false)}>
-                  {t('common.back')}
+                  {t('common.cancel')}
                 </button>
               </div>
             </div>

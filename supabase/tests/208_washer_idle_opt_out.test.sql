@@ -1,6 +1,6 @@
 -- Owner 2026-11-06 (C): memberships.notify_washer_idle. Owners who turn it off stop getting washer_idle
 -- (push and Alerts tab); the manager(s) on duty ALWAYS get it. set_washer_idle_alert: owners only, owner
--- memberships only.
+-- memberships only, and since 2026-11-07 only the owner's OWN memberships (self-only).
 -- Matrix arrays: [owner, manager, lead, viewer, display, display-without-device, owner of B, anon].
 begin;
 \ir _fixtures.psql
@@ -52,10 +52,12 @@ select is(array[
   'owners only; cross-tenant and unknown ids give the same NOT_AUTHORIZED');
 select is(array[
   pg_temp.run_as('owner', $$select public.set_washer_idle_alert(pg_temp.mid('manager'), false)$$),
-  pg_temp.run_as('owner', $$select public.set_washer_idle_alert(pg_temp.mid('ownerP'), null)$$)],
-  '{VALIDATION_FAILED,VALIDATION_FAILED}', 'only owner memberships have the setting (the manager on duty always gets it); p_notify required');
-select is(pg_temp.val_as('owner', $$select (public.set_washer_idle_alert(pg_temp.mid('ownerP'), false)).notify_washer_idle::text$$), 'false',
-  'an owner turns it off for the other owner (the father)');
+  pg_temp.run_as('owner', $$select public.set_washer_idle_alert(pg_temp.mid('ownerP'), false)$$),
+  pg_temp.run_as('ownerP', $$select public.set_washer_idle_alert(pg_temp.mid('ownerP'), null)$$)],
+  '{NOT_AUTHORIZED,NOT_AUTHORIZED,VALIDATION_FAILED}',
+  'self-only (2026-11-07): an owner cannot change a manager''s or the other owner''s (the father''s) setting; p_notify required');
+select is(pg_temp.val_as('ownerP', $$select (public.set_washer_idle_alert(pg_temp.mid('ownerP'), false)).notify_washer_idle::text$$), 'false',
+  'the other owner (the father) turns his own off');
 select is(array[pg_temp.run_as('ownerP', $$select public.set_washer_idle_alert(pg_temp.mid('owner'), false)$$),
                 pg_temp.val_as('owner', $$select (public.set_washer_idle_alert(pg_temp.mid('owner'), false)).notify_washer_idle::text$$)],
   '{NOT_AUTHORIZED,false}',

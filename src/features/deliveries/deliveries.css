@@ -1,0 +1,85 @@
+/* Customer deliveries (AA Linen): entry and owner history. */
+.dl-groups,
+.dl-history,
+.dl-lines {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.dl-group {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--c-seam);
+}
+.dl-group.has-bins {
+  border-left: 4px solid var(--c-info-text);
+  padding-left: 8px;
+}
+.dl-group-label {
+  flex: 1 1 10rem;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.dl-group-label label {
+  margin: 0;
+}
+.dl-stepper {
+  flex: none;
+  display: grid;
+  grid-template-columns: 56px 4.5rem 56px;
+  gap: 6px;
+}
+.form-page .dl-stepper button {
+  min-height: 56px;
+  padding: 0;
+  font-size: 1.125rem;
+}
+.form-page .dl-stepper input {
+  min-height: 56px;
+  width: 100%;
+  padding: 0 0.25rem;
+  text-align: center;
+  font-size: 1.375rem;
+  font-weight: 700;
+}
+.dl-customer-one {
+  font-weight: 700;
+}
+.form-page .dl-customers button[aria-checked='true'] {
+  outline: 3px solid currentColor;
+}
+.dl-item {
+  margin-bottom: 10px;
+}
+.dl-item.voided .dl-lines {
+  text-decoration: line-through;
+}
+.dl-item-head {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 8px;
+  margin: 0;
+}
+.dl-lines li {
+  padding: 2px 0;
+  overflow-wrap: anywhere;
+}
+.dl-cancel-ask,
+.dl-cancel-result {
+  margin-top: 10px;
+}
+.form-page .dl-cancel {
+  margin-top: 8px;
+}
+.dl-recent {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}

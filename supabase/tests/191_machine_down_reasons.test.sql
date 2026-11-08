@@ -12,7 +12,7 @@ select is((select array[label_i18n ->> 'es', requires_details::text] from public
   array['No arranca', 'false'], 'defaults carry Spanish labels');
 select is((select array_agg(label_i18n ->> 'es' order by sort_order) from public.machine_down_reasons r
              join public.plants p on p.id = r.plant_id and p.name = 'Miami'),
-  array['Bomba de agua', 'Dispensador de jabón', 'No arranca', 'Gotea', 'Otro'], 'the ADB plant has the 5 defaults');
+  array['Bomba de agua', 'Máquina de jabón', 'No arranca', 'Gotea', 'Otro'], 'the ADB plant has the 5 defaults');
 select is((select requires_details from public.machine_down_reasons where plant_id = pg_temp.id('plantA') and code = 'other'), true,
   'other requires details');
 

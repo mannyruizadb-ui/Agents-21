@@ -57,6 +57,13 @@
   color: var(--c-info-text);
   background: var(--c-info-container);
 }
+/* Outside customer's goods (AA Linen): neutral, with a tag icon and the name. */
+.badge-customer {
+  color: var(--c-text);
+  background: transparent;
+  border-style: dashed;
+  white-space: normal;
+}
 
 .data-age {
   display: flex;
@@ -245,6 +252,11 @@ body:has(.station) {
 .station .badge-pin {
   color: #fff;
   background: transparent;
+}
+.station .badge-customer {
+  color: #fff;
+  background: transparent;
+  border-color: #fff;
 }
 .station button {
   font: inherit;

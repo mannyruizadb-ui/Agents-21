@@ -1,7 +1,17 @@
 // manage-users: owner-created username + password accounts (PRD A4, owner decision 2026-11-03).
 // No email is ever sent. One POST endpoint; `action` selects the operation:
-//   list | create | reset_password | deactivate   (owner of the plant)
-//   change_own_password                            (any signed-in user)
+//   list | create | reset_password | deactivate | unlock   (owner of the plant)
+//   change_own_password                                     (any signed-in user)
+//
+// Passwords (owner-approved 2026-11-06, _shared/passwordRules.ts): 6 digits that are not a simple
+// pattern, or ≥ 10 characters, for every account (owners too: owner 2026-11-07), checked on the TYPED
+// value. GoTrue stores only the PEPPERED form (_shared/pepper.ts, SIGN_IN_PEPPER, owner-approved
+// 2026-11-07): create and reset_password store pepper(login, temp) and still show the owner the typed
+// temporary password; change_own_password verifies the CURRENT password through the sign-in lockout
+// (_shared/passwordCheck.ts) and stores pepper(login, new). Every peppered write sets
+// app_metadata.pw_v = 2. No pepper configured → these three fail closed (500) before changing anything.
+// The sign-in Edge Function locks a login after 5 wrong passwords in 15 minutes (escalating); `unlock`
+// clears that lock and `list` reports `locked_until` per person.
 //
 // Authorization order (.claude/rules/edge-functions.md): verify the JWT, read the caller's
 // memberships with a USER-scoped client (RLS), and only then use the service-role client for the
@@ -12,15 +22,29 @@
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import { corsHeaders, parseAllowedOrigins } from '../_shared/cors.ts';
 import { LOGIN_EMAIL_DOMAIN, usernameFromEmail } from '../_shared/loginId.ts';
+import { checkPassword, type GrantResult } from '../_shared/passwordCheck.ts';
+import {
+  PASSWORD_VERSION,
+  pepperPassword,
+  PepperMissingError,
+  requirePepper,
+} from '../_shared/pepper.ts';
 import { canManageTarget, inPlantScope, ownsPlant, type Membership, type Plant } from './authz.ts';
 import { generateTempPassword, parseRequest } from './validation.ts';
 
-type ErrorCode = 'NOT_AUTHORIZED' | 'VALIDATION_FAILED' | 'USERNAME_TAKEN' | 'INTERNAL';
+type ErrorCode =
+  | 'NOT_AUTHORIZED'
+  | 'VALIDATION_FAILED'
+  | 'USERNAME_TAKEN'
+  | 'LOCKED'
+  | 'RATE_LIMITED'
+  | 'INTERNAL';
 
 const MAX_BODY_BYTES = 4096;
 // Supabase Auth has no "ban forever"; 100 years.
 const BAN_DURATION = '876000h';
 const MEMBERSHIP_COLUMNS = 'user_id, org_id, plant_id, role, can_manage_staff, revoked_at';
+const GOTRUE_TIMEOUT_MS = 10_000;
 
 class HttpError extends Error {
   constructor(
@@ -53,6 +77,52 @@ function json(status: number, body: unknown, cors: Record<string, string>): Resp
 interface MembershipRow extends Membership {
   user_id: string;
   can_manage_staff: boolean;
+}
+
+/** The pepper, or a 500 before anything changes (fail closed; the name only goes to the log). */
+function pepperOrFail(): string {
+  try {
+    return requirePepper(Deno.env.get('SIGN_IN_PEPPER'));
+  } catch (e) {
+    if (e instanceof PepperMissingError)
+      console.error('manage-users: SIGN_IN_PEPPER is not configured');
+    throw new HttpError(500, 'INTERNAL', 'Passwords cannot be set right now.');
+  }
+}
+
+/** GoTrue's password grant (server-side, publishable key). Throws on a network error. */
+async function passwordGrant(email: string, password: string): Promise<GrantResult> {
+  const res = await fetch(`${env('SUPABASE_URL')}/auth/v1/token?grant_type=password`, {
+    method: 'POST',
+    headers: { apikey: env('SUPABASE_ANON_KEY'), 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email, password }),
+    signal: AbortSignal.timeout(GOTRUE_TIMEOUT_MS),
+  });
+  return { status: res.status, body: await res.json().catch(() => null) };
+}
+
+/** Ends the extra session a verification grant created (best effort; it would expire anyway). */
+async function endSession(body: unknown): Promise<void> {
+  const token = (body as { access_token?: unknown } | null)?.access_token;
+  if (typeof token !== 'string') return;
+  await fetch(`${env('SUPABASE_URL')}/auth/v1/logout?scope=local`, {
+    method: 'POST',
+    headers: { apikey: env('SUPABASE_ANON_KEY'), Authorization: `Bearer ${token}` },
+    signal: AbortSignal.timeout(GOTRUE_TIMEOUT_MS),
+  }).catch(() => undefined);
+}
+
+/** The service-role RPC caller for the lockout functions; a store error throws. */
+function lockoutRpc(service: SupabaseClient) {
+  return async (fn: string, args: Record<string, unknown>) => {
+    const { data, error } = await service.rpc(fn, args);
+    if (error) {
+      console.error('manage-users: lockout store error', fn, error.code);
+      throw new Error('lockout store');
+    }
+    const row = Array.isArray(data) ? data[0] : data;
+    return row as Record<string, unknown> | null;
+  };
 }
 
 function serviceClient(): SupabaseClient {
@@ -103,7 +173,7 @@ async function audit(
   service: SupabaseClient,
   actorId: string,
   plant: Plant,
-  action: 'users.create' | 'users.reset_password' | 'users.deactivate',
+  action: 'users.create' | 'users.reset_password' | 'users.deactivate' | 'users.unlock',
   targetId: string,
   details: Record<string, unknown>,
 ): Promise<void> {
@@ -166,42 +236,75 @@ async function handle(req: Request): Promise<{ status: number; body: unknown }> 
   }
   const input = parsed.value;
 
-  // 3a. Any signed-in user: change their own password.
+  // 3a. Any signed-in user: change their own password. The current password is verified through the
+  // sign-in lockout (same login key, no IP), peppered, before anything changes.
   if (input.action === 'change_own_password') {
-    // GoTrue's own endpoint, with the caller's token: it enforces minimum_password_length and
-    // rejects a password equal to the current one (same_password).
-    const res = await fetch(`${env('SUPABASE_URL')}/auth/v1/user`, {
-      method: 'PUT',
-      headers: {
-        apikey: env('SUPABASE_ANON_KEY'),
-        Authorization: `Bearer ${token}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ password: input.new_password }),
-    });
-    if (!res.ok) {
-      const err = (await res.json().catch(() => ({}))) as { error_code?: string; code?: string };
-      const code = err.error_code ?? err.code;
-      if (code === 'same_password') {
-        throw new HttpError(400, 'VALIDATION_FAILED', 'Choose a password you have not used.', {
-          reason: 'same_password',
-        });
-      }
-      if (code === 'weak_password') {
-        throw new HttpError(400, 'VALIDATION_FAILED', 'Password too weak.', {
-          reason: 'password_too_short',
-        });
-      }
-      console.error('manage-users: change_own_password auth error', res.status, code ?? '');
-      throw new HttpError(500, 'INTERNAL', 'Could not change the password.');
+    const pepper = pepperOrFail();
+    const email = auth.user.email?.trim().toLowerCase() ?? '';
+    if (email === '') throw new HttpError(500, 'INTERNAL', 'Could not change the password.');
+    if (input.current_password === input.new_password) {
+      throw new HttpError(400, 'VALIDATION_FAILED', 'Choose a password you have not used.', {
+        reason: 'same_password',
+      });
     }
-    // Only this function clears the flag; app_metadata is not user-writable.
-    const { error } = await serviceClient().auth.admin.updateUserById(callerId, {
-      app_metadata: { must_change_password: false },
+    const service = serviceClient();
+    const rpc = lockoutRpc(service);
+    const check = await checkPassword(
+      {
+        begin: async (login, ip) =>
+          (await rpc('sign_in_begin', { p_login: login, p_ip: ip })) as unknown as {
+            allowed: boolean;
+            retry_after_seconds: number;
+          },
+        failed: async (login, ip) =>
+          (await rpc('sign_in_failed', { p_login: login, p_ip: ip })) as unknown as {
+            locked: boolean;
+            retry_after_seconds: number;
+          },
+        succeeded: async (login, ip) => {
+          await rpc('sign_in_succeeded', { p_login: login, p_ip: ip });
+        },
+        passwordGrant,
+        pepper: (login, typed) => pepperPassword(pepper, login, typed),
+        legacyPassword: async (login) =>
+          (await rpc('sign_in_account_state', { p_login: login }))?.legacy_password === true,
+        legacyUpgrade: Deno.env.get('SIGN_IN_LEGACY_UPGRADE') !== 'off',
+      },
+      email,
+      email,
+      input.current_password,
+      null,
+    );
+    switch (check.kind) {
+      case 'wrong':
+        throw new HttpError(400, 'VALIDATION_FAILED', 'The current password is wrong.', {
+          reason: 'wrong_current_password',
+        });
+      case 'locked':
+        throw new HttpError(429, 'LOCKED', 'Too many wrong passwords. Try again later.', {
+          retry_after_seconds: Math.max(1, Math.ceil(check.retryAfterSeconds)),
+        });
+      case 'rate_limited':
+        throw new HttpError(
+          429,
+          'RATE_LIMITED',
+          'Too many attempts right now. Try again in a minute.',
+          {
+            retry_after_seconds: 60,
+          },
+        );
+      case 'error':
+        throw new HttpError(500, 'INTERNAL', 'Could not change the password.');
+    }
+    await endSession(check.grant.body);
+    // Only this function clears the flag; app_metadata is not user-writable (merged, not replaced).
+    const { error } = await service.auth.admin.updateUserById(callerId, {
+      password: await pepperPassword(pepper, email, input.new_password),
+      app_metadata: { must_change_password: false, pw_v: PASSWORD_VERSION },
     });
     if (error) {
-      console.error('manage-users: clear must_change_password failed', error.code ?? error.status);
-      throw new HttpError(500, 'INTERNAL', 'Password changed, but please try again.');
+      console.error('manage-users: change_own_password update failed', error.code ?? error.status);
+      throw new HttpError(500, 'INTERNAL', 'Could not change the password.');
     }
     return { status: 200, body: { ok: true } };
   }
@@ -237,6 +340,20 @@ async function handle(req: Request): Promise<{ status: number; body: unknown }> 
         Promise.all(ids.map((id) => service.auth.admin.getUserById(id))),
       ]);
       if (profiles.error) throw new HttpError(500, 'INTERNAL', 'Could not read names.');
+      // Sign-in locks (sign-in Edge Function), keyed by the normalised login = the auth email.
+      const emails = users
+        .map((u) => u?.data.user?.email?.toLowerCase() ?? '')
+        .filter((e) => e.length > 0);
+      const locks = new Map<string, string>();
+      if (emails.length > 0) {
+        const { data: lockRows, error: lockError } = await service.rpc('sign_in_lock_status', {
+          p_logins: emails,
+        });
+        if (lockError) throw new HttpError(500, 'INTERNAL', 'Could not read sign-in locks.');
+        for (const r of (lockRows ?? []) as { login: string; locked_until: string }[]) {
+          locks.set(r.login, r.locked_until);
+        }
+      }
       const names = new Map(
         (profiles.data ?? []).map((p: { user_id: string; full_name: string | null }) => [
           p.user_id,
@@ -258,6 +375,8 @@ async function handle(req: Request): Promise<{ status: number; body: unknown }> 
               can_manage_staff: r.can_manage_staff,
             })),
           is_self: id === callerId,
+          /** Set while the person's sign-in is locked (5 wrong passwords); People offers Unlock. */
+          locked_until: locks.get(email.toLowerCase()) ?? null,
           manageable: canManageTarget(
             callerId,
             caller,
@@ -276,13 +395,17 @@ async function handle(req: Request): Promise<{ status: number; body: unknown }> 
     case 'create': {
       // Only an owner reaches here, so owner / can_manage_staff grants are owner-made. The new
       // membership is always plant-scoped: a plant owner can never create an org-wide one.
+      const pepper = pepperOrFail();
       const service = serviceClient();
-      const tempPassword = generateTempPassword();
+      // The owner's chosen first password (validated at parse), else a generated one. GoTrue stores
+      // only its peppered form; the owner is shown the typed form.
+      const tempPassword = input.password ?? generateTempPassword();
+      const email = `${input.username}@${LOGIN_EMAIL_DOMAIN}`;
       const { data: created, error: createError } = await service.auth.admin.createUser({
-        email: `${input.username}@${LOGIN_EMAIL_DOMAIN}`,
-        password: tempPassword,
+        email,
+        password: await pepperPassword(pepper, email, tempPassword),
         email_confirm: true,
-        app_metadata: { must_change_password: true },
+        app_metadata: { must_change_password: true, pw_v: PASSWORD_VERSION },
       });
       if (createError || !created.user) {
         if (createError?.code === 'email_exists') {
@@ -320,16 +443,35 @@ async function handle(req: Request): Promise<{ status: number; body: unknown }> 
       });
       return {
         status: 201,
-        body: { user_id: newId, username: input.username, temp_password: tempPassword },
+        // A password the owner typed is never echoed back.
+        body: {
+          user_id: newId,
+          username: input.username,
+          temp_password: input.password === undefined ? tempPassword : null,
+        },
       };
     }
 
     case 'reset_password': {
       const { service } = await requireManageableTarget(callerId, caller, input.user_id, plant);
-      const tempPassword = generateTempPassword();
+      const pepper = pepperOrFail();
+      // The owner's chosen temporary password (validated at parse), else a generated one. GoTrue stores
+      // only its peppered form (keyed by the target's login email); the owner is shown the typed form.
+      const tempPassword = input.password ?? generateTempPassword();
+      const { data: target, error: targetError } = await service.auth.admin.getUserById(
+        input.user_id,
+      );
+      const targetEmail = target?.user?.email?.trim().toLowerCase() ?? '';
+      if (targetError || targetEmail === '') {
+        console.error(
+          'manage-users: reset_password lookup failed',
+          targetError?.code ?? 'no email',
+        );
+        throw new HttpError(500, 'INTERNAL', 'Could not reset the password.');
+      }
       const { error } = await service.auth.admin.updateUserById(input.user_id, {
-        password: tempPassword,
-        app_metadata: { must_change_password: true },
+        password: await pepperPassword(pepper, targetEmail, tempPassword),
+        app_metadata: { must_change_password: true, pw_v: PASSWORD_VERSION },
       });
       if (error) {
         console.error('manage-users: reset_password failed', error.code ?? error.status);
@@ -340,8 +482,33 @@ async function handle(req: Request): Promise<{ status: number; body: unknown }> 
       });
       return {
         status: 200,
-        body: { user_id: input.user_id, temp_password: tempPassword },
+        body: {
+          user_id: input.user_id,
+          temp_password: input.password === undefined ? tempPassword : null,
+        },
       };
+    }
+
+    case 'unlock': {
+      // Same authorization as reset_password; the lock is keyed by the login (= the auth email).
+      const { service } = await requireManageableTarget(callerId, caller, input.user_id, plant);
+      const { data: target, error: userError } = await service.auth.admin.getUserById(
+        input.user_id,
+      );
+      const email = target?.user?.email?.toLowerCase() ?? '';
+      if (userError || email === '') {
+        console.error('manage-users: unlock user lookup failed', userError?.code ?? 'no email');
+        throw new HttpError(500, 'INTERNAL', 'Could not unlock.');
+      }
+      const { data: wasLocked, error } = await service.rpc('sign_in_unlock', { p_login: email });
+      if (error) {
+        console.error('manage-users: unlock failed', error.code);
+        throw new HttpError(500, 'INTERNAL', 'Could not unlock.');
+      }
+      await audit(service, callerId, plant, 'users.unlock', input.user_id, {
+        was_locked: wasLocked === true,
+      });
+      return { status: 200, body: { user_id: input.user_id, unlocked: true } };
     }
 
     case 'deactivate': {

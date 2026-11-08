@@ -367,3 +367,38 @@ select app.generate_shift_instances(p.id, 7)
   from public.plants p
   join public.organizations o on o.id = p.org_id and o.slug = 'americas-dust-busters'
  where p.name = 'Miami';
+
+-- Outside customers (owner 2026-11-06; data migrations 20261107003619_add_customers and
+-- 20261107021214_add_aa_linen_products for the cloud): AA Linen and its own 12 wash groups (owner
+-- 2026-11-07), with the owner's Spanish names and formulas (by external_no). Loads per bin are filled in by
+-- the owner in the app, except Mats = 4 per bin. Cotton tablecloths use formula 3 (our white tablecloths';
+-- flagged to the owner: no cotton tablecloth group of our own).
+insert into public.customers (org_id, plant_id, name, name_i18n, sort_order)
+select p.org_id, p.id, 'AA Linen', '{}'::jsonb, 10
+  from public.plants p
+  join public.organizations o on o.id = p.org_id and o.slug = 'americas-dust-busters'
+ where p.name = 'Miami';
+
+insert into public.wash_groups (org_id, plant_id, customer_id, name, name_i18n, color_hex, sort_order,
+                                loads_per_bin, allow_bin_estimates, wash_formula_id)
+select c.org_id, c.plant_id, c.id, v.name, jsonb_build_object('es', v.es), v.color, v.sort_order,
+       v.per_bin, v.per_bin is not null, f.id
+  from public.customers c
+  join public.plants p on p.id = c.plant_id and p.name = 'Miami'
+  join public.organizations o on o.id = p.org_id and o.slug = 'americas-dust-busters'
+ cross join (values
+   ('Kitchen towels',            'Toallas de cocina',             '#C2410C', 1000, null::numeric, '5'),
+   ('White aprons',              'Delantales blancos',            '#0E7490', 1010, null,          '5'),
+   ('Black aprons',              'Delantales negros',             '#4F46E5', 1015, null,          '4'),
+   ('Mats',                      'Alfombras',                     '#A16207', 1020, 4,             '1'),
+   ('White napkins',             'Servilletas blancas',           '#15803D', 1030, null,          '3'),
+   ('Colored napkins',           'Servilletas de color',          '#A21CAF', 1035, null,          '4'),
+   ('White tablecloths',         'Manteles blancos',              '#E11D48', 1040, null,          '3'),
+   ('Colored tablecloths',       'Manteles de color',             '#BE185D', 1043, null,          '4'),
+   ('Cotton tablecloths',        'Manteles de algodón',           '#4D7C0F', 1046, null,          '3'),
+   ('Stained white napkins',     'Servilletas blancas manchadas', '#9333EA', 1050, null,          '5'),
+   ('Stained white tablecloths', 'Manteles blancos manchados',    '#0284C7', 1060, null,          '5'),
+   ('Stained hotel towels',      'Toallas de hotel manchadas',    '#059669', 1070, null,          '5'))
+   as v(name, es, color, sort_order, per_bin, formula_no)
+  left join public.wash_formulas f on f.plant_id = c.plant_id and f.external_no = v.formula_no
+ where c.name = 'AA Linen';
