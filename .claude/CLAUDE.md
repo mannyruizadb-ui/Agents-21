@@ -43,7 +43,7 @@ Full context lives in these docs. Read the relevant one before non-trivial work;
 - **Known debt and caveats:**
   - PR #9 review notes: L1 `app.audit` should strip `reviewed_by`; L2 tasks RLS broader than `get_tasks`; L3 `memberships` anon grants; L6 `alert_dismissals` retention; L7 no names on station or washer board; M1 PRD note + HR/legal note. Fix status is not recorded here; verify before widening the pilot.
   - Carry-forward: `revoke update` on `washer_cycles` (corrections are void + re-enter); Custom Access Token Hook must keep `app_metadata`; `net` schema grants (confirm the API exposes only `public` and `graphql_public`); duplicate-PIN errors reveal PINs (accepted). Full list in `research/build-history.md`.
-  - PRD owed: v1.6 rewrite (A2, B, C1/C4, D1/D2, F, G1–G3, §4.4–4.9, §5.3, §4.7 display read); PRD is v1.5 until then. Supabase/Netlify prices come from third-party write-ups; re-verify before buying. The Commands section still says Playwright arrives in M2 (9 specs exist).
+  - PRD owed: v1.6 rewrite (A2, B, C1/C4, D1/D2, F, G1–G3, §4.4–4.9, §5.3, §4.7 display read); PRD is v1.5 until then. Supabase/Netlify prices come from third-party write-ups; re-verify before buying.
   - Process: the orchestrator can't wait on its children in this harness, so meta runs pipelines directly (db-engineer → security-reviewer → architect).
 
 ## Tech stack (decided; see tech-stack.md for rationale)
