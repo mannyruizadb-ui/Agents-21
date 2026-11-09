@@ -55,14 +55,14 @@ select is(array[
   pg_temp.run_as('nobody', $$select public.save_push_subscription(pg_temp.id('plantA'), 'https://fcm.googleapis.com/fcm/send/nobody', pg_temp.k(), pg_temp.a())$$)],
   '{1,1,1}', 'owner, the manager on duty and an off-duty manager subscribe');
 select is((select array_agg(kind || ':' || right(endpoint, 7) order by kind, endpoint) from app.pending_push_notifications() where plant_id = pg_temp.id('plantA')),
-  array['machine_down:manager', 'machine_down:/nobody', 'machine_down:d/owner', 'washer_idle:manager', 'washer_idle:manager', 'washer_idle:d/owner', 'washer_idle:d/owner'],
-  'machine_down: every owner/manager with alerts on; washer_idle: owners + the manager on duty only (twice: two idle periods)');
+  array['machine_down:/nobody', 'machine_down:d/owner', 'washer_idle:manager', 'washer_idle:manager', 'washer_idle:d/owner', 'washer_idle:d/owner'],
+  'machine_down: every owner/manager with alerts on except the manager who marked it down (2026-11-09); washer_idle: owners + the manager on duty only (twice: two idle periods)');
 select is((select count(*)::int from app.pending_push_notifications() where kind = 'machine_down' and payload ? 'reason'), 0,
   'payloads never carry the free-text reason');
 select is((select payload ->> 'machine_name' || '/' || (payload ->> 'still_idle') from app.pending_push_notifications() where kind = 'washer_idle' and plant_id = pg_temp.id('plantA') order by alert_created limit 1),
   'Washer S/false', 'washer_idle payload: machine name and whether it is still idle');
 select set_config('test.claim', (select count(*)::text from public.claim_push_notifications() where plant_id = pg_temp.id('plantA')), true);
-select is(current_setting('test.claim')::int, 7, 'claim_push_notifications returns every pending row once');
+select is(current_setting('test.claim')::int, 6, 'claim_push_notifications returns every pending row once');
 select is((select count(*)::int from public.claim_push_notifications() where plant_id = pg_temp.id('plantA')), 0, 'a second claim gets nothing (at most once)');
 select is(public.mark_push_alert_delivered((select id from public.alert_events where kind = 'washer_idle' and plant_id = pg_temp.id('plantA') order by sent_at, id limit 1), array['x']),
   true, 'mark works for the new kinds');

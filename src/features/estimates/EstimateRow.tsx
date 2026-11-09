@@ -1,4 +1,5 @@
 import { useTranslation } from 'react-i18next';
+import { useAgo } from '../../lib/useAgo';
 import { WashGroupLabel } from '../washroom/WashGroupLabel';
 import { IconDown, IconUp, IconWarning } from '../washroom/Icons';
 import { fractionText, pluralCount } from '../washroom/qtyFormat';
@@ -19,8 +20,10 @@ import type { CurrentEstimate, EstimateGroup } from './estimatesData';
 import { wholeLoads } from '../dirtyWork/dirtyWork';
 
 // One wash group in the estimates list (coordinator 2026-11-04 UX round): a compact row (chip, name,
-// last value or the unsaved change, chevron) with a one-tap "Nothing waiting". Tapping the row opens
-// its editor; the page keeps only one open. Containers use one stepper ("Full bins: [−1] 2 [+1]")
+// last value or the unsaved change, chevron). Tapping the row opens its editor; the page keeps only one
+// open. Owner 2026-11-09 (review item 4): no one-tap "Nothing waiting" on every row (it read like a
+// status and was too easy to hit); "None left (0)" is inside the editor. The last save shows how long
+// ago it was ("12 min ago"), so yesterday's value never looks current after midnight. Containers use one stepper ("Full bins: [−1] 2 [+1]")
 // plus "Plus a partial bin: none / ¼ / ½ / ¾"; a number box is always there for typing or dictation.
 // The answer reads "2½ bins ≈ 5 loads · ≈ 7 h 20 min of washer time": "≈" always, "no number set"
 // when a factor is missing. No names anywhere.
@@ -55,6 +58,7 @@ export function EstimateRow({
   last,
   draft,
   open,
+  now,
   onToggle,
   onDraft,
 }: {
@@ -63,10 +67,13 @@ export function EstimateRow({
   last: CurrentEstimate | undefined;
   draft: Draft | null;
   open: boolean;
+  /** epoch ms, for "12 min ago" */
+  now: number;
   onToggle: () => void;
   onDraft: (d: Draft | null) => void;
 }) {
-  const { t, i18n } = useTranslation();
+  const { t } = useTranslation();
+  const ago = useAgo();
   const { fmt, hours } = useAmountText();
   const valueText = useValueText();
   const units = estimateUnits(group);
@@ -88,10 +95,7 @@ export function EstimateRow({
       return qty === null ? t('estimates.badAmount') : valueText(qty, unit, loads);
     }
     if (!last) return t('estimates.noEstimateYet');
-    const at = new Intl.DateTimeFormat(i18n.language, {
-      hour: 'numeric',
-      minute: '2-digit',
-    }).format(new Date(last.entered_at));
+    const at = ago(Date.parse(last.entered_at), now);
     return t('estimates.lastShort', {
       what: valueText(
         Number(last.qty),
@@ -148,15 +152,6 @@ export function EstimateRow({
           </span>
           {open ? <IconUp className="chevron" /> : <IconDown className="chevron" />}
         </button>
-        {!open && (
-          <button
-            type="button"
-            className="secondary est-nothing"
-            onClick={() => onDraft({ unit: 'load', text: '0' })}
-          >
-            {t('estimates.nothingWaitingButton')}
-          </button>
-        )}
       </div>
 
       {open && (
@@ -254,7 +249,7 @@ export function EstimateRow({
               className="secondary"
               onClick={() => onDraft({ unit: 'load', text: '0' })}
             >
-              {t('estimates.nothingWaitingButton')}
+              {t('estimates.noneLeft')}
             </button>
             {draft && (
               <button type="button" className="secondary" onClick={() => onDraft(null)}>

@@ -25,25 +25,25 @@ select is(pg_temp.writes($$insert into public.machines (org_id, plant_id, area_i
   '{1,42501,42501,42501,42501,42501,42501,42501}', 'machines C: owner only (owner 2026-11-05)');
 select is(pg_temp.writes($$insert into public.wash_groups (org_id, plant_id, name)
   values (pg_temp.id('orgA'), pg_temp.id('plantA'), 'G-' || substr(md5(random()::text), 1, 8))$$),
-  '{1,1,42501,42501,42501,42501,42501,42501}', 'wash_groups C');
+  '{1,42501,42501,42501,42501,42501,42501,42501}', 'wash_groups C: owner only (owner 2026-11-09)');
 select is(pg_temp.writes($$insert into public.item_types (org_id, plant_id, wash_group_id, name, category)
   values (pg_temp.id('orgA'), pg_temp.id('plantA'), pg_temp.id('gMat'), 'I-' || substr(md5(random()::text), 1, 8), 'other')$$),
   '{1,1,42501,42501,42501,42501,42501,42501}', 'item_types C');
 select is(pg_temp.writes($$insert into public.wash_formulas (org_id, plant_id, external_no)
   values (pg_temp.id('orgA'), pg_temp.id('plantA'), substr(md5(random()::text), 1, 8))$$),
-  '{1,1,42501,42501,42501,42501,42501,42501}', 'wash_formulas C');
+  '{1,42501,42501,42501,42501,42501,42501,42501}', 'wash_formulas C: owner only (owner 2026-11-09)');
 
 -- U: owner/manager only.
 select is(pg_temp.writes($$update public.areas set sort_order = 1 where plant_id = pg_temp.id('plantA')$$), '{5,5,0,0,0,0,0,42501}', 'areas U');
 select is(pg_temp.writes($$update public.stations set active = true where plant_id = pg_temp.id('plantA')$$), '{3,3,0,0,0,0,0,42501}', 'stations U');
 select is(pg_temp.writes($$update public.machines set active = true where plant_id = pg_temp.id('plantA')$$), '{2,0,0,0,0,0,0,42501}', 'machines U: owner only (owner 2026-11-05)');
-select is(pg_temp.writes($$update public.wash_groups set sort_order = 1 where plant_id = pg_temp.id('plantA')$$), '{5,5,0,0,0,0,0,42501}', 'wash_groups U');
+select is(pg_temp.writes($$update public.wash_groups set sort_order = 1 where plant_id = pg_temp.id('plantA')$$), '{4,0,0,0,0,0,0,42501}', 'wash_groups U: owner only (owner 2026-11-09)');
 select is(pg_temp.writes($$update public.item_types set sort_order = 1 where plant_id = pg_temp.id('plantA')$$), '{5,5,0,0,0,0,0,42501}', 'item_types U');
 select is(pg_temp.writes($$delete from public.wash_groups where plant_id = pg_temp.id('plantA')$$), '{0,0,0,0,0,0,0,42501}',
   'wash_groups: no DELETE policy for any role (deactivate instead)');
 select is(pg_temp.run_as('ownerB', $$update public.wash_groups set name = 'x' where id = pg_temp.id('gMat')$$), '0',
   'other tenant cannot update a wash group');
-select is(pg_temp.writes($$update public.wash_formulas set name = 'n' where plant_id = pg_temp.id('plantA')$$), '{3,3,0,0,0,0,0,42501}', 'wash_formulas U');
+select is(pg_temp.writes($$update public.wash_formulas set name = 'n' where plant_id = pg_temp.id('plantA')$$), '{2,0,0,0,0,0,0,42501}', 'wash_formulas U: owner only (owner 2026-11-09)');
 select is(pg_temp.run_as('owner', $$update public.areas set plant_id = pg_temp.id('plantB'), org_id = pg_temp.id('orgB') where id = pg_temp.id('spare')$$),
   '42501', 'cannot move a row into another tenant');
 

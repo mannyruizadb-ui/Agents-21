@@ -13,7 +13,7 @@ import { EstimateRow, type Draft } from './EstimateRow';
 import { useAmountText } from './useAmountText';
 import { parseAmount, toLoads, type EstimateUnit } from './estimateMath';
 import { wholeLoads, type DirtyEstimateInput } from '../dirtyWork/dirtyWork';
-import { CustomerWaiting, DirtyWorkSummary } from '../dirtyWork/DirtyWorkSummary';
+import { DirtyWorkSummary } from '../dirtyWork/DirtyWorkSummary';
 import { useDirtyWork } from '../dirtyWork/useDirtyWork';
 import type { OutboxBatch } from './estimateOutbox';
 import {
@@ -27,7 +27,7 @@ import { chipCounts, chipsFor, effectiveChip, inChip } from './categories';
 import { useChip } from './useChip';
 import { CategoryChips } from './CategoryChips';
 import { useCustomers } from '../deliveries/deliveriesData';
-import { DeliveryEntryForm } from '../deliveries/DeliveryEntryPage';
+import { AaDropOffView } from '../deliveries/AaDropOffView';
 import { useEstimateOutbox } from './useEstimateOutbox';
 import '../../lib/forms.css';
 import '../washroom/washroom.css';
@@ -38,8 +38,8 @@ import { MoreInfo } from '../../lib/MoreInfo';
 // wash group, reviews, and saves the whole batch at once. Owner and managers only. No names on any
 // estimate (2026-11-07: no entry PIN either; the signed-in account is the attribution). Every
 // insert carries a client_id; the batch goes through the device outbox so nothing is lost offline.
-// Owner 2026-11-09: category chips instead of one long list, and a second view, "AA Linen", with the
-// customer delivery entry right here (the same form as /control/deliveries/new).
+// Owner 2026-11-09: category chips instead of one long list, and a second view, "AA Linen": what AA has
+// waiting now, "+ AA Linen drop-off" and today's drop-offs (AaDropOffView; review item 5).
 
 /**
  * Role gate (security review: the outbox hook and its flusher only run for owners and managers).
@@ -69,10 +69,20 @@ export function EstimatesPage() {
       </main>
     );
   }
-  return <EstimatesScreen userId={session.user.id} plantId={plantId} />;
+  return (
+    <EstimatesScreen userId={session.user.id} plantId={plantId} isOwner={myRoles.has('owner')} />
+  );
 }
 
-function EstimatesScreen({ userId, plantId }: { userId: string; plantId: string }) {
+function EstimatesScreen({
+  userId,
+  plantId,
+  isOwner,
+}: {
+  userId: string;
+  plantId: string;
+  isOwner: boolean;
+}) {
   const { t } = useTranslation();
   const now = useNow(15_000);
   const online = useOnline();
@@ -152,8 +162,9 @@ function EstimatesScreen({ userId, plantId }: { userId: string; plantId: string 
   const setView = (v: 'ours' | 'aa') =>
     setParams(v === 'aa' ? { view: 'aa' } : {}, { replace: true });
   const onlyCustomer = activeCustomers.length === 1 ? activeCustomers[0] : undefined;
+  // The tab is the customer (what AA has waiting + its drop-offs), not only the drop-off form.
   const aaLabel = onlyCustomer
-    ? t('dirty.dropOffTab', { name: localized(onlyCustomer.name, onlyCustomer.name_i18n) })
+    ? localized(onlyCustomer.name, onlyCustomer.name_i18n)
     : t('estimates.customersTab');
 
   function setDraft(groupId: string, d: Draft | null) {
@@ -272,13 +283,16 @@ function EstimatesScreen({ userId, plantId }: { userId: string; plantId: string 
 
       {view === 'aa' ? (
         <>
-          {/* Unsaved estimates stay put while the customer form is open. */}
+          {/* Unsaved estimates stay put while the customer view is open. */}
           {messages}
-          {/* What the customer has waiting now (open queue), above the drop-off form. */}
-          <div className="est-aa-waiting">
-            <CustomerWaiting dirty={dirty} headingId="aa-waiting" only={onlyCustomer?.id} />
-          </div>
-          <DeliveryEntryForm userId={userId} plantId={plantId} embedded />
+          <AaDropOffView
+            userId={userId}
+            plantId={plantId}
+            isOwner={isOwner}
+            dirty={dirty}
+            customer={onlyCustomer}
+            startOpen={params.get('dropoff') === '1'}
+          />
         </>
       ) : (
         <div className="est-layout">
@@ -356,6 +370,7 @@ function EstimatesScreen({ userId, plantId }: { userId: string; plantId: string 
                   last={current.data?.get(g.id)}
                   draft={drafts[g.id] ?? null}
                   open={openId === g.id}
+                  now={now}
                   onToggle={() => setOpenId((id) => (id === g.id ? null : g.id))}
                   onDraft={(d) => setDraft(g.id, d)}
                 />

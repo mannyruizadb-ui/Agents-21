@@ -1,6 +1,8 @@
 {
   "app": {
-    "name": "PlantBoard"
+    "name": "PlantBoard",
+    "updateAvailable": "Hay una nueva versión de PlantBoard.",
+    "updateNow": "Actualizar"
   },
   "brand": {
     "company": "America's Dust Busters"
@@ -39,7 +41,10 @@
       "same": "Esa es la contraseña que tiene ahora. Elija otra.",
       "failed": "No se pudo guardar la contraseña. Revise su conexión e intente de nuevo."
     },
-    "currentLabel": "Contraseña actual"
+    "currentLabel": "Contraseña actual",
+    "myTitle": "Cambiar mi contraseña",
+    "myIntro": "Escriba la contraseña que usa ahora y luego la nueva dos veces.",
+    "saved": "Contraseña cambiada. Use la nueva la próxima vez que entre."
   },
   "roles": {
     "owner": "Dueño",
@@ -57,7 +62,6 @@
     "you": "(usted)",
     "usernameValue": "Usuario: {{username}}",
     "roleValue": "Rol: {{roles}}",
-    "staffAdmin": "Admin. de personal",
     "allPlants": "Todas las plantas",
     "notManageable": "Lo administra un dueño de toda la empresa.",
     "resetPassword": "Restablecer contraseña",
@@ -71,7 +75,6 @@
     "usernameLabel": "Usuario",
     "usernameHelp": "De 3 a 32 caracteres: letras minúsculas, números, punto, guion bajo o guion.",
     "roleLabel": "Rol",
-    "canManageStaffLabel": "Puede administrar el personal de registro y los PIN",
     "create": "Crear cuenta",
     "creating": "Creando…",
     "secretTitle": "Contraseña temporal de {{username}}",
@@ -130,7 +133,9 @@
     "lockedLabel": "Inicio de sesión bloqueado",
     "lockedUntil": "Bloqueado hasta las {{time}}",
     "unlock": "Desbloquear",
-    "unlocked": "{{name}} ya puede entrar otra vez."
+    "unlocked": "{{name}} ya puede entrar otra vez.",
+    "alertsTitle": "Alertas",
+    "buzzHint": "Sonar: una notificación en sus teléfonos. Apagado: sin notificación."
   },
   "control": {
     "placeholder": "Elige una pantalla.",
@@ -185,7 +190,8 @@
     "now": "Ahora",
     "next": "Próximo",
     "formula": "Fórmula",
-    "formulaValue": "N.º {{no}} · {{minutes}} min",
+    "formulaValue": "Fórmula {{no}} · {{minutes}} min",
+    "formulaOnly": "Fórmula {{no}}",
     "empty": "Vacía",
     "nothingQueued": "No hay nada en la cola",
     "status": {
@@ -310,7 +316,30 @@
     "inProgress_other": "{{count}} empezadas",
     "fromEstimate": "De estimados",
     "summary_one": "{{count}} trabajo",
-    "summary_other": "{{count}} trabajos"
+    "summary_other": "{{count}} trabajos",
+    "dragHandle": "Arrastrar para ordenar",
+    "dragHelp": "Arrastra el agarre para ordenar el trabajo, o toca un trabajo para más opciones.",
+    "dragNeedsAll": "Muestra Todos para arrastrar y ordenar.",
+    "rushStaysTop": "Los URGENTES quedan arriba del resto.",
+    "moveTop": "Mover al principio",
+    "movePositionLabel": "Mover a la posición",
+    "movePositionHint": "#{{first}} a #{{last}}",
+    "movePositionGo": "Mover",
+    "movePositionInvalid": "Escribe un lugar de {{first}} a {{last}}.",
+    "moved": "{{item}} pasó al #{{place}}.",
+    "changedRefreshed": "La cola cambió — se actualizó.",
+    "dismiss": "Cerrar",
+    "washerDownTag": "Lavadora fuera de servicio",
+    "itemLabel": "#{{place}} {{group}}",
+    "dnd": {
+      "instructions": "Para tomar un trabajo, presiona Espacio o Enter. Usa las flechas arriba y abajo para moverlo. Presiona Espacio o Enter otra vez para soltarlo, o Escape para cancelar. Los URGENTES quedan arriba del resto.",
+      "picked": "Tomaste {{item}}.",
+      "over": "{{item}} está sobre el lugar {{place}}.",
+      "overNone": "{{item}} no está sobre un lugar donde puede ir.",
+      "dropped": "{{item}} quedó en el lugar {{place}}.",
+      "droppedNone": "{{item}} no se movió.",
+      "cancelled": "Se canceló mover {{item}}."
+    }
   },
   "machines": {
     "title": "Fuera de servicio / Arreglada",
@@ -422,7 +451,7 @@
     "approxLoads_one": "{{amount}} ≈ {{n}} carga",
     "approxLoads_other": "{{amount}} ≈ {{n}} cargas",
     "noNumber": "{{amount}} · cargas sin calcular",
-    "nothingWaitingButton": "No hay nada",
+    "noneLeft": "No queda nada (0)",
     "undoChange": "Deshacer cambio",
     "review_one": "Revisar {{count}} cambio",
     "review_other": "Revisar {{count}} cambios",
@@ -444,7 +473,7 @@
     },
     "noTimeGroups_one": "{{count}} grupo no tiene tiempo de lavadora, así que el tiempo no lo incluye.",
     "noTimeGroups_other": "{{count}} grupos no tienen tiempo de lavadora, así que el tiempo no los incluye.",
-    "lastShort": "{{what}}, {{at}}",
+    "lastShort": "{{what}} · {{at}}",
     "changedTag": "cambiado",
     "loadsCount": "Cargas",
     "fullCount": {
@@ -545,19 +574,26 @@
       "deactivated": "Se desactivó {{name}}.",
       "reactivated": "{{name}} está activa otra vez.",
       "lockedHint": "Esta máquina tiene historial (cargas o trabajo en la cola), así que su tipo y área no se pueden cambiar. Para cambiarlos, desactívala y agrega una máquina nueva.",
-      "deactivateHint": "Una máquina desactivada desaparece de los tableros y listas, pero su historial se queda."
+      "deactivateHint": "Una máquina desactivada desaparece de los tableros y listas, pero su historial se queda.",
+      "loadFactor": "Factor de carga",
+      "loadFactorHint": "Qué tan grande es esta lavadora comparada con una normal: 1 = normal, 1.19 = 19% más grande. De 0.25 a 4.",
+      "addButton": "+ Agregar máquina",
+      "noneAtAll": "Todavía no hay máquinas.",
+      "status": "Estado",
+      "statusDown": "Fuera de servicio",
+      "statusUp": "Funcionando"
     },
     "reasons": {
       "title": "Configuración: motivos de fuera de servicio",
       "labelIn": "Texto en {{language}}",
-      "fixed": "Fijo",
-      "fixedHint": "\"Otro\" siempre está y siempre pide una descripción.",
+      "fixed": "Siempre está",
       "needsDetails": "pide descripción",
       "requireDetails": "Pedir una descripción cuando se escoja este motivo",
       "addTitle": "Agregar un motivo",
       "add": "Agregar motivo",
       "added": "Se agregó \"{{name}}\".",
-      "deactivateHint": "Un motivo desactivado ya no se ofrece; los registros anteriores lo mantienen."
+      "deactivateHint": "Un motivo desactivado ya no se ofrece; los registros anteriores lo mantienen.",
+      "alwaysAsks": "siempre pide descripción"
     },
     "errors": {
       "ownerOnly": "Solo un dueño puede cambiar esto.",
@@ -567,14 +603,115 @@
       "labels": "Cada texto debe tener de 1 a 60 caracteres.",
       "name": "Escribe un nombre de 1 a 60 caracteres.",
       "area": "Escoge un área.",
-      "englishLabel": "Escribe el texto en inglés (de 1 a 60 caracteres)."
+      "englishLabel": "Escribe el texto en inglés (de 1 a 60 caracteres).",
+      "loadFactor": "Escriba un factor de carga de 0.25 a 4, con hasta 2 decimales (por ejemplo 1.19).",
+      "loadsPer": "Escriba las cargas por recipiente como un número mayor que 0 y hasta 20, con hasta 3 decimales, o déjelo en blanco.",
+      "minutes": "Escriba los minutos del ciclo como un número entero de 1 a 300, o déjelo en blanco.",
+      "formulaNo": "Escriba el número de fórmula (de 1 a 20 caracteres).",
+      "formulaInUse": "Hay grupos de lavado activos que todavía usan esta fórmula. Primero deles otra fórmula.",
+      "formulaRetired": "Esa fórmula está retirada. Escoja otra.",
+      "names": "Cada nombre debe tener de 1 a 60 caracteres."
+    },
+    "nameIn": "Nombre en {{language}}",
+    "optional": "opcional",
+    "savedNamed": "Se guardó {{name}}.",
+    "editNamed": "Editar {{name}}",
+    "close": "Cerrar",
+    "active": "Activa",
+    "yes": "Sí",
+    "formulas": {
+      "title": "Configuración: fórmulas",
+      "intro": "Los programas de las lavadoras, con el número que muestra la lavadora y cuánto dura un ciclo.",
+      "number": "Número de fórmula",
+      "name": "Nombre",
+      "minutes": "Minutos del ciclo",
+      "minutesHint": "Minutos enteros, de 1 a 300. Déjelo en blanco si no se sabe.",
+      "minutesValue_one": "{{count}} min",
+      "minutesValue_other": "{{count}} min",
+      "noMinutes": "Minutos sin poner",
+      "groups": "Grupos de lavado",
+      "addTitle": "Agregar una fórmula",
+      "add": "Agregar fórmula",
+      "addButton": "+ Agregar fórmula",
+      "none": "Todavía no hay fórmulas.",
+      "retire": "Retirar",
+      "retired": "Se retiró {{name}}.",
+      "retiredBadge": "Retirada",
+      "inUseHint_one": "1 grupo de lavado activo usa esta fórmula. Dele otra fórmula antes de retirar esta.",
+      "inUseHint_other": "{{count}} grupos de lavado activos usan esta fórmula. Deles otra fórmula antes de retirar esta.",
+      "retireHint": "Una fórmula retirada ya no se ofrece para los grupos de lavado; las cargas anteriores la mantienen."
+    },
+    "groups": {
+      "title": "Configuración: grupos de lavado",
+      "ours": "Nuestros",
+      "color": "Color",
+      "category": "Categoría",
+      "formula": "Fórmula",
+      "noFormula": "Sin fórmula",
+      "formulaHint": "El programa de lavadora que usa este grupo.",
+      "formulaMinutes_one": "Un ciclo: {{count}} min",
+      "formulaMinutes_other": "Un ciclo: {{count}} min",
+      "perBasket": "Cargas por canasta",
+      "perBin": "Cargas por bin",
+      "perHint": "Cuántas cargas de lavado hace un recipiente lleno, por ejemplo 3 o 0.5. Hasta 20. Déjelo en blanco si no se sabe: las pantallas dirán \"cargas desconocidas\".",
+      "allowBasket": "Se puede estimar en canastas",
+      "allowBin": "Se puede estimar en bins",
+      "defaultUnit": "Los estimados empiezan en",
+      "unit": {
+        "load": "Cargas",
+        "basket": "Canastas",
+        "bin": "Bins"
+      },
+      "basketFact": "1 canasta ≈ {{n}} cargas",
+      "binFact": "1 bin ≈ {{n}} cargas",
+      "estimatesIn": "estimados en {{unit}}",
+      "missingBin": "Falta el factor: cargas por bin",
+      "missingTitle_one": "1 grupo de cliente no tiene factor de cargas por bin",
+      "missingTitle_other": "{{count}} grupos de cliente no tienen factor de cargas por bin",
+      "missingHint": "Sus entregas dicen \"cargas desconocidas\" hasta que ponga las cargas por bin.",
+      "deactivateHint": "Un grupo desactivado ya no se ofrece para estimados ni para la cola; los registros anteriores lo mantienen.",
+      "addTitle": "Agregar un grupo de lavado",
+      "add": "Agregar grupo de lavado",
+      "addButton": "+ Agregar grupo de lavado",
+      "none": "Todavía no hay grupos de lavado aquí.",
+      "errors": {
+        "basketNeedsFactor": "Para permitir canastas, ponga las cargas por canasta.",
+        "binNeedsFactor": "Para permitir bins, ponga las cargas por bin.",
+        "defaultBasket": "Los estimados solo pueden empezar en canastas si se permiten canastas.",
+        "defaultBin": "Los estimados solo pueden empezar en bins si se permiten bins."
+      },
+      "unitIn": {
+        "load": "cargas",
+        "basket": "canastas",
+        "bin": "bins"
+      }
     }
   },
   "loadOut": {
+    "sameAsLast": "Igual que el {{day}} pasado",
+    "sameAsLastWeek": "Igual que la semana pasada",
+    "copiedNone": "No se copió nada del {{from}}: ese día no se anotó nada, o estas casillas ya tienen algo.",
+    "rowsFilled_one": "{{count}} artículo",
+    "rowsFilled_other": "{{count}} artículos",
+    "hasItems": "Con artículos",
+    "pickRoute": "Ruta",
+    "mats": {
+      "title": "Alfombras",
+      "inPieces": "piezas",
+      "none": "Sin alfombras",
+      "noSize": "Otra medida",
+      "totalWord": "Total",
+      "bySize": "Alfombras por medida",
+      "noItems": "No hay alfombras configuradas.",
+      "pill_one": "{{count}} alfombra",
+      "pill_other": "{{count}} alfombras",
+      "dayTitle": "Alfombras del día",
+      "detail_one": "Ver color y medida ({{count}} línea)",
+      "detail_other": "Ver colores y medidas ({{count}} líneas)"
+    },
     "boardTitle": "Carga de camiones",
     "entryTitle": "Anotar la carga",
     "dateLabel": "Mañana de carga",
-    "sameAsYesterday": "Igual que ayer",
     "copyHint": "Copia las cantidades del {{from}} en las casillas vacías. Las que ya tienen algo se quedan igual.",
     "copied_one": "Se copió {{count}} línea del {{from}}.",
     "copied_other": "Se copiaron {{count}} líneas del {{from}}.",
@@ -625,10 +762,6 @@
     "lateWord": "de retraso",
     "leftWord": "para salir",
     "routesTitle": "Rutas",
-    "packsShort_one": "{{count}} paquete",
-    "packsShort_other": "{{count}} paquetes",
-    "piecesShort_one": "{{count}} pza",
-    "piecesShort_other": "{{count}} pzas",
     "empty": "Nada aún",
     "groupTotal": "Total {{count}}",
     "size": "Talla {{size}}",
@@ -838,6 +971,13 @@
     "generic": "Cliente"
   },
   "deliveries": {
+    "dropOffAny": "Entrega",
+    "closeForm": "Cerrar sin guardar",
+    "todayTitle": "Entregas de hoy",
+    "historyLink": "Últimos 7 días",
+    "noneToday": "No hay entregas hoy.",
+    "todayManagerHint": "Las guardadas hoy en este teléfono. Puede cancelarlas aquí.",
+    "noneTodayPhone": "Ninguna guardada hoy en este teléfono.",
     "title": "Entregas de clientes",
     "recordTitle": "Registrar entrega",
     "intro": "Bins por grupo, como llegan. Cada grupo va al final de la cola.",
@@ -1002,6 +1142,7 @@
     "other": "Otros"
   },
   "dirty": {
+    "customerNow": "{{name}} esperando ahora",
     "title": "Ropa sucia por lavar",
     "tileTitle": "Ropa sucia",
     "loads_one": "≈ {{n}} carga",
@@ -1023,5 +1164,15 @@
     "queueOurs": "Ropa sucia {{loads}}",
     "queueCustomer": "{{name}} {{loads}}",
     "queueRewash": "Relavado {{loads}}"
+  },
+  "more": {
+    "daily": "Del día",
+    "setup": "Configuración",
+    "account": "Mi cuenta",
+    "machines": "Máquinas",
+    "washGroups": "Grupos de lavado",
+    "formulas": "Fórmulas",
+    "reasons": "Motivos de fuera de servicio",
+    "dropOffs": "Entregas de {{name}}"
   }
 }

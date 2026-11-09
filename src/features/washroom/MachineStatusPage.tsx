@@ -80,8 +80,12 @@ export function MachineStatusPage() {
     onSuccess: (_r, v) => {
       setDone(
         v.to === 'down'
-          ? t('machines.markedDown', { name: names.machine(v.m.machine_name) })
-          : t('machines.markedUp', { name: names.machine(v.m.machine_name) }),
+          ? t('machines.markedDown', {
+              name: names.machine(v.m.machine_name, v.m.machine_name_i18n),
+            })
+          : t('machines.markedUp', {
+              name: names.machine(v.m.machine_name, v.m.machine_name_i18n),
+            }),
       );
       reset();
     },
@@ -199,7 +203,7 @@ export function MachineStatusPage() {
             >
               <div className="md-card-head">
                 <div>
-                  <h3 className="head">{names.machine(m.machine_name)}</h3>
+                  <h3 className="head">{names.machine(m.machine_name, m.machine_name_i18n)}</h3>
                   <p className="md-area">{names.area(m.area_name)}</p>
                 </div>
                 <span className="status-pill danger">
@@ -223,7 +227,9 @@ export function MachineStatusPage() {
                   <div className="confirm-box" role="group" aria-labelledby={`up-${m.machine_id}`}>
                     <p id={`up-${m.machine_id}`}>
                       <strong>
-                        {t('machines.confirmUp', { name: names.machine(m.machine_name) })}
+                        {t('machines.confirmUp', {
+                          name: names.machine(m.machine_name, m.machine_name_i18n),
+                        })}
                       </strong>
                     </p>
                     <div className="actions">
@@ -284,7 +290,7 @@ export function MachineStatusPage() {
                 <optgroup key={g.area.id} label={names.area(g.area.name)}>
                   {g.machines.map((m) => (
                     <option key={m.machine_id} value={m.machine_id}>
-                      {names.machine(m.machine_name)}
+                      {names.machine(m.machine_name, m.machine_name_i18n)}
                     </option>
                   ))}
                 </optgroup>
@@ -343,7 +349,9 @@ export function MachineStatusPage() {
             <div className="confirm-box" role="group" aria-labelledby="confirm-down">
               <p id="confirm-down">
                 <strong>
-                  {t('machines.confirmDown', { name: names.machine(machine.machine_name) })}
+                  {t('machines.confirmDown', {
+                    name: names.machine(machine.machine_name, machine.machine_name_i18n),
+                  })}
                 </strong>
               </p>
               <p>

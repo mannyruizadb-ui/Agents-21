@@ -16,11 +16,15 @@ import { localRouteName, minutesUntil, nextTruck, wallClock } from './loadOutLog
 import {
   useLoadOutBoard,
   useLoadOutPermissions,
+  useMatCatalog,
   usePlant,
   type BoardLine,
   type BoardRoute,
   type BoardTotal,
+  type MatItem,
 } from './loadOutData';
+import { matIndex, matPieces, matSections, matTotals } from './matTotals';
+import { MatTotalsLine } from './MatTotalsLine';
 import '../../lib/forms.css';
 import './loadout.css';
 
@@ -30,6 +34,51 @@ import './loadout.css';
 // (one tap per route, owner: "must be simple"; Undo fixes a mistake); everyone else reads it.
 // Loaded = blue (done), soon = amber, late = red + icon + words. No bays, drivers or checklists.
 // Live: refetch on focus/online/visibility and every 30 s; data age shown.
+// Mats (owner 2026-11-09, "by all 3"): per route and in tonight's totals as totals by size + total;
+// the colour and item detail opens on tap.
+
+type MatIdx = ReadonlyMap<string, { item: MatItem; size: string | null; groupId: string }>;
+
+/** A set of lines' mats by size, from the mat catalog (pieces; pack items × pack size). */
+function linesMatTotals(
+  lines: readonly { item_type_id: string | null; qty: number }[],
+  idx: MatIdx,
+) {
+  return matTotals(
+    lines.flatMap((l) => {
+      const m = l.item_type_id ? idx.get(l.item_type_id) : undefined;
+      return m ? [{ size: m.size, pieces: matPieces(m.item, l.qty) }] : [];
+    }),
+  );
+}
+
+/** Mats of a route: totals by size, the item detail behind one tap. */
+function RouteMats({ lines, idx }: { lines: BoardLine[]; idx: MatIdx }) {
+  const { t } = useTranslation();
+  const label = useQtyLabel();
+  const mats = lines.filter((l) => l.item_type_id && idx.has(l.item_type_id));
+  if (mats.length === 0) return null;
+  return (
+    <div className="lo-board-mats">
+      <p className="lo-board-mats-title">{t('loadOut.mats.title')}</p>
+      <MatTotalsLine totals={linesMatTotals(mats, idx)} />
+      <details className="lo-mat-detail">
+        <summary>{t('loadOut.mats.detail', { count: mats.length })}</summary>
+        <ul className="lo-lines">
+          {mats.map((l) => {
+            const x = label(l);
+            return (
+              <li key={l.line_id}>
+                <span>{x.name}</span>
+                <strong className="mono">{x.qty}</strong>
+              </li>
+            );
+          })}
+        </ul>
+      </details>
+    </div>
+  );
+}
 
 function useQtyLabel() {
   const { t } = useTranslation();
@@ -94,9 +143,11 @@ function RouteCard({
   minutes,
   isNext,
   canMark,
+  matIdx,
   onStatus,
 }: {
   route: BoardRoute;
+  matIdx: MatIdx;
   loadDate: string;
   /** Plant time zone: "loaded at" reads in plant time, like the truck times. */
   timeZone: string;
@@ -145,26 +196,32 @@ function RouteCard({
   else if (minutes < 0) classes.push('late');
   else if (isNext) classes.push('next');
 
+  const others = route.lines.filter((l) => !(l.item_type_id && matIdx.has(l.item_type_id)));
   const lines =
     route.lines.length === 0 ? (
       <p className="hint">{t('loadOut.nothingForRoute')}</p>
     ) : (
-      <ul className="lo-lines">
-        {route.lines.map((l) => {
-          const x = label(l);
-          return (
-            <li key={l.line_id} className={l.special_text ? 'special' : undefined}>
-              <span>
-                {x.name}
-                {l.entered_by_name && (
-                  <span className="hint"> · {t('names.by', { name: l.entered_by_name })}</span>
-                )}
-              </span>
-              <strong className="mono">{x.qty}</strong>
-            </li>
-          );
-        })}
-      </ul>
+      <>
+        {others.length > 0 && (
+          <ul className="lo-lines">
+            {others.map((l) => {
+              const x = label(l);
+              return (
+                <li key={l.line_id} className={l.special_text ? 'special' : undefined}>
+                  <span>
+                    {x.name}
+                    {l.entered_by_name && (
+                      <span className="hint"> · {t('names.by', { name: l.entered_by_name })}</span>
+                    )}
+                  </span>
+                  <strong className="mono">{x.qty}</strong>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+        <RouteMats lines={route.lines} idx={matIdx} />
+      </>
     );
 
   return (
@@ -236,6 +293,10 @@ export function LoadOutBoardPage() {
   const plant = usePlant(plantId);
   const perms = useLoadOutPermissions(session.user.id, plant.data ?? undefined);
   const board = useLoadOutBoard(plantId);
+  const matCatalog = useMatCatalog(plantId);
+  const matIdx: MatIdx = matCatalog.data
+    ? matIndex(matSections(matCatalog.data.groups, matCatalog.data.items))
+    : new Map();
   useLiveRefetch(board.refetch, !!plantId);
   const label = useQtyLabel();
   const dur = useDuration();
@@ -332,16 +393,24 @@ export function LoadOutBoardPage() {
         <section aria-labelledby="lo-totals">
           <h2 id="lo-totals">{t('loadOut.totals')}</h2>
           <ul className="lo-totals">
-            {data.totals.map((x) => {
-              const v = label(x);
-              return (
-                <li key={x.item_type_id}>
-                  <span className="lo-total-name">{v.name}</span>
-                  <strong className="mono">{v.qty}</strong>
-                </li>
-              );
-            })}
+            {data.totals
+              .filter((x) => !matIdx.has(x.item_type_id))
+              .map((x) => {
+                const v = label(x);
+                return (
+                  <li key={x.item_type_id}>
+                    <span className="lo-total-name">{v.name}</span>
+                    <strong className="mono">{v.qty}</strong>
+                  </li>
+                );
+              })}
           </ul>
+          {data.totals.some((x) => matIdx.has(x.item_type_id)) && (
+            <div className="lo-board-mats day">
+              <p className="lo-board-mats-title">{t('loadOut.mats.title')}</p>
+              <MatTotalsLine totals={linesMatTotals(data.totals, matIdx)} />
+            </div>
+          )}
         </section>
       )}
 
@@ -362,6 +431,7 @@ export function LoadOutBoardPage() {
               minutes={minutesUntil(data.load_date, r.load_time, serverNow, tz)}
               isNext={next?.route.route_id === r.route_id}
               canMark={canMark}
+              matIdx={matIdx}
               onStatus={(ok, text) => setStatus({ ok, text })}
             />
           ))}

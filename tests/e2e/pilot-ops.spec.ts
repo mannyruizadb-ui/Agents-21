@@ -41,7 +41,9 @@ test.describe.serial('pilot ops', () => {
     await fresh(page);
     await signIn(page, DENISE.user, DENISE.pass);
     await page.goto('/control/estimates');
-    await page.getByRole('button', { name: 'Nothing waiting' }).first().click();
+    // Review item 4: "None left (0)" lives inside the row's editor now.
+    await page.locator('.est-toggle').first().click();
+    await page.getByRole('button', { name: /^None left/ }).click();
     await page.getByRole('button', { name: /^Review/ }).click();
     expect(await page.getByText(/\bPIN\b/).count()).toBe(0);
     await page.getByRole('button', { name: /^Save \d+ estimate/ }).click();
@@ -112,7 +114,9 @@ test.describe.serial('pilot ops', () => {
       const name = (await cards.nth(i).locator('h3').innerText()).trim();
       levelCounts[name] = await cards
         .nth(i)
-        .locator('select, [role="radiogroup"], input[type="radio"]')
+        // Owner information-alert levels (Buzz | Quiet | Off). Since review 2026-11-09 a manager's
+        // machine-down switch is also a radio pair (Buzz | Off), so count only the "Quiet" choices.
+        .locator('input[type="radio"][value="quiet"]')
         .count();
     }
     test

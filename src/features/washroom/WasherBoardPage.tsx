@@ -163,10 +163,12 @@ function Tile({
         )}
         {row.cycle_id && row.formula_external_no && view.status !== 'ready' && (
           <span className="wb-meta mono">
-            {t('washroom.formulaValue', {
-              no: row.formula_external_no,
-              minutes: row.cycle_minutes ?? '?',
-            })}
+            {row.cycle_minutes !== null
+              ? t('washroom.formulaValue', {
+                  no: row.formula_external_no,
+                  minutes: row.cycle_minutes,
+                })
+              : t('washroom.formulaOnly', { no: row.formula_external_no })}
           </span>
         )}
         {row.next_queue_item_id && row.next_is_assigned && (

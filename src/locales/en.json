@@ -1,6 +1,8 @@
 {
   "app": {
-    "name": "PlantBoard"
+    "name": "PlantBoard",
+    "updateAvailable": "A new version of PlantBoard is ready.",
+    "updateNow": "Update"
   },
   "brand": {
     "company": "America's Dust Busters"
@@ -38,7 +40,10 @@
       "same": "That is the password you have now. Choose a different one.",
       "failed": "Couldn't save the password. Check your connection and try again."
     },
-    "currentLabel": "Current password"
+    "currentLabel": "Current password",
+    "myTitle": "Change my password",
+    "myIntro": "Type the password you use now, then the new one twice.",
+    "saved": "Password changed. Use the new one next time you sign in."
   },
   "roles": {
     "owner": "Owner",
@@ -56,7 +61,6 @@
     "you": "(you)",
     "usernameValue": "Username: {{username}}",
     "roleValue": "Role: {{roles}}",
-    "staffAdmin": "Staff admin",
     "allPlants": "All plants",
     "notManageable": "Managed by a company-wide owner.",
     "resetPassword": "Reset password",
@@ -70,7 +74,6 @@
     "usernameLabel": "Username",
     "usernameHelp": "3 to 32 characters: lowercase letters, numbers, dot, underscore or hyphen.",
     "roleLabel": "Role",
-    "canManageStaffLabel": "Can manage entry staff and PINs",
     "create": "Create account",
     "creating": "Creating…",
     "secretTitle": "Temporary password for {{username}}",
@@ -129,7 +132,9 @@
     "lockedLabel": "Sign-in locked",
     "lockedUntil": "Locked until {{time}}",
     "unlock": "Unlock",
-    "unlocked": "{{name}} can sign in again."
+    "unlocked": "{{name}} can sign in again.",
+    "alertsTitle": "Alerts",
+    "buzzHint": "Buzz: a notification on their phones. Off: no notification."
   },
   "control": {
     "placeholder": "Choose a screen.",
@@ -184,7 +189,8 @@
     "now": "Now",
     "next": "Next",
     "formula": "Formula",
-    "formulaValue": "No. {{no}} · {{minutes}} min",
+    "formulaValue": "Formula {{no}} · {{minutes}} min",
+    "formulaOnly": "Formula {{no}}",
     "empty": "Empty",
     "nothingQueued": "Nothing in the queue",
     "status": {
@@ -309,7 +315,30 @@
     "inProgress_other": "{{count}} started",
     "fromEstimate": "From estimates",
     "summary_one": "{{count}} item",
-    "summary_other": "{{count}} items"
+    "summary_other": "{{count}} items",
+    "dragHandle": "Drag to reorder",
+    "dragHelp": "Drag the handle to put the work in order, or tap an item for more.",
+    "dragNeedsAll": "Show All to drag items into order.",
+    "rushStaysTop": "RUSH items stay above the rest.",
+    "moveTop": "Move to top",
+    "movePositionLabel": "Move to position",
+    "movePositionHint": "#{{first}} to #{{last}}",
+    "movePositionGo": "Move",
+    "movePositionInvalid": "Type a place from {{first}} to {{last}}.",
+    "moved": "Moved {{item}} to #{{place}}.",
+    "changedRefreshed": "Queue changed — refreshed.",
+    "dismiss": "Dismiss",
+    "washerDownTag": "Washer down",
+    "itemLabel": "#{{place}} {{group}}",
+    "dnd": {
+      "instructions": "To pick up an item, press Space or Enter. Use the up and down arrow keys to move it. Press Space or Enter again to drop it, or Escape to cancel. RUSH items stay above the rest.",
+      "picked": "Picked up {{item}}.",
+      "over": "{{item}} is over place {{place}}.",
+      "overNone": "{{item}} is not over a place it can go.",
+      "dropped": "{{item}} dropped at place {{place}}.",
+      "droppedNone": "{{item}} was not moved.",
+      "cancelled": "Moving {{item}} was cancelled."
+    }
   },
   "machines": {
     "title": "Machine down / back up",
@@ -421,7 +450,7 @@
     "approxLoads_one": "{{amount}} ≈ {{n}} load",
     "approxLoads_other": "{{amount}} ≈ {{n}} loads",
     "noNumber": "{{amount}} · loads unknown",
-    "nothingWaitingButton": "Nothing waiting",
+    "noneLeft": "None left (0)",
     "undoChange": "Undo change",
     "review_one": "Review {{count}} change",
     "review_other": "Review {{count}} changes",
@@ -443,7 +472,7 @@
     },
     "noTimeGroups_one": "{{count}} group has no washer time set, so the time leaves it out.",
     "noTimeGroups_other": "{{count}} groups have no washer time set, so the time leaves them out.",
-    "lastShort": "{{what}}, {{at}}",
+    "lastShort": "{{what}} · {{at}}",
     "changedTag": "changed",
     "loadsCount": "Loads",
     "fullCount": {
@@ -544,19 +573,26 @@
       "deactivated": "{{name}} was deactivated.",
       "reactivated": "{{name}} is back on.",
       "lockedHint": "This machine has history (loads or queue work), so its kind and area are fixed. To change them, deactivate it and add a new machine.",
-      "deactivateHint": "A deactivated machine disappears from the boards and lists, but its history stays."
+      "deactivateHint": "A deactivated machine disappears from the boards and lists, but its history stays.",
+      "loadFactor": "Load factor",
+      "loadFactorHint": "How big this washer is next to a standard one: 1 = standard, 1.19 = 19% bigger. 0.25 to 4.",
+      "addButton": "+ Add machine",
+      "noneAtAll": "No machines yet.",
+      "status": "Status",
+      "statusDown": "Down",
+      "statusUp": "Working"
     },
     "reasons": {
       "title": "Setup: down reasons",
       "labelIn": "Label in {{language}}",
-      "fixed": "Fixed",
-      "fixedHint": "\"Other\" is always there and always asks for a description.",
+      "fixed": "Always there",
       "needsDetails": "asks for a description",
       "requireDetails": "Ask for a description when this reason is picked",
       "addTitle": "Add a reason",
       "add": "Add reason",
       "added": "\"{{name}}\" was added.",
-      "deactivateHint": "A deactivated reason is no longer offered; past records keep it."
+      "deactivateHint": "A deactivated reason is no longer offered; past records keep it.",
+      "alwaysAsks": "always asks for a description"
     },
     "errors": {
       "ownerOnly": "Only an owner can change this.",
@@ -566,14 +602,115 @@
       "labels": "Each label must be 1 to 60 characters.",
       "name": "Type a name of 1 to 60 characters.",
       "area": "Choose an area.",
-      "englishLabel": "Type the English label (1 to 60 characters)."
+      "englishLabel": "Type the English label (1 to 60 characters).",
+      "loadFactor": "Type a load factor from 0.25 to 4, with up to 2 decimals (for example 1.19).",
+      "loadsPer": "Type loads per container as a number above 0 and up to 20, with up to 3 decimals, or leave it blank.",
+      "minutes": "Type the cycle minutes as a whole number from 1 to 300, or leave it blank.",
+      "formulaNo": "Type the formula number (1 to 20 characters).",
+      "formulaInUse": "Active wash groups still use this formula. Give them another formula first.",
+      "formulaRetired": "That formula is retired. Choose another one.",
+      "names": "Each name must be 1 to 60 characters."
+    },
+    "nameIn": "Name in {{language}}",
+    "optional": "optional",
+    "savedNamed": "{{name}} saved.",
+    "editNamed": "Edit {{name}}",
+    "close": "Close",
+    "active": "Active",
+    "yes": "Yes",
+    "formulas": {
+      "title": "Setup: formulas",
+      "intro": "The washer programs, with the number the washer shows and how long one cycle runs.",
+      "number": "Formula number",
+      "name": "Name",
+      "minutes": "Cycle minutes",
+      "minutesHint": "Whole minutes, 1 to 300. Leave blank if not known.",
+      "minutesValue_one": "{{count}} min",
+      "minutesValue_other": "{{count}} min",
+      "noMinutes": "Minutes not set",
+      "groups": "Wash groups",
+      "addTitle": "Add a formula",
+      "add": "Add formula",
+      "addButton": "+ Add formula",
+      "none": "No formulas yet.",
+      "retire": "Retire",
+      "retired": "{{name}} was retired.",
+      "retiredBadge": "Retired",
+      "inUseHint_one": "1 active wash group uses this formula. Give it another formula before retiring this one.",
+      "inUseHint_other": "{{count}} active wash groups use this formula. Give them another formula before retiring this one.",
+      "retireHint": "A retired formula is no longer offered for wash groups; past loads keep it."
+    },
+    "groups": {
+      "title": "Setup: wash groups",
+      "ours": "Ours",
+      "color": "Colour",
+      "category": "Category",
+      "formula": "Formula",
+      "noFormula": "No formula",
+      "formulaHint": "The washer program this group runs.",
+      "formulaMinutes_one": "One cycle: {{count}} min",
+      "formulaMinutes_other": "One cycle: {{count}} min",
+      "perBasket": "Loads per basket",
+      "perBin": "Loads per bin",
+      "perHint": "How many wash loads one full container makes, for example 3 or 0.5. Up to 20. Leave blank if not known: the screens then say \"loads unknown\".",
+      "allowBasket": "Estimates can be in baskets",
+      "allowBin": "Estimates can be in bins",
+      "defaultUnit": "Estimates start in",
+      "unit": {
+        "load": "Loads",
+        "basket": "Baskets",
+        "bin": "Bins"
+      },
+      "basketFact": "1 basket ≈ {{n}} loads",
+      "binFact": "1 bin ≈ {{n}} loads",
+      "estimatesIn": "estimates in {{unit}}",
+      "missingBin": "Missing factor: loads per bin",
+      "missingTitle_one": "1 customer group has no loads-per-bin factor",
+      "missingTitle_other": "{{count}} customer groups have no loads-per-bin factor",
+      "missingHint": "Their drop-offs show \"loads unknown\" until you fill in loads per bin.",
+      "deactivateHint": "A deactivated group is no longer offered for estimates or the queue; past records keep it.",
+      "addTitle": "Add a wash group",
+      "add": "Add wash group",
+      "addButton": "+ Add wash group",
+      "none": "No wash groups here yet.",
+      "errors": {
+        "basketNeedsFactor": "To allow baskets, fill in loads per basket.",
+        "binNeedsFactor": "To allow bins, fill in loads per bin.",
+        "defaultBasket": "Estimates can only start in baskets if baskets are allowed.",
+        "defaultBin": "Estimates can only start in bins if bins are allowed."
+      },
+      "unitIn": {
+        "load": "loads",
+        "basket": "baskets",
+        "bin": "bins"
+      }
     }
   },
   "loadOut": {
+    "sameAsLast": "Same as last {{day}}",
+    "sameAsLastWeek": "Same as last week",
+    "copiedNone": "Nothing copied from {{from}}: nothing was typed that day, or these boxes are already filled.",
+    "rowsFilled_one": "{{count}} item",
+    "rowsFilled_other": "{{count}} items",
+    "hasItems": "Has items",
+    "pickRoute": "Route",
+    "mats": {
+      "title": "Mats",
+      "inPieces": "pieces",
+      "none": "No mats",
+      "noSize": "Other size",
+      "totalWord": "Total",
+      "bySize": "Mats by size",
+      "noItems": "No mat items are set up.",
+      "pill_one": "{{count}} mat",
+      "pill_other": "{{count}} mats",
+      "dayTitle": "Mats for the day",
+      "detail_one": "Show colour and size ({{count}} line)",
+      "detail_other": "Show colours and sizes ({{count}} lines)"
+    },
     "boardTitle": "Load-out",
     "entryTitle": "Load-out entry",
     "dateLabel": "Loading morning",
-    "sameAsYesterday": "Same as yesterday",
     "copyHint": "Copies {{from}}'s quantities into empty boxes. Boxes already filled are kept.",
     "copied_one": "Copied {{count}} line from {{from}}.",
     "copied_other": "Copied {{count}} lines from {{from}}.",
@@ -624,10 +761,6 @@
     "lateWord": "late",
     "leftWord": "to go",
     "routesTitle": "Routes",
-    "packsShort_one": "{{count}} pack",
-    "packsShort_other": "{{count}} packs",
-    "piecesShort_one": "{{count}} pc",
-    "piecesShort_other": "{{count}} pcs",
     "empty": "Nothing yet",
     "groupTotal": "Total {{count}}",
     "size": "Size {{size}}",
@@ -837,6 +970,13 @@
     "generic": "Customer"
   },
   "deliveries": {
+    "dropOffAny": "Drop-off",
+    "closeForm": "Close without saving",
+    "todayTitle": "Today's drop-offs",
+    "historyLink": "Last 7 days",
+    "noneToday": "No drop-offs today.",
+    "todayManagerHint": "The ones saved on this phone today. You can cancel them here.",
+    "noneTodayPhone": "None saved on this phone today.",
     "title": "Customer deliveries",
     "recordTitle": "Record a delivery",
     "intro": "Bins per group as they arrive. Each group goes to the bottom of the queue.",
@@ -999,6 +1139,7 @@
     "other": "Other"
   },
   "dirty": {
+    "customerNow": "{{name}} waiting now",
     "title": "Dirty work out there",
     "tileTitle": "Dirty work",
     "loads_one": "≈ {{n}} load",
@@ -1020,5 +1161,15 @@
     "queueOurs": "Dirty work {{loads}}",
     "queueCustomer": "{{name}} {{loads}}",
     "queueRewash": "Rewash {{loads}}"
+  },
+  "more": {
+    "daily": "Daily",
+    "setup": "Setup",
+    "account": "My account",
+    "machines": "Machines",
+    "washGroups": "Wash groups",
+    "formulas": "Formulas",
+    "reasons": "Down reasons",
+    "dropOffs": "{{name}} drop-offs"
   }
 }

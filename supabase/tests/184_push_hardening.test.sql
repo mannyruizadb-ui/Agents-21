@@ -98,7 +98,7 @@ select is(array[has_function_privilege('authenticated', 'public.claim_push_alert
                 has_function_privilege('anon', 'public.claim_push_alerts()', 'execute'),
                 has_function_privilege('authenticated', 'app.claim_machine_down_alerts()', 'execute'),
                 has_function_privilege('service_role', 'public.claim_push_alerts()', 'execute')],
-  array[false, false, false, true], 'claim: service_role only');
+  array[false, false, false, false], 'legacy claim: no client role and no service role (closed 2026-11-09; send-alerts uses claim_push_notifications)');
 select is(pg_temp.run_as('owner', $$select * from public.claim_push_alerts()$$), '42501', 'the owner cannot claim (or read keys)');
 select is((select count(*)::int from pg_proc p where p.proname in ('claim_push_alerts', 'claim_machine_down_alerts')
              and pg_get_function_result(p.oid) ~ '(\(|, )reason text'), 0, 'claimed rows never carry the free-text reason');

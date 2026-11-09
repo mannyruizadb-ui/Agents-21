@@ -22,7 +22,10 @@ export type DeliveryHistoryRow =
 export const deliveryKeys = {
   customers: (plantId: string) => ['customers', plantId] as const,
   groups: (customerId: string) => ['customer-groups', customerId] as const,
-  history: (plantId: string) => ['customer-deliveries', plantId] as const,
+  history: (plantId: string, since?: string) =>
+    since
+      ? (['customer-deliveries', plantId, since] as const)
+      : (['customer-deliveries', plantId] as const),
 };
 
 /** The plant's customers, active first then by sort order. */
@@ -63,13 +66,25 @@ export function useCustomerWashGroups(plantId: string | undefined, customerId: s
   });
 }
 
-/** Owner only: the last 7 days of deliveries (server default window). */
-export function useCustomerDeliveries(plantId: string | undefined, enabled: boolean) {
+/**
+ * Owner only: deliveries since `since` (ISO), else the last 7 days (server default window). The AA tab
+ * passes the start of the plant day ("today's drop-offs").
+ */
+export function useCustomerDeliveries(
+  plantId: string | undefined,
+  enabled: boolean,
+  since?: string,
+) {
   return useQuery({
-    queryKey: deliveryKeys.history(plantId ?? ''),
+    queryKey: deliveryKeys.history(plantId ?? '', since),
     enabled: !!plantId && enabled,
     queryFn: async (): Promise<DeliveryHistoryRow[]> =>
-      unwrap(await supabase.rpc('get_customer_deliveries', { p_plant_id: plantId ?? '' })) ?? [],
+      unwrap(
+        await supabase.rpc('get_customer_deliveries', {
+          p_plant_id: plantId ?? '',
+          ...(since ? { p_since: since } : {}),
+        }),
+      ) ?? [],
     refetchInterval: 60_000,
   });
 }

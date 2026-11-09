@@ -56,7 +56,7 @@ export function DeliveriesPage() {
       <h1>{t('deliveries.title')}</h1>
       {canRecord ? (
         <p>
-          <Link className="button-link" to="/control/deliveries/new">
+          <Link className="button-link" to="/control/estimates?view=aa&dropoff=1">
             <IconEdit /> {t('deliveries.recordTitle')}
           </Link>
         </p>
@@ -90,7 +90,7 @@ export function DeliveriesPage() {
   );
 }
 
-function HistoryItem({ d }: { d: DeliveryHistoryRow }) {
+export function HistoryItem({ d }: { d: DeliveryHistoryRow }) {
   const { t, i18n } = useTranslation();
   const localized = useLocalizedName();
   const { amount, fmt } = useAmountText();

@@ -69,6 +69,14 @@ export function previousLoadDate(routes: readonly RouteLike[], date: string): st
   return null;
 }
 
+/**
+ * "Same as last <weekday>" (review item 6, owner 2026-11-09): the same weekday one week earlier, so the
+ * same routes run (Route 11 Mon/Thu, Route 5 Tue/Fri); "same as yesterday" copied the wrong routes.
+ */
+export function sameWeekdayLastWeek(date: string): string {
+  return addDays(date, -7);
+}
+
 /** Plant-local date + "HH:MM[:SS]" → epoch ms (DST-safe, via the zone's offset at that moment). */
 export function zonedToEpoch(date: string, time: string, timeZone: string): number {
   const [h = '0', m = '0'] = time.split(':');
@@ -204,4 +212,27 @@ export function groupSizes<I extends { name: string }>(rows: readonly I[]): RowG
     out.push({ kind: 'sizes', base: s.base, items: group });
   }
   return out;
+}
+
+/** Minutes before a truck's time that the nav badge starts counting it (review 2026-11-09 #10). */
+export const BADGE_LEAD_MINUTES = 60;
+
+/**
+ * The nav badge on Load-out: routes not loaded yet, with something to load, whose truck time is
+ * within `leadMinutes` from now or already past (late). A badge that is on from 3 PM, 12 hours
+ * before the first truck, gets ignored; this one shows only when it matters.
+ */
+export function loadOutBadgeCount<T extends TruckLike & { lines: readonly unknown[] }>(
+  routes: readonly T[],
+  loadDate: string,
+  nowMs: number,
+  timeZone: string,
+  leadMinutes = BADGE_LEAD_MINUTES,
+): number {
+  return routes.filter(
+    (r) =>
+      !r.loaded &&
+      r.lines.length > 0 &&
+      minutesUntil(loadDate, r.load_time, nowMs, timeZone) <= leadMinutes,
+  ).length;
 }

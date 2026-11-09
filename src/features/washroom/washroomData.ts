@@ -77,6 +77,15 @@ export interface WashGroupRow {
   allow_bin_estimates: boolean;
   loads_per_basket: number | null;
   loads_per_bin: number | null;
+  /** the washer program (Milnor formula) this group runs; null = not set */
+  wash_formula_id: string | null;
+}
+
+/** A washer program: its number on the washer (Accu-Flow / Milnor) and run time. */
+export interface FormulaRow {
+  id: string;
+  external_no: string;
+  cycle_minutes: number | null;
 }
 
 /** One row of get_machine_status: every active machine (any kind), down or up. */
@@ -101,6 +110,7 @@ export const washroomKeys = {
   washers: (areaId: string) => ['washers', areaId] as const,
   machine: (machineId: string) => ['machine', machineId] as const,
   machineStatus: (plantId: string) => ['machine-status', plantId] as const,
+  formulas: (plantId: string) => ['formulas', plantId] as const,
 };
 
 /** Active areas the user can see (RLS), in plant order. */
@@ -143,13 +153,32 @@ export function useWashGroups(plantId: string | undefined) {
         await supabase
           .from('wash_groups')
           .select(
-            'id, plant_id, name, name_i18n, color_hex, allow_basket_estimates, allow_bin_estimates, loads_per_basket, loads_per_bin',
+            'id, plant_id, name, name_i18n, color_hex, allow_basket_estimates, allow_bin_estimates, loads_per_basket, loads_per_bin, wash_formula_id',
           )
           .eq('plant_id', plantId ?? '')
           .eq('active', true)
           .order('sort_order')
           .order('name'),
       ) ?? [],
+    staleTime: 5 * 60_000,
+  });
+}
+
+/** The plant's washer programs by id (the station shows the NEXT group's formula number). */
+export function useFormulas(plantId: string | undefined) {
+  return useQuery({
+    queryKey: washroomKeys.formulas(plantId ?? ''),
+    enabled: !!plantId,
+    queryFn: async (): Promise<Map<string, FormulaRow>> => {
+      const rows: FormulaRow[] =
+        unwrap(
+          await supabase
+            .from('wash_formulas')
+            .select('id, external_no, cycle_minutes')
+            .eq('plant_id', plantId ?? ''),
+        ) ?? [];
+      return new Map(rows.map((r) => [r.id, r]));
+    },
     staleTime: 5 * 60_000,
   });
 }

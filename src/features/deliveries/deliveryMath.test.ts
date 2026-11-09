@@ -7,6 +7,9 @@ import {
   parseBins,
   parseHistoryLines,
   stepBins,
+  addBins,
+  isPlantToday,
+  plantDayStartIso,
 } from './deliveryMath';
 
 describe('bins in quarters', () => {
@@ -100,5 +103,37 @@ describe('parseHistoryLines', () => {
       { washGroupId: 'h', name: '', nameI18n: null, bins: 1.5, loads: 6, queueStatus: null },
     ]);
     expect(parseHistoryLines(null)).toEqual([]);
+  });
+});
+
+describe('addBins (+1 / +½ / −½ steppers)', () => {
+  it('adds whole and half bins', () => {
+    expect(addBins(0, 1)).toBe(1);
+    expect(addBins(1, 0.5)).toBe(1.5);
+    expect(addBins(1.5, -0.5)).toBe(1);
+  });
+  it('never goes below 0 or above 50', () => {
+    expect(addBins(0.25, -0.5)).toBe(0);
+    expect(addBins(49.5, 1)).toBe(50);
+  });
+});
+
+describe('plant day (America/New_York)', () => {
+  const TZ = 'America/New_York';
+  // 2026-11-09 10:00 EST = 15:00Z
+  const NOW = Date.parse('2026-11-09T15:00:00Z');
+  it('starts at local midnight', () => {
+    expect(plantDayStartIso(NOW, TZ)).toBe('2026-11-09T05:00:00.000Z');
+  });
+  it('uses the plant date, not UTC', () => {
+    // 23:30 EST on the 8th is 04:30Z on the 9th: yesterday at the plant.
+    expect(isPlantToday('2026-11-09T04:30:00Z', NOW, TZ)).toBe(false);
+    expect(isPlantToday('2026-11-09T05:00:00Z', NOW, TZ)).toBe(true);
+    expect(isPlantToday('2026-11-10T04:59:00Z', NOW, TZ)).toBe(true);
+    expect(isPlantToday('nonsense', NOW, TZ)).toBe(false);
+  });
+  it('handles the DST day (2026-11-01, 25 hours long)', () => {
+    const late = Date.parse('2026-11-01T23:00:00Z'); // 18:00 EST
+    expect(plantDayStartIso(late, TZ)).toBe('2026-11-01T04:00:00.000Z'); // EDT midnight
   });
 });

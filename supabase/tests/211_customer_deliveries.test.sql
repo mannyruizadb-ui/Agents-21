@@ -197,8 +197,10 @@ select is(pg_temp.run_as('ownerB', $$select * from public.get_customer_deliverie
 
 -- ══ customer_delivery alert ══════════════════════════════════════════════
 select is((select count(*)::int from public.alert_events where kind = 'customer_delivery'), 3, 'one customer_delivery alert per delivery');
-select is((select array_agg(distinct a.recipients::text) from public.alert_events a where a.kind = 'customer_delivery'), array['{}'],
-  'default level push: pending for the push');
+select is((select array_agg(a.recipients::text || ':' || coalesce((select d.entered_by from public.customer_deliveries d where d.id = a.subject_id) = pg_temp.id('owner'), false)
+                          order by a.recipients::text) from public.alert_events a where a.kind = 'customer_delivery'),
+  array['{}:false', '{}:false', '{quiet}:true'],
+  'default level push: the manager''s deliveries are pending for the push; the owner''s own one is quiet (no OTHER owner to push to, 2026-11-09)');
 select is((select array_agg(u) from public.alert_events a cross join lateral app.alert_recipient_users(a) u
             where a.kind = 'customer_delivery' and a.subject_id = (select id from public.customer_deliveries where client_id = 'd1000000-0000-0000-0000-000000000001')),
   array[pg_temp.id('owner')], 'pushed to the plant''s owners only');
@@ -214,10 +216,10 @@ select ok((select bool_and(app.alert_payload(a)::text !~* '(Ben|Manager A|Two bi
 select is(array[
   pg_temp.val_as('owner',   $$select string_agg(kind || '=' || still_current || '/' || can_clear, ',') from public.get_my_alerts(pg_temp.id('plantA')) where kind = 'customer_delivery'$$),
   pg_temp.val_as('manager', $$select count(*) from public.get_my_alerts(pg_temp.id('plantA')) where kind = 'customer_delivery'$$)],
-  array['customer_delivery=false/true,customer_delivery=false/true,customer_delivery=false/true', '0'],
-  'Alerts tab: owners see it (informational: not current, clearable); managers never');
+  array['customer_delivery=false/true,customer_delivery=false/true', '0'],
+  'Alerts tab: owners see it (informational: not current, clearable), except the one they recorded themselves (2026-11-09); managers never');
 select is(pg_temp.val_as('owner', $$select count(*) from public.clear_my_alerts(pg_temp.id('plantA'), array(select alert_id from public.get_my_alerts(pg_temp.id('plantA')) where kind = 'customer_delivery'))$$),
-  '3', 'the owner clears them');
+  '2', 'the owner clears them');
 
 select * from finish();
 rollback;

@@ -52,6 +52,8 @@ export interface AlertView {
   /** the Clear button shows (server decides; never for a live alert) */
   canClear: boolean;
   machineName?: string;
+  /** the machine's own name per language (payload machine_name_i18n, 2026-11-09) */
+  machineNameI18n?: unknown;
   areaName?: string;
   reasonCode?: string | null;
   reasonLabels?: unknown;
@@ -131,6 +133,7 @@ export function describeAlert(row: AlertRow): AlertView | null {
         open: row.still_current,
         resolved: !row.still_current,
         machineName: clean(str(payload, 'machine_name') ?? ''),
+        machineNameI18n: payload.machine_name_i18n ?? null,
         areaName: clean(str(payload, 'area_name') ?? ''),
         reasonCode: str(payload, 'reason_code'),
         reasonLabels: payload.reason_label_i18n ?? null,
@@ -148,6 +151,7 @@ export function describeAlert(row: AlertRow): AlertView | null {
         open: row.still_current,
         resolved: !row.still_current,
         machineName: clean(str(payload, 'machine_name') ?? ''),
+        machineNameI18n: payload.machine_name_i18n ?? null,
         areaName: clean(str(payload, 'area_name') ?? ''),
         since: str(payload, 'idle_since'),
       };

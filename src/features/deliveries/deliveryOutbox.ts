@@ -49,9 +49,13 @@ export interface RecentDelivery {
 export const DELIVERY_OUTBOX_KEY = 'deliveries.outbox.v1';
 export const REJECTED_DELIVERIES_KEY = 'deliveries.rejected.v1';
 export const RECENT_DELIVERIES_KEY = 'deliveries.recent.v1';
-/** How many saved deliveries this phone remembers, and for how long. */
-export const RECENT_MAX = 5;
-export const RECENT_MAX_AGE_MS = 12 * 60 * 60 * 1000;
+/**
+ * How many saved deliveries this phone remembers, and for how long. Review item 5 (owner 2026-11-09):
+ * managers see today's drop-offs saved on their phone (they can't read the delivery history), so a whole
+ * plant day must still be here at night; the screen keeps only today's.
+ */
+export const RECENT_MAX = 20;
+export const RECENT_MAX_AGE_MS = 36 * 60 * 60 * 1000;
 
 const LEGACY_FIELDS = ['staffId', 'pin', 'sessionId', 'pinStoredAt'] as const;
 

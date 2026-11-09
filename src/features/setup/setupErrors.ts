@@ -15,8 +15,17 @@ export function setupErrorKey(e: unknown): string {
   const details = typeof err.details === 'string' ? err.details : '';
   if (code === '42501' || appErrorCode(e) === 'NOT_AUTHORIZED') return 'setup.errors.ownerOnly';
   if (code === '23505') return 'setup.errors.duplicate';
-  if (code === '23514') return 'setup.errors.invalid';
+  const message = typeof err.message === 'string' ? err.message : '';
+  if (code === '23514') {
+    if (/loads_per_(basket|bin)/.test(message)) return 'setup.errors.loadsPer';
+    if (/load_factor/.test(message)) return 'setup.errors.loadFactor';
+    if (/cycle_minutes/.test(message)) return 'setup.errors.minutes';
+    return 'setup.errors.invalid';
+  }
   if (appErrorCode(e) === 'VALIDATION_FAILED') {
+    if (/active wash groups still use it/.test(details)) return 'setup.errors.formulaInUse';
+    if (/formula is retired/.test(details)) return 'setup.errors.formulaRetired';
+    if (/name_i18n/.test(details)) return 'setup.errors.names';
     if (/in use, so its kind and area are fixed/.test(details)) return 'setup.errors.machineInUse';
     if (/label_i18n/.test(details)) return 'setup.errors.labels';
     return 'setup.errors.invalid';

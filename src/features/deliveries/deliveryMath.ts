@@ -1,6 +1,8 @@
 // AA Linen deliveries (owner 2026-11-06 B): bins per wash group in quarters, 0–50. Pure module; the
 // server (record_customer_delivery) is the final validator and app.to_loads the authoritative loads.
 
+import { plantLocal, zonedToEpoch } from '../loadout/loadOutLogic';
+
 export const MAX_BINS = 50;
 export const BIN_STEP = 0.25;
 
@@ -14,6 +16,11 @@ export function clampBins(n: number): number {
 /** One ± tap: a quarter bin up or down, never below 0 or above 50. */
 export function stepBins(bins: number, direction: 1 | -1): number {
   return clampBins(bins + direction * BIN_STEP);
+}
+
+/** A ± tap of any size (+1, +½, −½): never below 0 or above 50, in quarters. */
+export function addBins(bins: number, delta: number): number {
+  return clampBins(bins + delta);
 }
 
 /**
@@ -102,4 +109,16 @@ export function parseHistoryLines(value: unknown): HistoryLine[] {
       },
     ];
   });
+}
+
+/** The start of the plant's current day (00:00 plant time) as an ISO instant (for p_since). */
+export function plantDayStartIso(nowMs: number, timeZone: string): string {
+  return new Date(zonedToEpoch(plantLocal(nowMs, timeZone).date, '00:00', timeZone)).toISOString();
+}
+
+/** True when `iso` falls on the plant's current day (plant time); false when unreadable. */
+export function isPlantToday(iso: string, nowMs: number, timeZone: string): boolean {
+  const t = Date.parse(iso);
+  if (Number.isNaN(t)) return false;
+  return plantLocal(t, timeZone).date === plantLocal(nowMs, timeZone).date;
 }

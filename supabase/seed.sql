@@ -459,3 +459,12 @@ select app.apply_mat_spanish_names(p.id)
   from public.plants p
   join public.organizations o on o.id = p.org_id and o.slug = 'americas-dust-busters'
  where p.name = 'Miami';
+
+-- Spanish machine names (owner 2026-11-09; data migration 20261109215633_add_machine_spanish_names for the
+-- cloud): the SAME function sets name_i18n.es on every machine without one (Ironer → Planchadora, Folder →
+-- Dobladora, Boiler → Caldera, Compressor → Compresor, Water pump → Bomba de agua, Soap machine → Máquina de
+-- jabón, Wrapping machine → Empacadora, Washer N → Lavadora N, Dryer N → Secadora N).
+select app.apply_machine_spanish_names(p.id)
+  from public.plants p
+  join public.organizations o on o.id = p.org_id and o.slug = 'americas-dust-busters'
+ where p.name = 'Miami';

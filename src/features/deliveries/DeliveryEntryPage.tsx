@@ -1,21 +1,18 @@
 import { useState, type FormEvent } from 'react';
 import { Link } from 'react-router';
 import { useTranslation } from 'react-i18next';
-import { useRequiredSession } from '../../app/auth/sessionContext';
 import { useOnline } from '../../lib/useNow';
 import { useAmountText } from '../estimates/useAmountText';
 import { IconOffline, IconReady, IconWarning } from '../washroom/Icons';
 import { WashGroupLabel } from '../washroom/WashGroupLabel';
 import { useLocalizedName } from '../washroom/localizedName';
 import { errorMessageKey } from '../washroom/rpcError';
-import { useMyRoles } from '../washroom/useMyRoles';
-import { useAreas } from '../washroom/washroomData';
 import {
+  addBins,
   binsToLoads,
   deliveryLines,
   MAX_BINS,
   parseBins,
-  stepBins,
   type DeliveryLine,
 } from './deliveryMath';
 import type { PendingDelivery, RecentDelivery } from './deliveryOutbox';
@@ -34,62 +31,38 @@ import { CategoryChips } from '../estimates/CategoryChips';
 import { useGroupCategories } from '../estimates/estimatesData';
 
 // Record an outside customer's delivery (owner 2026-11-06 B; first: AA Linen). Owner or manager:
-// pick the customer (the only active one is preselected), bins per wash group in quarters, an
+// pick the customer (the only active one is preselected), bins per wash group (steppers −½ / +½ / +1
+// since review item 5, typing in quarters still works), an
 // optional note, then save (2026-11-07: no entry PIN; the signed-in account is the attribution). Each
 // group becomes a queue item at the bottom of the queue. The delivery is stored on the phone
 // before the first attempt (client_id made once), so it is never lost offline. Deliveries saved from
 // this phone can be cancelled here ("Cancel this delivery"; managers can't list deliveries).
+// Review item 5 (owner 2026-11-09): the one place for AA is the Estimates "AA Linen" tab, which embeds
+// this form behind "+ AA Linen drop-off" and lists today's drop-offs itself.
 
 const NOTE_MAX = 200;
 
-export function DeliveryEntryPage() {
-  const { t } = useTranslation();
-  const session = useRequiredSession();
-  const areas = useAreas();
-  const plantId = areas.data?.[0]?.plant_id;
-  const roles = useMyRoles(session.user.id);
-  const mine = roles.rolesFor(plantId);
-
-  if (!roles.isSuccess || !areas.isSuccess || !plantId) {
-    return (
-      <main className="form-page">
-        <p role="status">{t('common.loading')}</p>
-      </main>
-    );
-  }
-  if (!mine.has('owner') && !mine.has('manager')) {
-    return (
-      <main className="form-page">
-        <h1>{t('deliveries.recordTitle')}</h1>
-        <p className="notice">{t('deliveries.notAllowed')}</p>
-      </main>
-    );
-  }
-  return (
-    <main className="form-page dl-page">
-      <h1>{t('deliveries.recordTitle')}</h1>
-      <DeliveryEntryForm userId={session.user.id} plantId={plantId} />
-    </main>
-  );
-}
-
 /**
- * The delivery entry itself: on its own page above, and inline as the customer view of the
- * estimates screen (owner 2026-11-09: "AA right there"). Callers check the owner/manager role first
+ * The delivery entry itself, inline in the customer (AA) view of the estimates screen (owner
+ * 2026-11-09: "AA right there"; /control/deliveries/new now opens that view). Callers check the owner/manager role first
  * (the outbox and its flusher only run for them).
  */
 export function DeliveryEntryForm({
   userId,
   plantId,
   embedded = false,
+  onSaved,
 }: {
   userId: string;
   plantId: string;
-  /** Inside the estimates screen (no page heading of its own). */
+  /**
+   * Inside the Estimates AA tab: no heading, outbox notices, saved list or queue link of its own (the
+   * tab shows them), and the result goes to `onSaved`.
+   */
   embedded?: boolean;
+  onSaved?: (m: { kind: 'ok' | 'warn' | 'bad'; text: string }) => void;
 }) {
   const { t } = useTranslation();
-  const online = useOnline();
   const localized = useLocalizedName();
   const { amount, fmt } = useAmountText();
 
@@ -163,13 +136,13 @@ export function DeliveryEntryForm({
         setTexts({});
         setNote('');
       }
-      setMessage(
-        r.saved
-          ? { kind: 'ok', text: t('deliveries.sent') }
-          : r.stored
-            ? { kind: 'warn', text: t('deliveries.savedOnPhone') }
-            : { kind: 'bad', text: t('deliveries.notStored') },
-      );
+      const m: { kind: 'ok' | 'warn' | 'bad'; text: string } = r.saved
+        ? { kind: 'ok', text: t('deliveries.sent') }
+        : r.stored
+          ? { kind: 'warn', text: t('deliveries.savedOnPhone') }
+          : { kind: 'bad', text: t('deliveries.notStored') };
+      if (onSaved && (r.saved || r.stored)) onSaved(m);
+      else setMessage(m);
     } finally {
       setBusy(false);
     }
@@ -192,43 +165,16 @@ export function DeliveryEntryForm({
       <MoreInfo>{t('deliveries.intro')}</MoreInfo>
 
       <div role="status" aria-live="polite">
-        {message && (
-          <p className={`notice notice-${message.kind}`}>
-            {message.kind === 'ok' ? (
-              <IconReady />
-            ) : message.kind === 'warn' ? (
-              <IconOffline />
-            ) : (
-              <IconWarning />
-            )}{' '}
-            {message.text}
-          </p>
-        )}
-        {outbox.pending.length > 0 && !message && (
-          <p className="notice notice-warn">
-            <IconOffline /> {t('deliveries.waitingToSend', { count: outbox.pending.length })}
-          </p>
-        )}
+        {message && <MessageLine message={message} />}
       </div>
-      {!online && (
-        <p className="notice notice-warn">
-          <IconOffline /> {t('estimates.offline')}
-        </p>
+      {!embedded && (
+        <DeliveryOutboxNotices
+          userId={userId}
+          customerName={customerName}
+          linesText={linesText}
+          hidePending={message?.kind === 'warn'}
+        />
       )}
-      {outbox.rejected.map((r) => (
-        <div key={r.clientId} className="notice notice-bad" role="alert">
-          <p>
-            <IconWarning /> {t('deliveries.rejected', { customer: customerName(r.customerId) })}{' '}
-            {r.errorCode === 'OUT_OF_RANGE_TIMESTAMP'
-              ? t('estimates.errors.tooOld')
-              : t(errorMessageKey({ message: r.errorCode }))}
-          </p>
-          {r.customerId === customerId && <p>{linesText(r.lines)}</p>}
-          <button type="button" className="secondary" onClick={() => outbox.dismiss(r.clientId)}>
-            {t('station.dismiss')}
-          </button>
-        </div>
-      ))}
 
       {customers.isPending && <p role="status">{t('common.loading')}</p>}
       {customers.isError && <p className="error">{t(errorMessageKey(customers.error))}</p>}
@@ -318,7 +264,7 @@ export function DeliveryEntryForm({
           </div>
         </form>
       )}
-      {outbox.recent.length > 0 && (
+      {!embedded && outbox.recent.length > 0 && (
         <section aria-labelledby="dl-recent">
           <h2 id="dl-recent">{t('deliveries.recentTitle')}</h2>
           <ul className="dl-recent">
@@ -335,15 +281,84 @@ export function DeliveryEntryForm({
           </ul>
         </section>
       )}
-      <p>
-        <Link to="/control/queue">{t('deliveries.openQueue')}</Link>
-      </p>
+      {!embedded && (
+        <p>
+          <Link to="/control/queue">{t('deliveries.openQueue')}</Link>
+        </p>
+      )}
     </div>
   );
 }
 
+export function MessageLine({
+  message,
+}: {
+  message: { kind: 'ok' | 'warn' | 'bad'; text: string };
+}) {
+  return (
+    <p className={`notice notice-${message.kind}`}>
+      {message.kind === 'ok' ? (
+        <IconReady />
+      ) : message.kind === 'warn' ? (
+        <IconOffline />
+      ) : (
+        <IconWarning />
+      )}{' '}
+      {message.text}
+    </p>
+  );
+}
+
+/** Deliveries waiting on this phone to send, offline, and refused ones (with Dismiss). */
+export function DeliveryOutboxNotices({
+  userId,
+  customerName,
+  linesText,
+  hidePending = false,
+}: {
+  userId: string;
+  customerName: (id: string) => string;
+  linesText: (ls: DeliveryLine[]) => string;
+  /** The caller already says "saved on this phone". */
+  hidePending?: boolean;
+}) {
+  const { t } = useTranslation();
+  const online = useOnline();
+  const outbox = useDeliveryOutbox(userId);
+  return (
+    <>
+      <div role="status" aria-live="polite">
+        {outbox.pending.length > 0 && !hidePending && (
+          <p className="notice notice-warn">
+            <IconOffline /> {t('deliveries.waitingToSend', { count: outbox.pending.length })}
+          </p>
+        )}
+      </div>
+      {!online && (
+        <p className="notice notice-warn">
+          <IconOffline /> {t('estimates.offline')}
+        </p>
+      )}
+      {outbox.rejected.map((r) => (
+        <div key={r.clientId} className="notice notice-bad" role="alert">
+          <p>
+            <IconWarning /> {t('deliveries.rejected', { customer: customerName(r.customerId) })}{' '}
+            {r.errorCode === 'OUT_OF_RANGE_TIMESTAMP'
+              ? t('estimates.errors.tooOld')
+              : t(errorMessageKey({ message: r.errorCode }))}
+          </p>
+          <p>{linesText(r.lines)}</p>
+          <button type="button" className="secondary" onClick={() => outbox.dismiss(r.clientId)}>
+            {t('station.dismiss')}
+          </button>
+        </div>
+      ))}
+    </>
+  );
+}
+
 /** A delivery saved from this phone, with "Cancel this delivery". */
-function RecentItem({
+export function RecentItem({
   r,
   customerName,
   groupName,
@@ -393,7 +408,10 @@ function RecentItem({
   );
 }
 
-/** One wash group: −¼ [number] +¼ and the loads it makes (≈), or "loads unknown". */
+/**
+ * One wash group: −½ [number] +½ +1 and the loads it makes (≈), or "loads unknown". AA arrives in whole
+ * or half bins (review item 5: 3 bins took 12 taps at ¼); quarters can still be typed.
+ */
 function GroupBins({
   group,
   text,
@@ -432,9 +450,9 @@ function GroupBins({
           type="button"
           className="secondary"
           disabled={current <= 0}
-          onClick={() => onText(String(stepBins(current, -1)))}
+          onClick={() => onText(String(addBins(current, -0.5)))}
         >
-          −¼
+          −½
         </button>
         <input
           id={id}
@@ -443,6 +461,7 @@ function GroupBins({
           autoComplete="off"
           value={text}
           placeholder="0"
+          onFocus={(e) => e.currentTarget.select()}
           onChange={(e) => onText(e.target.value)}
           aria-invalid={bins === null}
           aria-describedby={`${id}-hint`}
@@ -451,9 +470,17 @@ function GroupBins({
           type="button"
           className="secondary"
           disabled={current >= MAX_BINS}
-          onClick={() => onText(String(stepBins(current, 1)))}
+          onClick={() => onText(String(addBins(current, 0.5)))}
         >
-          +¼
+          +½
+        </button>
+        <button
+          type="button"
+          className="secondary"
+          disabled={current >= MAX_BINS}
+          onClick={() => onText(String(addBins(current, 1)))}
+        >
+          +1
         </button>
       </div>
     </li>

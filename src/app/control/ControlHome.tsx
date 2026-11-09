@@ -12,6 +12,7 @@ import type { ReactNode } from 'react';
 import {
   IconBell,
   IconBins,
+  IconCustomer,
   IconEdit,
   IconGear,
   IconList,
@@ -19,18 +20,51 @@ import {
   IconPeople,
   IconQueue,
   IconTasks,
-  IconTruck,
   IconWasher,
 } from '../../features/washroom/Icons';
+import { useCustomers } from '../../features/deliveries/deliveriesData';
+import { asI18nMap } from '../../features/washroom/localizedName';
+import { localize } from '../../lib/localize';
 import '../../lib/forms.css';
 import './more.css';
 
-// "More" (bottom-nav tab; owner 2026-11-06, round 2): a grid of EVERY screen the user can open, with
-// big icon tiles, then notifications, language and sign-out. Route: /control/more. Home is not
-// repeated here: it is always in the nav (declutter 2026-11-09).
+// "More" (bottom-nav tab; owner 2026-11-06, round 2; review 2026-11-09 item 9): only the screens
+// that are NOT already in the nav, grouped "Daily" and "Setup" (owner only), then the account part:
+// change my password, notifications, language and sign-out. Route: /control/more. The nav is
+//   owner and others: Home · Washers · Queue · Load-out · More
+//   managers:         Home · Washers · Estimates · Load-out · More   (src/app/control/AppNav.tsx)
+
+interface Tile {
+  to: string;
+  label: string;
+  icon: ReactNode;
+  show: boolean;
+}
+
+function TileGrid({ id, title, tiles }: { id: string; title: string; tiles: Tile[] }) {
+  const shown = tiles.filter((l) => l.show);
+  if (shown.length === 0) return null;
+  return (
+    <section aria-labelledby={id}>
+      <h2 id={id}>{title}</h2>
+      <ul className="more-grid">
+        {shown.map((l) => (
+          <li key={l.to}>
+            <Link to={l.to}>
+              <span className="more-icon" aria-hidden="true">
+                {l.icon}
+              </span>
+              <span className="more-label">{l.label}</span>
+            </Link>
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+}
 
 export function ControlHome() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const session = useRequiredSession();
   const ownerPlants = useOwnerPlants(session.user.id);
   const areas = useAreas();
@@ -44,17 +78,19 @@ export function ControlHome() {
   const isStaff = isOwner || isManager;
   const plant = usePlant(plantId);
   const loadOutPerms = useLoadOutPermissions(session.user.id, plant.data ?? undefined);
-  const links: { to: string; label: string; icon: ReactNode; show: boolean }[] = [
-    { to: '/control/washers', label: t('nav.washers'), icon: <IconWasher />, show: true },
-    { to: '/control/queue', label: t('nav.queue'), icon: <IconQueue />, show: true },
-    { to: '/control/estimates', label: t('nav.estimates'), icon: <IconBins />, show: isStaff },
-    { to: '/control/load-out', label: t('loadOut.boardTitle'), icon: <IconTruck />, show: true },
-    {
-      to: '/control/load-out/entry',
-      label: t('loadOut.entryTitle'),
-      icon: <IconEdit />,
-      show: loadOutPerms.data?.canEnter ?? false,
-    },
+  const customers = useCustomers(isStaff ? plantId : undefined);
+  const activeCustomers = (customers.data ?? []).filter((c) => c.active);
+  const onlyCustomer = activeCustomers.length === 1 ? activeCustomers[0] : undefined;
+  const dropOffLabel = onlyCustomer
+    ? t('more.dropOffs', {
+        name: localize(onlyCustomer.name, asI18nMap(onlyCustomer.name_i18n), i18n.language),
+      })
+    : t('deliveries.title');
+
+  const daily: Tile[] = [
+    // Managers have Estimates in the nav; everyone else has Queue there.
+    { to: '/control/estimates', label: t('nav.estimates'), icon: <IconBins />, show: isOwner },
+    { to: '/control/queue', label: t('nav.queue'), icon: <IconQueue />, show: isManager },
     {
       to: '/control/tasks',
       label: isOwner ? t('tasks.title') : t('tasks.myTitle'),
@@ -62,31 +98,51 @@ export function ControlHome() {
       show: isStaff,
     },
     { to: '/control/alerts', label: t('nav.alerts'), icon: <IconBell />, show: isStaff },
-    // Customer deliveries (owner 2026-11-06 B): owners see the history; owners and managers record.
-    { to: '/control/deliveries', label: t('deliveries.title'), icon: <IconTruck />, show: isOwner },
-    {
-      to: '/control/deliveries/new',
-      label: t('deliveries.recordTitle'),
-      icon: <IconBins />,
-      show: isStaff,
-    },
     {
       to: '/control/machines',
       label: t('machines.linkLabel'),
       icon: <IconMachineDown />,
       show: true,
     },
+    // One tile for the customer's drop-offs (review item 5: AA in one place): the Estimates AA tab
+    // (what AA has waiting, "+ drop-off", today's drop-offs; owners get "Last 7 days ›" there).
+    {
+      to: '/control/estimates?view=aa',
+      label: dropOffLabel,
+      icon: <IconCustomer />,
+      show: isStaff && activeCustomers.length > 0,
+    },
+    {
+      to: '/control/load-out/entry',
+      label: t('loadOut.entryTitle'),
+      icon: <IconEdit />,
+      show: loadOutPerms.data?.canEnter ?? false,
+    },
+  ];
+  const setup: Tile[] = [
     { to: '/control/people', label: t('people.title'), icon: <IconPeople />, show: isOwner },
     {
       to: '/control/setup/machines',
-      label: t('setup.machines.title'),
+      label: t('more.machines'),
       icon: <IconGear />,
       show: isOwner,
     },
     {
-      to: '/control/setup/reasons',
-      label: t('setup.reasons.title'),
+      to: '/control/setup/wash-groups',
+      label: t('more.washGroups'),
+      icon: <IconWasher />,
+      show: isOwner,
+    },
+    {
+      to: '/control/setup/formulas',
+      label: t('more.formulas'),
       icon: <IconList />,
+      show: isOwner,
+    },
+    {
+      to: '/control/setup/reasons',
+      label: t('more.reasons'),
+      icon: <IconMachineDown />,
       show: isOwner,
     },
   ];
@@ -94,20 +150,19 @@ export function ControlHome() {
   return (
     <main className="form-page more-page">
       <h1>{t('nav.more')}</h1>
-      <ul className="more-grid">
-        {links
-          .filter((l) => l.show)
-          .map((l) => (
-            <li key={l.to}>
-              <Link to={l.to}>
-                <span className="more-icon" aria-hidden="true">
-                  {l.icon}
-                </span>
-                <span className="more-label">{l.label}</span>
-              </Link>
-            </li>
-          ))}
-      </ul>
+      <TileGrid id="more-daily" title={t('more.daily')} tiles={daily} />
+      <TileGrid id="more-setup" title={t('more.setup')} tiles={setup} />
+      <section aria-labelledby="more-account">
+        <h2 id="more-account">{t('more.account')}</h2>
+        <ul className="more-menu">
+          <li>
+            <Link to="/control/password">
+              {t('changePassword.myTitle')}
+              <span aria-hidden="true">›</span>
+            </Link>
+          </li>
+        </ul>
+      </section>
       {canGetAlerts && plantId && <NotificationsCard plantId={plantId} />}
       <section className="card">
         <LanguageSwitch />
