@@ -781,14 +781,14 @@ isOneToOne: false
                   ]
                 },"queue_items": {
                   Row: {
-                    "area_id": string,"assigned_machine_id": string | null,"assigned_machine_kind": "washer"|"dryer"|"ironer"|"folder"|"wrapper"|"utility"|"other" | null,"client_id": string,"completed_at": string | null,"created_at": string,"created_by": string,"customer_id": string | null,"id": string,"is_rewash": boolean,"is_rush": boolean,"item_type_id": string | null,"loads_started": number,"note": string | null,"org_id": string,"plant_id": string,"position": number,"qty": number,"started_at": string | null,"status": "queued"|"in_progress"|"done"|"cancelled","unit": "load"|"basket"|"bin"|"piece"|"pack","updated_at": string,"updated_by": string | null,"updated_by_staff_id": string | null,"version": number,"wash_group_id": string
+                    "area_id": string,"assigned_machine_id": string | null,"assigned_machine_kind": "washer"|"dryer"|"ironer"|"folder"|"wrapper"|"utility"|"other" | null,"client_id": string,"completed_at": string | null,"created_at": string,"created_by": string,"customer_id": string | null,"from_estimate": boolean,"id": string,"is_rewash": boolean,"is_rush": boolean,"item_type_id": string | null,"loads_started": number,"note": string | null,"org_id": string,"plant_id": string,"position": number,"qty": number,"started_at": string | null,"status": "queued"|"in_progress"|"done"|"cancelled","unit": "load"|"basket"|"bin"|"piece"|"pack","updated_at": string,"updated_by": string | null,"updated_by_staff_id": string | null,"version": number,"wash_group_id": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "area_id": string,"assigned_machine_id"?: string | null,"assigned_machine_kind"?: never,"client_id": string,"completed_at"?: string | null,"created_at"?: string,"created_by": string,"customer_id"?: string | null,"id"?: string,"is_rewash"?: boolean,"is_rush"?: boolean,"item_type_id"?: string | null,"loads_started"?: number,"note"?: string | null,"org_id": string,"plant_id": string,"position": number,"qty": number,"started_at"?: string | null,"status"?: "queued"|"in_progress"|"done"|"cancelled","unit": "load"|"basket"|"bin"|"piece"|"pack","updated_at"?: string,"updated_by"?: string | null,"updated_by_staff_id"?: string | null,"version"?: number,"wash_group_id": string
+                    "area_id": string,"assigned_machine_id"?: string | null,"assigned_machine_kind"?: never,"client_id": string,"completed_at"?: string | null,"created_at"?: string,"created_by": string,"customer_id"?: string | null,"from_estimate"?: boolean,"id"?: string,"is_rewash"?: boolean,"is_rush"?: boolean,"item_type_id"?: string | null,"loads_started"?: number,"note"?: string | null,"org_id": string,"plant_id": string,"position": number,"qty": number,"started_at"?: string | null,"status"?: "queued"|"in_progress"|"done"|"cancelled","unit": "load"|"basket"|"bin"|"piece"|"pack","updated_at"?: string,"updated_by"?: string | null,"updated_by_staff_id"?: string | null,"version"?: number,"wash_group_id": string
                   }
                   Update: {
-                    "area_id"?: string,"assigned_machine_id"?: string | null,"assigned_machine_kind"?: never,"client_id"?: string,"completed_at"?: string | null,"created_at"?: string,"created_by"?: string,"customer_id"?: string | null,"id"?: string,"is_rewash"?: boolean,"is_rush"?: boolean,"item_type_id"?: string | null,"loads_started"?: number,"note"?: string | null,"org_id"?: string,"plant_id"?: string,"position"?: number,"qty"?: number,"started_at"?: string | null,"status"?: "queued"|"in_progress"|"done"|"cancelled","unit"?: "load"|"basket"|"bin"|"piece"|"pack","updated_at"?: string,"updated_by"?: string | null,"updated_by_staff_id"?: string | null,"version"?: number,"wash_group_id"?: string
+                    "area_id"?: string,"assigned_machine_id"?: string | null,"assigned_machine_kind"?: never,"client_id"?: string,"completed_at"?: string | null,"created_at"?: string,"created_by"?: string,"customer_id"?: string | null,"from_estimate"?: boolean,"id"?: string,"is_rewash"?: boolean,"is_rush"?: boolean,"item_type_id"?: string | null,"loads_started"?: number,"note"?: string | null,"org_id"?: string,"plant_id"?: string,"position"?: number,"qty"?: number,"started_at"?: string | null,"status"?: "queued"|"in_progress"|"done"|"cancelled","unit"?: "load"|"basket"|"bin"|"piece"|"pack","updated_at"?: string,"updated_by"?: string | null,"updated_by_staff_id"?: string | null,"version"?: number,"wash_group_id"?: string
                   }
                   Relationships: [
                     {
@@ -1447,6 +1447,7 @@ isOneToOne: false
 "created_at": string,
 "created_by": string,
 "customer_id": string | null,
+"from_estimate": boolean,
 "id": string,
 "is_rewash": boolean,
 "is_rush": boolean,
@@ -1519,6 +1520,7 @@ isOneToOne: false
 "created_at": string,
 "created_by": string,
 "customer_id": string | null,
+"from_estimate": boolean,
 "id": string,
 "is_rewash": boolean,
 "is_rush": boolean,
@@ -1603,7 +1605,7 @@ isOneToOne: false
                            },
 "get_queue":
 { Args: { "p_area_id": string }; Returns: {
-              "approximate": boolean,"area_id": string,"assigned_machine_id": string,"assigned_machine_name": string,"created_at": string,"created_by_name": string,"id": string,"is_rewash": boolean,"is_rush": boolean,"item_color_hex": string,"item_name": string,"item_name_i18n": Json,"item_type_id": string,"loads_needed": number,"loads_remaining": number,"loads_started": number,"note": string,"org_id": string,"plant_id": string,"position": number,"qty": number,"qty_loads": number,"started_at": string,"status": "queued"|"in_progress"|"done"|"cancelled","unit": "load"|"basket"|"bin"|"piece"|"pack","version": number,"wash_group_color_hex": string,"wash_group_id": string,"wash_group_name": string,"wash_group_name_i18n": Json
+              "approximate": boolean,"area_id": string,"assigned_machine_id": string,"assigned_machine_name": string,"created_at": string,"created_by_name": string,"from_estimate": boolean,"id": string,"is_rewash": boolean,"is_rush": boolean,"item_color_hex": string,"item_name": string,"item_name_i18n": Json,"item_type_id": string,"loads_needed": number,"loads_remaining": number,"loads_started": number,"note": string,"org_id": string,"plant_id": string,"position": number,"qty": number,"qty_loads": number,"started_at": string,"status": "queued"|"in_progress"|"done"|"cancelled","unit": "load"|"basket"|"bin"|"piece"|"pack","version": number,"wash_group_color_hex": string,"wash_group_id": string,"wash_group_name": string,"wash_group_name_i18n": Json
             }[]
                            },
 "get_shift_report":
@@ -1693,6 +1695,7 @@ isOneToOne: false
 "created_at": string,
 "created_by": string,
 "customer_id": string | null,
+"from_estimate": boolean,
 "id": string,
 "is_rewash": boolean,
 "is_rush": boolean,
@@ -1811,6 +1814,7 @@ isOneToOne: false
 "created_at": string,
 "created_by": string,
 "customer_id": string | null,
+"from_estimate": boolean,
 "id": string,
 "is_rewash": boolean,
 "is_rush": boolean,
@@ -1940,6 +1944,7 @@ isOneToOne: false
 "created_at": string,
 "created_by": string,
 "customer_id": string | null,
+"from_estimate": boolean,
 "id": string,
 "is_rewash": boolean,
 "is_rush": boolean,

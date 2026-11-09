@@ -309,7 +309,8 @@
       "rewash": "Relavar ({{count}})"
     },
     "inProgress_one": "{{count}} empezada",
-    "inProgress_other": "{{count}} empezadas"
+    "inProgress_other": "{{count}} empezadas",
+    "fromEstimate": "De estimados"
   },
   "machines": {
     "title": "Fuera de servicio / Arreglada",

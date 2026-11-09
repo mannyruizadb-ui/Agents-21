@@ -118,6 +118,9 @@ select is((select app.alert_payload(a) - 'queue_item_id' - 'area_id' - 'created_
   'payload: area, group, qty + unit (+ loads; null without a bin factor), status; no names, no note');
 
 -- ══ Starts write no off_queue_start alert (removed 2026-11-07) ══════════
+-- Since 2026-11-09 the estimates above also queued Napkins and Towels "from estimates" items; they are
+-- cancelled here so the queue order below is the one this section was written for.
+update public.queue_items set status = 'cancelled' where from_estimate and status in ('queued', 'in_progress');
 -- Queue now (normal items in creation order): the manager's Towels rewash (1 bin, no bin factor: never
 -- auto-completes) is next for Washer 1; then the owner's Towels rewash; then Napkins (2 loads).
 select is(array[

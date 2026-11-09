@@ -93,6 +93,9 @@ export function flushEstimates(userId: string, qc?: QueryClient): Promise<number
       const r = await flushOutbox(userStore(userId), apiFor(userId));
       if (qc && (r.saved.length > 0 || r.rejected.length > 0)) {
         void qc.invalidateQueries({ queryKey: ['soil'] });
+        // Owner 2026-11-09: a saved estimate also creates/updates its queue item on the server.
+        void qc.invalidateQueries({ queryKey: ['queue'] });
+        void qc.invalidateQueries({ queryKey: ['washroom-board'] });
       }
       return r.saved.length;
     } finally {
