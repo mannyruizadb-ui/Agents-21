@@ -70,7 +70,7 @@ select is(array[
   pg_temp.run_as('lead', $$select public.start_washer_load(pg_temp.id('machine'), 'e8000000-0000-0000-0000-000000000001',
                     p_queue_item_id => pg_temp.qi('1', 1))$$),
   pg_temp.run_as('lead', $$select public.start_washer_load(pg_temp.id('machine'), 'e8000000-0000-0000-0000-000000000003', p_confirm_running => true,
-                    p_queue_item_id => pg_temp.qi('1', 3))$$)],
+                    p_queue_item_id => pg_temp.qi('1', 3), p_off_queue_reason => 'other')$$)],
   '{1,1}', 'two of the delivery''s three items are started');
 select is(pg_temp.writes($$select public.void_customer_delivery(pg_temp.d('2'), 'wrong customer')$$),
   '{1,1,NOT_AUTHORIZED,NOT_AUTHORIZED,NOT_AUTHORIZED,NOT_AUTHORIZED,NOT_AUTHORIZED,42501}',

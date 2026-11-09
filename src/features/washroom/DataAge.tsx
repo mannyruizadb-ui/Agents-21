@@ -11,16 +11,19 @@ export function DataAge({
   now,
   isFetching,
   isError,
+  refreshSeconds,
 }: {
   updatedAt: number;
   now: number;
   isFetching?: boolean;
   isError?: boolean;
+  /** The query's refetch period (default 30 s): "may be old" after two missed refreshes. */
+  refreshSeconds?: number;
 }) {
   const { t } = useTranslation();
   if (!updatedAt) return null;
   const age = ageSeconds(updatedAt, now);
-  const band = freshness(age);
+  const band = freshness(age, refreshSeconds);
   const text =
     age < 60
       ? t('washroom.updatedSeconds', { count: age })

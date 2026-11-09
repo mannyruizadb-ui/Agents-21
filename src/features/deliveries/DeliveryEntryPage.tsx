@@ -27,6 +27,7 @@ import '../../lib/forms.css';
 import '../washroom/washroom.css';
 import '../estimates/estimates.css';
 import './deliveries.css';
+import { MoreInfo } from '../../lib/MoreInfo';
 
 // Record an outside customer's delivery (owner 2026-11-06 B; first: AA Linen). Owner or manager:
 // pick the customer (the only active one is preselected), bins per wash group in quarters, an
@@ -156,7 +157,7 @@ function DeliveryEntryScreen({ userId, plantId }: { userId: string; plantId: str
   return (
     <main className="form-page dl-page">
       <h1>{t('deliveries.recordTitle')}</h1>
-      <p className="hint">{t('deliveries.intro')}</p>
+      <MoreInfo>{t('deliveries.intro')}</MoreInfo>
 
       <div role="status" aria-live="polite">
         {message && (
@@ -277,7 +278,6 @@ function DeliveryEntryScreen({ userId, plantId }: { userId: string; plantId: str
             <button type="submit" disabled={busy || lines.length === 0 || bad.length > 0}>
               {busy ? t('estimates.saving') : t('deliveries.save')}
             </button>
-            <p className="hint">{t('deliveries.goesToQueue')}</p>
           </section>
         </form>
       )}

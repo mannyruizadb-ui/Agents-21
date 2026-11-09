@@ -74,11 +74,11 @@ select is(array[
 select ok((select convalidated from pg_constraint where conname = 'alert_events_kind_check' and conrelid = 'public.alert_events'::regclass),
   'the alert_events kind CHECK is validated (no off_queue_start rows exist)');
 select is((select count(*)::int from public.memberships where alert_levels ? 'off_queue_start'), 0, 'no membership carries an off_queue_start level');
-select is(pg_temp.run_as('lead', $$select public.start_washer_load(pg_temp.id('machine'), gen_random_uuid(), p_wash_group_id => pg_temp.id('gMat'))$$), '1',
+select is(pg_temp.run_as('lead', $$select public.start_washer_load(pg_temp.id('machine'), gen_random_uuid(), p_wash_group_id => pg_temp.id('gMat'), p_off_queue_reason => 'other')$$), '1',
   'an off-queue start …');
 select is((select count(*)::int from public.alert_events where plant_id = pg_temp.id('plantA')), 0, '… writes no alert at all');
 select ok(not exists (select 1 from pg_proc p join pg_namespace n on n.oid = p.pronamespace
-                       where n.nspname in ('public', 'app') and p.prosrc like '%off_queue_start%'),
+                       where n.nspname in ('public', 'app') and p.prosrc ~ 'off_queue_start(?!s)'),
   'no function mentions off_queue_start any more');
 
 select * from finish();

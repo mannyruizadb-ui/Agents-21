@@ -344,7 +344,6 @@ export function AlertsPage() {
               </ul>
             )}
           </section>
-          <p className="hint">{t('alerts.pushHint')}</p>
         </>
       )}
     </main>

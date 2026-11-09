@@ -182,12 +182,8 @@ function AddForm({
               setLoads(e.target.value);
               clientId.current = null;
             }}
-            aria-describedby="q-loads-hint"
             required
           />
-          <p id="q-loads-hint" className="hint">
-            {t('queue.loadsHint')}
-          </p>
         </div>
         <div className="field check">
           <label>

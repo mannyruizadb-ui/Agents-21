@@ -13,6 +13,7 @@ export const APP_ERROR_CODES = [
   'MACHINE_DOWN',
   'STAFF_SESSION_REQUIRED',
   'WASHER_RUNNING',
+  'OFF_QUEUE_REASON_REQUIRED',
 ] as const;
 
 export type AppErrorCode = (typeof APP_ERROR_CODES)[number];
@@ -88,6 +89,8 @@ export function errorMessageKey(e: unknown): string {
       return 'errors.pinAgain';
     case 'WASHER_RUNNING':
       return 'errors.washerRunning';
+    case 'OFF_QUEUE_REASON_REQUIRED':
+      return 'errors.offQueueReason';
     default:
       return 'errors.network';
   }
@@ -101,6 +104,7 @@ export function tapRejectedKey(code: string): string {
   if (code === 'OUT_OF_RANGE_TIMESTAMP') return 'station.rejectTooLate';
   if (code === 'MACHINE_DOWN') return 'station.rejectDown';
   if (code === 'WASHER_RUNNING') return 'station.rejectRunning';
+  if (code === 'OFF_QUEUE_REASON_REQUIRED') return 'station.rejectOffQueue';
   return errorMessageKey({ message: code });
 }
 

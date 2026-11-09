@@ -22,6 +22,7 @@ import { useEstimateOutbox } from './useEstimateOutbox';
 import '../../lib/forms.css';
 import '../washroom/washroom.css';
 import './estimates.css';
+import { MoreInfo } from '../../lib/MoreInfo';
 
 // Soil estimates (PRD B1; owner 2026-11-04): the shift manager estimates the dirty work waiting per
 // wash group, reviews, and saves the whole batch at once. Owner and managers only. No names on any
@@ -177,7 +178,7 @@ function EstimatesScreen({ userId, plantId }: { userId: string; plantId: string 
   return (
     <main className="form-page estimates-page">
       <h1>{t('estimates.title')}</h1>
-      <p className="hint">{t('estimates.intro')}</p>
+      <MoreInfo>{t('estimates.intro')}</MoreInfo>
 
       <section className="est-hero" aria-labelledby="sum-title">
         <h2 id="sum-title" className="est-hero-label">

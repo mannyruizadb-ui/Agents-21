@@ -20,7 +20,7 @@ insert into public.machines (id, org_id, plant_id, area_id, name, kind, active) 
 create function pg_temp.cid(n int) returns uuid language sql immutable as $$
   select ('c0000000-0000-0000-0000-' || lpad(n::text, 12, '0'))::uuid;
 $$;
-create function pg_temp.cyc(n int) returns uuid language sql stable as $$
+create function pg_temp.cyc(n int) returns uuid language sql stable security definer as $$
   select id from public.washer_cycles where client_id = pg_temp.cid(n);
 $$;
 grant execute on function pg_temp.cid(int), pg_temp.cyc(int) to authenticated, anon;
@@ -96,19 +96,19 @@ select is(pg_temp.val_as('manager', $$select array_agg(machine_name || ':' || ki
   'status per machine: down with reason and since; up after a fix keeps its note; never-down machines: up, since null');
 
 -- ══ start_washer_load: MACHINE_DOWN and p_tapped_at ══════════════════════
-select is(pg_temp.run_as('lead', $$select public.start_washer_load(pg_temp.id('machine'), gen_random_uuid(), null, pg_temp.id('gMat'))$$),
+select is(pg_temp.run_as('lead', $$select public.start_washer_load(pg_temp.id('machine'), gen_random_uuid(), null, pg_temp.id('gMat'), p_off_queue_reason => 'other')$$),
   'MACHINE_DOWN', 'a down washer refuses a start-tap');
-select is(pg_temp.run_as('lead', $$select public.start_washer_load(pg_temp.id('machine'), pg_temp.cid(10), null, pg_temp.id('gMat'), now() - interval '5 minutes')$$),
+select is(pg_temp.run_as('lead', $$select public.start_washer_load(pg_temp.id('machine'), pg_temp.cid(10), null, pg_temp.id('gMat'), now() - interval '5 minutes', p_off_queue_reason => 'other')$$),
   '1', 'an offline tap made BEFORE the washer was marked down is still recorded');
 select is((select started_at from public.washer_cycles where id = pg_temp.cyc(10)), now() - interval '5 minutes',
   'started_at = the device tap time');
 select is(array[
-  pg_temp.run_as('lead', $$select public.start_washer_load('60000000-0000-0000-0000-0000000000a3', gen_random_uuid(), null, pg_temp.id('gMat'), now() - interval '31 minutes')$$),
-  pg_temp.run_as('lead', $$select public.start_washer_load('60000000-0000-0000-0000-0000000000a3', gen_random_uuid(), null, pg_temp.id('gMat'), now() + interval '2 minutes')$$)],
+  pg_temp.run_as('lead', $$select public.start_washer_load('60000000-0000-0000-0000-0000000000a3', gen_random_uuid(), null, pg_temp.id('gMat'), now() - interval '31 minutes', p_off_queue_reason => 'other')$$),
+  pg_temp.run_as('lead', $$select public.start_washer_load('60000000-0000-0000-0000-0000000000a3', gen_random_uuid(), null, pg_temp.id('gMat'), now() + interval '2 minutes', p_off_queue_reason => 'other')$$)],
   '{OUT_OF_RANGE_TIMESTAMP,OUT_OF_RANGE_TIMESTAMP}', 'p_tapped_at outside [now − 30 min, now + 1 min] is rejected');
-select is(pg_temp.run_as('lead', $$select public.start_washer_load('60000000-0000-0000-0000-0000000000a3', pg_temp.cid(11), null, pg_temp.id('gMat'), now() + interval '30 seconds')$$),
+select is(pg_temp.run_as('lead', $$select public.start_washer_load('60000000-0000-0000-0000-0000000000a3', pg_temp.cid(11), null, pg_temp.id('gMat'), now() + interval '30 seconds', p_off_queue_reason => 'other')$$),
   '1', 'up to 1 minute ahead is accepted (device clock skew)');
-select is(pg_temp.val_as('lead', $$select (public.start_washer_load(pg_temp.id('machine'), pg_temp.cid(10), null, pg_temp.id('gMat'), now() - interval '2 hours')).duplicate$$),
+select is(pg_temp.val_as('lead', $$select (public.start_washer_load(pg_temp.id('machine'), pg_temp.cid(10), null, pg_temp.id('gMat'), now() - interval '2 hours', p_off_queue_reason => 'other')).duplicate$$),
   'true', 'idempotency is checked before the window and the down check: a late retry returns the recorded tap');
 select is(pg_temp.run_as('ownerB', $$select public.start_washer_load(pg_temp.id('machine'), gen_random_uuid(), null, null, now() - interval '2 hours')$$),
   'NOT_AUTHORIZED', 'role check first: another tenant learns nothing about the washer (window, down)');
@@ -120,9 +120,9 @@ insert into public.shift_instances (id, org_id, plant_id, area_id, shift_id, bus
   ('91000000-0000-0000-0000-0000000000c1', pg_temp.id('orgA'), pg_temp.id('plantA2'), pg_temp.id('washA2'),
    '90000000-0000-0000-0000-0000000000c1', '2000-01-01', now() - interval '2 hours', now() - interval '10 minutes');
 update public.shift_instances set production_date = '2000-01-01' where id = '91000000-0000-0000-0000-0000000000c1';
-select is(pg_temp.run_as('owner', $$select public.start_washer_load('60000000-0000-0000-0000-0000000000c1', pg_temp.cid(12), null, pg_temp.id('groupA2'), now() - interval '20 minutes')$$),
+select is(pg_temp.run_as('owner', $$select public.start_washer_load('60000000-0000-0000-0000-0000000000c1', pg_temp.cid(12), null, pg_temp.id('groupA2'), now() - interval '20 minutes', p_off_queue_reason => 'other')$$),
   '1', 'offline tap 20 minutes ago (inside the shift that has since ended)');
-select is(pg_temp.run_as('owner', $$select public.start_washer_load('60000000-0000-0000-0000-0000000000c1', pg_temp.cid(13), null, pg_temp.id('groupA2'))$$),
+select is(pg_temp.run_as('owner', $$select public.start_washer_load('60000000-0000-0000-0000-0000000000c1', pg_temp.cid(13), null, pg_temp.id('groupA2'), p_off_queue_reason => 'other')$$),
   '1', 'a tap now (after the shift ended: off-shift)');
 select is((select array[shift_instance_id::text, production_date::text] from public.washer_cycles where id = pg_temp.cyc(12)),
   array['91000000-0000-0000-0000-0000000000c1', '2000-01-01'], 'the offline tap lands in the shift and production day of its tap time');
@@ -154,11 +154,11 @@ select is(pg_temp.run_as('owner', $$select public.update_queue_item(q.id, q.vers
 
 -- Back up: taps and assignment work again.
 select is(pg_temp.val_as('manager', $$select (public.set_machine_status(pg_temp.id('machine'), 'up', gen_random_uuid())).changed$$), 'true', 'Washer 1 back up');
-select is(pg_temp.run_as('lead', $$select public.start_washer_load(pg_temp.id('machine'), gen_random_uuid(), null, pg_temp.id('gMat'))$$),
+select is(pg_temp.run_as('lead', $$select public.start_washer_load(pg_temp.id('machine'), gen_random_uuid(), null, pg_temp.id('gMat'), p_off_queue_reason => 'other')$$),
   '1', 'start-taps work again once the washer is up');
 select is(pg_temp.val_as('owner', $$select (is_down, down_reason, down_since)::text from public.get_washroom_board(pg_temp.id('wash')) where machine_name = 'Washer 1'$$),
   '(f,,)', 'board: up again, no reason or since');
-select is(pg_temp.run_as('lead', $$select public.start_washer_load(pg_temp.id('machine'), gen_random_uuid(), null, pg_temp.id('gMat'), now() - interval '1 minute')$$),
+select is(pg_temp.run_as('lead', $$select public.start_washer_load(pg_temp.id('machine'), gen_random_uuid(), null, pg_temp.id('gMat'), now() - interval '1 minute', p_off_queue_reason => 'other')$$),
   '1', 'a tap stamped before the down event is accepted (the washer was up then)');
 
 -- Every event and alert is per plant; nothing leaks to plant B.

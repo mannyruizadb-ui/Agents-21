@@ -102,7 +102,7 @@ select is((select customer_id from public.queue_items where client_id = 'e100000
 
 select is(array[
   pg_temp.run_as('lead', $$select public.start_washer_load(pg_temp.id('machine'), 'e2000000-0000-0000-0000-000000000001', p_wash_group_id => pg_temp.c('gAA'))$$),
-  pg_temp.run_as('lead', $$select public.start_washer_load(pg_temp.id('machine'), 'e2000000-0000-0000-0000-000000000002', p_wash_group_id => pg_temp.id('gMat'), p_confirm_running => true)$$)],
+  pg_temp.run_as('lead', $$select public.start_washer_load(pg_temp.id('machine'), 'e2000000-0000-0000-0000-000000000002', p_wash_group_id => pg_temp.id('gMat'), p_confirm_running => true, p_off_queue_reason => 'other')$$)],
   '{1,1}', 'start_washer_load (unchanged signature): an AA load from the queue and an off-queue load of ours');
 select is(array(select coalesce(customer_id::text, 'ours') from public.washer_cycles
                  where client_id in ('e2000000-0000-0000-0000-000000000001', 'e2000000-0000-0000-0000-000000000002') order by client_id),

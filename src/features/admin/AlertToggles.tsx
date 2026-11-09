@@ -12,6 +12,7 @@ import {
   type OwnerAlertKind,
 } from './alertRecipients';
 import './alertLevels.css';
+import { MoreInfo } from '../../lib/MoreInfo';
 
 // "Machine down alerts" on/off per person (owner only: PeoplePage is reachable only by owners, and
 // set_alert_recipient re-checks the owner role). The flag is read from memberships directly (RLS:
@@ -151,7 +152,6 @@ export function AlertToggles({
             : t('people.alertsLabel')}
         </label>
       ))}
-      {rows.length > 0 && <p className="hint">{t('people.alertsHint')}</p>}
       {ownerRows.map((r) => (
         <label key={`idle-${r.membershipId}`}>
           <input
@@ -163,7 +163,6 @@ export function AlertToggles({
           {t('people.idleLabel')}
         </label>
       ))}
-      {ownerRows.length > 0 && <p className="hint">{t('people.idleHint')}</p>}
       {ownerRows.map((r) => (
         <div key={`levels-${r.membershipId}`} className="alert-levels">
           <p className="pick-label">{t('people.levelsTitle')}</p>
@@ -192,9 +191,15 @@ export function AlertToggles({
               </fieldset>
             );
           })}
-          <p className="hint">{t('people.levelsHint')}</p>
         </div>
       ))}
+      {(rows.length > 0 || ownerRows.length > 0) && (
+        <MoreInfo>
+          {rows.length > 0 && <p>{t('people.alertsHint')}</p>}
+          {ownerRows.length > 0 && <p>{t('people.idleHint')}</p>}
+          {ownerRows.length > 0 && <p>{t('people.levelsHint')}</p>}
+        </MoreInfo>
+      )}
     </div>
   );
 }

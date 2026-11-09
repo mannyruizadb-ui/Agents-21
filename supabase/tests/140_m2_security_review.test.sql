@@ -63,7 +63,7 @@ insert into rpc_calls values
   ('cancel_queue_item',     $$select public.cancel_queue_item('e0000000-0000-0000-0000-0000000000a2', 99)$$),
   ('set_queue_item_status', $$select public.set_queue_item_status('e0000000-0000-0000-0000-0000000000a2', 'done', 99)$$),
   ('get_queue',             $$select * from public.get_queue(pg_temp.id('wash'))$$),
-  ('start_washer_load',     $$select public.start_washer_load(pg_temp.id('machine'), gen_random_uuid(), null, pg_temp.id('gMat'))$$),
+  ('start_washer_load',     $$select public.start_washer_load(pg_temp.id('machine'), gen_random_uuid(), null, pg_temp.id('gMat'), p_off_queue_reason => 'other')$$),
   ('undo_washer_load',      $$select public.undo_washer_load('f1000000-0000-0000-0000-0000000000a1')$$),
   ('get_washroom_board',    $$select * from public.get_washroom_board(pg_temp.id('wash'))$$),
   ('record_soil_estimate',  $$select public.record_soil_estimate(pg_temp.id('gMat'), 1, 'load', gen_random_uuid(), null)$$),
@@ -97,8 +97,10 @@ insert into public.queue_items (id, org_id, plant_id, area_id, wash_group_id, qt
 update public.queue_items set status = 'in_progress' where id = 'e0000000-0000-0000-0000-0000000000a3';
 update public.queue_items set status = 'done' where id = 'e0000000-0000-0000-0000-0000000000a3';
 select set_config('app.queue_undo', 'on', true);
+-- The version is read here, not as the manager: RLS shows a manager a done item only inside the current shift.
+select set_config('test.a3_version', (select version::text from public.queue_items where id = 'e0000000-0000-0000-0000-0000000000a3'), true);
 select is(pg_temp.run_as('manager', $$select public.set_queue_item_status('e0000000-0000-0000-0000-0000000000a3', 'in_progress',
-            (select version from public.queue_items where id = 'e0000000-0000-0000-0000-0000000000a3'))$$),
+            current_setting('test.a3_version')::int)$$),
   'INVALID_STATUS_TRANSITION', 'L2: setting app.queue_undo no longer reopens a done item');
 select is(pg_temp.as_service($$update public.queue_items set status = 'queued' where id = 'e0000000-0000-0000-0000-0000000000a3'$$),
   'INVALID_STATUS_TRANSITION', 'L2: done → queued without giving a load back is rejected');

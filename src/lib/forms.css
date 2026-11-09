@@ -268,3 +268,47 @@ body:has(.form-page) {
   color: var(--c-ok);
   font-weight: 700;
 }
+
+/* ── ⓘ More info (owner 2026-11-09: no instructions under every button) ── */
+.more-info {
+  margin: var(--sp-xs) 0 0;
+}
+.more-info .more-info-button,
+.form-page .more-info .more-info-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 48px;
+  min-width: 48px;
+  padding: 0 var(--sp-sm);
+  margin: 0;
+  font: inherit;
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  color: var(--c-text-muted);
+  background: transparent;
+  border: 0;
+  border-radius: var(--radius);
+  text-transform: none;
+  letter-spacing: normal;
+  cursor: pointer;
+  width: auto;
+}
+.more-info .more-info-button:hover {
+  color: var(--c-text);
+}
+.more-info .more-info-button:active:not(:disabled) {
+  transform: none;
+}
+.more-info .more-info-icon {
+  font-size: 1.25em;
+  line-height: 1;
+}
+.more-info-text {
+  font-size: var(--fs-sm);
+  color: var(--c-text-muted);
+  padding: 0 var(--sp-sm) var(--sp-xs);
+}
+.more-info-text p {
+  margin: 0 0 var(--sp-xs);
+}

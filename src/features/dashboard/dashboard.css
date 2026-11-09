@@ -1,0 +1,288 @@
+/* Owner dashboard (owner 2026-11-09). Cards on a grid: one column on phones, two on an iPad in
+   landscape, three on the owner's desktop. Charts follow the dataviz mark specs: bars ≤ 24 px from
+   one baseline, 4 px rounded data end, recessive track, text in text tokens (never the series color),
+   2 px surface gaps between the washer segments. */
+
+.form-page.home-page.owner {
+  max-width: 96rem;
+}
+
+.dash {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--sp-md);
+  margin: var(--sp-md) 0;
+}
+@media (min-width: 48rem) {
+  .dash {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .dash-wide {
+    grid-column: 1 / -1;
+  }
+}
+@media (min-width: 80rem) {
+  .dash {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .dash-hero {
+    grid-column: span 2;
+  }
+  .dash-wide {
+    grid-column: span 2;
+  }
+}
+
+.dash-card {
+  container: dash-card / inline-size;
+  min-width: 0;
+  display: grid;
+  align-content: start;
+  gap: var(--sp-sm);
+  padding: var(--sp-md);
+  border: 1px solid var(--c-seam);
+  border-radius: var(--radius-lg);
+  background: var(--c-surface);
+}
+.dash-card p {
+  margin: 0;
+}
+.dash-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-sm);
+  flex-wrap: wrap;
+}
+.form-page .dash-card-head h2 {
+  margin: 0;
+  font-size: var(--fs-h-md);
+  line-height: 1.15;
+}
+.form-page .dash-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25em;
+  min-height: 48px;
+  padding: 0 var(--sp-sm);
+  color: var(--c-info-text);
+  font-weight: 600;
+  text-decoration: none;
+}
+.form-page .dash-link:hover {
+  text-decoration: underline;
+}
+
+/* Hero: the one big number. Same sans, proportional figures. */
+.dash-hero {
+  border-color: var(--c-info);
+  border-width: 2px;
+}
+.dash-hero-big {
+  font-family: var(--font-body);
+  font-weight: 700;
+  font-size: clamp(2.5rem, 7vw, 4rem);
+  line-height: 1.05;
+  overflow-wrap: anywhere;
+}
+.dash-hero-unit {
+  font-size: var(--fs-h-md);
+  font-weight: 600;
+  color: var(--c-text-muted);
+}
+.dash-hero-none {
+  font-size: var(--fs-h-md);
+}
+.dash-hero-sub {
+  color: var(--c-text);
+  font-size: var(--fs-lg);
+}
+.dash-done {
+  font-size: var(--fs-lg);
+  color: var(--c-info-text);
+  font-weight: 600;
+}
+.dash-age-line {
+  color: var(--c-text-muted);
+  font-size: var(--fs-sm);
+}
+.dash-warn-line {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3em;
+  color: var(--c-warn);
+  font-weight: 600;
+}
+.dash-card .hint {
+  display: block;
+}
+.dash-card .data-age {
+  margin: 0;
+}
+
+/* Stat tile number */
+.dash-stat {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 0.3em;
+  font-size: var(--fs-lg);
+}
+.dash-stat-num {
+  font-weight: 700;
+  font-size: 2.5rem;
+  line-height: 1.05;
+}
+
+/* Bars */
+.dash-bars {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: var(--sp-sm);
+}
+.dash-bars li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-areas:
+    'name value'
+    'bar bar';
+  column-gap: var(--sp-sm);
+  row-gap: 2px;
+  align-items: center;
+}
+/* Side by side only when the CARD is wide enough (a half-width iPad card stacks like a phone). */
+@container dash-card (min-width: 34rem) {
+  .dash-bars li {
+    grid-template-columns: minmax(7rem, 14rem) minmax(0, 1fr) minmax(5.5rem, auto);
+    grid-template-areas: 'name bar value';
+  }
+}
+.dash-bar-name {
+  grid-area: name;
+  min-width: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35em;
+  overflow-wrap: anywhere;
+  line-height: 1.2;
+}
+.dash-bar-name .badge {
+  font-size: var(--fs-sm);
+}
+.dash-bar-track {
+  grid-area: bar;
+  display: flex;
+  align-items: center;
+  height: 24px;
+  border-left: 1px solid var(--c-seam); /* the one baseline */
+}
+.dash-bar {
+  display: block;
+  height: 20px;
+  border-radius: 0 4px 4px 0; /* square at the baseline, rounded data end */
+}
+.dash-bar.accent {
+  background: var(--c-info);
+}
+.dash-bar.outlined {
+  /* Black / near-black goods on the dark card: an outline so the bar is still seen. */
+  box-shadow: inset 0 0 0 2px var(--c-outline);
+}
+.dash-bar-value {
+  grid-area: value;
+  text-align: right;
+  font-weight: 600;
+}
+.dash-bar-value > .mono {
+  white-space: nowrap; /* the value stays whole; the extra may wrap under it at 200% text */
+}
+.dash-bar-extra {
+  font-weight: 400;
+  color: var(--c-text-muted);
+  font-size: var(--fs-sm);
+}
+.form-page .dash-more {
+  justify-self: start;
+}
+
+/* Washers right now: a tall segmented bar (28 px), counts printed inside, legend below. */
+.dash-seg {
+  display: flex;
+  gap: 2px;
+  height: 28px;
+}
+.dash-seg-part {
+  min-width: 1.75rem;
+  display: flex;
+  align-items: center;
+  padding: 0 0.4rem;
+  border-radius: 4px;
+  font-family: var(--font-mono);
+  font-weight: 700;
+  font-size: var(--fs-sm);
+  color: var(--c-text-inverse);
+}
+.seg-running {
+  background-color: var(--c-ok);
+}
+.seg-ready {
+  background-color: var(--c-info);
+}
+.seg-idle {
+  background-color: var(--c-surface-highest);
+  color: var(--c-text);
+}
+.dash-seg-part.seg-idle {
+  box-shadow: inset 0 0 0 1px var(--c-outline);
+}
+.seg-down {
+  background-color: var(--c-danger);
+}
+.dash-seg-part.seg-down.stripes-danger {
+  background-color: var(--c-danger);
+  background-image: repeating-linear-gradient(
+    -45deg,
+    rgba(6, 14, 32, 0.35) 0 6px,
+    transparent 6px 12px
+  );
+}
+.dash-legend {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-xs) var(--sp-md);
+}
+.dash-legend li {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35em;
+}
+.dash-legend li.zero {
+  color: var(--c-text-muted);
+}
+.dash-key {
+  display: inline-block;
+  width: 0.9rem;
+  height: 0.9rem;
+  border-radius: 3px;
+}
+.dash-key.seg-idle {
+  box-shadow: inset 0 0 0 1px var(--c-outline);
+}
+
+.dash-customer {
+  border-style: dashed;
+  border-color: var(--c-outline);
+}
+.dash-customer .dash-stat svg {
+  align-self: center;
+}
+
+.home-shortcuts-title {
+  margin: var(--sp-lg) 0 0;
+}

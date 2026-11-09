@@ -11,11 +11,16 @@ create function pg_temp.ben() returns uuid language sql as $$
   select (public.start_staff_session('b0000000-0000-0000-0000-0000000000a2', '1470')).staff_session_id;
 $$;
 grant execute on function pg_temp.ben() to authenticated, anon;
+-- Id lookup as the test owner (RLS limits a manager to the current shift, which depends on the wall clock).
+create function pg_temp.cycle_of(p_client uuid) returns uuid language sql stable security definer as $$
+  select id from public.washer_cycles where client_id = p_client;
+$$;
+grant execute on function pg_temp.cycle_of(uuid) to authenticated;
 
 -- Activity by the manager: a washer tap and its undo, an estimate, finished goods and a void.
 select is(array[
-  pg_temp.run_as('manager', $$select public.start_washer_load(pg_temp.id('machine'), 'c0000000-0000-0000-0000-000000000001', null, pg_temp.id('gMat'))$$),
-  pg_temp.run_as('manager', $$select public.undo_washer_load((select id from public.washer_cycles where client_id = 'c0000000-0000-0000-0000-000000000001'), 'wrong')$$),
+  pg_temp.run_as('manager', $$select public.start_washer_load(pg_temp.id('machine'), 'c0000000-0000-0000-0000-000000000001', null, pg_temp.id('gMat'), p_off_queue_reason => 'other')$$),
+  pg_temp.run_as('manager', $$select public.undo_washer_load(pg_temp.cycle_of('c0000000-0000-0000-0000-000000000001'), 'wrong')$$),
   pg_temp.run_as('manager', $$select public.record_soil_estimate(pg_temp.id('gNapkin'), 2, 'load', gen_random_uuid(), pg_temp.ben())$$),
   pg_temp.run_as('manager', $$select public.record_finished_goods(pg_temp.id('mat'), 0, 3, 'c0000000-0000-0000-0000-000000000002', pg_temp.ben())$$)],
   '{1,1,1,1}', 'the manager taps, undoes, estimates and records finished goods');

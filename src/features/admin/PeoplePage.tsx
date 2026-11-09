@@ -21,6 +21,7 @@ import { useAssignments, useShiftOptions } from './useManagerSchedule';
 import { useAlertMemberships } from './useAlertMemberships';
 import type { AlertMembership } from './alertRecipients';
 import '../../lib/forms.css';
+import { MoreInfo } from '../../lib/MoreInfo';
 
 // Owner "People" screen (PRD A4, owner decision 2026-11-03): owner-created username + password
 // accounts. Temporary passwords are shown once and kept only in component state.
@@ -73,9 +74,7 @@ function StartPasswordField({
         shown
         describedBy={`${id}-optional`}
       />
-      <p id={`${id}-optional`} className="hint">
-        {t('people.startPasswordHint')}
-      </p>
+      <MoreInfo id={`${id}-optional`}>{t('people.startPasswordHint')}</MoreInfo>
     </>
   );
 }
@@ -107,7 +106,6 @@ function SecretBox({ secret, onDone }: { secret: Secret; onDone: () => void }) {
       <output className="secret-value" aria-label={t('people.secretLabel')}>
         {secret.password}
       </output>
-      <p className="hint">{t('people.secretNext')}</p>
       <div className="actions">
         <button type="button" onClick={onCopy}>
           {t('people.copy')}
@@ -404,9 +402,7 @@ function CreateForm({
           value={username}
           onChange={(e) => setUsername(e.target.value.toLowerCase())}
         />
-        <p id="new-username-hint" className="hint">
-          {t('people.usernameHelp')}
-        </p>
+        <MoreInfo id="new-username-hint">{t('people.usernameHelp')}</MoreInfo>
       </div>
       <div className="field">
         <label htmlFor="new-role">{t('people.roleLabel')}</label>

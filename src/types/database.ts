@@ -1179,14 +1179,14 @@ isOneToOne: false
                   ]
                 },"washer_cycles": {
                   Row: {
-                    "area_id": string,"client_id": string | null,"created_at": string,"customer_id": string | null,"ended_at": string | null,"entered_by": string | null,"external_id": string | null,"id": string,"import_batch_id": string | null,"is_rewash": boolean,"load_count": number,"load_factor_used": number,"machine_id": string | null,"org_id": string,"plant_id": string,"production_date": string | null,"queue_item_id": string | null,"raw": Json | null,"shift_instance_id": string | null,"source": "manual"|"accuflow_csv"|"accuflow_api","staff_id": string | null,"started_at": string,"void_reason": string | null,"voided_at": string | null,"voided_by": string | null,"wash_formula_id": string | null,"wash_group_id": string | null
+                    "area_id": string,"client_id": string | null,"created_at": string,"customer_id": string | null,"ended_at": string | null,"entered_by": string | null,"external_id": string | null,"id": string,"import_batch_id": string | null,"is_rewash": boolean,"load_count": number,"load_factor_used": number,"machine_id": string | null,"off_queue": boolean | null,"off_queue_reason": string | null,"org_id": string,"plant_id": string,"production_date": string | null,"queue_item_id": string | null,"raw": Json | null,"shift_instance_id": string | null,"source": "manual"|"accuflow_csv"|"accuflow_api","staff_id": string | null,"started_at": string,"void_reason": string | null,"voided_at": string | null,"voided_by": string | null,"wash_formula_id": string | null,"wash_group_id": string | null
                   }
                   ComputedFields: never
                   Insert: {
-                    "area_id": string,"client_id"?: string | null,"created_at"?: string,"customer_id"?: string | null,"ended_at"?: string | null,"entered_by"?: string | null,"external_id"?: string | null,"id"?: string,"import_batch_id"?: string | null,"is_rewash"?: boolean,"load_count"?: number,"load_factor_used": number,"machine_id"?: string | null,"org_id": string,"plant_id": string,"production_date"?: string | null,"queue_item_id"?: string | null,"raw"?: Json | null,"shift_instance_id"?: string | null,"source": "manual"|"accuflow_csv"|"accuflow_api","staff_id"?: string | null,"started_at": string,"void_reason"?: string | null,"voided_at"?: string | null,"voided_by"?: string | null,"wash_formula_id"?: string | null,"wash_group_id"?: string | null
+                    "area_id": string,"client_id"?: string | null,"created_at"?: string,"customer_id"?: string | null,"ended_at"?: string | null,"entered_by"?: string | null,"external_id"?: string | null,"id"?: string,"import_batch_id"?: string | null,"is_rewash"?: boolean,"load_count"?: number,"load_factor_used": number,"machine_id"?: string | null,"off_queue"?: boolean | null,"off_queue_reason"?: string | null,"org_id": string,"plant_id": string,"production_date"?: string | null,"queue_item_id"?: string | null,"raw"?: Json | null,"shift_instance_id"?: string | null,"source": "manual"|"accuflow_csv"|"accuflow_api","staff_id"?: string | null,"started_at": string,"void_reason"?: string | null,"voided_at"?: string | null,"voided_by"?: string | null,"wash_formula_id"?: string | null,"wash_group_id"?: string | null
                   }
                   Update: {
-                    "area_id"?: string,"client_id"?: string | null,"created_at"?: string,"customer_id"?: string | null,"ended_at"?: string | null,"entered_by"?: string | null,"external_id"?: string | null,"id"?: string,"import_batch_id"?: string | null,"is_rewash"?: boolean,"load_count"?: number,"load_factor_used"?: number,"machine_id"?: string | null,"org_id"?: string,"plant_id"?: string,"production_date"?: string | null,"queue_item_id"?: string | null,"raw"?: Json | null,"shift_instance_id"?: string | null,"source"?: "manual"|"accuflow_csv"|"accuflow_api","staff_id"?: string | null,"started_at"?: string,"void_reason"?: string | null,"voided_at"?: string | null,"voided_by"?: string | null,"wash_formula_id"?: string | null,"wash_group_id"?: string | null
+                    "area_id"?: string,"client_id"?: string | null,"created_at"?: string,"customer_id"?: string | null,"ended_at"?: string | null,"entered_by"?: string | null,"external_id"?: string | null,"id"?: string,"import_batch_id"?: string | null,"is_rewash"?: boolean,"load_count"?: number,"load_factor_used"?: number,"machine_id"?: string | null,"off_queue"?: boolean | null,"off_queue_reason"?: string | null,"org_id"?: string,"plant_id"?: string,"production_date"?: string | null,"queue_item_id"?: string | null,"raw"?: Json | null,"shift_instance_id"?: string | null,"source"?: "manual"|"accuflow_csv"|"accuflow_api","staff_id"?: string | null,"started_at"?: string,"void_reason"?: string | null,"voided_at"?: string | null,"voided_by"?: string | null,"wash_formula_id"?: string | null,"wash_group_id"?: string | null
                   }
                   Relationships: [
                     {
@@ -1586,6 +1586,11 @@ isOneToOne: false
               "alert_id": string,"can_clear": boolean,"created_at": string,"kind": string,"payload": Json,"still_current": boolean
             }[]
                            },
+"get_off_queue_starts":
+{ Args: { "p_plant_id": string,"p_production_date"?: string }; Returns: {
+              "by_wash_group": Json,"last_at": string,"loads": number,"reason": string,"starts": number
+            }[]
+                           },
 "get_pending_push_alerts":
 { Args: Record<PropertyKey, never>; Returns: {
               "alert_created": string,"alert_id": string,"area_name": string,"auth": string,"down_since": string,"endpoint": string,"language": string,"machine_id": string,"machine_kind": "washer"|"dryer"|"ironer"|"folder"|"wrapper"|"utility"|"other","machine_name": string,"org_id": string,"p256dh": string,"plant_id": string,"plant_name": string,"reason_code": string,"reason_label_i18n": Json,"still_down": boolean,"subscription_id": string,"user_id": string
@@ -1910,7 +1915,7 @@ isOneToOne: false
         isSetofReturn: false
       } },
 "start_washer_load":
-{ Args: { "p_client_id": string,"p_confirm_running"?: boolean,"p_machine_id": string,"p_queue_item_id"?: string,"p_tapped_at"?: string,"p_wash_group_id"?: string }; Returns: Database["public"]['CompositeTypes']["washer_load_result"]
+{ Args: { "p_client_id": string,"p_confirm_running"?: boolean,"p_machine_id": string,"p_off_queue_reason"?: string,"p_queue_item_id"?: string,"p_tapped_at"?: string,"p_wash_group_id"?: string }; Returns: Database["public"]['CompositeTypes']["washer_load_result"]
                           SetofOptions: {
         from: "*"
         to: "washer_load_result"

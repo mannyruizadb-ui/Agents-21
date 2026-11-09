@@ -10,6 +10,7 @@ import { useAreas, type AreaRow } from '../washroom/washroomData';
 import { cleanName, setupErrorKey } from './setupErrors';
 import '../../lib/forms.css';
 import './setup.css';
+import { MoreInfo } from '../../lib/MoreInfo';
 
 // Setup → Machines (owner 2026-11-05): the owner adds, renames, changes kind/area and deactivates
 // machines. RLS: insert/update owner only. Kind and area are fixed once a machine has history (washer
@@ -220,13 +221,11 @@ function MachineRow({
               disabled={locked}
             />
           </div>
-          <p className="hint">
-            {history.isPending
-              ? t('common.loading')
-              : history.data
-                ? t('setup.machines.lockedHint')
-                : t('setup.machines.unlockedHint')}
-          </p>
+          {history.isPending ? (
+            <p className="hint">{t('common.loading')}</p>
+          ) : (
+            history.data && <p className="hint">{t('setup.machines.lockedHint')}</p>
+          )}
           <div className="actions">
             <button type="submit" disabled={save.isPending}>
               {t('setup.save')}
@@ -263,7 +262,7 @@ function MachineRow({
               </button>
             )}
           </div>
-          {machine.active && <p className="hint">{t('setup.machines.deactivateHint')}</p>}
+          {machine.active && <MoreInfo>{t('setup.machines.deactivateHint')}</MoreInfo>}
         </form>
       )}
     </li>
@@ -370,7 +369,6 @@ export function SetupMachinesPage() {
   return (
     <main className="form-page">
       <h1>{t('setup.machines.title')}</h1>
-      <p className="hint">{t('setup.machines.intro')}</p>
       <div role="status" aria-live="polite">
         {status && <p className={status.ok ? 'notice' : 'error'}>{status.text}</p>}
       </div>

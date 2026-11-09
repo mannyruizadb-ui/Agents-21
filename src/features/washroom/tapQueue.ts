@@ -1,4 +1,5 @@
 import type { KeyValueStore } from '../../lib/scopedStore';
+import { isOffQueueReason, type OffQueueReason } from './offQueue';
 
 export type { KeyValueStore };
 
@@ -20,6 +21,8 @@ export interface PendingTap {
   lastError: string | null;
   /** Owner 2026-11-06: the person confirmed starting another load on a washer that was still running. */
   confirmRunning?: boolean;
+  /** Owner 2026-11-09: why a start differs from the queue's next for this washer. */
+  offQueueReason?: OffQueueReason;
 }
 
 export interface RejectedTap extends PendingTap {
@@ -81,12 +84,20 @@ function writeList(store: KeyValueStore, key: string, list: readonly unknown[]):
   }
 }
 
+/** A stored reason that is not one of the four codes is dropped (the tap itself is kept). */
+function cleanReason<T extends PendingTap>(tap: T): T {
+  if (tap.offQueueReason === undefined || isOffQueueReason(tap.offQueueReason)) return tap;
+  const copy = { ...tap };
+  delete copy.offQueueReason;
+  return copy;
+}
+
 export function readPending(store: KeyValueStore): PendingTap[] {
-  return readList(store, PENDING_KEY, isPendingTap);
+  return readList(store, PENDING_KEY, isPendingTap).map(cleanReason);
 }
 
 export function readRejected(store: KeyValueStore): RejectedTap[] {
-  return readList(store, REJECTED_KEY, isRejectedTap);
+  return readList(store, REJECTED_KEY, isRejectedTap).map(cleanReason);
 }
 
 export function newTap(
@@ -95,6 +106,7 @@ export function newTap(
   clientId: string,
   now: Date,
   confirmRunning = false,
+  offQueueReason: OffQueueReason | null = null,
 ): PendingTap {
   return {
     clientId,
@@ -104,7 +116,30 @@ export function newTap(
     attempts: 0,
     lastError: null,
     ...(confirmRunning ? { confirmRunning: true } : {}),
+    ...(offQueueReason ? { offQueueReason } : {}),
   };
+}
+
+/**
+ * A NEW tap that re-sends a refused one with the missing answer added (WASHER_RUNNING → "Start
+ * anyway"; OFF_QUEUE_REASON_REQUIRED → a reason). Keeps the machine, the chosen group and every
+ * answer already given, so the retry cannot fail on the other question again. New client_id: the
+ * refused one was never recorded.
+ */
+export function resendTap(
+  refused: PendingTap,
+  clientId: string,
+  now: Date,
+  add: { confirmRunning?: boolean; offQueueReason?: OffQueueReason },
+): PendingTap {
+  return newTap(
+    refused.machineId,
+    refused.washGroupId,
+    clientId,
+    now,
+    add.confirmRunning ?? refused.confirmRunning ?? false,
+    add.offQueueReason ?? refused.offQueueReason ?? null,
+  );
 }
 
 /** Saves a tap (no-op if its clientId is already saved). Returns false if storage failed. */

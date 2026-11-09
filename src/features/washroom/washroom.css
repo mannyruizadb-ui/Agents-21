@@ -841,3 +841,36 @@ body:has(.station) {
   width: 100%;
   min-height: 64px;
 }
+
+/* ── Off-queue reason (owner 2026-11-09) ── */
+.station .reason-box {
+  flex-direction: column;
+  align-items: stretch;
+}
+.reason-q {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+.reason-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 12rem), 1fr));
+  gap: 10px;
+}
+.station .reason-button {
+  min-height: 88px;
+  font-size: 1.5rem;
+  font-weight: 800;
+  overflow-wrap: anywhere;
+}
+/* A refused tap's reason picker sits under its message, full width. */
+.station-message:has(> .reason-box) {
+  flex-wrap: wrap;
+}
+.station-message > p:has(+ .reason-box),
+.station-message > .reason-box {
+  flex: 1 1 100%;
+}
+.station-message > svg + p:has(+ .reason-box) {
+  flex: 1 1 0;
+}

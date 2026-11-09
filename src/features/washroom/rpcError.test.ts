@@ -70,3 +70,19 @@ describe('WASHER_RUNNING (owner 2026-11-06)', () => {
     expect(tapRejectedKey('WASHER_RUNNING')).toBe('station.rejectRunning');
   });
 });
+
+describe('OFF_QUEUE_REASON_REQUIRED (owner 2026-11-09)', () => {
+  it('is an app error that is never retried and has its own wording', async () => {
+    const { appErrorCode, isRetryable, errorMessageKey, tapRejectedKey } =
+      await import('./rpcError');
+    const e = {
+      message: 'OFF_QUEUE_REASON_REQUIRED',
+      details:
+        "p_off_queue_reason: required (not the queue's next for this washer); expected_wash_group_id=none",
+    };
+    expect(appErrorCode(e)).toBe('OFF_QUEUE_REASON_REQUIRED');
+    expect(isRetryable(e)).toBe(false);
+    expect(errorMessageKey(e)).toBe('errors.offQueueReason');
+    expect(tapRejectedKey('OFF_QUEUE_REASON_REQUIRED')).toBe('station.rejectOffQueue');
+  });
+});

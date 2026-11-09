@@ -24,6 +24,7 @@ import { IconBell, IconDown, IconGear, IconUp } from '../../features/washroom/Ic
 import { TapAlarmBanner } from '../../features/washroom/TapAlarmBanner';
 import { useMyRoles } from '../../features/washroom/useMyRoles';
 import { pickArea, useAreas } from '../../features/washroom/washroomData';
+import { OwnerDashboard } from '../../features/dashboard/OwnerDashboard';
 import '../../lib/forms.css';
 import './home.css';
 
@@ -52,7 +53,6 @@ function Customize({
   return (
     <section className="home-customize" aria-labelledby="home-customize-title">
       <h2 id="home-customize-title">{t('home.customizeTitle')}</h2>
-      <p className="hint">{t('home.customizeHint')}</p>
       <ol className="home-custom-list">
         {order.map((id, i) => {
           const name = label(id, isOwner);
@@ -145,7 +145,7 @@ export function HomePage() {
   const tiles = visibleTiles(prefs);
 
   return (
-    <main className="form-page home-page">
+    <main className={`form-page home-page${isOwner ? ' owner' : ''}`}>
       <div className="home-header">
         <h1>{t('home.title')}</h1>
         <div className="home-header-actions">
@@ -191,6 +191,12 @@ export function HomePage() {
       {!plantId && areas.isPending && <p role="status">{t('common.loading')}</p>}
       {plantId && rolesKnown && (
         <>
+          {isOwner && (
+            <>
+              <OwnerDashboard plantId={plantId} washroomId={washroom?.id} now={now} />
+              <h2 className="home-shortcuts-title head">{t('dash.shortcuts')}</h2>
+            </>
+          )}
           {tiles.length === 0 ? (
             <p className="notice">{t('home.noTiles')}</p>
           ) : (
