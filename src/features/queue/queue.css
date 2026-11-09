@@ -81,3 +81,30 @@
   font-family: var(--font-body);
   letter-spacing: 0;
 }
+
+/* Tablet and desktop (owner 2026-11-09). */
+@media (min-width: 768px) {
+  .form-page .queue-item {
+    padding: var(--sp-md);
+  }
+}
+@media (min-width: 1024px) {
+  .form-page.q-page {
+    max-width: 84rem;
+  }
+  .q-layout {
+    display: grid;
+    grid-template-columns: minmax(18rem, 26rem) minmax(0, 1fr);
+    gap: var(--sp-lg);
+    align-items: start;
+  }
+  .q-side {
+    position: sticky;
+    top: var(--sp-md);
+    max-height: calc(100dvh - 2 * var(--sp-md));
+    overflow-y: auto;
+  }
+  .form-page .q-main > h2 {
+    margin-top: 0;
+  }
+}

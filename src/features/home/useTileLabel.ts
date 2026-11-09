@@ -18,8 +18,6 @@ export function useTileLabel() {
         return t('home.dirtyWork');
       case 'queue':
         return t('nav.queue');
-      case 'alerts':
-        return t('nav.alerts');
     }
   };
 }

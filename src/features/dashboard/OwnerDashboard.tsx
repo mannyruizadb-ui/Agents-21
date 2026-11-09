@@ -35,6 +35,7 @@ import {
 } from './dashboardData';
 import {
   customerWork,
+  ownGroups,
   estimateAges,
   finishedToday,
   loadsToday,
@@ -46,11 +47,15 @@ import {
 } from './dashboardLogic';
 import './dashboard.css';
 import { MoreInfo } from '../../lib/MoreInfo';
+import { DESKTOP_FIT_QUERY, useMediaQuery } from '../../lib/useMediaQuery';
 
 // Owner-only Home dashboard (owner 2026-11-09: "I'm a visual guy, I like seeing numbers, in charts,
 // coloured correctly"). Real data only: estimates (≈), washer status, washer taps, finished goods.
-// No weights, no per-person rows or totals, no invented targets. Every color has words beside it;
-// every card shows its data age. Managers never render this (HomePage gates it on the owner role).
+// No weights, no per-person rows or totals, no invented targets. Every color has words beside it.
+// One freshness line for the page sits under the Home title; a card shows its own data age only when
+// ITS data may be old or failed (declutter 2026-11-09). On a desktop the grid fits the screen and a
+// long card scrolls inside itself (it is then focusable, so the keyboard can scroll it too).
+// Managers never render this (HomePage gates it on the owner role).
 
 const REFRESH_S = DASHBOARD_REFETCH_MS / 1000;
 
@@ -64,16 +69,23 @@ function Card({
   title,
   link,
   className = '',
+  scrolls = false,
   children,
 }: {
   title: string;
   link?: { to: string; text: string };
   className?: string;
+  /** Desktop fit: the card may scroll inside itself, so it takes keyboard focus. */
+  scrolls?: boolean;
   children: ReactNode;
 }) {
   const id = `dash-${title.replace(/\W+/g, '-').toLowerCase()}`;
   return (
-    <section className={`dash-card ${className}`} aria-labelledby={id}>
+    <section
+      className={`dash-card ${className}`}
+      aria-labelledby={id}
+      tabIndex={scrolls ? 0 : undefined}
+    >
       <div className="dash-card-head">
         <h2 id={id} className="head">
           {title}
@@ -113,11 +125,16 @@ export function OwnerDashboard({ plantId, washroomId, now }: Props) {
   const localized = useLocalizedName();
   const { hours, fmt } = useAmountText();
   const ago = useAgo();
+  const fit = useMediaQuery(DESKTOP_FIT_QUERY);
   const lookup = useCustomerLookup();
   const customerName = useCustomerNameOf();
-  const customerOf = (groupId: string) => lookup(groupId)?.customerId ?? null;
-
   const groups = useEstimateGroups(plantId);
+  const groupCustomer = new Map((groups.data ?? []).map((g) => [g.id, g.customer_id]));
+  const customerOf = (groupId: string) =>
+    groupCustomer.get(groupId) ?? lookup(groupId)?.customerId ?? null;
+  // Estimate totals and the by-group chart count OUR groups only; customers come from the queue.
+  const own = ownGroups(groups.data ?? [], customerOf);
+  const ownIds = new Set(own.map((g) => g.id));
   const formulas = useFormulaMinutes(plantId);
   const current = useCurrentEstimates(plantId);
   const capacity = useWasherCapacity(plantId);
@@ -130,10 +147,10 @@ export function OwnerDashboard({ plantId, washroomId, now }: Props) {
   const cycleOf = (id: string | null) => (id ? (formulas.data?.get(id) ?? null) : null);
   const cap = capacity.data?.capacity ?? 0;
   const washersUp = capacity.data?.washers ?? 0;
-  const work = workByGroup(groups.data ?? [], current.data ?? new Map(), cycleOf, cap, customerOf);
+  const work = workByGroup(own, current.data ?? new Map(), cycleOf, cap, customerOf);
   // Same totals as the estimates screen: Σ(loads × cycle min) ÷ 60 ÷ working-washer capacity.
   const s = summarize(
-    (groups.data ?? []).flatMap((g) => {
+    own.flatMap((g) => {
       const last = current.data?.get(g.id);
       if (!last) return [];
       return [
@@ -146,7 +163,9 @@ export function OwnerDashboard({ plantId, washroomId, now }: Props) {
     cap,
   );
   const totalHours = s.hours;
-  const ages = estimateAges(current.data?.values() ?? []);
+  const ages = estimateAges(
+    [...(current.data?.values() ?? [])].filter((e) => ownIds.has(e.wash_group_id)),
+  );
   const estimatesReady = groups.isSuccess && current.isSuccess && formulas.isSuccess;
   const doneAround =
     totalHours !== null && totalHours > 0
@@ -173,7 +192,6 @@ export function OwnerDashboard({ plantId, washroomId, now }: Props) {
         ? t('dash.loadsShort', { count: pluralCount(w.loads ?? 0), n: fmt(w.loads ?? 0) })
         : undefined,
       color: w.color,
-      tag: w.customerId ? <CustomerBadge washGroupId={w.id} /> : undefined,
     }))
     .sort((a, b) => b.value - a.value || a.name.localeCompare(b.name));
 
@@ -190,7 +208,14 @@ export function OwnerDashboard({ plantId, washroomId, now }: Props) {
   const stateLabel = (st: WasherState) => t(`dash.state.${st}`);
 
   // Outside customers (AA Linen): every customer that has a wash group, even with nothing waiting.
-  const customers = customerWork(work, queue.data ?? [], customerOf);
+  // From the open queue only (loads not started), never from estimates.
+  const formulaOfGroup = new Map((groups.data ?? []).map((g) => [g.id, g.wash_formula_id]));
+  const customers = customerWork(
+    queue.data ?? [],
+    customerOf,
+    (id) => cycleOf(formulaOfGroup.get(id) ?? null),
+    cap,
+  );
   const customerGroup = new Map<string, string>();
   for (const g of groups.data ?? []) {
     const id = customerOf(g.id);
@@ -200,11 +225,10 @@ export function OwnerDashboard({ plantId, washroomId, now }: Props) {
     if (!customers.some((c) => c.customerId === id))
       customers.push({
         customerId: id,
-        estimateLoads: 0,
-        estimateHours: 0,
         queueItems: 0,
         queueLoads: 0,
         queueWithoutCount: 0,
+        queueHours: null,
       });
 
   const today = loadsToday(pace.data ?? []);
@@ -220,11 +244,16 @@ export function OwnerDashboard({ plantId, washroomId, now }: Props) {
     : null;
 
   return (
-    <div className="dash" role="region" aria-label={t('dash.region')}>
+    <div
+      className={customers.length > 0 ? 'dash' : 'dash no-cust'}
+      role="region"
+      aria-label={t('dash.region')}
+    >
       {/* 1. Hours of work waiting: the most important number. */}
       <Card
         title={t('dash.hoursTitle')}
         className="dash-hero"
+        scrolls={fit}
         link={{ to: '/control/estimates', text: t('nav.estimates') }}
       >
         {!estimatesReady ? (
@@ -285,6 +314,7 @@ export function OwnerDashboard({ plantId, washroomId, now }: Props) {
           </>
         )}
         <DataAge
+          quiet
           updatedAt={current.dataUpdatedAt}
           now={now}
           isFetching={current.isFetching}
@@ -296,6 +326,8 @@ export function OwnerDashboard({ plantId, washroomId, now }: Props) {
       {/* 3. Washers right now. */}
       <Card
         title={t('dash.washersTitle')}
+        className="dash-wash"
+        scrolls={fit}
         link={{ to: '/control/washers', text: t('nav.washers') }}
       >
         {board.isError && !board.data ? (
@@ -338,6 +370,7 @@ export function OwnerDashboard({ plantId, washroomId, now }: Props) {
           </>
         )}
         <DataAge
+          quiet
           updatedAt={board.dataUpdatedAt}
           now={now}
           isFetching={board.isFetching}
@@ -346,7 +379,7 @@ export function OwnerDashboard({ plantId, washroomId, now }: Props) {
       </Card>
 
       {/* 2. Hours waiting by wash group. */}
-      <Card title={t('dash.byGroupTitle')} className="dash-wide">
+      <Card title={t('dash.byGroupTitle')} className="dash-wide dash-group" scrolls={fit}>
         {!estimatesReady ? (
           <p role="status">{t('common.loading')}</p>
         ) : chartBars.length === 0 ? (
@@ -362,6 +395,7 @@ export function OwnerDashboard({ plantId, washroomId, now }: Props) {
           </>
         )}
         <DataAge
+          quiet
           updatedAt={current.dataUpdatedAt}
           now={now}
           isFetching={current.isFetching}
@@ -371,68 +405,59 @@ export function OwnerDashboard({ plantId, washroomId, now }: Props) {
       </Card>
 
       {/* AA Linen (outside customers) waiting, apart from our own goods. */}
-      {customers.map((c) => {
-        const gid = customerGroup.get(c.customerId) ?? null;
-        const name = customerName(gid) ?? t('customers.generic');
-        const nothing = c.estimateLoads === 0 && c.queueItems === 0;
-        return (
-          <Card
-            key={c.customerId}
-            title={t('dash.customerTitle', { name })}
-            className="dash-customer"
-            link={{ to: '/control/queue', text: t('nav.queue') }}
-          >
-            {nothing ? (
-              <p className="hint">
-                <IconReady /> {t('dash.customerNone')}
-              </p>
-            ) : (
-              <>
-                <p className="dash-stat">
-                  <IconCustomer /> <span className="dash-stat-num">≈ {fmt(c.estimateLoads)}</span>{' '}
-                  <span>{t('dash.loadsEstimated', { count: pluralCount(c.estimateLoads) })}</span>
-                </p>
-                {c.estimateLoads > 0 && c.estimateHours !== null && (
-                  <p className="dash-hero-sub">
-                    {t('dash.customerHours', { time: hours(c.estimateHours) })}
-                  </p>
-                )}
-                <p className="dash-hero-sub">
-                  {c.queueItems === 0
-                    ? t('dash.customerQueueEmpty')
-                    : t('dash.customerQueue', {
-                        count: c.queueItems,
-                        loads: fmt(c.queueLoads),
-                      })}
-                </p>
-                {c.queueWithoutCount > 0 && (
+      {customers.length > 0 && (
+        <div className="dash-cust">
+          {customers.map((c) => {
+            const gid = customerGroup.get(c.customerId) ?? null;
+            const name = customerName(gid) ?? t('customers.generic');
+            const nothing = c.queueItems === 0;
+            return (
+              <Card
+                key={c.customerId}
+                title={t('dash.customerTitle', { name })}
+                className="dash-customer"
+                scrolls={fit}
+                link={{ to: '/control/queue', text: t('nav.queue') }}
+              >
+                {nothing ? (
                   <p className="hint">
-                    <IconWarning /> {t('dash.withoutCount', { count: c.queueWithoutCount })}
+                    <IconReady /> {t('dash.customerNone')}
                   </p>
+                ) : (
+                  <>
+                    <p className="dash-stat">
+                      <IconCustomer /> <span className="dash-stat-num">{fmt(c.queueLoads)}</span>{' '}
+                      <span>{t('dash.loadsNotStarted', { count: pluralCount(c.queueLoads) })}</span>
+                    </p>
+                    <p className="dash-hero-sub">
+                      {t('dash.customerItems', { count: c.queueItems })}
+                      {c.queueHours !== null &&
+                        c.queueLoads > 0 &&
+                        ` · ${t('dash.customerQueueHours', { time: hours(c.queueHours) })}`}
+                    </p>
+                    {c.queueWithoutCount > 0 && (
+                      <p className="hint">
+                        <IconWarning /> {t('dash.withoutCount', { count: c.queueWithoutCount })}
+                      </p>
+                    )}
+                  </>
                 )}
-              </>
-            )}
-            <DataAge
-              // The older of the two reads (estimates, queue); 0 until both have loaded.
-              updatedAt={
-                current.dataUpdatedAt && queue.dataUpdatedAt
-                  ? Math.min(current.dataUpdatedAt, queue.dataUpdatedAt)
-                  : 0
-              }
-              now={now}
-              isFetching={queue.isFetching}
-              isError={queue.isError}
-              refreshSeconds={REFRESH_S}
-            />
-          </Card>
-        );
-      })}
+                <DataAge
+                  quiet
+                  updatedAt={queue.dataUpdatedAt}
+                  now={now}
+                  isFetching={queue.isFetching}
+                  isError={queue.isError}
+                  refreshSeconds={REFRESH_S}
+                />
+              </Card>
+            );
+          })}
+        </div>
+      )}
 
       {/* 4. Loads washed this production day. */}
-      <Card
-        title={t('dash.loadsTodayTitle')}
-        link={{ to: '/control/washers', text: t('nav.washers') }}
-      >
+      <Card title={t('dash.loadsTodayTitle')} className="dash-loads" scrolls={fit}>
         {pace.isError && !pace.data ? (
           <p className="error">{t(errorMessageKey(pace.error))}</p>
         ) : !pace.data ? (
@@ -472,6 +497,7 @@ export function OwnerDashboard({ plantId, washroomId, now }: Props) {
           </>
         )}
         <DataAge
+          quiet
           updatedAt={pace.dataUpdatedAt}
           now={now}
           isFetching={pace.isFetching}
@@ -481,10 +507,7 @@ export function OwnerDashboard({ plantId, washroomId, now }: Props) {
       </Card>
 
       {/* Off-queue washer starts today, by reason (owner 2026-11-09). Counts only, no names. */}
-      <Card
-        title={t('dash.offQueueTitle')}
-        link={{ to: '/control/washers', text: t('nav.washers') }}
-      >
+      <Card title={t('dash.offQueueTitle')} className="dash-offq" scrolls={fit}>
         {offQueue.isError && !offQueue.data ? (
           <p className="error">{t(errorMessageKey(offQueue.error))}</p>
         ) : !offQueue.data ? (
@@ -523,6 +546,7 @@ export function OwnerDashboard({ plantId, washroomId, now }: Props) {
           </>
         )}
         <DataAge
+          quiet
           updatedAt={offQueue.dataUpdatedAt}
           now={now}
           isFetching={offQueue.isFetching}
@@ -532,7 +556,7 @@ export function OwnerDashboard({ plantId, washroomId, now }: Props) {
       </Card>
 
       {/* 5. Finished goods this production day (voided entries left out). */}
-      <Card title={t('dash.finishedTitle')} className="dash-wide">
+      <Card title={t('dash.finishedTitle')} className="dash-wide dash-fin" scrolls={fit}>
         {finished.isError && !finished.data ? (
           <p className="error">{t(errorMessageKey(finished.error))}</p>
         ) : !finished.data ? (
@@ -564,6 +588,7 @@ export function OwnerDashboard({ plantId, washroomId, now }: Props) {
           </>
         )}
         <DataAge
+          quiet
           updatedAt={finished.dataUpdatedAt}
           now={now}
           isFetching={finished.isFetching}

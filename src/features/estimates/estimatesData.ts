@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '../../lib/supabase';
 import type { Database } from '../../types/database';
 import { unwrap } from '../washroom/rpcError';
+import { narrowCategory, type Category } from './categories';
 
 // Reads for the estimates screen. No entered-by names are ever selected (owner 2026-11-04).
 
@@ -16,7 +17,9 @@ export type EstimateGroup = Pick<
   | 'allow_bin_estimates'
   | 'loads_per_basket'
   | 'loads_per_bin'
+  | 'default_estimate_unit'
   | 'wash_formula_id'
+  | 'customer_id'
 >;
 
 export interface CurrentEstimate {
@@ -36,6 +39,11 @@ export const estimateKeys = {
   capacity: (plantId: string) => ['washer-capacity', plantId] as const,
 };
 
+/**
+ * Every active wash group of the plant, outside customers' (AA Linen) included: callers that total
+ * OUR dirty work keep only `customer_id === null` (meta 2026-11-09: customer goods arrive by
+ * delivery into the queue, so estimating them too would double count).
+ */
 export function useEstimateGroups(plantId: string | undefined) {
   return useQuery({
     queryKey: estimateKeys.groups(plantId ?? ''),
@@ -45,7 +53,7 @@ export function useEstimateGroups(plantId: string | undefined) {
         await supabase
           .from('wash_groups')
           .select(
-            'id, name, name_i18n, color_hex, sort_order, allow_basket_estimates, allow_bin_estimates, loads_per_basket, loads_per_bin, wash_formula_id',
+            'id, name, name_i18n, color_hex, sort_order, allow_basket_estimates, allow_bin_estimates, loads_per_basket, loads_per_bin, default_estimate_unit, wash_formula_id, customer_id',
           )
           .eq('plant_id', plantId ?? '')
           .eq('active', true)
@@ -125,5 +133,27 @@ export function useWasherCapacity(plantId: string | undefined) {
       };
     },
     refetchInterval: 60_000,
+  });
+}
+
+/**
+ * Wash group id → category, for the filter chips (owner 2026-11-09). wash_groups.category is new, so
+ * it is read in its own query (not in useEstimateGroups): if the column is not in the database yet the
+ * read fails and the screens simply show no chips, while the estimates themselves keep working.
+ */
+export function useGroupCategories(plantId: string | undefined) {
+  return useQuery({
+    queryKey: ['wash-group-categories', plantId ?? ''],
+    enabled: !!plantId,
+    retry: false,
+    queryFn: async (): Promise<Map<string, Category>> => {
+      const res = await supabase
+        .from('wash_groups')
+        .select('id, category')
+        .eq('plant_id', plantId ?? '');
+      const rows = unwrap(res) ?? [];
+      return new Map(rows.map((r) => [r.id, narrowCategory(r.category)]));
+    },
+    staleTime: 5 * 60_000,
   });
 }

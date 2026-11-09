@@ -60,8 +60,32 @@
   --target: 56px; /* entry targets */
   --target-floor: 96px; /* primary floor actions */
   --nav-h: 72px;
+  /* App frame (owner 2026-11-09): by WIDTH, never device detection.
+     Phone < 768 px: bottom bar. Tablet 768–1279: bigger text and ≥ 56 px targets; portrait keeps a
+     taller bottom bar, landscape (≥ 1024) a left side menu. Desktop ≥ 1280: the side menu. */
+  --side-w: 0px; /* width of the left side menu (0 = bottom bar) */
+  --nav-space: var(--nav-h); /* room kept free at the bottom for the bottom bar */
 
   color-scheme: dark;
+}
+@media (min-width: 768px) and (max-width: 1279.98px) {
+  html {
+    font-size: 112.5%; /* tablet: 18 px body text; every rem size scales with it */
+  }
+  :root {
+    --nav-h: 84px;
+  }
+}
+@media (min-width: 1024px) {
+  :root {
+    --side-w: 13rem;
+    --nav-space: 0px;
+  }
+}
+@media (min-width: 1280px) {
+  :root {
+    --side-w: 15rem;
+  }
 }
 
 html {

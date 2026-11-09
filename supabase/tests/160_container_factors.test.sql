@@ -82,9 +82,9 @@ create function pg_temp.adb_all_groups() returns setof public.wash_groups langua
     join public.plants p on p.id = g.plant_id and p.name = 'Miami'
     join public.organizations o on o.id = p.org_id and o.slug = 'americas-dust-busters';
 $$;
-select is((select array_agg(name order by name) from pg_temp.adb_groups() where loads_per_basket = 3.5 and allow_basket_estimates),
-  array['Black mats','Charcoal mats','City & Brito mats','Colored mats','Logo mats','Presidente logo mats','Scraper mats'],
-  'every mat group: 3.5 loads per basket, baskets allowed');
+select is((select array_agg(name order by name) from pg_temp.adb_groups() where active and loads_per_basket = 3.5 and allow_basket_estimates),
+  array['Black mats','Brito mats','Charcoal mats','Colored mats'],
+  'every active mat group (the 4 baskets, owner 2026-11-09): 3.5 loads per basket, baskets allowed');
 select is((select array[loads_per_basket, loads_per_bin] from pg_temp.adb('Kitchen towels')), array[2, 2.5]::numeric[],
   'Kitchen towels: 2 loads per basket, 2.5 per bin');
 select is((select count(*)::int from pg_temp.adb_groups()
@@ -117,9 +117,9 @@ select is((select coalesce(array_agg(name order by name), '{}') from pg_temp.adb
               and (pg_temp.contrast(color_hex, '#FFFFFF') < 3 or pg_temp.contrast(color_hex, '#0B0F14') < 3)),
   '{}'::text[], 'colored and no-color groups are ≥ 3:1 against both cards');
 
-select is((select array_agg(name order by name) from pg_temp.adb_groups() where loads_per_bin = 4 and allow_bin_estimates),
-  array['Black mats','Charcoal mats','City & Brito mats','Colored mats','Logo mats','Presidente logo mats','Scraper mats'],
-  'owner 2026-11-05: every mat group also takes 4 loads per full bin (bins allowed)');
+select is((select array_agg(name order by name) from pg_temp.adb_groups() where active and loads_per_bin = 4 and allow_bin_estimates),
+  array['Black mats','Brito mats','Charcoal mats','Colored mats'],
+  'owner 2026-11-05: every active mat group also takes 4 loads per full bin (bins allowed)');
 select is((select array_agg(name_i18n ->> 'es' order by name) from pg_temp.adb_groups() where name like '%mops'),
   array['Mapos de polvo y trapeadores', 'Mapos de microfibra'], 'owner 2026-11-05: mops are "Mapos" in Spanish');
 

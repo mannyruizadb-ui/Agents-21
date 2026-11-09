@@ -4,7 +4,7 @@
    2 px surface gaps between the washer segments. */
 
 .form-page.home-page.owner {
-  max-width: 96rem;
+  max-width: 110rem;
 }
 
 .dash {
@@ -21,7 +21,7 @@
     grid-column: 1 / -1;
   }
 }
-@media (min-width: 80rem) {
+@media (min-width: 1280px) {
   .dash {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
@@ -30,6 +30,93 @@
   }
   .dash-wide {
     grid-column: span 2;
+  }
+}
+.dash-cust {
+  display: grid;
+  gap: var(--sp-md);
+  min-width: 0;
+  align-content: start;
+}
+
+/* Desktop fit (owner 2026-11-09): on a desktop at least 1280 × 640 the owner's Home fills the screen
+   height with no page scroll. Status strip on top, then a 4 × 2 grid whose rows share the rest; a card
+   with more than fits scrolls inside itself (and is focusable for the keyboard). While Customize is
+   open the page scrolls normally. */
+@media (min-width: 1280px) and (min-height: 640px) {
+  .form-page.home-page.owner:not(:has(.home-customize)) {
+    height: 100vh;
+    height: 100dvh;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    padding-bottom: var(--sp-md);
+  }
+  .home-page.owner:not(:has(.home-customize)) .home-body {
+    flex: 1 1 auto;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    gap: var(--sp-md);
+  }
+  .home-page.owner:not(:has(.home-customize)) .home-strip {
+    flex: none;
+    margin: 0;
+  }
+  .home-page.owner:not(:has(.home-customize)) .dash {
+    flex: 1 1 auto;
+    min-height: 0;
+    margin: 0;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    /* Rows 1–2 take what the headline cards need (and shrink when the screen is short); the charts
+       row gets the rest, at least 12rem. */
+    grid-template-rows: auto minmax(0, max-content) minmax(12rem, 1fr);
+    grid-template-areas:
+      'hero hero wash cust'
+      'hero hero wash offq'
+      'group group loads fin';
+  }
+  .home-page.owner:not(:has(.home-customize)) .dash.no-cust {
+    grid-template-areas:
+      'hero hero wash offq'
+      'hero hero wash offq'
+      'group group loads fin';
+  }
+  .home-page.owner:not(:has(.home-customize)) .dash > * {
+    min-height: 0;
+  }
+  .home-page.owner:not(:has(.home-customize)) .dash-card {
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+  .home-page.owner:not(:has(.home-customize)) .dash-cust {
+    max-height: 40vh;
+    overflow-y: auto;
+  }
+  .dash-hero {
+    grid-area: hero;
+  }
+  .dash-wash {
+    grid-area: wash;
+  }
+  .dash-cust {
+    grid-area: cust;
+  }
+  .dash-offq {
+    grid-area: offq;
+  }
+  .dash-group {
+    grid-area: group;
+  }
+  .dash-loads {
+    grid-area: loads;
+  }
+  .dash-fin {
+    grid-area: fin;
+  }
+  .dash-card:focus-visible {
+    outline: 3px solid var(--c-focus);
+    outline-offset: 2px;
   }
 }
 
@@ -81,7 +168,8 @@
 .dash-hero-big {
   font-family: var(--font-body);
   font-weight: 700;
-  font-size: clamp(2.5rem, 7vw, 4rem);
+  /* Scales with the CARD (container units), so a narrow desktop card shrinks it instead of wrapping. */
+  font-size: clamp(2rem, 12cqi, 4rem);
   line-height: 1.05;
   overflow-wrap: anywhere;
 }

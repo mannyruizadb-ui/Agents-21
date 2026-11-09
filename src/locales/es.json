@@ -461,12 +461,12 @@
     "loadsWord_one": "carga esperando",
     "loadsWord_other": "cargas esperando",
     "groupsEstimated": "{{done}} de {{total}} grupos de lavado estimados",
-    "filterLabel": "Mostrar",
-    "filterAll_one": "Todos ({{count}})",
-    "filterAll_other": "Todos ({{count}})",
     "filterNeeds_one": "Falta estimar ({{count}})",
     "filterNeeds_other": "Falta estimar ({{count}})",
-    "allEstimated": "Todos los grupos de lavado tienen estimado."
+    "allEstimated": "Todos los grupos de lavado tienen estimado.",
+    "ourWork": "Nuestro trabajo",
+    "viewLabel": "Mostrar trabajo de",
+    "customersTab": "Clientes"
   },
   "signOut": {
     "pending_one": "{{count}} dato o arranque de lavadora no se ha enviado todavía.",
@@ -695,7 +695,8 @@
     "estimates": "Estimados",
     "tasks": "Tareas",
     "more": "Más",
-    "home": "Inicio"
+    "home": "Inicio",
+    "skipToContent": "Saltar al contenido"
   },
   "alerts": {
     "unavailable": "La lista de alertas todavía no está disponible. Las alertas siguen llegando como notificaciones a este teléfono (actívalas en Más).",
@@ -777,8 +778,6 @@
       "down": "Fuera"
     },
     "minLeft": "min faltan",
-    "unload": "Terminó: sacar",
-    "open": "Abrir",
     "running": "{{n}}/{{total}} lavando",
     "thenMore_one": "y {{count}} más",
     "thenMore_other": "y {{count}} más",
@@ -810,7 +809,6 @@
     "queueItems_other": "trabajos · ≈ {{loads}} cargas",
     "rush_one": "{{count}} urgente",
     "rush_other": "{{count}} urgentes",
-    "alertsUnavailable": "Todavía no disponible",
     "bellLabel_one": "Alertas ({{count}} nueva)",
     "bellLabel_other": "Alertas ({{count}} nuevas)",
     "customize": "Personalizar",
@@ -826,8 +824,7 @@
     "ageMin_other": "Hace {{count}} min",
     "hm": "{{h}}h {{m}}m",
     "m": "{{m}}m",
-    "alertsNew_one": "nueva desde la última vez",
-    "alertsNew_other": "nuevas desde la última vez"
+    "statusStrip": "Estado"
   },
   "names": {
     "by": "por {{name}}",
@@ -902,7 +899,6 @@
   },
   "dash": {
     "region": "Panel del dueño",
-    "shortcuts": "Accesos",
     "hoursTitle": "Horas de trabajo esperando",
     "ofWashing": "de lavado",
     "loadsWaiting_one": "≈ {{n}} carga esperando",
@@ -944,12 +940,6 @@
     "noWashersSet": "No hay lavadoras configuradas.",
     "customerTitle": "{{name}} esperando",
     "customerNone": "Nada esperando.",
-    "loadsEstimated_one": "carga estimada",
-    "loadsEstimated_other": "cargas estimadas",
-    "customerHours": "≈ {{time}} del tiempo de lavado de arriba",
-    "customerQueue_one": "En la cola: {{count}} artículo, {{loads}} cargas sin empezar",
-    "customerQueue_other": "En la cola: {{count}} artículos, {{loads}} cargas sin empezar",
-    "customerQueueEmpty": "Nada en la cola.",
     "withoutCount_one": "{{count}} artículo de la cola no tiene número de cargas.",
     "withoutCount_other": "{{count}} artículos de la cola no tienen número de cargas.",
     "loadsTodayTitle": "Cargas lavadas hoy",
@@ -976,7 +966,12 @@
     "offQueueStarts_one": "arranque fuera de la cola",
     "offQueueStarts_other": "arranques fuera de la cola",
     "offQueueByReason": "Arranques fuera de la cola por motivo",
-    "offQueueLast": "El último a las {{time}}"
+    "offQueueLast": "El último a las {{time}}",
+    "loadsNotStarted_one": "carga sin empezar",
+    "loadsNotStarted_other": "cargas sin empezar",
+    "customerItems_one": "{{count}} trabajo en la cola",
+    "customerItems_other": "{{count}} trabajos en la cola",
+    "customerQueueHours": "≈ {{time}} de lavado"
   },
   "offQueue": {
     "reason": {
@@ -985,5 +980,16 @@
       "urgent": "Urgente",
       "other": "Otro"
     }
+  },
+  "categories": {
+    "label": "Filtrar por categoría",
+    "all": "Todo",
+    "napkins": "Servilletas",
+    "tablecloths": "Manteles",
+    "sheets": "Sábanas",
+    "mats": "Tapetes",
+    "towels_aprons": "Toallas y delantales",
+    "mops": "Mapos",
+    "other": "Otros"
   }
 }

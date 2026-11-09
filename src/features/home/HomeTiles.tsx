@@ -2,7 +2,6 @@ import type { ReactNode } from 'react';
 import { Link } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import { useLocalNames } from '../../lib/seededNames';
-import { useMyAlertCount } from '../alerts/alertsData';
 import { hoursMinutes, summarize } from '../estimates/estimateMath';
 import {
   useCurrentEstimates,
@@ -15,7 +14,6 @@ import { useLoadOutBoard, usePlant } from '../loadout/loadOutData';
 import { useTasks } from '../tasks/tasksData';
 import { useReasonLabeler } from '../washroom/downReasons';
 import {
-  IconBell,
   IconBins,
   IconMachineDown,
   IconQueue,
@@ -31,8 +29,9 @@ import { ageSeconds, estimateServerNow, freshness, washerNow } from '../washroom
 import { useMachineStatus, useQueue, useWashroomBoard } from '../washroom/washroomData';
 import type { TileId } from './homePrefs';
 
-// Home dashboard tiles (owner 2026-11-06, round 2). Each tile reads the same data as its screen,
-// shows its own data age, and taps through to that screen. Status is never color alone: every
+// Home dashboard tiles (owner 2026-11-06, round 2). Each tile reads the same data as its screen and
+// taps through to that screen. One freshness line for the whole page sits under the Home title
+// (declutter 2026-11-09); a tile shows its own age only when ITS data may be old or failed to load. Status is never color alone: every
 // signal has an icon and words. Green only for "running" / OK.
 
 export type TileTone = 'neutral' | 'ok' | 'warn' | 'danger' | 'info';
@@ -46,7 +45,7 @@ interface Ctx {
   now: number;
 }
 
-/** Compact data age for a tile ("12 s ago"); a warning icon and words when it may be old. */
+/** A tile's data age, shown only when it may be old or the refresh failed (icon + words). */
 function TileAge({
   updatedAt,
   now,
@@ -62,6 +61,7 @@ function TileAge({
   if (!updatedAt) return null;
   const age = ageSeconds(updatedAt, now);
   const band = freshness(age);
+  if (band === 'fresh' && !isError) return null;
   return (
     <span className={`home-age data-age-${band}`}>
       {band !== 'fresh' && <IconWarning />}
@@ -334,15 +334,18 @@ function DirtyWorkTile({ c }: { c: Ctx }) {
   const formulas = useFormulaMinutes(c.plantId);
   const capacity = useWasherCapacity(c.plantId);
   const ready = groups.data && current.data;
+  // Our own groups only: customers' goods (AA Linen) are counted from the queue, not estimates.
   const summary = summarize(
-    (groups.data ?? []).flatMap((g) => {
-      const last = current.data?.get(g.id);
-      if (!last) return [];
-      const cycleMinutes = g.wash_formula_id
-        ? (formulas.data?.get(g.wash_formula_id) ?? null)
-        : null;
-      return [{ loads: Number(last.qty) === 0 ? 0 : last.qty_loads, cycleMinutes }];
-    }),
+    (groups.data ?? [])
+      .filter((g) => g.customer_id === null)
+      .flatMap((g) => {
+        const last = current.data?.get(g.id);
+        if (!last) return [];
+        const cycleMinutes = g.wash_formula_id
+          ? (formulas.data?.get(g.wash_formula_id) ?? null)
+          : null;
+        return [{ loads: Number(last.qty) === 0 ? 0 : last.qty_loads, cycleMinutes }];
+      }),
     capacity.data?.capacity ?? 0,
   );
   const doneAt =
@@ -424,34 +427,6 @@ function QueueTile({ c }: { c: Ctx }) {
   );
 }
 
-function AlertsTile({ c }: { c: Ctx }) {
-  const { t } = useTranslation();
-  const count = useMyAlertCount(c.plantId, c.userId);
-  const n = count.data;
-  return (
-    <Tile
-      to="/control/alerts"
-      icon={<IconBell size="1.5em" />}
-      title={t('nav.alerts')}
-      tone={n ? 'warn' : 'neutral'}
-      updatedAt={count.dataUpdatedAt}
-      isFetching={count.isFetching}
-      now={c.now}
-    >
-      {count.isPending ? (
-        <Loading />
-      ) : n === null || n === undefined ? (
-        <span className="home-sub">{t('home.alertsUnavailable')}</span>
-      ) : (
-        <>
-          <span className={`home-big mono ${n > 0 ? 'home-warn' : ''}`}>{n}</span>
-          <span className="home-sub">{t('home.alertsNew', { count: n })}</span>
-        </>
-      )}
-    </Tile>
-  );
-}
-
 export function HomeTile({ id, ctx }: { id: TileId; ctx: Ctx }) {
   switch (id) {
     case 'washers':
@@ -466,7 +441,5 @@ export function HomeTile({ id, ctx }: { id: TileId; ctx: Ctx }) {
       return <DirtyWorkTile c={ctx} />;
     case 'queue':
       return <QueueTile c={ctx} />;
-    case 'alerts':
-      return <AlertsTile c={ctx} />;
   }
 }

@@ -155,8 +155,9 @@ select ok((select bool_and((starts_at at time zone 'America/New_York')::time = '
 select col_default_is('public', 'wash_groups', 'ships_next_morning', 'false', 'ships_next_morning defaults to false');
 select is((select array_agg(g.name order by g.sort_order) from public.wash_groups g join public.plants p on p.id = g.plant_id
             where p.name = 'Miami' and g.ships_next_morning),
-  array['Black mats', 'Colored mats', 'Charcoal mats', 'Scraper mats', 'City & Brito mats', 'Presidente logo mats', 'Logo mats',
-        'Coats (white)', 'Old sheets', 'Regular sheets', 'New sheets'], 'seed: mats, sheets and white coats ship next morning');
+  array['Black mats', 'Colored mats', 'Charcoal mats', 'Scraper mats', 'Brito mats', 'Presidente logo mats', 'Logo mats',
+        'Coats (white)', 'Old sheets', 'Regular sheets', 'New sheets'],
+  'seed: mats, sheets and white coats ship next morning (Brito mats was City & Brito mats; 3 mat groups inactive since 2026-11-09)');
 select is((select schedule || ' | ' || command from cron.job where jobname = 'generate-shift-instances'),
   '15 3 * * * | select app.generate_all_shift_instances(14)', 'pg_cron: nightly 03:15 UTC, next 14 days, all plants');
 

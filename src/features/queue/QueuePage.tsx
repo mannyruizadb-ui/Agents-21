@@ -297,12 +297,13 @@ function QueueItemCard({
               <IconRewash /> {t('queue.rewash')}
             </span>
           )}
-          <span className="status-pill idle q-washer">
-            <IconPin />{' '}
-            {item.assigned_machine_name
-              ? names.machine(item.assigned_machine_name)
-              : t('queue.nextFreeWasher')}
-          </span>
+          {/* Only a pinned washer gets a tag ("next free washer" is the default, not news), and
+              not when the washer picker below already shows it (declutter 2026-11-09). */}
+          {item.assigned_machine_name && !(canEdit && isWashroom) && (
+            <span className="status-pill idle q-washer">
+              <IconPin /> {names.machine(item.assigned_machine_name)}
+            </span>
+          )}
         </span>
       </div>
       <GroupChip
@@ -536,7 +537,7 @@ export function QueuePage() {
   const approxLoads = items.some((i) => i.unit !== 'load');
 
   return (
-    <main className="form-page">
+    <main className="form-page q-page">
       <h1>{t('queue.title')}</h1>
       {items.length > 0 && (
         <p className="q-summary mono">
@@ -546,130 +547,142 @@ export function QueuePage() {
           })}
         </p>
       )}
-      {(areas.data?.length ?? 0) > 1 && (
-        <div className="field">
-          <label htmlFor="q-area">{t('queue.areaLabel')}</label>
-          <select id="q-area" value={area?.id ?? ''} onChange={(e) => setAreaId(e.target.value)}>
-            {(areas.data ?? []).map((a) => (
-              <option key={a.id} value={a.id}>
-                {names.area(a.name)}
-              </option>
-            ))}
-          </select>
-        </div>
-      )}
-      {!isOwner && area && roles.isSuccess && (
-        <p className="notice">{isManager ? t('queue.managerNotice') : t('queue.readOnly')}</p>
-      )}
-      <DataAge
-        updatedAt={queue.dataUpdatedAt}
-        now={now}
-        isFetching={queue.isFetching}
-        isError={queue.isError && !!queue.data}
-      />
-      <div role="status" aria-live="polite">
-        {message && <p>{message}</p>}
-      </div>
-      <div role="alert">{error && <p className="error">{error}</p>}</div>
+      {/* Tablet landscape / desktop (owner 2026-11-09): controls on the left, the list on the right. */}
+      <div className="q-layout">
+        <div className="q-side">
+          {(areas.data?.length ?? 0) > 1 && (
+            <div className="field">
+              <label htmlFor="q-area">{t('queue.areaLabel')}</label>
+              <select
+                id="q-area"
+                value={area?.id ?? ''}
+                onChange={(e) => setAreaId(e.target.value)}
+              >
+                {(areas.data ?? []).map((a) => (
+                  <option key={a.id} value={a.id}>
+                    {names.area(a.name)}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+          {!isOwner && area && roles.isSuccess && (
+            <p className="notice">{isManager ? t('queue.managerNotice') : t('queue.readOnly')}</p>
+          )}
+          <DataAge
+            updatedAt={queue.dataUpdatedAt}
+            now={now}
+            isFetching={queue.isFetching}
+            isError={queue.isError && !!queue.data}
+          />
+          <div role="status" aria-live="polite">
+            {message && <p>{message}</p>}
+          </div>
+          <div role="alert">{error && <p className="error">{error}</p>}</div>
 
-      {isOwner && area && !showAdd && (
-        <button type="button" className="q-add-button" onClick={() => setShowAdd(true)}>
-          {t('queue.addOpen')}
-        </button>
-      )}
-      {isOwner && area && showAdd && (
-        <AddForm
-          areaId={area.id}
-          plantId={area.plant_id}
-          isWashroom={isWashroom}
-          washers={washers.data ?? []}
-          downIds={downIds}
-          onDone={(m) => {
-            setMessage(m);
-            setError(null);
-          }}
-        />
-      )}
-
-      {(isOwner || isManager) && area && isWashroom && !showRewash && (
-        <button
-          type="button"
-          className="secondary q-add-button"
-          onClick={() => setShowRewash(true)}
-        >
-          {t('rewash.open')}
-        </button>
-      )}
-      {(isOwner || isManager) && area && isWashroom && showRewash && (
-        <RewashForm
-          areaId={area.id}
-          plantId={area.plant_id}
-          onDone={(m) => {
-            setMessage(m);
-            setError(null);
-          }}
-        />
-      )}
-
-      <h2>{t('queue.listTitle')}</h2>
-      {(areas.isPending || (area && queue.isPending)) && <p role="status">{t('common.loading')}</p>}
-      {areas.isSuccess && !area && <p>{t('queue.noArea')}</p>}
-      {queue.isError && !queue.data && (
-        <div role="alert">
-          <p className="error">{t(errorMessageKey(queue.error))}</p>
-          <button type="button" onClick={() => void queue.refetch()}>
-            {t('common.tryAgain')}
-          </button>
-        </div>
-      )}
-      {queue.data && items.length === 0 && <p>{t('queue.empty')}</p>}
-      {items.length > 0 && (
-        <div className="q-filters" role="group" aria-label={t('queue.filterLabel')}>
-          {(['all', 'rush', 'rewash'] as const).map((f) => (
-            <button
-              key={f}
-              type="button"
-              className="secondary"
-              aria-pressed={filter === f}
-              onClick={() => setFilter(f)}
-            >
-              {t(`queue.filter.${f}`, {
-                count:
-                  f === 'all'
-                    ? items.length
-                    : items.filter((i) => (f === 'rush' ? i.is_rush : i.is_rewash)).length,
-              })}
+          {isOwner && area && !showAdd && (
+            <button type="button" className="q-add-button" onClick={() => setShowAdd(true)}>
+              {t('queue.addOpen')}
             </button>
-          ))}
+          )}
+          {isOwner && area && showAdd && (
+            <AddForm
+              areaId={area.id}
+              plantId={area.plant_id}
+              isWashroom={isWashroom}
+              washers={washers.data ?? []}
+              downIds={downIds}
+              onDone={(m) => {
+                setMessage(m);
+                setError(null);
+              }}
+            />
+          )}
+
+          {(isOwner || isManager) && area && isWashroom && !showRewash && (
+            <button
+              type="button"
+              className="secondary q-add-button"
+              onClick={() => setShowRewash(true)}
+            >
+              {t('rewash.open')}
+            </button>
+          )}
+          {(isOwner || isManager) && area && isWashroom && showRewash && (
+            <RewashForm
+              areaId={area.id}
+              plantId={area.plant_id}
+              onDone={(m) => {
+                setMessage(m);
+                setError(null);
+              }}
+            />
+          )}
         </div>
-      )}
-      {items.length > 0 && (
-        <ol className="queue-list" aria-label={t('queue.listTitle')}>
-          {items
-            .filter((i) => filter === 'all' || (filter === 'rush' ? i.is_rush : i.is_rewash))
-            .map((item) => (
-              <QueueItemCard
-                key={item.id}
-                item={item}
-                place={places.get(item.id) ?? 0}
-                canEdit={isOwner}
-                canMoveOff={isManager}
-                isWashroom={isWashroom}
-                washers={washers.data ?? []}
-                downIds={downIds}
-                canUp={canMove(items, item.id, 'up')}
-                canDown={canMove(items, item.id, 'down')}
-                busy={busy}
-                onMove={(dir) => {
-                  const afterId = moveAfterId(items, item.id, dir);
-                  if (afterId !== undefined) move.mutate({ item, afterId });
-                }}
-                onUpdate={(changes) => update.mutate({ item, changes })}
-                onCancel={() => cancel.mutate(item)}
-              />
-            ))}
-        </ol>
-      )}
+        <section className="q-main" aria-labelledby="q-list-title">
+          <h2 id="q-list-title">{t('queue.listTitle')}</h2>
+          {(areas.isPending || (area && queue.isPending)) && (
+            <p role="status">{t('common.loading')}</p>
+          )}
+          {areas.isSuccess && !area && <p>{t('queue.noArea')}</p>}
+          {queue.isError && !queue.data && (
+            <div role="alert">
+              <p className="error">{t(errorMessageKey(queue.error))}</p>
+              <button type="button" onClick={() => void queue.refetch()}>
+                {t('common.tryAgain')}
+              </button>
+            </div>
+          )}
+          {queue.data && items.length === 0 && <p>{t('queue.empty')}</p>}
+          {items.length > 0 && (
+            <div className="q-filters" role="group" aria-label={t('queue.filterLabel')}>
+              {(['all', 'rush', 'rewash'] as const).map((f) => (
+                <button
+                  key={f}
+                  type="button"
+                  className="secondary"
+                  aria-pressed={filter === f}
+                  onClick={() => setFilter(f)}
+                >
+                  {t(`queue.filter.${f}`, {
+                    count:
+                      f === 'all'
+                        ? items.length
+                        : items.filter((i) => (f === 'rush' ? i.is_rush : i.is_rewash)).length,
+                  })}
+                </button>
+              ))}
+            </div>
+          )}
+          {items.length > 0 && (
+            <ol className="queue-list" aria-label={t('queue.listTitle')}>
+              {items
+                .filter((i) => filter === 'all' || (filter === 'rush' ? i.is_rush : i.is_rewash))
+                .map((item) => (
+                  <QueueItemCard
+                    key={item.id}
+                    item={item}
+                    place={places.get(item.id) ?? 0}
+                    canEdit={isOwner}
+                    canMoveOff={isManager}
+                    isWashroom={isWashroom}
+                    washers={washers.data ?? []}
+                    downIds={downIds}
+                    canUp={canMove(items, item.id, 'up')}
+                    canDown={canMove(items, item.id, 'down')}
+                    busy={busy}
+                    onMove={(dir) => {
+                      const afterId = moveAfterId(items, item.id, dir);
+                      if (afterId !== undefined) move.mutate({ item, afterId });
+                    }}
+                    onUpdate={(changes) => update.mutate({ item, changes })}
+                    onCancel={() => cancel.mutate(item)}
+                  />
+                ))}
+            </ol>
+          )}
+        </section>
+      </div>
     </main>
   );
 }

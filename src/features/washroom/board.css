@@ -182,8 +182,9 @@
   gap: var(--sp-xs);
   color: var(--c-warn);
 }
-.wb-ready .head {
-  font-size: var(--fs-h-md);
+.wb-ready .mono {
+  font-size: var(--fs-lg);
+  font-weight: 700;
 }
 .wb-meta {
   font-size: var(--fs-sm);
@@ -205,8 +206,10 @@
 }
 .wb-open {
   margin-top: auto;
-  font-weight: 700;
-  color: var(--c-info-text);
+  align-self: flex-end;
+  font-size: var(--fs-h-md);
+  line-height: 1;
+  color: var(--c-text-muted);
 }
 .wb-down-title {
   font-size: var(--fs-h-md);
@@ -239,4 +242,30 @@
   min-height: var(--target);
   color: var(--c-text);
   text-decoration: none;
+}
+
+/* Tablet and desktop (owner 2026-11-09): three washers per row (6 washers = 2 rows), bigger numbers. */
+@media (min-width: 768px) {
+  .form-page.wb-page {
+    max-width: 72rem;
+  }
+  .form-page .wb-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: var(--sp-md);
+  }
+  .form-page .wb-tile-link {
+    min-height: 13rem;
+    padding: var(--sp-md);
+  }
+  .wb-big {
+    font-size: 3.25rem;
+  }
+  .form-page .wb-strip {
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 14rem), 1fr));
+  }
+}
+@media (min-width: 1280px) {
+  .form-page.wb-page {
+    max-width: 84rem;
+  }
 }

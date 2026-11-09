@@ -3,6 +3,7 @@ import {
   barPct,
   contrast,
   customerWork,
+  ownGroups,
   estimateAges,
   finishedToday,
   loadsToday,
@@ -176,48 +177,50 @@ describe('finishedToday', () => {
 });
 
 describe('customerWork', () => {
-  it('adds estimate loads/hours and open queue loads per customer', () => {
-    const work = workByGroup(
-      [g('aa1', 'f60'), g('aa2', 'f40'), g('own', 'f60')],
-      new Map([
-        ['aa1', { qty: 2, qty_loads: 2 }],
-        ['aa2', { qty: 3, qty_loads: 3 }],
-        ['own', { qty: 9, qty_loads: 9 }],
-      ]),
-      cycleOf,
-      2,
-      (id) => (id.startsWith('aa') ? 'AA' : null),
-    );
-    const customerOf = (id: string) => (id.startsWith('aa') ? 'AA' : null);
+  const customerOf = (id: string) => (id.startsWith('aa') ? 'AA' : null);
+  const formula: Record<string, number | null> = { aa1: 60, aa2: 40, own: 60, aa3: null };
+  const cycleOfGroup = (id: string) => formula[id] ?? null;
+
+  it('counts open queue loads not started per customer, with ≈ hours on the washers', () => {
     const [c, ...rest] = customerWork(
-      work,
       [
         { wash_group_id: 'aa1', status: 'queued', loads_remaining: 2 },
-        { wash_group_id: 'aa2', status: 'in_progress', loads_remaining: null },
+        { wash_group_id: 'aa2', status: 'in_progress', loads_remaining: 3 },
         { wash_group_id: 'aa2', status: 'done', loads_remaining: 0 },
+        { wash_group_id: 'aa1', status: 'cancelled', loads_remaining: 5 },
         { wash_group_id: 'own', status: 'queued', loads_remaining: 4 },
       ],
       customerOf,
+      cycleOfGroup,
+      2,
     );
     expect(rest).toEqual([]);
     expect(c).toEqual({
       customerId: 'AA',
-      estimateLoads: 5,
-      estimateHours: 2, // (2×60 + 3×40) / 60 / 2
       queueItems: 2,
-      queueLoads: 2,
-      queueWithoutCount: 1,
+      queueLoads: 5,
+      queueWithoutCount: 0,
+      queueHours: 2, // (2×60 + 3×40) / 60 / 2
     });
   });
-  it('has unknown hours when a customer group has no formula time', () => {
-    const work = workByGroup(
-      [g('aa1', null)],
-      new Map([['aa1', { qty: 2, qty_loads: 2 }]]),
-      cycleOf,
-      2,
-      () => 'AA',
-    );
-    expect(customerWork(work, [], () => 'AA')[0]?.estimateHours).toBeNull();
+
+  it('has unknown hours when an item has no load count, a group no formula, or no washers', () => {
+    const q = (id: string, n: number | null) => ({
+      wash_group_id: id,
+      status: 'queued',
+      loads_remaining: n,
+    });
+    const noCount = customerWork([q('aa1', 2), q('aa2', null)], customerOf, cycleOfGroup, 2)[0];
+    expect(noCount?.queueWithoutCount).toBe(1);
+    expect(noCount?.queueLoads).toBe(2);
+    expect(noCount?.queueHours).toBeNull();
+    expect(customerWork([q('aa3', 2)], customerOf, cycleOfGroup, 2)[0]?.queueHours).toBeNull();
+    expect(customerWork([q('aa1', 2)], customerOf, cycleOfGroup, 0)[0]?.queueHours).toBeNull();
+  });
+
+  it('never uses estimates, and ownGroups leaves customer groups out of the totals', () => {
+    expect(customerWork([], customerOf)).toEqual([]);
+    expect(ownGroups([{ id: 'aa1' }, { id: 'own' }], customerOf)).toEqual([{ id: 'own' }]);
   });
 });
 

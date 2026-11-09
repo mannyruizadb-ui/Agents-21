@@ -225,57 +225,70 @@ export interface QueueInput {
 
 export interface CustomerWork {
   customerId: string;
-  /** ≈ loads in the customer's current estimates (part of the total above). */
-  estimateLoads: number;
-  /** ≈ hours of those loads on the working washers; null when unknown. */
-  estimateHours: number | null;
   /** Open queue items of the customer's groups. */
   queueItems: number;
   /** Loads not started yet on those items (items without a load count are counted apart). */
   queueLoads: number;
   queueWithoutCount: number;
+  /**
+   * ≈ hours to wash those loads on the working washers (loads × formula minutes ÷ 60 ÷ capacity);
+   * null when a group has no formula time, there is no capacity, or an item has no load count.
+   */
+  queueHours: number | null;
 }
 
-/** Work waiting per outside customer (AA Linen), from estimates and the open queue. */
+/**
+ * Work waiting per outside customer (AA Linen), from the open queue ONLY (meta 2026-11-09): the
+ * customer's goods arrive by delivery straight into the queue, so their estimates would double
+ * count. Customer groups are also left out of the estimate totals (see ownGroups).
+ */
 export function customerWork(
-  work: readonly GroupWork[],
   queue: readonly QueueInput[],
   customerOf: (groupId: string) => string | null,
+  cycleMinutesOfGroup: (groupId: string) => number | null | undefined = () => null,
+  capacity = 0,
 ): CustomerWork[] {
-  const by = new Map<string, CustomerWork>();
-  const get = (id: string) => {
-    let c = by.get(id);
-    if (!c) {
-      c = {
-        customerId: id,
-        estimateLoads: 0,
-        estimateHours: 0,
-        queueItems: 0,
-        queueLoads: 0,
-        queueWithoutCount: 0,
-      };
-      by.set(id, c);
-    }
-    return c;
-  };
-  for (const w of work) {
-    if (!w.customerId) continue;
-    const c = get(w.customerId);
-    c.estimateLoads = round2(c.estimateLoads + (w.loads ?? 0));
-    if (w.loads !== null && w.loads > 0)
-      c.estimateHours =
-        w.hours === null || c.estimateHours === null ? null : c.estimateHours + w.hours;
-  }
+  const by = new Map<string, CustomerWork & { washerHours: number | null }>();
   for (const q of queue) {
     if (q.status === 'done' || q.status === 'cancelled') continue;
     const id = customerOf(q.wash_group_id);
     if (!id) continue;
-    const c = get(id);
+    let c = by.get(id);
+    if (!c) {
+      c = {
+        customerId: id,
+        queueItems: 0,
+        queueLoads: 0,
+        queueWithoutCount: 0,
+        queueHours: null,
+        washerHours: 0,
+      };
+      by.set(id, c);
+    }
     c.queueItems += 1;
-    if (q.loads_remaining === null || q.loads_remaining === undefined) c.queueWithoutCount += 1;
-    else c.queueLoads = round2(c.queueLoads + Number(q.loads_remaining));
+    if (q.loads_remaining === null || q.loads_remaining === undefined) {
+      c.queueWithoutCount += 1;
+      c.washerHours = null;
+      continue;
+    }
+    const loads = Number(q.loads_remaining);
+    c.queueLoads = round2(c.queueLoads + loads);
+    if (c.washerHours === null || loads === 0) continue;
+    const h = washHours(loads, cycleMinutesOfGroup(q.wash_group_id));
+    c.washerHours = h === null ? null : c.washerHours + h;
   }
-  return [...by.values()];
+  return [...by.values()].map(({ washerHours, ...c }) => ({
+    ...c,
+    queueHours: washerHours !== null && capacity > 0 ? washerHours / capacity : null,
+  }));
+}
+
+/** Our own wash groups only (no outside customer): what the estimate totals and charts count. */
+export function ownGroups<T extends { id: string }>(
+  groups: readonly T[],
+  customerOf: (groupId: string) => string | null,
+): T[] {
+  return groups.filter((g) => !customerOf(g.id));
 }
 
 /** The first `n` rows and what's left ("+ 12 more"). */

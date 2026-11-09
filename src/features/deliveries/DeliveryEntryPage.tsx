@@ -28,6 +28,10 @@ import '../washroom/washroom.css';
 import '../estimates/estimates.css';
 import './deliveries.css';
 import { MoreInfo } from '../../lib/MoreInfo';
+import { chipCounts, chipsFor, effectiveChip, inChip } from '../estimates/categories';
+import { useChip } from '../estimates/useChip';
+import { CategoryChips } from '../estimates/CategoryChips';
+import { useGroupCategories } from '../estimates/estimatesData';
 
 // Record an outside customer's delivery (owner 2026-11-06 B; first: AA Linen). Owner or manager:
 // pick the customer (the only active one is preselected), bins per wash group in quarters, an
@@ -61,10 +65,29 @@ export function DeliveryEntryPage() {
       </main>
     );
   }
-  return <DeliveryEntryScreen userId={session.user.id} plantId={plantId} />;
+  return (
+    <main className="form-page dl-page">
+      <h1>{t('deliveries.recordTitle')}</h1>
+      <DeliveryEntryForm userId={session.user.id} plantId={plantId} />
+    </main>
+  );
 }
 
-function DeliveryEntryScreen({ userId, plantId }: { userId: string; plantId: string }) {
+/**
+ * The delivery entry itself: on its own page above, and inline as the customer view of the
+ * estimates screen (owner 2026-11-09: "AA right there"). Callers check the owner/manager role first
+ * (the outbox and its flusher only run for them).
+ */
+export function DeliveryEntryForm({
+  userId,
+  plantId,
+  embedded = false,
+}: {
+  userId: string;
+  plantId: string;
+  /** Inside the estimates screen (no page heading of its own). */
+  embedded?: boolean;
+}) {
   const { t } = useTranslation();
   const online = useOnline();
   const localized = useLocalizedName();
@@ -97,6 +120,15 @@ function DeliveryEntryScreen({ userId, plantId }: { userId: string; plantId: str
     groupList.map((g) => g.id),
     bins,
   );
+  // The same category chips as the estimates (owner 2026-11-09); counts = groups with bins entered.
+  const categories = useGroupCategories(plantId);
+  const categoryOf = categories.data ?? new Map();
+  const [chipChoice, setChip] = useChip(userId);
+  const groupIds = groupList.map((g) => g.id);
+  const chips = chipsFor(groupIds, categoryOf);
+  const chip = effectiveChip(chipChoice, chips);
+  const counts = chipCounts(groupIds, categoryOf, (id) => (bins[id] ?? 0) > 0);
+  const shownGroups = groupList.filter((g) => inChip(g.id, chip, categoryOf));
 
   function setText(groupId: string, text: string) {
     setMessage(null);
@@ -155,8 +187,8 @@ function DeliveryEntryScreen({ userId, plantId }: { userId: string; plantId: str
     ls.map((l) => `${groupName(l.washGroupId)} ${amount(l.bins, 'bin')}`).join(', ');
 
   return (
-    <main className="form-page dl-page">
-      <h1>{t('deliveries.recordTitle')}</h1>
+    <div className={embedded ? 'dl-entry embedded' : 'dl-entry'}>
+      {embedded && <h2 className="visually-hidden">{t('deliveries.recordTitle')}</h2>}
       <MoreInfo>{t('deliveries.intro')}</MoreInfo>
 
       <div role="status" aria-live="polite">
@@ -225,60 +257,65 @@ function DeliveryEntryScreen({ userId, plantId }: { userId: string; plantId: str
           </ul>
         </div>
       )}
-      {active.length === 1 && customer && (
+      {active.length === 1 && customer && !embedded && (
         <p className="dl-customer-one">
           {t('deliveries.customerIs', { name: localized(customer.name, customer.name_i18n) })}
         </p>
       )}
 
       {customerId && (
-        <form onSubmit={onSave} noValidate autoComplete="off">
-          {groups.isPending && <p role="status">{t('common.loading')}</p>}
-          {groups.isError && <p className="error">{t(errorMessageKey(groups.error))}</p>}
-          {groups.isSuccess && groupList.length === 0 && (
-            <p className="notice">{t('deliveries.noGroups')}</p>
-          )}
-          <ul className="dl-groups">
-            {groupList.map((g) => (
-              <GroupBins
-                key={g.id}
-                group={g}
-                text={texts[g.id] ?? ''}
-                bins={bins[g.id] ?? null}
-                onText={(v) => setText(g.id, v)}
-                fmt={fmt}
-              />
-            ))}
-          </ul>
-
-          <div className="field">
-            <label htmlFor="dl-note">{t('deliveries.noteLabel')}</label>
-            <textarea
-              id="dl-note"
-              rows={2}
-              maxLength={NOTE_MAX}
-              value={note}
-              onChange={(e) => setNote(e.target.value)}
-            />
+        <form className="dl-form" onSubmit={onSave} noValidate autoComplete="off">
+          <div className="dl-groups-col">
+            <CategoryChips chips={chips} value={chip} counts={counts} onChange={setChip} />
+            {groups.isPending && <p role="status">{t('common.loading')}</p>}
+            {groups.isError && <p className="error">{t(errorMessageKey(groups.error))}</p>}
+            {groups.isSuccess && groupList.length === 0 && (
+              <p className="notice">{t('deliveries.noGroups')}</p>
+            )}
+            <ul className="dl-groups">
+              {shownGroups.map((g) => (
+                <GroupBins
+                  key={g.id}
+                  group={g}
+                  text={texts[g.id] ?? ''}
+                  bins={bins[g.id] ?? null}
+                  onText={(v) => setText(g.id, v)}
+                  fmt={fmt}
+                />
+              ))}
+            </ul>
           </div>
 
-          <section className="card" aria-labelledby="dl-confirm">
-            <h2 id="dl-confirm">{t('deliveries.confirmTitle')}</h2>
-            {lines.length === 0 ? (
-              <p className="hint">{t('deliveries.nothingYet')}</p>
-            ) : (
-              <p>
-                <strong>{customer ? localized(customer.name, customer.name_i18n) : ''}:</strong>{' '}
-                {linesText(lines)}
-              </p>
-            )}
-            {bad.length > 0 && (
-              <p className="error">{t('deliveries.fixFirst', { count: bad.length })}</p>
-            )}
-            <button type="submit" disabled={busy || lines.length === 0 || bad.length > 0}>
-              {busy ? t('estimates.saving') : t('deliveries.save')}
-            </button>
-          </section>
+          <div className="dl-confirm-col">
+            <div className="field">
+              <label htmlFor="dl-note">{t('deliveries.noteLabel')}</label>
+              <textarea
+                id="dl-note"
+                rows={2}
+                maxLength={NOTE_MAX}
+                value={note}
+                onChange={(e) => setNote(e.target.value)}
+              />
+            </div>
+
+            <section className="card" aria-labelledby="dl-confirm">
+              <h2 id="dl-confirm">{t('deliveries.confirmTitle')}</h2>
+              {lines.length === 0 ? (
+                <p className="hint">{t('deliveries.nothingYet')}</p>
+              ) : (
+                <p>
+                  <strong>{customer ? localized(customer.name, customer.name_i18n) : ''}:</strong>{' '}
+                  {linesText(lines)}
+                </p>
+              )}
+              {bad.length > 0 && (
+                <p className="error">{t('deliveries.fixFirst', { count: bad.length })}</p>
+              )}
+              <button type="submit" disabled={busy || lines.length === 0 || bad.length > 0}>
+                {busy ? t('estimates.saving') : t('deliveries.save')}
+              </button>
+            </section>
+          </div>
         </form>
       )}
       {outbox.recent.length > 0 && (
@@ -301,7 +338,7 @@ function DeliveryEntryScreen({ userId, plantId }: { userId: string; plantId: str
       <p>
         <Link to="/control/queue">{t('deliveries.openQueue')}</Link>
       </p>
-    </main>
+    </div>
   );
 }
 

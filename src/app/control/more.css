@@ -72,3 +72,9 @@
   line-height: 1.2;
   overflow-wrap: anywhere;
 }
+
+@media (min-width: 1280px) {
+  .form-page.more-page {
+    max-width: 64rem;
+  }
+}
