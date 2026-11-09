@@ -11,7 +11,7 @@ import { useRequiredSession } from '../../app/auth/sessionContext';
 import { useMyRoles } from '../washroom/useMyRoles';
 import { RewashForm } from './RewashForm';
 import { DataAge } from '../washroom/DataAge';
-import { IconDown, IconPin, IconRewash, IconRush, IconUp } from '../washroom/Icons';
+import { IconDown, IconList, IconPin, IconRewash, IconRush, IconUp } from '../washroom/Icons';
 import { GroupChip } from '../washroom/GroupChip';
 import { useLocalizedName } from '../washroom/localizedName';
 import { appErrorCode, errorMessageKey, unwrap } from '../washroom/rpcError';
@@ -295,6 +295,11 @@ function QueueItemCard({
           {item.is_rewash && (
             <span className="status-pill info">
               <IconRewash /> {t('queue.rewash')}
+            </span>
+          )}
+          {item.from_estimate && (
+            <span className="status-pill idle">
+              <IconList /> {t('queue.fromEstimate')}
             </span>
           )}
           {/* Only a pinned washer gets a tag ("next free washer" is the default, not news), and

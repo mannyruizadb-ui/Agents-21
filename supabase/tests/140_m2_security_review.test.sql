@@ -85,7 +85,7 @@ select is(array[pg_temp.run_as('display_nodev', $$select * from public.get_queue
   '{NOT_AUTHORIZED,NOT_AUTHORIZED}', 'a display account with no device (so no area) is denied (devices.area_id is NOT NULL)');
 select is(array[pg_temp.run_as('display', $$select * from public.get_queue(pg_temp.id('wash'))$$, true),
                 pg_temp.run_as('display', $$select * from public.get_washroom_board(pg_temp.id('wash'))$$, true)],
-  '{2,1}', 'the paired washroom display reads its area');
+  '{3,1}', 'the paired washroom display reads its area (3 items: + the Mats estimate item, owner 2026-11-09)');
 update public.devices set revoked_at = now() where id = pg_temp.id('device');
 select is(array[pg_temp.run_as('display', $$select * from public.get_queue(pg_temp.id('wash'))$$, true),
                 pg_temp.run_as('display', $$select * from public.get_washroom_board(pg_temp.id('wash'))$$, true)],

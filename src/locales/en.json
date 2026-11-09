@@ -308,7 +308,8 @@
       "rewash": "Rewash ({{count}})"
     },
     "inProgress_one": "{{count}} started",
-    "inProgress_other": "{{count}} started"
+    "inProgress_other": "{{count}} started",
+    "fromEstimate": "From estimates"
   },
   "machines": {
     "title": "Machine down / back up",
