@@ -1,0 +1,26 @@
+/* New-version banner: sticky at the top, info blue, text + button (never colour alone). */
+.update-banner {
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-md);
+  padding: var(--sp-sm) var(--sp-md);
+  background: var(--c-info-container, #1e3a8a);
+  color: var(--c-text);
+  font-weight: 700;
+  border-bottom: 2px solid var(--c-info-text);
+}
+.update-banner button {
+  min-height: 48px;
+  padding: 0 var(--sp-lg);
+  border-radius: var(--radius-lg);
+  border: 2px solid var(--c-info-text);
+  background: var(--c-info-text);
+  color: var(--c-bg);
+  font: inherit;
+  font-weight: 800;
+  cursor: pointer;
+}

@@ -37,9 +37,10 @@
   background: var(--c-surface-high);
 }
 .badge.setup-fixed {
+  /* Not info blue: it read as a link (review 2026-11-09). */
   margin-left: 0.5rem;
-  color: var(--c-info-text);
-  background: var(--c-info-container);
+  color: var(--c-text);
+  background: var(--c-surface-highest);
 }
 
 /* Redesign 2026-11-06: name on top (head font), kind/badges under it; Edit stays on the right. */
@@ -75,4 +76,245 @@
 .setup-kind .badge {
   margin-left: 0;
   margin-right: 0.4rem;
+}
+
+/* ── Setup tables (machines, formulas) and wide pages (review 2026-11-09 item 8) ── */
+.form-page.setup-wide {
+  max-width: 72rem;
+}
+.setup-title {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-sm) var(--sp-md);
+  margin-bottom: var(--sp-sm);
+}
+.form-page .setup-title h1 {
+  margin: 0;
+}
+.setup-views {
+  margin-bottom: var(--sp-md);
+}
+.form-page .setup-add {
+  margin-bottom: var(--sp-md);
+}
+.setup-wide .visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+.setup-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: var(--sp-md);
+}
+.setup-table th,
+.setup-table td {
+  text-align: left;
+  vertical-align: middle;
+  padding: var(--sp-sm);
+  border-bottom: 1px solid var(--c-seam);
+}
+.setup-table thead th {
+  color: var(--c-text-muted);
+  font-size: var(--fs-sm);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.setup-table tbody th {
+  font-weight: 600;
+}
+.setup-table tr.inactive {
+  color: var(--c-text-muted);
+}
+.setup-table tr.inactive > * {
+  background: var(--c-surface-low);
+}
+.setup-cell-name .head {
+  display: block;
+  font-size: var(--fs-lg);
+  overflow-wrap: anywhere;
+}
+.setup-sub {
+  display: block;
+  color: var(--c-text-muted);
+  font-size: var(--fs-sm);
+  font-weight: 400;
+}
+.setup-cell-action {
+  text-align: right;
+  white-space: nowrap;
+}
+.setup-editor-row > td {
+  background: var(--c-surface);
+  padding: var(--sp-sm) var(--sp-md) var(--sp-md);
+}
+.form-page .setup-editor-row .setup-editor {
+  margin-top: 0;
+  border-top: 0;
+}
+.form-page .setup-editor-title {
+  margin: 0 0 var(--sp-sm);
+  font-size: var(--fs-lg);
+}
+.setup-status,
+.setup-yes,
+.setup-missing {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-weight: 700;
+}
+.setup-status.up {
+  color: var(--c-ok);
+}
+.setup-status.down {
+  color: var(--c-danger-text);
+}
+.setup-missing {
+  color: var(--c-warn);
+}
+.form-page .setup-warn {
+  border-color: var(--c-warn);
+  margin-bottom: var(--sp-md);
+}
+.setup-kind .badge.setup-off {
+  margin-right: 0.5rem;
+}
+.form-page .setup-warn p {
+  margin: 0 0 var(--sp-xs);
+}
+.form-page .setup-warn ul {
+  margin: 0 0 var(--sp-xs);
+  padding-left: 1.25rem;
+}
+
+/* Editor fields in columns where there is room. */
+.setup-editor-grid {
+  display: grid;
+  gap: 0 var(--sp-md);
+}
+@media (min-width: 768px) {
+  .setup-editor-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .setup-editor-grid .setup-span {
+    grid-column: 1 / -1;
+  }
+}
+@media (min-width: 1100px) {
+  .setup-editor-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+.setup-color {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-sm);
+}
+.form-page .setup-color input[type='color'] {
+  width: 5rem;
+  min-height: 48px;
+  padding: 2px;
+}
+
+/* Wash group rows: the colour as a bar next to the name (never colour alone: the name is text). */
+.setup-group-name {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.setup-swatch {
+  flex: none;
+  width: 0.5rem;
+  height: 1.5rem;
+  border-radius: 2px;
+  border: 1px solid var(--c-outline); /* dark colours stay visible on the dark theme */
+}
+@media (min-width: 1100px) {
+  .setup-group-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .setup-group-list > .setup-row:has(.setup-editor) {
+    grid-column: 1 / -1;
+  }
+}
+
+/* Phone: each table row stacks as a small card; the column name shows before each value. */
+@media (max-width: 767.98px) {
+  .setup-table thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+  }
+  .setup-table,
+  .setup-table tbody,
+  .setup-table tr,
+  .setup-table th,
+  .setup-table td {
+    display: block;
+  }
+  .setup-table tbody tr:not(.setup-editor-row) {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 0 var(--sp-sm);
+    border: 1px solid var(--c-seam);
+    border-radius: var(--radius-lg);
+    background: var(--c-surface);
+    padding: var(--sp-sm) var(--sp-md);
+    margin-top: var(--sp-sm);
+  }
+  .setup-table tbody tr.inactive {
+    border-style: dashed;
+  }
+  .setup-table tbody tr > * {
+    border: 0;
+    padding: 2px 0;
+    background: none;
+  }
+  .setup-table tr.inactive > * {
+    background: none;
+  }
+  .setup-table .setup-cell-name {
+    grid-column: 1;
+    grid-row: 1;
+  }
+  .setup-table .setup-cell-action {
+    grid-column: 2;
+    grid-row: 1;
+    align-self: start;
+  }
+  .setup-table td[data-label] {
+    grid-column: 1 / -1;
+    display: flex;
+    gap: 0.5rem;
+  }
+  .setup-table td[data-label]::before {
+    content: attr(data-label) ':';
+    color: var(--c-text-muted);
+    font-family: var(--font-body);
+    min-width: 7rem;
+  }
+  .setup-table .setup-editor-row > td {
+    border: 1px solid var(--c-seam);
+    border-top: 0;
+    border-radius: 0 0 var(--radius-lg) var(--radius-lg);
+  }
+}
+@media (max-width: 767.98px) {
+  /* Phone cards stay short: no line for an empty value or for the usual "Active: Yes". */
+  .setup-table td.setup-na {
+    display: none;
+  }
+  .setup-table .setup-cell-name .head {
+    font-size: var(--fs-h-md);
+  }
 }

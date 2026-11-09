@@ -6,6 +6,23 @@ describe('seeded names', () => {
     expect(localName('machine', 'Washer 1', 'es')).toBe('Lavadora 1');
     expect(localName('machine', 'Dryer 2', 'es')).toBe('Secadora 2');
     expect(localName('machine', 'Washer 1', 'en')).toBe('Washer 1');
+    expect(localName('machine', 'Ironer', 'es')).toBe('Planchadora');
+    expect(localName('machine', 'Folder', 'es')).toBe('Dobladora');
+    expect(localName('machine', 'Boiler', 'es')).toBe('Caldera');
+    expect(localName('machine', 'Compressor', 'es')).toBe('Compresor');
+    expect(localName('machine', 'Water pump', 'es')).toBe('Bomba de agua');
+    expect(localName('machine', 'soap  machine', 'es')).toBe('Máquina de jabón');
+    expect(localName('machine', 'Wrapping machine', 'es')).toBe('Empacadora');
+    expect(localName('machine', 'Ironer', 'en')).toBe('Ironer');
+  });
+  it("prefers the machine's own name_i18n", () => {
+    expect(localName('machine', 'Ironer', 'es', { es: 'Planchadora grande' })).toBe(
+      'Planchadora grande',
+    );
+    expect(localName('machine', 'Ironer', 'es-US', { es: 'Calandra' })).toBe('Calandra');
+    expect(localName('machine', 'Ironer', 'es', { es: '  ' })).toBe('Planchadora');
+    expect(localName('machine', 'Ironer', 'es', ['x'])).toBe('Planchadora');
+    expect(localName('machine', 'Ironer', 'en', { es: 'Calandra' })).toBe('Ironer');
   });
   it('translates seeded area names', () => {
     expect(localName('area', 'Washroom', 'es')).toBe('Lavandería');

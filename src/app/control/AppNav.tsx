@@ -3,7 +3,10 @@ import { NavLink } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import { useRequiredSession } from '../auth/sessionContext';
 import { BRAND_LOGO_SRC } from '../../lib/brand';
-import { useLoadOutBoard } from '../../features/loadout/loadOutData';
+import { useLoadOutBoard, usePlant } from '../../features/loadout/loadOutData';
+import { loadOutBadgeCount } from '../../features/loadout/loadOutLogic';
+import { estimateServerNow } from '../../features/washroom/washerTime';
+import { useNow } from '../../lib/useNow';
 import {
   IconBins,
   IconHome,
@@ -21,7 +24,8 @@ import './appnav.css';
 // left side menu with the logo (≥ 1024 px wide). Per role, with count badges where data exists:
 //   owner and others: Home · Washers · Queue · Load-out · More
 //   managers:         Home · Washers · Estimates · Load-out · More
-// Alerts live behind the bell on Home; tasks are a Home tile and a More tile. Every item shows an
+// Alerts live behind the bell on Home; tasks are a Home tile and a More tile. The Load-out badge
+// counts trucks due within the hour or late (loadOutBadgeCount). Every item shows an
 // icon AND its word; active = info blue + a bar + bold (never color alone); the badge number is part
 // of the link's name.
 
@@ -61,9 +65,17 @@ export function AppNav() {
   const queue = useQueue(washroom?.id);
   const board = useLoadOutBoard(plantId);
   const queueCount = queue.data?.length ?? 0;
-  const loadOutCount = (board.data?.routes ?? []).filter(
-    (r) => !r.loaded && r.lines.length > 0,
-  ).length;
+  // Review 2026-11-09: only from an hour before a truck (or when one is late), not all evening.
+  const plant = usePlant(plantId);
+  const now = useNow(60_000);
+  const loadOutCount = board.data
+    ? loadOutBadgeCount(
+        board.data.routes,
+        board.data.load_date,
+        estimateServerNow(board.data.server_time, board.dataUpdatedAt, now),
+        plant.data?.timezone ?? 'America/New_York',
+      )
+    : 0;
 
   const items: NavItem[] = [
     { to: '/control', icon: <IconHome size="26" />, label: t('nav.home') },

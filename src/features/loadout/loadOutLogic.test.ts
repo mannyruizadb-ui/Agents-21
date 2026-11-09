@@ -6,12 +6,15 @@ import {
   minutesUntil,
   wallClock,
   localRouteName,
+  loadOutBadgeCount,
   loadOutRows,
   nextLoadDate,
   nextTruck,
   parseQty,
   plantLocal,
   previousLoadDate,
+  sameWeekdayLastWeek,
+  weekday,
   routesForDate,
   zonedToEpoch,
 } from './loadOutLogic';
@@ -142,6 +145,33 @@ describe('truck times', () => {
   });
 });
 
+describe('nav badge', () => {
+  const truck = (id: string, time: string, loaded = false, lines = 1) => ({
+    route_id: id,
+    name: id,
+    load_time: time,
+    loaded,
+    lines: Array.from({ length: lines }, () => ({})),
+  });
+  const routes = [
+    truck('r2', '03:30:00'),
+    truck('r5', '04:00:00'),
+    truck('r9', '05:30:00'),
+    truck('done', '03:00:00', true),
+    truck('empty', '03:15:00', false, 0),
+  ];
+  it('shows nothing hours before the first truck', () => {
+    const at = Date.parse('2026-11-05T20:00:00Z'); // 3 PM EST the day before
+    expect(loadOutBadgeCount(routes, '2026-11-06', at, NY)).toBe(0);
+  });
+  it('counts open routes with lines from an hour before their time, and late ones', () => {
+    const at = Date.parse('2026-11-06T08:12:00Z'); // 03:12 EST
+    expect(loadOutBadgeCount(routes, '2026-11-06', at, NY)).toBe(2); // 03:30 and 04:00
+    const late = Date.parse('2026-11-06T10:00:00Z'); // 05:00 EST
+    expect(loadOutBadgeCount(routes, '2026-11-06', late, NY)).toBe(3);
+  });
+});
+
 describe('size groups', () => {
   it('splits a size suffix', () => {
     expect(splitSize('Butcher coat XL')).toEqual({ base: 'Butcher coat', size: 'XL' });
@@ -159,5 +189,15 @@ describe('size groups', () => {
         x.kind === 'single' ? x.item.name : `${x.base}:${x.items.map((i) => i.size).join('/')}`,
       ),
     ).toEqual(['Butcher coat:M/L/XL', 'Sheet', 'Apron L']);
+  });
+});
+
+describe('sameWeekdayLastWeek', () => {
+  it('is 7 days back, on the same weekday, across a month end and the DST change', () => {
+    expect(sameWeekdayLastWeek('2026-11-10')).toBe('2026-11-03');
+    expect(sameWeekdayLastWeek('2026-11-03')).toBe('2026-10-27');
+    expect(sameWeekdayLastWeek('2026-03-02')).toBe('2026-02-23');
+    for (const d of ['2026-11-10', '2026-11-03', '2026-03-09', '2026-01-01'])
+      expect(weekday(sameWeekdayLastWeek(d))).toBe(weekday(d));
   });
 });

@@ -145,15 +145,15 @@ select is((select count(*)::int from public.alert_events where kind = 'off_queue
 
 -- ══ Visibility, push and levels ══════════════════════════════════════════
 select is(array[pg_temp.my('owner'), pg_temp.my('manager'), pg_temp.my('ownerP')],
-  array['estimate_entered=3,rewash_added=1', '-', 'estimate_entered=3,rewash_added=1'],
-  'quiet kinds show in the owners'' Alerts tab; never managers''');
+  array['estimate_entered=2,rewash_added=1', '-', 'estimate_entered=3,rewash_added=1'],
+  'quiet kinds show in the owners'' Alerts tab (never the batch an owner entered themselves, 2026-11-09); never managers''');
 select is((select array_agg(distinct a.recipients::text) from public.alert_events a where a.kind in ('estimate_entered', 'off_queue_start')),
   array['{quiet}'], 'quiet for every owner: stored as delivered-with-nothing-to-send …');
 select is((select count(*)::int from app.pending_push_notifications() p where p.kind in ('estimate_entered', 'rewash_added', 'off_queue_start')), 0,
   '… and never pushed (the owner, who has a phone subscribed, keeps them quiet)');
 select is((select array_agg(u) from public.alert_events a cross join lateral app.alert_recipient_users(a) u where a.kind = 'rewash_added'),
   array[pg_temp.id('ownerP')], 'levels are per owner: ownerP set rewash_added to push, so only ownerP is a push recipient');
-select ok(pg_temp.val_as('owner', $$select public.get_my_alert_count(pg_temp.id('plantA'))$$)::int >= 4, 'quiet alerts count in the badge');
+select ok(pg_temp.val_as('owner', $$select public.get_my_alert_count(pg_temp.id('plantA'))$$)::int >= 3, 'quiet alerts count in the badge');
 select is(array[
   pg_temp.val_as('owner', $$select (public.set_alert_level(pg_temp.mid('owner'), 'estimate_entered', 'off')).alert_levels ->> 'estimate_entered'$$),
   pg_temp.my('owner')],

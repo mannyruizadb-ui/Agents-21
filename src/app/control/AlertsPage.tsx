@@ -111,13 +111,13 @@ function AlertItem({ a, onClear }: { a: AlertView; onClear?: (id: string) => voi
   switch (a.kind) {
     case 'machine_down':
       title = t('alerts.title.machineDown', {
-        name: names.machine(a.machineName) || t('alerts.aMachine'),
+        name: names.machine(a.machineName, a.machineNameI18n) || t('alerts.aMachine'),
       });
       body = a.reasonCode ? labeler(a.reasonCode, a.reasonLabels) : '';
       break;
     case 'washer_idle':
       title = t('alerts.title.washerIdle', {
-        name: names.machine(a.machineName) || t('alerts.aWasher'),
+        name: names.machine(a.machineName, a.machineNameI18n) || t('alerts.aWasher'),
       });
       break;
     case 'task_assigned':

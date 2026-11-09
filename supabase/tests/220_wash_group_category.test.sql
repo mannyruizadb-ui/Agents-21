@@ -28,8 +28,8 @@ select is(pg_temp.reads($$select category from public.wash_groups where id = pg_
 
 -- ══ Write path ═══════════════════════════════════════════════════════════
 select is(pg_temp.writes($$update public.wash_groups set category = 'napkins' where id = pg_temp.id('gNapkin')$$),
-  '{1,1,0,0,0,0,0,42501}',
-  'update on our own group: owner and manager; lead, viewer, displays and other tenant update nothing (RLS); anon no grant');
+  '{1,0,0,0,0,0,0,42501}',
+  'update on our own group: owner only (2026-11-09); manager, lead, viewer, displays and other tenant update nothing (RLS); anon no grant');
 select is(pg_temp.run_as('ownerB', $$update public.wash_groups set category = 'mats' where id = pg_temp.id('gMat')$$), '0',
   'cross-tenant: owner of B cannot touch plant A''s group');
 select is(pg_temp.run_as('owner', $$update public.wash_groups set category = 'towels' where id = pg_temp.id('gTowel')$$), '23514',
@@ -45,7 +45,7 @@ insert into public.wash_groups (id, org_id, plant_id, customer_id, name) values
 select is(array[
   pg_temp.run_as('manager', $$update public.wash_groups set category = 'napkins' where id = '71000000-0000-0000-0000-0000000cc0a1'$$),
   pg_temp.run_as('owner',   $$update public.wash_groups set category = 'napkins' where id = '71000000-0000-0000-0000-0000000cc0a1'$$)],
-  '{NOT_AUTHORIZED,1}', 'a customer''s group: the owner sets its category, a manager cannot');
+  '{0,1}', 'a customer''s group: the owner sets its category, a manager cannot (no rows)');
 
 select is((select array[before ->> 'category', after ->> 'category', actor_user_id::text] from public.audit_log
             where entity = 'wash_groups' and entity_id = '71000000-0000-0000-0000-0000000cc0a1' and action = 'wash_groups.update'

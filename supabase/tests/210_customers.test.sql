@@ -60,16 +60,16 @@ select is(array[
   pg_temp.run_as('manager', $$insert into public.wash_groups (org_id, plant_id, name) values (pg_temp.id('orgA'), pg_temp.id('plantA'), 'Manager group')$$),
   pg_temp.run_as('lead',    $$insert into public.wash_groups (org_id, plant_id, customer_id, name) values (pg_temp.id('orgA'), pg_temp.id('plantA'), pg_temp.c('aa'), 'Lead group')$$),
   pg_temp.run_as('ownerB',  $$insert into public.wash_groups (org_id, plant_id, customer_id, name) values (pg_temp.id('orgA'), pg_temp.id('plantA'), pg_temp.c('aa'), 'B group')$$)],
-  '{1,NOT_AUTHORIZED,1,NOT_AUTHORIZED,42501}',
-  'wash_groups C with a customer: owner only (a manager may still add our own groups; a lead is refused; another tenant: RLS)');
+  '{1,NOT_AUTHORIZED,42501,NOT_AUTHORIZED,42501}',
+  'wash_groups C with a customer: owner only (since 2026-11-09 a manager cannot add our own groups either: RLS; a lead is refused; another tenant: RLS)');
 select is(array[
   pg_temp.run_as('manager', $$update public.wash_groups set customer_id = pg_temp.c('aa') where id = pg_temp.id('gMat')$$),
   pg_temp.run_as('manager', $$update public.wash_groups set customer_id = null where id = pg_temp.c('gAA')$$),
   pg_temp.run_as('manager', $$update public.wash_groups set sort_order = 5 where id = pg_temp.c('gAA')$$),
   pg_temp.run_as('owner',   $$update public.wash_groups set customer_id = pg_temp.c('aa2') where id = pg_temp.id('gMat')$$),
   pg_temp.run_as('owner',   $$update public.wash_groups set customer_id = null where id = pg_temp.id('gMat')$$)],
-  '{NOT_AUTHORIZED,NOT_AUTHORIZED,NOT_AUTHORIZED,1,1}',
-  'wash_groups U customer_id: owner only; since 2026-11-07 a manager cannot edit ANY column of a customer group');
+  '{0,0,0,1,1}',
+  'wash_groups U customer_id: owner only; since 2026-11-09 a manager updates no wash group at all (owner-only RLS: no rows)');
 select is(pg_temp.run_as('owner', $$update public.wash_groups set customer_id = pg_temp.c('b') where id = pg_temp.id('gMat')$$), '23503',
   'composite FK: a group cannot point at another tenant''s customer');
 select is(array[

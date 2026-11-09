@@ -25,10 +25,10 @@ select is(array[pg_temp.run_as('owner', $$update public.wash_formulas set cycle_
                 pg_temp.run_as('owner', $$update public.wash_formulas set cycle_minutes = null where id = pg_temp.id('formula')$$)],
   '{1,1,1}', 'cycle_minutes 1, 300 and null accepted');
 select is(pg_temp.writes($$update public.wash_formulas set cycle_minutes = 88 where id = pg_temp.id('formula')$$),
-  '{1,1,0,0,0,0,0,42501}', 'cycle_minutes U: owner/manager only (same matrix as wash_formulas)');
+  '{1,0,0,0,0,0,0,42501}', 'cycle_minutes U: owner only (owner 2026-11-09; same matrix as wash_formulas)');
 select is(pg_temp.writes($$insert into public.wash_formulas (org_id, plant_id, external_no, cycle_minutes)
   values (pg_temp.id('orgA'), pg_temp.id('plantA'), 'X' || substr(md5(random()::text), 1, 6), 42)$$),
-  '{1,1,42501,42501,42501,42501,42501,42501}', 'formula with a cycle time C: owner/manager only');
+  '{1,42501,42501,42501,42501,42501,42501,42501}', 'formula with a cycle time C: owner only (owner 2026-11-09)');
 select is(pg_temp.reads($$select cycle_minutes from public.wash_formulas where id = pg_temp.id('formula')$$),
   '{1,1,1,1,1,0,0,42501}', 'cycle_minutes R: plant roles and own-plant display; no cross-tenant');
 select is(pg_temp.run_as('ownerB', $$update public.wash_formulas set cycle_minutes = 5 where plant_id = pg_temp.id('plantA')$$),
@@ -42,18 +42,18 @@ select col_is_null('public', 'wash_groups', 'wash_formula_id', 'wash_formula_id 
 select has_index('public', 'wash_groups', 'wash_groups_formula_plant_idx', array['wash_formula_id', 'plant_id'],
   'wash_formula_id FK is indexed');
 select is(pg_temp.writes($$update public.wash_groups set wash_formula_id = '80000000-0000-0000-0000-0000000000a2' where id = pg_temp.id('gMat')$$),
-  '{1,1,0,0,0,0,0,42501}', 'wash_formula_id U: owner/manager only (lead, viewer, display, other tenant, anon cannot)');
-select is(pg_temp.run_as('manager', $$update public.wash_groups set wash_formula_id = '80000000-0000-0000-0000-0000000000a2' where id = pg_temp.id('gTowel')$$),
+  '{1,0,0,0,0,0,0,42501}', 'wash_formula_id U: owner only (owner 2026-11-09; manager, lead, viewer, display, other tenant, anon cannot)');
+select is(pg_temp.run_as('owner', $$update public.wash_groups set wash_formula_id = '80000000-0000-0000-0000-0000000000a2' where id = pg_temp.id('gTowel')$$),
   '1', 'a second group can use the same formula');
 select is((select count(*)::int from public.wash_groups where wash_formula_id = '80000000-0000-0000-0000-0000000000a2'),
   2, 'one formula washes many groups');
 select is(pg_temp.writes($$insert into public.wash_groups (org_id, plant_id, name, wash_formula_id)
   values (pg_temp.id('orgA'), pg_temp.id('plantA'), 'G ' || substr(md5(random()::text), 1, 8), '80000000-0000-0000-0000-0000000000a2')$$),
-  '{1,1,42501,42501,42501,42501,42501,42501}', 'group with a formula C: owner/manager only');
+  '{1,42501,42501,42501,42501,42501,42501,42501}', 'group with a formula C: owner only (owner 2026-11-09)');
 select is(pg_temp.reads($$select 1 from public.wash_groups where wash_formula_id = '80000000-0000-0000-0000-0000000000a2' and plant_id = pg_temp.id('plantA')$$),
-  '{4,4,4,4,4,0,0,42501}', 'wash_formula_id R: plant roles and own-plant display; no cross-tenant');
-select is(array[pg_temp.run_as('manager', $$update public.wash_groups set wash_formula_id = '80000000-0000-0000-0000-0000000000b1' where id = pg_temp.id('gNapkin')$$),
-                pg_temp.run_as('manager', $$update public.wash_groups set wash_formula_id = '80000000-0000-0000-0000-0000000000c1' where id = pg_temp.id('gNapkin')$$)],
+  '{3,3,3,3,3,0,0,42501}', 'wash_formula_id R: plant roles and own-plant display; no cross-tenant');
+select is(array[pg_temp.run_as('owner', $$update public.wash_groups set wash_formula_id = '80000000-0000-0000-0000-0000000000b1' where id = pg_temp.id('gNapkin')$$),
+                pg_temp.run_as('owner', $$update public.wash_groups set wash_formula_id = '80000000-0000-0000-0000-0000000000c1' where id = pg_temp.id('gNapkin')$$)],
   '{23503,23503}', 'a group cannot use another tenant''s or another plant''s formula');
 -- No oracle: owner B on their own group gets the same answer for a real plant A formula and a missing one.
 select is(array[pg_temp.run_as('ownerB', $$update public.wash_groups set wash_formula_id = pg_temp.id('formula') where id = pg_temp.id('groupB')$$),

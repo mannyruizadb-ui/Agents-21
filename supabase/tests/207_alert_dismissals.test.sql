@@ -32,7 +32,10 @@ select pg_temp.id('orgA'), pg_temp.id('plantA'), m.id, '90000000-0000-0000-0000-
 
 -- Alerts: Washer 1 down (machine_down), Washer S idle (washer_idle), a route loaded (route_loaded), a
 -- task to the manager, done (task_done, awaiting review).
-select is(pg_temp.run_as('manager', $$select public.set_machine_status(pg_temp.id('machine'), 'down', gen_random_uuid(), null, 'leaking')$$), '1', 'Washer 1 down');
+-- 2026-11-09: nobody gets an alert for their own action, so the down and the route are someone else's: Washer 1
+-- is marked down by a second manager ("nobody", alerts off) and the route by the manager on duty.
+insert into public.memberships (user_id, org_id, plant_id, role, notify_machine_down) values (pg_temp.id('nobody'), pg_temp.id('orgA'), pg_temp.id('plantA'), 'manager', false);
+select is(pg_temp.run_as('nobody', $$select public.set_machine_status(pg_temp.id('machine'), 'down', gen_random_uuid(), null, 'leaking')$$), '1', 'Washer 1 down');
 insert into public.machines (id, org_id, plant_id, area_id, name, kind) values
   ('60000000-0000-0000-0000-0000000000e1', pg_temp.id('orgA'), pg_temp.id('plantA'), pg_temp.id('spare'), 'Washer S', 'washer');
 update public.wash_formulas set cycle_minutes = 30 where id = pg_temp.id('formula');
@@ -43,7 +46,7 @@ values (pg_temp.id('orgA'), pg_temp.id('plantA'), pg_temp.id('spare'), pg_temp.i
 select is(app.generate_washer_idle_alerts(), 1, 'Washer S idle');
 insert into public.routes (id, org_id, plant_id, name, load_time, days_of_week) values
   ('a1000000-0000-0000-0000-000000000001', pg_temp.id('orgA'), pg_temp.id('plantA'), 'Route Daily', '05:00', '{0,1,2,3,4,5,6}');
-select is(pg_temp.run_as('owner', $$select public.mark_route_loaded('a1000000-0000-0000-0000-000000000001', (now() at time zone 'America/New_York')::date, gen_random_uuid())$$), '1', 'a route loaded');
+select is(pg_temp.run_as('manager', $$select public.mark_route_loaded('a1000000-0000-0000-0000-000000000001', (now() at time zone 'America/New_York')::date, gen_random_uuid())$$), '1', 'a route loaded');
 select is(pg_temp.run_as('owner', $$select public.create_task(pg_temp.id('plantA'), 'Move the trucks', 'c0000000-0000-0000-0000-000000000001', pg_temp.id('manager'))$$), '1', 'a task to the manager');
 select is(pg_temp.run_as('manager', $$select public.complete_task((select id from public.tasks where client_id = 'c0000000-0000-0000-0000-000000000001'))$$), '1', 'done');
 select is(array[pg_temp.kinds('owner'), pg_temp.kinds('manager')],

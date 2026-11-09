@@ -435,3 +435,140 @@
   font-size: var(--fs-lg);
   color: var(--c-info-text);
 }
+
+/* Review item 6 (owner 2026-11-09): every route side by side on a big screen, one at a time on a phone. */
+@media (min-width: 1280px) {
+  .form-page.lo-page {
+    max-width: 110rem;
+  }
+}
+.lo-route-picks {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(7.5rem, 1fr));
+  gap: var(--sp-xs, 6px);
+  margin: var(--sp-sm) 0;
+}
+.form-page .lo-route-picks button {
+  min-height: var(--target);
+  display: grid;
+  justify-items: start;
+  gap: 1px;
+  padding: 6px 10px;
+  text-align: left;
+  color: var(--c-text);
+  background: var(--c-surface);
+  border: 2px solid var(--c-outline);
+}
+.form-page .lo-route-picks button[aria-pressed='true'] {
+  color: var(--c-text-inverse);
+  background: var(--c-info-text);
+  border-color: var(--c-info-text);
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+}
+.lo-pick-name {
+  font-weight: 800;
+}
+.lo-pick-time,
+.lo-pick-state {
+  font-size: var(--fs-sm);
+}
+
+/* Mats: by colour (open when it has mats), sizes inside; totals by size. */
+.lo-mats {
+  border-top: 2px solid var(--c-outline);
+  margin-top: var(--sp-sm);
+  padding-top: var(--sp-sm);
+}
+.lo-mats-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--sp-sm);
+}
+.form-page .lo-mats-head h3 {
+  margin: 0;
+  font-size: var(--fs-h-md);
+}
+.form-page .lo-mat-totals {
+  list-style: none;
+  margin: 0.25rem 0 var(--sp-sm);
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+.form-page .lo-mat-totals li {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.35rem;
+  padding: 0.2rem 0.55rem;
+  border: 1px solid var(--c-seam);
+  border-radius: var(--radius-lg);
+  background: var(--c-bg, transparent);
+}
+.form-page .lo-mat-totals li.lo-mat-total {
+  border: 2px solid var(--c-info);
+  color: var(--c-info-text);
+  font-weight: 700;
+}
+.lo-mat-totals.none {
+  color: var(--c-text-muted);
+}
+.lo-mat-size {
+  color: var(--c-text-muted);
+}
+.lo-mat-group {
+  border-top: 1px solid var(--c-seam);
+}
+.lo-mat-group summary {
+  min-height: 48px;
+  display: flex;
+  align-items: center;
+  gap: var(--sp-sm);
+  cursor: pointer;
+  font-weight: 700;
+  font-size: var(--fs-lg);
+}
+.lo-mat-group-name {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.lo-swatch {
+  flex: none;
+  width: 1rem;
+  height: 1rem;
+  border-radius: 3px;
+  border: 1px solid var(--c-outline);
+}
+.lo-mat-group-body {
+  padding-left: calc(1rem + var(--sp-sm));
+}
+.lo-mat-group-body .lo-row:first-child {
+  border-top: 0;
+}
+.lo-summary-label {
+  font-weight: 700;
+}
+
+/* Board: mats per route and for the night. */
+.lo-board-mats {
+  margin: var(--sp-sm) 0;
+  padding-top: var(--sp-sm);
+  border-top: 1px solid var(--c-seam);
+}
+.lo-board-mats.day {
+  border-top: 0;
+}
+.form-page .lo-board-mats-title {
+  margin: 0;
+  font-weight: 700;
+}
+.lo-mat-detail summary {
+  min-height: 48px;
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  color: var(--c-info-text);
+  font-weight: 600;
+}

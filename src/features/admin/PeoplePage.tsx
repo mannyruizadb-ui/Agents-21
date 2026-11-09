@@ -202,13 +202,7 @@ function PersonCard({
 
   const roles = person.memberships
     .map((m) =>
-      [
-        t(`roles.${m.role}`),
-        m.can_manage_staff ? t('people.staffAdmin') : null,
-        m.org_wide ? t('people.allPlants') : null,
-      ]
-        .filter(Boolean)
-        .join(' · '),
+      [t(`roles.${m.role}`), m.org_wide ? t('people.allPlants') : null].filter(Boolean).join(' · '),
     )
     .join('; ');
 
@@ -218,7 +212,8 @@ function PersonCard({
         {name}
         {person.is_self && ` ${t('people.you')}`}
       </h3>
-      <p>{t('people.usernameValue', { username: person.username ?? t('people.noUsername') })}</p>
+      {/* Owners who sign in by email have no username: no line (review 2026-11-09). */}
+      {person.username && <p>{t('people.usernameValue', { username: person.username })}</p>}
       <p>{t('people.roleValue', { roles })}</p>
       {lock && (
         <div className="notice person-lock" role="group" aria-label={t('people.lockedLabel')}>
@@ -334,7 +329,6 @@ function CreateForm({
   const [displayName, setDisplayName] = useState('');
   const [username, setUsername] = useState('');
   const [role, setRole] = useState<AssignableRole>('manager');
-  const [canManageStaff, setCanManageStaff] = useState(false);
   const [startPassword, setStartPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
 
@@ -346,7 +340,9 @@ function CreateForm({
         username,
         display_name: displayName.trim(),
         role,
-        can_manage_staff: role === 'manager' && canManageStaff,
+        // Entry PINs were removed 2026-11-07; the grant only governed the old entry-staff/PIN admin,
+        // which has no screen any more, so it is no longer offered (review 2026-11-09).
+        can_manage_staff: false,
         ...(startPassword.length > 0 ? { password: startPassword } : {}),
       }),
     onSuccess: async (r) => {
@@ -355,7 +351,6 @@ function CreateForm({
       setDisplayName('');
       setUsername('');
       setRole('manager');
-      setCanManageStaff(false);
       setStartPassword('');
       await queryClient.invalidateQueries({ queryKey: ['people', plantId] });
     },
@@ -418,18 +413,6 @@ function CreateForm({
           ))}
         </select>
       </div>
-      {role === 'manager' && (
-        <div className="field check">
-          <label>
-            <input
-              type="checkbox"
-              checked={canManageStaff}
-              onChange={(e) => setCanManageStaff(e.target.checked)}
-            />
-            {t('people.canManageStaffLabel')}
-          </label>
-        </div>
-      )}
       <StartPasswordField
         id="new-start-password"
         value={startPassword}

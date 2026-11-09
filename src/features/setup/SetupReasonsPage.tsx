@@ -101,7 +101,9 @@ function ReasonRow({
           <span className="setup-kind">
             {fixed && <span className="badge setup-fixed">{t('setup.reasons.fixed')}</span>}
             {!reason.active && <span className="badge setup-off">{t('setup.inactive')}</span>}
-            {reason.requires_details && t('setup.reasons.needsDetails')}
+            {fixed
+              ? t('setup.reasons.alwaysAsks')
+              : reason.requires_details && t('setup.reasons.needsDetails')}
           </span>
         </p>
         <span className="setup-row-actions">
@@ -136,7 +138,6 @@ function ReasonRow({
           )}
         </span>
       </div>
-      {fixed && <p className="hint">{t('setup.reasons.fixedHint')}</p>}
       {editing && !fixed && (
         <div className="setup-editor">
           <LabelFields idBase={`r-${reason.id}`} labels={labels} onChange={setLabels} />

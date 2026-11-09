@@ -20,7 +20,13 @@ import { boardLoadsLeft } from '../dirtyWork/dirtyWork';
 import { estimateServerNow, formatCountdown, minutesLeftRoundedUp, washerNow } from './washerTime';
 import { DownBanner } from './DownBanner';
 import { TapAlarmBanner } from './TapAlarmBanner';
-import { useMachine, useWashGroups, useWashroomBoard, type WashGroupRow } from './washroomData';
+import {
+  useFormulas,
+  useMachine,
+  useWashGroups,
+  useWashroomBoard,
+  type WashGroupRow,
+} from './washroomData';
 import './washroom.css';
 
 // Washer station (PRD F1/D1, owner plan 2026-11-04): a tablet mounted at ONE washer opens
@@ -77,6 +83,7 @@ export function WasherStationPage() {
   const board = useWashroomBoard(areaId);
   useLiveRefetch(board.refetch, !!areaId);
   const groups = useWashGroups(machine.data?.plant_id);
+  const formulas = useFormulas(machine.data?.plant_id);
   const taps = useTapSync();
 
   const [override, setOverride] = useState<WashGroupRow | null>(null);
@@ -98,6 +105,10 @@ export function WasherStationPage() {
     roles.has('owner') || roles.has('manager') ? MANAGER_UNDO_WINDOW_MS : UNDO_WINDOW_MS;
 
   const row = board.data?.find((r) => r.machine_id === machineId);
+  const nextGroup = groups.data?.find((g) => g.id === row?.next_wash_group_id);
+  const nextFormula = nextGroup?.wash_formula_id
+    ? formulas.data?.get(nextGroup.wash_formula_id)
+    : undefined;
   const isDown = !!row?.is_down;
   const view = row
     ? washerNow(row.status, row.expected_end_at, row.server_time, board.dataUpdatedAt, now)
@@ -321,16 +332,21 @@ export function WasherStationPage() {
                   washGroupId={row.next_wash_group_id}
                 />
                 <p className="meta">
-                  <span>
-                    {qtyText(
-                      boardLoadsLeft(
-                        row.next_loads_remaining,
-                        row.next_unit,
-                        groups.data?.find((g) => g.id === row.next_wash_group_id),
-                      ),
-                      row.next_qty,
-                      row.next_unit,
-                    )}
+                  {/* Review 2026-11-09: the washman needs the formula number, not baskets/loads.
+                      Without a formula on the group, the amount stays as before. */}
+                  <span className={nextFormula ? 'mono' : undefined}>
+                    {nextFormula
+                      ? nextFormula.cycle_minutes !== null
+                        ? t('washroom.formulaValue', {
+                            no: nextFormula.external_no,
+                            minutes: nextFormula.cycle_minutes,
+                          })
+                        : t('washroom.formulaOnly', { no: nextFormula.external_no })
+                      : qtyText(
+                          boardLoadsLeft(row.next_loads_remaining, row.next_unit, nextGroup),
+                          row.next_qty,
+                          row.next_unit,
+                        )}
                   </span>
                   <QueueBadges
                     rush={row.next_is_rush}

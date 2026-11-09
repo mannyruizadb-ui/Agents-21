@@ -74,16 +74,36 @@ export const router = createBrowserRouter([
         }),
       },
       {
+        // Review item 5 (owner 2026-11-09): AA in one place, the Estimates AA tab. Old links land there
+        // with the drop-off form open.
         path: 'deliveries/new',
-        lazy: async () => ({
-          Component: (await import('./features/deliveries/DeliveryEntryPage')).DeliveryEntryPage,
-        }),
+        element: <Navigate to="/control/estimates?view=aa&dropoff=1" replace />,
       },
       {
         // Owner Setup (owner 2026-11-05): machines and machine-down reasons are app data.
         path: 'setup/machines',
         lazy: async () => ({
           Component: (await import('./features/setup/SetupMachinesPage')).SetupMachinesPage,
+        }),
+      },
+      {
+        // Setup → Wash groups and Formulas (owner 2026-11-09, review item 8): owner only.
+        path: 'setup/wash-groups',
+        lazy: async () => ({
+          Component: (await import('./features/setup/SetupWashGroupsPage')).SetupWashGroupsPage,
+        }),
+      },
+      {
+        path: 'setup/formulas',
+        lazy: async () => ({
+          Component: (await import('./features/setup/SetupFormulasPage')).SetupFormulasPage,
+        }),
+      },
+      {
+        // "Change my password" (review 2026-11-09): anyone signed in, from More.
+        path: 'password',
+        lazy: async () => ({
+          Component: (await import('./app/auth/MyPasswordPage')).MyPasswordPage,
         }),
       },
       {

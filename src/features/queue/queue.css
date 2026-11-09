@@ -1,5 +1,5 @@
-/* Work queue (owner-approved Stitch style 2026-11-06): numbered cards, RUSH / Rewash / washer tags,
-   big up/down buttons. Tokens from src/lib/theme.css. */
+/* Work queue, compact (review 2026-11-09 item 3): one-line rows that open their actions with a tap,
+   a drag handle for the owner, RUSH / Rewash / washer tags. Tokens from src/lib/theme.css. */
 .q-summary {
   margin: -0.5rem 0 var(--sp-sm);
   color: var(--c-text-muted);
@@ -27,17 +27,24 @@
   background: var(--c-info-text);
   border-color: var(--c-info-text);
 }
-.form-page .queue-list {
-  gap: var(--sp-sm);
+.form-page .q-drag-help {
+  margin: 0 0 var(--sp-sm);
 }
-.form-page .queue-item {
+.form-page .queue-list {
   display: flex;
   flex-direction: column;
-  gap: var(--sp-sm);
+  gap: var(--sp-xs);
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.form-page .queue-item {
+  position: relative;
+  padding: 0;
   border: 1px solid var(--c-seam);
   border-radius: var(--radius-lg);
   background: var(--c-surface);
-  padding: 0.75rem;
+  overflow: hidden;
 }
 .form-page .queue-item:nth-child(even) {
   background: var(--c-surface-low);
@@ -45,34 +52,125 @@
 .form-page .queue-item.rush {
   border: 3px solid var(--c-warn);
 }
-.q-head {
+.form-page .queue-item.started {
+  border-left: 6px solid var(--c-ok);
+}
+.form-page .queue-item.open {
+  border-color: var(--c-info-text);
+}
+.form-page .queue-item.dragging {
+  z-index: 10;
+  box-shadow: 0 8px 24px rgb(0 0 0 / 0.6);
+  outline: 3px solid var(--c-info-text);
+  cursor: grabbing;
+}
+.form-page .queue-item p {
+  margin: 0;
+}
+
+/* Customer work (owner 2026-11-09, iPad photo): a full-width band at the top center, high contrast
+   (light on dark card: ≈ 14:1), icon + name; never a small dashed chip. */
+.q-customer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--sp-sm);
+  padding: 0.3rem var(--sp-sm);
+  color: var(--c-text-inverse);
+  background: var(--c-text);
+  font-family: var(--font-head);
+  font-size: var(--fs-h-md);
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  line-height: 1.15;
+  text-align: center;
+  text-transform: uppercase;
+  overflow-wrap: anywhere;
+}
+
+.q-line {
+  display: flex;
+  align-items: stretch;
+}
+.form-page .q-handle {
+  flex: 0 0 auto;
+  min-width: 48px;
+  min-height: 48px;
+  padding: 0;
+  color: var(--c-text);
+  background: var(--c-surface-high);
+  border: 0;
+  border-right: 1px solid var(--c-seam);
+  border-radius: 0;
+  cursor: grab;
+  /* Taps and scrolls still work; the drag only starts after a press-and-hold (TouchSensor). */
+  touch-action: manipulation;
+  -webkit-touch-callout: none;
+  user-select: none;
+}
+.form-page .q-handle:focus-visible {
+  outline: 3px solid var(--c-info-text);
+  outline-offset: -3px;
+}
+.form-page .q-toggle {
+  flex: 1 1 auto;
+  min-width: 0;
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: var(--sp-sm);
+  justify-content: flex-start;
+  gap: var(--sp-xs) var(--sp-sm);
+  padding: 0.4rem var(--sp-sm);
+  color: var(--c-text);
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  font-weight: 600;
+  text-align: left;
+}
+.form-page .q-toggle:active:not(:disabled) {
+  transform: none;
+}
+.form-page .q-toggle:focus-visible {
+  outline: 3px solid var(--c-info-text);
+  outline-offset: -3px;
+}
+.q-static {
+  min-height: 48px;
 }
 .q-place {
-  font-size: var(--fs-h-lg);
+  flex: 0 0 auto;
+  font-size: var(--fs-lg);
   font-weight: 700;
   line-height: 1;
-  padding: 0.15rem 0.4rem;
+  padding: 0.15rem 0.35rem;
   border: 2px solid var(--c-outline);
   border-radius: var(--radius);
+}
+.q-what {
+  flex: 1 1 12rem;
+  min-width: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--sp-xs) var(--sp-sm);
+}
+.q-what .wb-chip {
+  display: inline-block;
+  padding: 0.15rem 0.5rem;
+}
+.q-qty {
+  font-weight: 600;
+  color: var(--c-text);
 }
 .q-tags {
   display: flex;
   flex-wrap: wrap;
   gap: var(--sp-xs);
 }
-.form-page .q-qty {
-  margin: 0;
-  font-weight: 600;
-}
-.form-page .queue-item .actions button {
-  min-height: var(--target);
-}
-.form-page .queue-item p {
-  margin: 0;
+.q-chevron {
+  margin-left: auto;
+  color: var(--c-text-muted);
 }
 
 /* Long tags stay in sentence case (ALL-CAPS only for short badges). */
@@ -82,12 +180,82 @@
   letter-spacing: 0;
 }
 
-/* Tablet and desktop (owner 2026-11-09). */
-@media (min-width: 768px) {
+.q-panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-sm);
+  padding: var(--sp-sm) var(--sp-md) var(--sp-md);
+  border-top: 1px solid var(--c-seam);
+}
+.q-panel[hidden] {
+  display: none;
+}
+.form-page .q-panel .actions {
+  margin-top: 0;
+}
+.form-page .q-panel .actions button {
+  min-height: var(--target);
+}
+.form-page .q-panel .field {
+  margin: 0;
+}
+.q-position-row {
+  display: flex;
+  gap: var(--sp-sm);
+}
+.form-page .q-position-row input {
+  flex: 1 1 auto;
+  min-width: 0;
+  max-width: 8rem;
+}
+
+/* Toast above the bottom bar (beside the side menu on wide screens). */
+.q-toast-region {
+  position: fixed;
+  left: var(--side-w);
+  right: 0;
+  bottom: calc(var(--nav-space) + env(safe-area-inset-bottom) + var(--sp-sm));
+  z-index: 15;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 0 var(--sp-md);
+  pointer-events: none;
+}
+.q-toast {
+  pointer-events: auto;
+  max-width: 36rem;
+  width: 100%;
+  margin: 0;
+  padding: var(--sp-sm) var(--sp-md);
+  border: 2px solid;
+  border-radius: var(--radius-lg);
+  font-weight: 700;
+  box-shadow: 0 6px 18px rgb(0 0 0 / 0.5);
+}
+.q-toast.ok {
+  color: var(--c-ok);
+  background: var(--c-ok-container);
+}
+.q-toast.error {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-sm);
+  color: var(--c-danger-text);
+  background: var(--c-danger-container);
+}
+.q-toast.error p {
+  flex: 1 1 auto;
+  margin: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
   .form-page .queue-item {
-    padding: var(--sp-md);
+    transition: none !important;
   }
 }
+
+/* Tablet and desktop (owner 2026-11-09). */
 @media (min-width: 1024px) {
   .form-page.q-page {
     max-width: 84rem;

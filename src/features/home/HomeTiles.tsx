@@ -213,7 +213,7 @@ function MachinesDownTile({ c }: { c: Ctx }) {
               const why = m.reason_code ? labeler(m.reason_code, m.reason_label_i18n) : null;
               return (
                 <span key={m.machine_id} className="home-list-row">
-                  <strong>{names.machine(m.machine_name)}</strong>
+                  <strong>{names.machine(m.machine_name, m.machine_name_i18n)}</strong>
                   {why && <span> · {why}</span>}
                 </span>
               );

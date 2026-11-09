@@ -134,72 +134,90 @@ export function AlertToggles({
   const ownerRows = all.filter((r) => r.ownSettings);
 
   if (rows.length === 0 && ownerRows.length === 0) return null;
+
+  // One pattern for every alert (review 2026-11-09): a row of big radio buttons per alert. The two
+  // on/off alarms offer Buzz | Off; the owner information alerts Buzz | Quiet | Off.
+  const onOff = (
+    key: string,
+    legend: string,
+    on: boolean,
+    disabled: boolean,
+    onPick: (on: boolean) => void,
+  ) => (
+    <fieldset key={key} className="alert-level">
+      <legend>{legend}</legend>
+      <div className="segmented two">
+        {([true, false] as const).map((v) => (
+          <label key={String(v)}>
+            <input
+              type="radio"
+              name={key}
+              value={v ? 'push' : 'off'}
+              checked={on === v}
+              disabled={disabled}
+              onChange={() => onPick(v)}
+            />
+            <span>{t(v ? 'people.level.push' : 'people.level.off')}</span>
+          </label>
+        ))}
+      </div>
+    </fieldset>
+  );
+
   return (
-    <div className="field check">
-      {rows.map((r) => (
-        <label key={r.membershipId}>
-          <input
-            type="checkbox"
-            checked={r.on}
-            disabled={set.isPending || (!r.on && !r.canEnable)}
-            onChange={(e) => set.mutate({ membershipId: r.membershipId, on: e.target.checked })}
-          />
-          {rows.length > 1
+    <div className="alert-levels">
+      <p className="pick-label">{t('people.alertsTitle')}</p>
+      {rows.map((r) =>
+        onOff(
+          `md-${r.membershipId}`,
+          rows.length > 1
             ? t('people.alertsLabelRole', {
                 role: t(`roles.${r.role}`),
                 scope: r.orgWide ? t('people.allPlants') : '',
               })
-            : t('people.alertsLabel')}
-        </label>
-      ))}
-      {ownerRows.map((r) => (
-        <label key={`idle-${r.membershipId}`}>
-          <input
-            type="checkbox"
-            checked={r.idleOn}
-            disabled={setIdle.isPending}
-            onChange={(e) => setIdle.mutate({ membershipId: r.membershipId, on: e.target.checked })}
-          />
-          {t('people.idleLabel')}
-        </label>
-      ))}
-      {ownerRows.map((r) => (
-        <div key={`levels-${r.membershipId}`} className="alert-levels">
-          <p className="pick-label">{t('people.levelsTitle')}</p>
-          {OWNER_ALERT_KINDS.map((kind) => {
-            const group = `lvl-${r.membershipId}-${kind}`;
-            return (
-              <fieldset key={kind} className="alert-level">
-                <legend>{t(`people.levelKind.${kind}`)}</legend>
-                <div className="segmented">
-                  {ALERT_LEVELS.map((level) => (
-                    <label key={level}>
-                      <input
-                        type="radio"
-                        name={group}
-                        value={level}
-                        checked={r.levels[kind] === level}
-                        disabled={setLevel.isPending}
-                        onChange={() =>
-                          setLevel.mutate({ membershipId: r.membershipId, kind, level })
-                        }
-                      />
-                      <span>{t(`people.level.${level}`)}</span>
-                    </label>
-                  ))}
-                </div>
-              </fieldset>
-            );
-          })}
-        </div>
-      ))}
-      {(rows.length > 0 || ownerRows.length > 0) && (
-        <MoreInfo>
-          {rows.length > 0 && <p>{t('people.alertsHint')}</p>}
-          {ownerRows.length > 0 && <p>{t('people.idleHint')}</p>}
-          {ownerRows.length > 0 && <p>{t('people.levelsHint')}</p>}
-        </MoreInfo>
+            : t('people.alertsLabel'),
+          r.on,
+          set.isPending || (!r.on && !r.canEnable),
+          (on) => set.mutate({ membershipId: r.membershipId, on }),
+        ),
       )}
+      {ownerRows.map((r) =>
+        onOff(`idle-${r.membershipId}`, t('people.idleLabel'), r.idleOn, setIdle.isPending, (on) =>
+          setIdle.mutate({ membershipId: r.membershipId, on }),
+        ),
+      )}
+      {ownerRows.map((r) =>
+        OWNER_ALERT_KINDS.map((kind) => {
+          const group = `lvl-${r.membershipId}-${kind}`;
+          return (
+            <fieldset key={group} className="alert-level">
+              <legend>{t(`people.levelKind.${kind}`)}</legend>
+              <div className="segmented">
+                {ALERT_LEVELS.map((level) => (
+                  <label key={level}>
+                    <input
+                      type="radio"
+                      name={group}
+                      value={level}
+                      checked={r.levels[kind] === level}
+                      disabled={setLevel.isPending}
+                      onChange={() =>
+                        setLevel.mutate({ membershipId: r.membershipId, kind, level })
+                      }
+                    />
+                    <span>{t(`people.level.${level}`)}</span>
+                  </label>
+                ))}
+              </div>
+            </fieldset>
+          );
+        }),
+      )}
+      <MoreInfo>
+        <p>{t(ownerRows.length > 0 ? 'people.levelsHint' : 'people.buzzHint')}</p>
+        {rows.length > 0 && <p>{t('people.alertsHint')}</p>}
+        {ownerRows.length > 0 && <p>{t('people.idleHint')}</p>}
+      </MoreInfo>
     </div>
   );
 }

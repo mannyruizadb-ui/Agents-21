@@ -1,6 +1,7 @@
 import { useState, type ReactNode } from 'react';
 import { Link } from 'react-router';
 import { useTranslation } from 'react-i18next';
+import { useAgo } from '../../lib/useAgo';
 import { useMediaQuery } from '../../lib/useMediaQuery';
 import { useCustomerNameOf } from '../customers/useCustomerLookup';
 import { estimateAges } from '../dashboard/dashboardLogic';
@@ -24,18 +25,6 @@ const WIDE_QUERY = '(min-width: 48rem)';
 export const NEEDS_ESTIMATE_LINK = '/control/estimates?needs=1';
 
 type DirtyState = ReturnType<typeof useDirtyWork>;
-
-function useAgo() {
-  const { t } = useTranslation();
-  return (ms: number, now: number) => {
-    const min = Math.max(0, Math.floor((now - ms) / 60_000));
-    if (min < 60) return t('dash.agoMin', { count: min });
-    const h = Math.floor(min / 60);
-    return h < 48
-      ? t('dash.agoHour', { count: h })
-      : t('dash.agoDay', { count: Math.floor(h / 24) });
-  };
-}
 
 function GroupDetail({ groups }: { groups: readonly GroupLine[] }) {
   const { t } = useTranslation();
@@ -264,11 +253,17 @@ export function CustomerWaiting({
   dirty,
   headingId,
   only,
+  titleKey = 'dirty.customerTitle',
+  level = 3,
 }: {
   dirty: DirtyState;
   headingId: string;
   /** Show this customer only (the Estimates AA view). */
   only?: string;
+  /** The heading text key ({{name}} = the customer). */
+  titleKey?: string;
+  /** h3 inside the Dirty work card; h2 as the top of the Estimates AA tab. */
+  level?: 2 | 3;
 }) {
   const { t } = useTranslation();
   const text = useDirtyText();
@@ -277,6 +272,7 @@ export function CustomerWaiting({
   const localized = useLocalizedName();
   const d = dirty.data;
   if (!d || !dirty.queueReady) return null;
+  const Heading = level === 2 ? 'h2' : 'h3';
   return (
     <>
       {d.customers
@@ -291,7 +287,7 @@ export function CustomerWaiting({
               aria-labelledby={`${headingId}-${c.customerId}`}
             >
               <div className="dirty-cust-head">
-                <h3 id={`${headingId}-${c.customerId}`}>{t('dirty.customerTitle', { name })}</h3>
+                <Heading id={`${headingId}-${c.customerId}`}>{t(titleKey, { name })}</Heading>
                 {c.items > 0 && (
                   <span className="dirty-cust-total">{text.loads(c.loads, c.unknown)}</span>
                 )}

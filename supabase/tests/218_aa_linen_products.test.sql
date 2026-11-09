@@ -37,13 +37,13 @@ select is(array[
   pg_temp.run_as('manager', $$update public.wash_groups set name_i18n = '{"es":"Toallas AA"}' where id = '71000000-0000-0000-0000-0000000aa0a1'$$),
   pg_temp.run_as('manager', $$update public.wash_groups set active = false where id = '71000000-0000-0000-0000-0000000aa0a1'$$),
   pg_temp.run_as('manager', $$insert into public.wash_groups (org_id, plant_id, customer_id, name) values (pg_temp.id('orgA'), pg_temp.id('plantA'), 'c1000000-0000-0000-0000-0000000000a1', 'AA mats')$$)],
-  '{NOT_AUTHORIZED,NOT_AUTHORIZED,NOT_AUTHORIZED,NOT_AUTHORIZED,NOT_AUTHORIZED}',
-  'a manager cannot insert a customer group or update any column of one (sort, formula, name, active)');
+  '{0,0,0,0,NOT_AUTHORIZED}',
+  'a manager cannot insert a customer group or update any column of one (sort, formula, name, active; since 2026-11-09 owner-only RLS: no rows)');
 select is(array[
   pg_temp.run_as('manager', $$update public.wash_groups set sort_order = 7, wash_formula_id = pg_temp.id('formula') where id = pg_temp.id('gNapkin')$$),
   pg_temp.run_as('lead', $$update public.wash_groups set sort_order = 8 where id = '71000000-0000-0000-0000-0000000aa0a1'$$),
   pg_temp.run_as('ownerB', $$update public.wash_groups set sort_order = 8 where id = '71000000-0000-0000-0000-0000000aa0a1'$$)],
-  '{1,0,0}', 'managers keep editing our own groups (formula included); leads and other tenants update nothing (RLS)');
+  '{0,0,0}', 'since 2026-11-09 managers do not edit our own groups either; leads and other tenants update nothing (RLS)');
 select is(array[
   pg_temp.run_as('owner', $$update public.wash_groups set wash_formula_id = '80000000-0000-0000-0000-0000000000a9', sort_order = 3, name_i18n = '{"es":"Toallas AA"}' where id = '71000000-0000-0000-0000-0000000aa0a1'$$),
   pg_temp.run_as('owner', $$update public.wash_groups set wash_formula_id = '80000000-0000-0000-0000-0000000000a9' where id = pg_temp.id('gMat')$$),

@@ -18,6 +18,9 @@
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 6px;
 }
+.form-page .segmented.two {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
 .form-page .segmented label {
   display: flex;
   align-items: center;
@@ -34,6 +37,7 @@
 .form-page .segmented label:has(input:checked) {
   border-color: currentColor;
   font-weight: 800;
+  background: var(--c-surface-high);
 }
 .form-page .segmented label:has(input:focus-visible) {
   outline: 3px solid currentColor;
@@ -41,4 +45,9 @@
 }
 .form-page .segmented input {
   margin: 0;
+}
+.form-page .alert-levels > .pick-label {
+  margin: 0 0 4px;
+  font-weight: 700;
+  font-size: var(--fs-lg);
 }

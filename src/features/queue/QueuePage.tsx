@@ -1,22 +1,19 @@
-import { useRef, useState, type FormEvent } from 'react';
+import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { groupOptionText } from '../customers/customerLookup';
 import { useCustomerNameOf } from '../customers/useCustomerLookup';
 import { useLocalNames } from '../../lib/seededNames';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../../lib/supabase';
+import { usernameFromEmail } from '../../lib/loginId';
 import { useLiveRefetch } from '../../lib/useLiveRefetch';
 import { useNow } from '../../lib/useNow';
 import { useRequiredSession } from '../../app/auth/sessionContext';
 import { useMyRoles } from '../washroom/useMyRoles';
 import { RewashForm } from './RewashForm';
 import { DataAge } from '../washroom/DataAge';
-import { IconDown, IconList, IconPin, IconRewash, IconRush, IconUp } from '../washroom/Icons';
-import { GroupChip } from '../washroom/GroupChip';
 import { useLocalizedName } from '../washroom/localizedName';
 import { appErrorCode, errorMessageKey, unwrap } from '../washroom/rpcError';
-import { useQtyText } from '../washroom/useQtyText';
-import { queueLoadsLeft } from '../dirtyWork/dirtyWork';
 import { useDirtyText } from '../dirtyWork/useDirtyText';
 import { useDirtyWork } from '../dirtyWork/useDirtyWork';
 import {
@@ -30,14 +27,9 @@ import {
   type QueueRow,
   type WasherRow,
 } from '../washroom/washroomData';
-import {
-  applyMove,
-  canMove,
-  moveAfterId,
-  parseLoads,
-  placeNumbers,
-  type Direction,
-} from './queueOrder';
+import { QueueItem, WasherOption, type ItemChanges } from './QueueItem';
+import { SortableQueueList } from './SortableQueueList';
+import { applyMove, parseLoads, placeNumbers } from './queueOrder';
 import '../../lib/forms.css';
 import '../washroom/washroom.css';
 import './queue.css';
@@ -47,22 +39,8 @@ import './queue.css';
 // lets managers edit until a separate migration tightens it; this screen only offers what the owner
 // decided. Items are cancelled, never deleted.
 
-/** A washer <option>: a down washer says so in its text and can't be chosen. */
-function WasherOption({ w, down }: { w: WasherRow; down: boolean }) {
-  const { t } = useTranslation();
-  const names = useLocalNames();
-  return (
-    <option value={w.id} disabled={down}>
-      {down ? t('queue.washerDown', { name: names.machine(w.name) }) : names.machine(w.name)}
-    </option>
-  );
-}
-
 /** Sends every editable field (update_queue_item is a full replacement). */
-function updateArgs(
-  item: QueueRow,
-  changes: { is_rush?: boolean; assigned_machine_id?: string | null },
-) {
+function updateArgs(item: QueueRow, changes: ItemChanges) {
   const assigned =
     changes.assigned_machine_id !== undefined
       ? changes.assigned_machine_id
@@ -239,217 +217,29 @@ function AddForm({
   );
 }
 
-function QueueItemCard({
-  item,
-  place,
-  canEdit,
-  canMoveOff,
-  isWashroom,
-  washers,
-  downIds,
-  canUp,
-  canDown,
-  busy,
-  onMove,
-  onUpdate,
-  onCancel,
-}: {
-  item: QueueRow;
-  place: number;
-  canEdit: boolean;
-  /** Manager exception 1: may move this load off its washer because that washer is down. */
-  canMoveOff: boolean;
-  isWashroom: boolean;
-  washers: WasherRow[];
-  downIds: Set<string>;
-  canUp: boolean;
-  canDown: boolean;
-  busy: boolean;
-  onMove: (dir: Direction) => void;
-  onUpdate: (changes: { is_rush?: boolean; assigned_machine_id?: string | null }) => void;
-  onCancel: () => void;
-}) {
-  const { t } = useTranslation();
-  const names = useLocalNames();
-  const qtyText = useQtyText();
-  const localized = useLocalizedName();
-  const [confirming, setConfirming] = useState(false);
-  const groupName = localized(item.wash_group_name, item.wash_group_name_i18n);
-  const washerSelectId = `washer-${item.id}`;
-  const [moveTarget, setMoveTarget] = useState('');
-  // Down = marked down, or turned off in setup (no longer an active washer).
-  const assignedDown =
-    !!item.assigned_machine_id &&
-    (downIds.has(item.assigned_machine_id) ||
-      !washers.some((w) => w.id === item.assigned_machine_id));
-
-  return (
-    <li className={item.is_rush ? 'queue-item rush' : 'queue-item'}>
-      <div className="q-head">
-        <span className="q-place mono">
-          {t('queue.place', { n: String(place).padStart(2, '0') })}
-        </span>
-        <span className="q-tags">
-          {item.is_rush && (
-            <span className="status-pill warn">
-              <IconRush /> {t('queue.rush')}
-            </span>
-          )}
-          {item.is_rewash && (
-            <span className="status-pill info">
-              <IconRewash /> {t('queue.rewash')}
-            </span>
-          )}
-          {item.from_estimate && (
-            <span className="status-pill idle">
-              <IconList /> {t('queue.fromEstimate')}
-            </span>
-          )}
-          {/* Only a pinned washer gets a tag ("next free washer" is the default, not news), and
-              not when the washer picker below already shows it (declutter 2026-11-09). */}
-          {item.assigned_machine_name && !(canEdit && isWashroom) && (
-            <span className="status-pill idle q-washer">
-              <IconPin /> {names.machine(item.assigned_machine_name)}
-            </span>
-          )}
-        </span>
-      </div>
-      <GroupChip
-        name={item.wash_group_name}
-        nameI18n={item.wash_group_name_i18n}
-        colorHex={item.wash_group_color_hex}
-        washGroupId={item.wash_group_id}
-      />
-      {item.item_name && <p>{localized(item.item_name, item.item_name_i18n)}</p>}
-      <p className="q-qty">
-        {qtyText(queueLoadsLeft(item), item.qty, item.unit)}
-        {item.status === 'in_progress' &&
-          ` · ${t('queue.inProgress', { count: item.loads_started })}`}
-      </p>
-      {item.note && <p className="hint">{t('queue.note', { note: item.note })}</p>}
-      {item.created_by_name && (
-        <p className="hint">{t('names.addedBy', { name: item.created_by_name })}</p>
-      )}
-      {assignedDown && (
-        <p className="down-banner">
-          <strong>
-            {t('queue.assignedDown', { name: names.machine(item.assigned_machine_name) || '?' })}
-          </strong>
-        </p>
-      )}
-
-      {canMoveOff && assignedDown && (
-        <div className="field">
-          <label htmlFor={`move-${item.id}`}>{t('queue.moveOffLabel')}</label>
-          <select
-            id={`move-${item.id}`}
-            value={moveTarget}
-            onChange={(e) => setMoveTarget(e.target.value)}
-          >
-            <option value="">{t('queue.nextFreeWasher')}</option>
-            {washers
-              .filter((w) => w.id !== item.assigned_machine_id)
-              .map((w) => (
-                <WasherOption key={w.id} w={w} down={downIds.has(w.id)} />
-              ))}
-          </select>
-          <div className="actions">
-            <button
-              type="button"
-              disabled={busy}
-              onClick={() => onUpdate({ assigned_machine_id: moveTarget || null })}
-            >
-              {t('queue.moveOff')}
-            </button>
-          </div>
-        </div>
-      )}
-
-      {canEdit && (
-        <>
-          {isWashroom && (
-            <div className="field">
-              <label htmlFor={washerSelectId}>{t('queue.washerLabel')}</label>
-              <select
-                id={washerSelectId}
-                value={item.assigned_machine_id ?? ''}
-                disabled={busy}
-                onChange={(e) => onUpdate({ assigned_machine_id: e.target.value || null })}
-              >
-                <option value="">{t('queue.nextFreeWasher')}</option>
-                {/* Keep a washer that was turned off visible while the item is still on it. */}
-                {item.assigned_machine_id &&
-                  !washers.some((w) => w.id === item.assigned_machine_id) && (
-                    <option value={item.assigned_machine_id}>
-                      {names.machine(item.assigned_machine_name) || '?'}
-                    </option>
-                  )}
-                {washers.map((w) => (
-                  <WasherOption key={w.id} w={w} down={downIds.has(w.id)} />
-                ))}
-              </select>
-            </div>
-          )}
-          <div className="actions">
-            <button
-              type="button"
-              className="secondary"
-              disabled={!canUp || busy}
-              onClick={() => onMove('up')}
-            >
-              <IconUp />
-              {t('queue.moveUp')}
-            </button>
-            <button
-              type="button"
-              className="secondary"
-              disabled={!canDown || busy}
-              onClick={() => onMove('down')}
-            >
-              <IconDown />
-              {t('queue.moveDown')}
-            </button>
-            <button
-              type="button"
-              className="secondary"
-              disabled={busy}
-              onClick={() => onUpdate({ is_rush: !item.is_rush })}
-            >
-              <IconRush />
-              {item.is_rush ? t('queue.unmarkRush') : t('queue.markRush')}
-            </button>
-            {!confirming ? (
-              <button
-                type="button"
-                className="danger"
-                disabled={busy}
-                onClick={() => setConfirming(true)}
-              >
-                {t('queue.cancelItem')}
-              </button>
-            ) : (
-              <div role="group" aria-label={t('queue.confirmCancel', { group: groupName })}>
-                <p>{t('queue.confirmCancel', { group: groupName })}</p>
-                <div className="actions">
-                  <button type="button" className="danger" disabled={busy} onClick={onCancel}>
-                    {t('queue.confirmYes')}
-                  </button>
-                  <button type="button" className="secondary" onClick={() => setConfirming(false)}>
-                    {t('queue.keep')}
-                  </button>
-                </div>
-              </div>
-            )}
-          </div>
-        </>
-      )}
-    </li>
-  );
+/** The viewer's own name as get_queue writes it (profile full name, else username), to hide it. */
+function useMyName(userId: string, email: string | undefined, enabled: boolean) {
+  return useQuery({
+    queryKey: ['my-name', userId],
+    enabled,
+    staleTime: 10 * 60_000,
+    queryFn: async (): Promise<string | null> => {
+      const { data } = await supabase
+        .from('profiles')
+        .select('full_name')
+        .eq('user_id', userId)
+        .maybeSingle();
+      return data?.full_name?.trim() || usernameFromEmail(email ?? '') || null;
+    },
+  });
 }
+
+type Toast = { kind: 'ok' | 'error'; text: string };
 
 export function QueuePage() {
   const { t } = useTranslation();
   const names = useLocalNames();
+  const localized = useLocalizedName();
   const session = useRequiredSession();
   const qc = useQueryClient();
   const now = useNow(1000);
@@ -461,6 +251,7 @@ export function QueuePage() {
   const myRoles = roles.rolesFor(area?.plant_id);
   const isOwner = myRoles.has('owner');
   const isManager = !isOwner && myRoles.has('manager');
+  const myName = useMyName(session.user.id, session.user.email, isOwner);
   const machineStatus = useMachineStatus(area?.plant_id);
   const downIds = new Set(
     (machineStatus.data ?? []).filter((m) => m.status === 'down').map((m) => m.machine_id),
@@ -468,29 +259,47 @@ export function QueuePage() {
   const queue = useQueue(area?.id);
   useLiveRefetch(queue.refetch, !!area);
   const washers = useWashers(isWashroom ? area?.id : undefined);
-  const [message, setMessage] = useState<string | null>(null);
+  const [toast, setToast] = useState<Toast | null>(null);
   const [showAdd, setShowAdd] = useState(false);
   const [showRewash, setShowRewash] = useState(false);
   const [filter, setFilter] = useState<'all' | 'rush' | 'rewash'>('all');
-  const [error, setError] = useState<string | null>(null);
+  const [openId, setOpenId] = useState<string | null>(null);
   const key = washroomKeys.queue(area?.id ?? '');
+
+  // Success toasts fade after 5 s; errors stay until dismissed or replaced.
+  useEffect(() => {
+    if (toast?.kind !== 'ok') return;
+    const id = window.setTimeout(() => setToast(null), 5000);
+    return () => window.clearTimeout(id);
+  }, [toast]);
 
   function onError(e: unknown) {
     if (appErrorCode(e) === 'QUEUE_VERSION_CONFLICT') {
-      setError(t('errors.queueChanged'));
+      void queue.refetch();
+      setToast({ kind: 'error', text: t('queue.changedRefreshed') });
     } else {
-      setError(t(errorMessageKey(e)));
+      setToast({ kind: 'error', text: t(errorMessageKey(e)) });
     }
-    setMessage(null);
   }
   function settle() {
     void qc.invalidateQueries({ queryKey: key });
     void qc.invalidateQueries({ queryKey: ['washroom-board'] });
   }
 
-  // Optimistic reorder (frontend rules), rolled back on error.
+  const items = queue.data ?? [];
+  const places = placeNumbers(items);
+  const itemLabel = (id: string) => {
+    const i = items.find((x) => x.id === id);
+    return t('queue.itemLabel', {
+      place: places.get(id) ?? 0,
+      group: i ? localized(i.wash_group_name, i.wash_group_name_i18n) : '',
+    });
+  };
+
+  // Optimistic reorder (frontend rules): the list moves at once (also right on drop, so the row
+  // doesn't jump back), rolled back with a toast on error; a version conflict refetches.
   const move = useMutation({
-    mutationFn: async (v: { item: QueueRow; afterId: string | null }) =>
+    mutationFn: async (v: { item: QueueRow; afterId: string | null; previous?: QueueRow[] }) =>
       unwrap(
         await supabase.rpc('reorder_queue_item', {
           p_id: v.item.id,
@@ -498,27 +307,45 @@ export function QueuePage() {
           ...(v.afterId ? { p_after_id: v.afterId } : {}),
         }),
       ),
-    onMutate: async (v) => {
-      await qc.cancelQueries({ queryKey: key });
-      const previous = qc.getQueryData<QueueRow[]>(key);
-      if (previous) qc.setQueryData(key, applyMove(previous, v.item.id, v.afterId));
-      setError(null);
-      return { previous };
+    onSuccess: (row, v) => {
+      // Keep the new version so the next move of this item doesn't conflict before the refetch.
+      const saved = row as { version?: number; position?: number } | null;
+      qc.setQueryData<QueueRow[]>(key, (list) =>
+        list?.map((i) =>
+          i.id === v.item.id && saved?.version !== undefined
+            ? { ...i, version: saved.version, position: saved.position ?? i.position }
+            : i,
+        ),
+      );
+      const list = qc.getQueryData<QueueRow[]>(key) ?? [];
+      const place = list.findIndex((i) => i.id === v.item.id) + 1;
+      setToast({
+        kind: 'ok',
+        text: t('queue.moved', {
+          item: localized(v.item.wash_group_name, v.item.wash_group_name_i18n),
+          place,
+        }),
+      });
     },
-    onError: (e, _v, ctx) => {
-      if (ctx?.previous) qc.setQueryData(key, ctx.previous);
+    onError: (e, v) => {
+      if (v.previous) qc.setQueryData(key, v.previous);
       onError(e);
     },
     onSettled: settle,
   });
+  function doMove(item: QueueRow, afterId: string | null) {
+    void qc.cancelQueries({ queryKey: key });
+    const previous = qc.getQueryData<QueueRow[]>(key);
+    if (previous) qc.setQueryData(key, applyMove(previous, item.id, afterId));
+    setToast(null);
+    move.mutate({ item, afterId, previous });
+  }
 
   const update = useMutation({
-    mutationFn: async (v: {
-      item: QueueRow;
-      changes: { is_rush?: boolean; assigned_machine_id?: string | null };
-    }) => unwrap(await supabase.rpc('update_queue_item', updateArgs(v.item, v.changes))),
-    onMutate: () => setError(null),
-    onSuccess: () => setMessage(t('queue.saved')),
+    mutationFn: async (v: { item: QueueRow; changes: ItemChanges }) =>
+      unwrap(await supabase.rpc('update_queue_item', updateArgs(v.item, v.changes))),
+    onMutate: () => setToast(null),
+    onSuccess: () => setToast({ kind: 'ok', text: t('queue.saved') }),
     onError,
     onSettled: settle,
   });
@@ -531,15 +358,27 @@ export function QueuePage() {
           p_expected_version: item.version,
         }),
       ),
-    onMutate: () => setError(null),
-    onSuccess: () => setMessage(t('queue.cancelled')),
+    onMutate: () => setToast(null),
+    onSuccess: () => setToast({ kind: 'ok', text: t('queue.cancelled') }),
     onError,
     onSettled: settle,
   });
 
   const busy = move.isPending || update.isPending || cancel.isPending;
-  const items = queue.data ?? [];
-  const places = placeNumbers(items);
+  const counts = {
+    all: items.length,
+    rush: items.filter((i) => i.is_rush).length,
+    rewash: items.filter((i) => i.is_rewash).length,
+  };
+  // Empty filters are hidden (review 2026-11-09); fall back to All if the shown one empties.
+  const shownFilter = filter !== 'all' && counts[filter] === 0 ? 'all' : filter;
+  const filters = (['all', 'rush', 'rewash'] as const).filter((f) => f === 'all' || counts[f] > 0);
+  const shown = items.filter(
+    (i) => shownFilter === 'all' || (shownFilter === 'rush' ? i.is_rush : i.is_rewash),
+  );
+  // Drag: owner only, on the full list (a filtered list can't say where an item lands).
+  const canDrag = isOwner && shownFilter === 'all' && items.length > 1;
+
   // Header numbers from the shared dirty-work selector (review §1/§3), so they match Home and
   // Estimates: our dirty work + each customer's drop-offs + rewash, whole loads, "N+" when unknown.
   const dirty = useDirtyWork(isWashroom ? area?.plant_id : undefined);
@@ -597,10 +436,6 @@ export function QueuePage() {
             isFetching={queue.isFetching}
             isError={queue.isError && !!queue.data}
           />
-          <div role="status" aria-live="polite">
-            {message && <p>{message}</p>}
-          </div>
-          <div role="alert">{error && <p className="error">{error}</p>}</div>
 
           {isOwner && area && !showAdd && (
             <button type="button" className="q-add-button" onClick={() => setShowAdd(true)}>
@@ -614,10 +449,7 @@ export function QueuePage() {
               isWashroom={isWashroom}
               washers={washers.data ?? []}
               downIds={downIds}
-              onDone={(m) => {
-                setMessage(m);
-                setError(null);
-              }}
+              onDone={(m) => setToast({ kind: 'ok', text: m })}
             />
           )}
 
@@ -634,10 +466,7 @@ export function QueuePage() {
             <RewashForm
               areaId={area.id}
               plantId={area.plant_id}
-              onDone={(m) => {
-                setMessage(m);
-                setError(null);
-              }}
+              onDone={(m) => setToast({ kind: 'ok', text: m })}
             />
           )}
         </div>
@@ -656,54 +485,83 @@ export function QueuePage() {
             </div>
           )}
           {queue.data && items.length === 0 && <p>{t('queue.empty')}</p>}
-          {items.length > 0 && (
+          {filters.length > 1 && (
             <div className="q-filters" role="group" aria-label={t('queue.filterLabel')}>
-              {(['all', 'rush', 'rewash'] as const).map((f) => (
+              {filters.map((f) => (
                 <button
                   key={f}
                   type="button"
                   className="secondary"
-                  aria-pressed={filter === f}
+                  aria-pressed={shownFilter === f}
                   onClick={() => setFilter(f)}
                 >
-                  {t(`queue.filter.${f}`, {
-                    count:
-                      f === 'all'
-                        ? items.length
-                        : items.filter((i) => (f === 'rush' ? i.is_rush : i.is_rewash)).length,
-                  })}
+                  {t(`queue.filter.${f}`, { count: counts[f] })}
                 </button>
               ))}
             </div>
           )}
+          {isOwner && items.length > 1 && (
+            <p className="hint q-drag-help">
+              {canDrag ? t('queue.dragHelp') : t('queue.dragNeedsAll')}
+            </p>
+          )}
           {items.length > 0 && (
-            <ol className="queue-list" aria-label={t('queue.listTitle')}>
-              {items
-                .filter((i) => filter === 'all' || (filter === 'rush' ? i.is_rush : i.is_rewash))
-                .map((item) => (
-                  <QueueItemCard
-                    key={item.id}
-                    item={item}
-                    place={places.get(item.id) ?? 0}
-                    canEdit={isOwner}
-                    canMoveOff={isManager}
-                    isWashroom={isWashroom}
-                    washers={washers.data ?? []}
-                    downIds={downIds}
-                    canUp={canMove(items, item.id, 'up')}
-                    canDown={canMove(items, item.id, 'down')}
-                    busy={busy}
-                    onMove={(dir) => {
-                      const afterId = moveAfterId(items, item.id, dir);
-                      if (afterId !== undefined) move.mutate({ item, afterId });
-                    }}
-                    onUpdate={(changes) => update.mutate({ item, changes })}
-                    onCancel={() => cancel.mutate(item)}
-                  />
-                ))}
-            </ol>
+            <SortableQueueList
+              items={shown}
+              enabled={canDrag}
+              label={t('queue.listTitle')}
+              itemLabel={itemLabel}
+              placeOf={(id) => places.get(id) ?? 0}
+              rowClass={(item) =>
+                [
+                  'queue-item',
+                  item.is_rush ? 'rush' : '',
+                  item.status === 'in_progress' ? 'started' : '',
+                  openId === item.id ? 'open' : '',
+                ]
+                  .filter(Boolean)
+                  .join(' ')
+              }
+              onDrop={doMove}
+              renderItem={(item, handle) => (
+                <QueueItem
+                  item={item}
+                  handle={handle}
+                  items={items}
+                  place={places.get(item.id) ?? 0}
+                  open={openId === item.id}
+                  onToggle={() => setOpenId((o) => (o === item.id ? null : item.id))}
+                  canEdit={isOwner}
+                  canMoveOff={isManager}
+                  isWashroom={isWashroom}
+                  washers={washers.data ?? []}
+                  downIds={downIds}
+                  busy={busy}
+                  myName={myName.data ?? null}
+                  onMove={(afterId) => doMove(item, afterId)}
+                  onUpdate={(changes) => update.mutate({ item, changes })}
+                  onCancel={() => cancel.mutate(item)}
+                />
+              )}
+            />
           )}
         </section>
+      </div>
+      {/* Toast above the bottom nav, so a drag result or error is seen wherever the list is scrolled. */}
+      <div className="q-toast-region">
+        <div role="status" aria-live="polite">
+          {toast?.kind === 'ok' && <p className="q-toast ok">{toast.text}</p>}
+        </div>
+        <div role="alert">
+          {toast?.kind === 'error' && (
+            <div className="q-toast error">
+              <p>{toast.text}</p>
+              <button type="button" className="secondary" onClick={() => setToast(null)}>
+                {t('queue.dismiss')}
+              </button>
+            </div>
+          )}
+        </div>
       </div>
     </main>
   );

@@ -571,14 +571,14 @@ isOneToOne: false
                   ]
                 },"machines": {
                   Row: {
-                    "active": boolean,"area_id": string,"created_at": string,"external_ref": string | null,"id": string,"kind": "washer"|"dryer"|"ironer"|"folder"|"wrapper"|"utility"|"other","load_factor": number,"model": string | null,"name": string,"org_id": string,"plant_id": string,"vendor": string | null
+                    "active": boolean,"area_id": string,"created_at": string,"external_ref": string | null,"id": string,"kind": "washer"|"dryer"|"ironer"|"folder"|"wrapper"|"utility"|"other","load_factor": number,"model": string | null,"name": string,"name_i18n": NonNullable<Json>,"org_id": string,"plant_id": string,"vendor": string | null
                   }
                   ComputedFields: never
                   Insert: {
-                    "active"?: boolean,"area_id": string,"created_at"?: string,"external_ref"?: string | null,"id"?: string,"kind": "washer"|"dryer"|"ironer"|"folder"|"wrapper"|"utility"|"other","load_factor"?: number,"model"?: string | null,"name": string,"org_id": string,"plant_id": string,"vendor"?: string | null
+                    "active"?: boolean,"area_id": string,"created_at"?: string,"external_ref"?: string | null,"id"?: string,"kind": "washer"|"dryer"|"ironer"|"folder"|"wrapper"|"utility"|"other","load_factor"?: number,"model"?: string | null,"name": string,"name_i18n"?: NonNullable<Json>,"org_id": string,"plant_id": string,"vendor"?: string | null
                   }
                   Update: {
-                    "active"?: boolean,"area_id"?: string,"created_at"?: string,"external_ref"?: string | null,"id"?: string,"kind"?: "washer"|"dryer"|"ironer"|"folder"|"wrapper"|"utility"|"other","load_factor"?: number,"model"?: string | null,"name"?: string,"org_id"?: string,"plant_id"?: string,"vendor"?: string | null
+                    "active"?: boolean,"area_id"?: string,"created_at"?: string,"external_ref"?: string | null,"id"?: string,"kind"?: "washer"|"dryer"|"ironer"|"folder"|"wrapper"|"utility"|"other","load_factor"?: number,"model"?: string | null,"name"?: string,"name_i18n"?: NonNullable<Json>,"org_id"?: string,"plant_id"?: string,"vendor"?: string | null
                   }
                   Relationships: [
                     {
@@ -1121,14 +1121,14 @@ isOneToOne: false
                   ]
                 },"wash_formulas": {
                   Row: {
-                    "created_at": string,"cycle_minutes": number | null,"external_no": string,"id": string,"name": string | null,"org_id": string,"plant_id": string,"wash_group_id": string | null
+                    "active": boolean,"created_at": string,"cycle_minutes": number | null,"external_no": string,"id": string,"name": string | null,"org_id": string,"plant_id": string,"wash_group_id": string | null
                   }
                   ComputedFields: never
                   Insert: {
-                    "created_at"?: string,"cycle_minutes"?: number | null,"external_no": string,"id"?: string,"name"?: string | null,"org_id": string,"plant_id": string,"wash_group_id"?: string | null
+                    "active"?: boolean,"created_at"?: string,"cycle_minutes"?: number | null,"external_no": string,"id"?: string,"name"?: string | null,"org_id": string,"plant_id": string,"wash_group_id"?: string | null
                   }
                   Update: {
-                    "created_at"?: string,"cycle_minutes"?: number | null,"external_no"?: string,"id"?: string,"name"?: string | null,"org_id"?: string,"plant_id"?: string,"wash_group_id"?: string | null
+                    "active"?: boolean,"created_at"?: string,"cycle_minutes"?: number | null,"external_no"?: string,"id"?: string,"name"?: string | null,"org_id"?: string,"plant_id"?: string,"wash_group_id"?: string | null
                   }
                   Relationships: [
                     {
@@ -1572,7 +1572,7 @@ isOneToOne: false
                            },
 "get_machine_status":
 { Args: { "p_plant_id": string }; Returns: {
-              "active": boolean,"area_id": string,"area_name": string,"kind": "washer"|"dryer"|"ironer"|"folder"|"wrapper"|"utility"|"other","machine_id": string,"machine_name": string,"reason": string,"reason_code": string,"reason_label_i18n": Json,"server_time": string,"since": string,"status": "down"|"up","status_by_name": string
+              "active": boolean,"area_id": string,"area_name": string,"kind": "washer"|"dryer"|"ironer"|"folder"|"wrapper"|"utility"|"other","machine_id": string,"machine_name": string,"machine_name_i18n": Json,"reason": string,"reason_code": string,"reason_label_i18n": Json,"server_time": string,"since": string,"status": "down"|"up","status_by_name": string
             }[]
                            },
 "get_machine_status_history":

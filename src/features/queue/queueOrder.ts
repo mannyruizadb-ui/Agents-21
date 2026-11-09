@@ -63,6 +63,101 @@ export function applyMove<T extends Orderable>(
   return [...rest.slice(0, insertAt), item, ...rest.slice(insertAt)];
 }
 
+/** Moves the element at `from` to `to` (same semantics as dnd-kit's arrayMove). */
+export function arrayMove<T>(list: readonly T[], from: number, to: number): T[] {
+  const out = [...list];
+  const [moved] = out.splice(from, 1);
+  if (moved !== undefined) out.splice(to, 0, moved);
+  return out;
+}
+
+/**
+ * Drag and drop (owner 2026-11-09): the p_after_id for dropping `activeId` on `overId`'s place.
+ * Mirrors reorder_queue_item: an item stays inside its RUSH / normal partition (a normal item can
+ * never go above a RUSH one, a RUSH item never below a normal one), so a drop on the other
+ * partition is refused (undefined). Undefined too for "no move" or unknown ids; null = top.
+ * In-progress items may move (the server allows any open item).
+ */
+export function dropAfterId<T extends Orderable>(
+  items: readonly T[],
+  activeId: string,
+  overId: string | null | undefined,
+): string | null | undefined {
+  if (!overId || overId === activeId) return undefined;
+  const from = items.findIndex((i) => i.id === activeId);
+  const to = items.findIndex((i) => i.id === overId);
+  if (from < 0 || to < 0) return undefined;
+  const item = items[from];
+  if (!item || items[to]?.is_rush !== item.is_rush) return undefined;
+  const moved = arrayMove(items, from, to);
+  const prev = moved[to - 1];
+  return prev && prev.is_rush === item.is_rush ? prev.id : null;
+}
+
+/** Same partition as `id`? (Used to keep drag targets inside the RUSH / normal partition.) */
+export function samePartition<T extends Orderable>(
+  items: readonly T[],
+  a: string,
+  b: string,
+): boolean {
+  const x = items.find((i) => i.id === a);
+  const y = items.find((i) => i.id === b);
+  return !!x && !!y && x.is_rush === y.is_rush;
+}
+
+/** "Move to top": null (top of its partition), or undefined when it is already first. */
+export function topAfterId<T extends Orderable>(items: readonly T[], id: string): null | undefined {
+  const item = items.find((i) => i.id === id);
+  if (!item) return undefined;
+  const first = items.find((i) => i.is_rush === item.is_rush);
+  return first && first.id !== id ? null : undefined;
+}
+
+/** The board places (1-based) an item can be moved to: its partition's first and last place. */
+export function placeRange<T extends Orderable>(
+  items: readonly T[],
+  id: string,
+): { first: number; last: number } | null {
+  const item = items.find((i) => i.id === id);
+  if (!item) return null;
+  const first = items.findIndex((i) => i.is_rush === item.is_rush);
+  const count = items.filter((i) => i.is_rush === item.is_rush).length;
+  return { first: first + 1, last: first + count };
+}
+
+/**
+ * "Move to position…": the p_after_id that puts `id` at board place `place` (1-based), clamped to
+ * its partition (a normal item asked for #1 goes to the first normal place). Undefined when the
+ * item is already there, the id is unknown or the place is not a whole number.
+ */
+export function placeAfterId<T extends Orderable>(
+  items: readonly T[],
+  id: string,
+  place: number,
+): string | null | undefined {
+  const range = placeRange(items, id);
+  if (!range || !Number.isInteger(place)) return undefined;
+  const target = Math.min(Math.max(place, range.first), range.last) - 1;
+  const from = items.findIndex((i) => i.id === id);
+  if (target === from) return undefined;
+  const moved = arrayMove(items, from, target);
+  return target === range.first - 1 ? null : (moved[target - 1]?.id ?? null);
+}
+
+/**
+ * "Added by NAME" only when someone other than the viewer added the item (owner 2026-11-09: on an
+ * owner-only queue his own name on every card is noise). Names reach owners only (get_queue).
+ */
+export function addedByToShow(
+  createdByName: string | null | undefined,
+  myName: string | null | undefined,
+): string | null {
+  const name = createdByName?.trim();
+  if (!name) return null;
+  const me = myName?.trim();
+  return me && me.localeCompare(name, undefined, { sensitivity: 'accent' }) === 0 ? null : name;
+}
+
 /** 1-based place of each item in the board (RUSH first), for "1.", "2.", … */
 export function placeNumbers<T extends Orderable>(items: readonly T[]): Map<string, number> {
   return new Map(items.map((i, n) => [i.id, n + 1]));

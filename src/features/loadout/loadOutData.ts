@@ -242,3 +242,57 @@ export function useLoadOutPermissions(
     },
   });
 }
+
+export interface MatGroup {
+  id: string;
+  name: string;
+  name_i18n: Json;
+  color_hex: string;
+  sort_order: number;
+}
+
+export interface MatItem extends LoadItem {
+  wash_group_id: string | null;
+}
+
+/**
+ * Mats on the load-out (owner 2026-11-09): our active mat basket groups (category 'mats', no customer)
+ * and their active mat items. A role that can't read them gets an empty catalog, and mat lines then
+ * show as ordinary lines (nothing is hidden).
+ */
+export function useMatCatalog(plantId: string | undefined) {
+  return useQuery({
+    queryKey: ['mat-catalog', plantId ?? ''],
+    enabled: !!plantId,
+    staleTime: 5 * 60_000,
+    queryFn: async (): Promise<{ groups: MatGroup[]; items: MatItem[] }> => {
+      const groups =
+        unwrap(
+          await supabase
+            .from('wash_groups')
+            .select('id, name, name_i18n, color_hex, sort_order')
+            .eq('plant_id', plantId ?? '')
+            .eq('category', 'mats')
+            .eq('active', true)
+            .is('customer_id', null)
+            .order('sort_order'),
+        ) ?? [];
+      if (groups.length === 0) return { groups: [], items: [] };
+      const items =
+        unwrap(
+          await supabase
+            .from('item_types')
+            .select('id, name, name_i18n, count_mode, pack_size, sort_order, active, wash_group_id')
+            .eq('plant_id', plantId ?? '')
+            .eq('active', true)
+            .eq('category', 'mat')
+            .in(
+              'wash_group_id',
+              groups.map((g) => g.id),
+            )
+            .order('sort_order'),
+        ) ?? [];
+      return { groups, items };
+    },
+  });
+}

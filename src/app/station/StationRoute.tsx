@@ -1,6 +1,7 @@
 import { Outlet } from 'react-router';
 import { RequireAuth } from '../auth/RequireAuth';
 import { BackBar } from '../control/BackBar';
+import { UpdateBanner } from '../control/UpdateBanner';
 
 /**
  * Station screens (a tablet at one machine), behind sign-in. A stable URL per machine, so a mounted
@@ -9,6 +10,7 @@ import { BackBar } from '../control/BackBar';
 export function StationRoute() {
   return (
     <RequireAuth>
+      <UpdateBanner />
       <BackBar />
       <Outlet />
     </RequireAuth>

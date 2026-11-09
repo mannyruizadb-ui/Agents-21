@@ -213,7 +213,7 @@
 }
 .est-row-head {
   display: flex;
-  flex-wrap: wrap; /* at large text the "Nothing waiting" button drops below the name */
+  flex-wrap: wrap;
   align-items: stretch;
   gap: 8px;
   padding: 4px 0 4px 10px;
@@ -254,15 +254,6 @@
 }
 .est-toggle .chevron {
   flex: none;
-}
-.form-page .est-nothing {
-  flex: 0 0 auto;
-  width: 6.5rem;
-  max-width: 100%;
-  min-height: 56px;
-  padding: 4px 6px;
-  font-size: 0.875rem;
-  line-height: 1.15;
 }
 .est-editor {
   padding: 0 10px 12px 16px;

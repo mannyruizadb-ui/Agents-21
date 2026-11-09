@@ -14,9 +14,13 @@ import './signin.css';
  * The only screen reachable while app_metadata.must_change_password is true (first sign-in with
  * a temporary password, or after an owner reset). Only manage-users clears the flag; it checks the
  * current password through the sign-in lockout first (2026-11-07). Big and simple, like sign-in.
+ *
+ * `voluntary` (review 2026-11-09: "Change my password" in More): the same form inside the app, for
+ * anyone signed in; it stays on the page and says when the password is saved.
  */
-export function ChangePasswordPage() {
+export function ChangePasswordPage({ voluntary = false }: { voluntary?: boolean }) {
   const { t } = useTranslation();
+  const [saved, setSaved] = useState(false);
   const [current, setCurrent] = useState('');
   // Temporary passwords the app generates have letters; the sign-in screen remembers the choice.
   const [currentLetters, setCurrentLetters] = useState(() => readSignInPrefs().letters);
@@ -35,6 +39,7 @@ export function ChangePasswordPage() {
     if (password !== confirm) return setProblem({ kind: 'mismatch' });
     if (password === current) return setProblem({ kind: 'same' });
     setProblem(null);
+    setSaved(false);
     setSaving(true);
     try {
       await callManageUsers({
@@ -44,6 +49,13 @@ export function ChangePasswordPage() {
       });
       // New token without the flag; RequireAuth re-renders from onAuthStateChange.
       await supabase.auth.refreshSession();
+      if (voluntary) {
+        setCurrent('');
+        setPassword('');
+        setConfirm('');
+        setSaved(true);
+        setSaving(false);
+      }
     } catch (e) {
       setProblem(changePasswordProblem(e));
       setSaving(false);
@@ -62,9 +74,9 @@ export function ChangePasswordPage() {
             : t(`changePassword.errors.${problem.kind}`);
 
   return (
-    <main className="form-page theme-dark signin-page">
-      <h1>{t('changePassword.title')}</h1>
-      <p>{t('changePassword.intro')}</p>
+    <main className={voluntary ? 'form-page' : 'form-page theme-dark signin-page'}>
+      <h1>{t(voluntary ? 'changePassword.myTitle' : 'changePassword.title')}</h1>
+      <p>{t(voluntary ? 'changePassword.myIntro' : 'changePassword.intro')}</p>
       <form onSubmit={onSubmit} noValidate>
         <NewPasswordField
           id="current-password"
@@ -119,7 +131,13 @@ export function ChangePasswordPage() {
           {saving ? t('changePassword.saving') : t('changePassword.save')}
         </button>
       </form>
-      <p id="change-password-status" role="status" aria-live="polite" className="error">
+      <p
+        id="change-password-status"
+        role="status"
+        aria-live="polite"
+        className={saved && message === null ? 'notice' : 'error'}
+      >
+        {saved && message === null && t('changePassword.saved')}
         {message !== null && (
           <span aria-hidden="true" className="error-icon">
             ⚠
@@ -127,9 +145,11 @@ export function ChangePasswordPage() {
         )}
         {message}
       </p>
-      <div className="actions">
-        <SignOutButton canSend={false} />
-      </div>
+      {!voluntary && (
+        <div className="actions">
+          <SignOutButton canSend={false} />
+        </div>
+      )}
     </main>
   );
 }

@@ -59,7 +59,7 @@ select is(array[
   has_function_privilege('anon', 'public.get_pending_push_alerts()', 'execute'),
   has_function_privilege('service_role', 'public.get_pending_push_alerts()', 'execute'),
   has_function_privilege('service_role', 'public.mark_push_alert_delivered(uuid,text[])', 'execute')],
-  array[false, false, false, false, false, true, true], 'service_role only');
+  array[false, false, false, false, false, false, true], 'service_role only (get_pending_push_alerts closed 2026-11-09: superseded by claim_push_notifications)');
 select is(array[pg_temp.run_as('owner', $$select * from public.get_pending_push_alerts()$$),
                 pg_temp.run_as('manager', $$select public.mark_push_alert_delivered(gen_random_uuid(), '{x}')$$),
                 pg_temp.run_as('anon', $$select * from public.get_pending_push_alerts()$$)],
