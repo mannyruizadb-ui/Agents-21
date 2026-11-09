@@ -16,6 +16,7 @@ import {
 import { errorMessageKey, unwrap } from '../washroom/rpcError';
 import { useWashGroups, washroomKeys } from '../washroom/washroomData';
 import { parseLoads } from './queueOrder';
+import { MoreInfo } from '../../lib/MoreInfo';
 
 // "Add rewash" (owner 2026-11-04, manager exception 2): finishing sends goods back. A rewash item is
 // never RUSH and never assigned to a washer; it lands at the bottom of the normal items. Amount in
@@ -99,7 +100,7 @@ export function RewashForm({
   return (
     <section className="card" aria-labelledby="rewash-title">
       <h2 id="rewash-title">{t('rewash.title')}</h2>
-      <p className="hint">{t('rewash.intro')}</p>
+      <MoreInfo>{t('rewash.intro')}</MoreInfo>
       <form onSubmit={onSubmit} noValidate>
         <div className="field">
           <label htmlFor="rw-group">{t('queue.groupLabel')}</label>
@@ -170,15 +171,15 @@ export function RewashForm({
             autoComplete="off"
             value={amount}
             onChange={(e) => change(() => setAmount(e.target.value))}
-            aria-describedby="rw-preview"
+            aria-describedby={unit === 'load' ? undefined : 'rw-preview'}
           />
-          <p id="rw-preview" className="hint">
-            {unit === 'load'
-              ? t('rewash.loadHint')
-              : preview !== null
+          {unit !== 'load' && (
+            <p id="rw-preview" className="hint">
+              {preview !== null
                 ? t('rewash.preview', { count: pluralCount(preview), n: fmt(preview) })
                 : t('rewash.noFactor')}
-          </p>
+            </p>
+          )}
         </div>
 
         <div role="alert">

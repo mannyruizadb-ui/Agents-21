@@ -10,6 +10,7 @@ import {
   turnOnPush,
 } from './pushClient';
 import { pushSupport } from './pushSupport';
+import { MoreInfo } from '../../lib/MoreInfo';
 
 // "Notifications" card on Control home (owner and managers): machine-down alerts by Web Push
 // (owner 2026-11-04: push approved, not SMS). Shows what they get, whether this phone can get it
@@ -82,7 +83,7 @@ export function NotificationsCard({ plantId }: { plantId: string }) {
   return (
     <section className="card" aria-labelledby="notif-title">
       <h2 id="notif-title">{t('notifications.title')}</h2>
-      <p>{t('notifications.what')}</p>
+      <MoreInfo>{t('notifications.what')}</MoreInfo>
 
       {support === 'ios-install' && (
         <div className="notice">

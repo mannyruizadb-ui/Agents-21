@@ -19,10 +19,10 @@ insert into public.machines (id, org_id, plant_id, area_id, name, kind, active, 
 create function pg_temp.cid(n int) returns uuid language sql immutable as $$
   select ('c0000000-0000-0000-0000-' || lpad(n::text, 12, '0'))::uuid;
 $$;
-create function pg_temp.q(n int) returns uuid language sql stable as $$
+create function pg_temp.q(n int) returns uuid language sql stable security definer as $$
   select id from public.queue_items where client_id = pg_temp.cid(n);
 $$;
-create function pg_temp.cyc(n int) returns uuid language sql stable as $$
+create function pg_temp.cyc(n int) returns uuid language sql stable security definer as $$
   select id from public.washer_cycles where client_id = pg_temp.cid(n);
 $$;
 grant execute on function pg_temp.cid(int), pg_temp.q(int), pg_temp.cyc(int) to authenticated, anon;
@@ -31,7 +31,7 @@ create function pg_temp.qstate(n int) returns text[] language sql stable as $$
 $$;
 
 -- ── Role matrix (empty queue: off-queue loads of a chosen group) ──────────
-select is(pg_temp.writes($$select public.start_washer_load('60000000-0000-0000-0000-0000000000a3', gen_random_uuid(), null, pg_temp.id('gMat'))$$),
+select is(pg_temp.writes($$select public.start_washer_load('60000000-0000-0000-0000-0000000000a3', gen_random_uuid(), null, pg_temp.id('gMat'), p_off_queue_reason => 'other')$$),
   '{1,1,1,NOT_AUTHORIZED,NOT_AUTHORIZED,NOT_AUTHORIZED,NOT_AUTHORIZED,42501}',
   'start_washer_load: owner/manager/lead, no staff session (viewer, display, other tenant: NOT_AUTHORIZED; anon: no EXECUTE)');
 select is((select array[count(*)::text, bool_and(queue_item_id is null and staff_id is null and source = 'manual' and load_count = 1)::text]

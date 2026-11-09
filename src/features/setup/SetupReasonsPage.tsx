@@ -11,6 +11,7 @@ import { asLabelMap, codeFromLabel, reorderUpdates } from '../washroom/machineRe
 import { cleanName, setupErrorKey } from './setupErrors';
 import '../../lib/forms.css';
 import './setup.css';
+import { MoreInfo } from '../../lib/MoreInfo';
 
 // Setup → Down reasons (owner 2026-11-05): the plant's machine-down reasons are data. The owner adds
 // reasons, edits their labels (one per language the app has, English required), reorders and
@@ -186,7 +187,7 @@ function ReasonRow({
               </button>
             )}
           </div>
-          {reason.active && <p className="hint">{t('setup.reasons.deactivateHint')}</p>}
+          {reason.active && <MoreInfo>{t('setup.reasons.deactivateHint')}</MoreInfo>}
         </div>
       )}
     </li>
@@ -266,7 +267,7 @@ function AddReason({
             {t('setup.reasons.requireDetails')}
           </label>
         </div>
-        <p className="hint">{t('machines.detailsHint', { max: 200 })}</p>
+        <MoreInfo>{t('machines.detailsHint', { max: 200 })}</MoreInfo>
         <button type="submit" disabled={add.isPending}>
           {t('setup.reasons.add')}
         </button>
@@ -328,7 +329,6 @@ export function SetupReasonsPage() {
   return (
     <main className="form-page">
       <h1>{t('setup.reasons.title')}</h1>
-      <p className="hint">{t('setup.reasons.intro')}</p>
       <div role="status" aria-live="polite">
         {status && <p className={status.ok ? 'notice' : 'error'}>{status.text}</p>}
       </div>

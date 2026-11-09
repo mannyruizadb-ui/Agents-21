@@ -17,10 +17,10 @@ insert into public.machines (id, org_id, plant_id, area_id, name, kind, active, 
 create function pg_temp.cid(n int) returns uuid language sql immutable as $$
   select ('c0000000-0000-0000-0000-' || lpad(n::text, 12, '0'))::uuid;
 $$;
-create function pg_temp.cyc(n int) returns uuid language sql stable as $$
+create function pg_temp.cyc(n int) returns uuid language sql stable security definer as $$
   select id from public.washer_cycles where client_id = pg_temp.cid(n);
 $$;
-create function pg_temp.q(n int) returns uuid language sql stable as $$
+create function pg_temp.q(n int) returns uuid language sql stable security definer as $$
   select id from public.queue_items where client_id = pg_temp.cid(n);
 $$;
 grant execute on function pg_temp.cid(int), pg_temp.cyc(int), pg_temp.q(int) to authenticated, anon;
@@ -46,12 +46,12 @@ $$;
 
 -- ── Signature: one function for PostgREST, same grants as before ──────────
 select is((select count(*)::int from pg_catalog.pg_proc where proname = 'start_washer_load' and pronamespace = 'public'::regnamespace),
-  1, 'start_washer_load has exactly one signature (the 5-argument one is dropped)');
-select ok(has_function_privilege('authenticated', 'public.start_washer_load(uuid, uuid, uuid, uuid, timestamptz, boolean)', 'execute')
-          and has_function_privilege('service_role', 'public.start_washer_load(uuid, uuid, uuid, uuid, timestamptz, boolean)', 'execute')
-          and not has_function_privilege('anon', 'public.start_washer_load(uuid, uuid, uuid, uuid, timestamptz, boolean)', 'execute'),
+  1, 'start_washer_load has exactly one signature (the older ones are dropped)');
+select ok(has_function_privilege('authenticated', 'public.start_washer_load(uuid, uuid, uuid, uuid, timestamptz, boolean, text)', 'execute')
+          and has_function_privilege('service_role', 'public.start_washer_load(uuid, uuid, uuid, uuid, timestamptz, boolean, text)', 'execute')
+          and not has_function_privilege('anon', 'public.start_washer_load(uuid, uuid, uuid, uuid, timestamptz, boolean, text)', 'execute'),
   'EXECUTE: authenticated and service_role only (not anon / public)');
-select ok(obj_description('public.start_washer_load(uuid, uuid, uuid, uuid, timestamptz, boolean)'::regprocedure, 'pg_proc') like '%WASHER_RUNNING%'
+select ok(obj_description('public.start_washer_load(uuid, uuid, uuid, uuid, timestamptz, boolean, text)'::regprocedure, 'pg_proc') like '%WASHER_RUNNING%'
           and obj_description('public.undo_washer_load(uuid, text)'::regprocedure, 'pg_proc') like '%within 5 minutes%',
   'comments document WASHER_RUNNING and the 5-minute undo window');
 
@@ -90,29 +90,29 @@ select is(pg_temp.val_as('lead', $$select (public.start_washer_load(pg_temp.id('
 
 -- ── Unknown cycle time never blocks ──────────────────────────────────────
 select is(array[
-  pg_temp.val_as('lead', $$select (public.start_washer_load('60000000-0000-0000-0000-0000000000a3', pg_temp.cid(201), null, pg_temp.id('gMat'))).duplicate$$),
-  pg_temp.val_as('lead', $$select (public.start_washer_load('60000000-0000-0000-0000-0000000000a3', pg_temp.cid(202), null, pg_temp.id('gMat'))).duplicate$$)],
+  pg_temp.val_as('lead', $$select (public.start_washer_load('60000000-0000-0000-0000-0000000000a3', pg_temp.cid(201), null, pg_temp.id('gMat'), p_off_queue_reason => 'other')).duplicate$$),
+  pg_temp.val_as('lead', $$select (public.start_washer_load('60000000-0000-0000-0000-0000000000a3', pg_temp.cid(202), null, pg_temp.id('gMat'), p_off_queue_reason => 'other')).duplicate$$)],
   '{false,false}', 'Mats (no cycle minutes): back-to-back STARTs need no confirmation');
 
 -- ── Ready / finished washer (past expected end) ──────────────────────────
-select is(pg_temp.val_as('lead', $$select (public.start_washer_load('60000000-0000-0000-0000-0000000000a2', pg_temp.cid(301), null, pg_temp.id('gNapkin'))).duplicate$$),
+select is(pg_temp.val_as('lead', $$select (public.start_washer_load('60000000-0000-0000-0000-0000000000a2', pg_temp.cid(301), null, pg_temp.id('gNapkin'), p_off_queue_reason => 'other')).duplicate$$),
   'false', 'Washer 2: napkins started');
 update public.washer_cycles set started_at = now() - interval '31 minutes' where id = pg_temp.cyc(301);
-select is(pg_temp.val_as('lead', $$select (public.start_washer_load('60000000-0000-0000-0000-0000000000a2', pg_temp.cid(302), null, pg_temp.id('gNapkin'))).duplicate$$),
+select is(pg_temp.val_as('lead', $$select (public.start_washer_load('60000000-0000-0000-0000-0000000000a2', pg_temp.cid(302), null, pg_temp.id('gNapkin'), p_off_queue_reason => 'other')).duplicate$$),
   'false', 'a washer past its expected end (ready) starts without a confirmation');
 update public.washer_cycles set started_at = now() - interval '30 minutes' where id = pg_temp.cyc(302);
 update public.washer_cycles set started_at = now() - interval '62 minutes' where id = pg_temp.cyc(301);
-select is(pg_temp.val_as('lead', $$select (public.start_washer_load('60000000-0000-0000-0000-0000000000a2', pg_temp.cid(303), null, pg_temp.id('gNapkin'))).duplicate$$),
+select is(pg_temp.val_as('lead', $$select (public.start_washer_load('60000000-0000-0000-0000-0000000000a2', pg_temp.cid(303), null, pg_temp.id('gNapkin'), p_off_queue_reason => 'other')).duplicate$$),
   'false', 'expected end exactly at the tap time counts as ready');
 
 -- ── A voided running cycle does not block ────────────────────────────────
 select is(pg_temp.val_as('lead', $$select (public.undo_washer_load(pg_temp.cyc(303))).duplicate$$),
   'false', 'the running Washer 2 tap is undone (voided)');
-select is(pg_temp.val_as('lead', $$select (public.start_washer_load('60000000-0000-0000-0000-0000000000a2', pg_temp.cid(304), null, pg_temp.id('gNapkin'))).duplicate$$),
+select is(pg_temp.val_as('lead', $$select (public.start_washer_load('60000000-0000-0000-0000-0000000000a2', pg_temp.cid(304), null, pg_temp.id('gNapkin'), p_off_queue_reason => 'other')).duplicate$$),
   'false', 'a voided running cycle does not block the next START');
 
 -- ── Offline tap time overlapping a later live cycle ──────────────────────
-select is(pg_temp.run_as('lead', $$select public.start_washer_load('60000000-0000-0000-0000-0000000000a2', gen_random_uuid(), null, pg_temp.id('gNapkin'), now() - interval '10 minutes')$$),
+select is(pg_temp.run_as('lead', $$select public.start_washer_load('60000000-0000-0000-0000-0000000000a2', gen_random_uuid(), null, pg_temp.id('gNapkin'), now() - interval '10 minutes', p_off_queue_reason => 'other')$$),
   'WASHER_RUNNING', 'an offline tap whose time falls before a live cycle''s expected end needs a confirmation too');
 
 -- ── Other washers and tenants are unaffected ─────────────────────────────

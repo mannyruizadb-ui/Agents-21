@@ -122,11 +122,11 @@ select is((select app.alert_payload(a) - 'queue_item_id' - 'area_id' - 'created_
 -- auto-completes) is next for Washer 1; then the owner's Towels rewash; then Napkins (2 loads).
 select is(array[
   pg_temp.run_as('lead', $$select public.start_washer_load(pg_temp.id('machine'), 'e5000000-0000-0000-0000-000000000001')$$),
-  pg_temp.run_as('lead', $$select public.start_washer_load(pg_temp.id('machine'), 'e5000000-0000-0000-0000-000000000002', p_wash_group_id => pg_temp.id('gMat'))$$),
+  pg_temp.run_as('lead', $$select public.start_washer_load(pg_temp.id('machine'), 'e5000000-0000-0000-0000-000000000002', p_wash_group_id => pg_temp.id('gMat'), p_off_queue_reason => 'other')$$),
   pg_temp.run_as('lead', $$select public.start_washer_load(pg_temp.id('machine'), 'e5000000-0000-0000-0000-000000000003',
-                             p_queue_item_id => (select id from public.queue_items where client_id = 'e4000000-0000-0000-0000-000000000003'))$$),
+                             p_queue_item_id => (select id from public.queue_items where client_id = 'e4000000-0000-0000-0000-000000000003'), p_off_queue_reason => 'other')$$),
   pg_temp.run_as('lead', $$select public.start_washer_load(pg_temp.id('machine'), 'e5000000-0000-0000-0000-000000000003',
-                             p_queue_item_id => (select id from public.queue_items where client_id = 'e4000000-0000-0000-0000-000000000003'))$$),
+                             p_queue_item_id => (select id from public.queue_items where client_id = 'e4000000-0000-0000-0000-000000000003'), p_off_queue_reason => 'other')$$),
   pg_temp.run_as('lead', $$select public.start_washer_load(pg_temp.id('machine'), 'e5000000-0000-0000-0000-000000000005',
                              p_queue_item_id => (select id from public.queue_items where client_id = 'e4000000-0000-0000-0000-000000000002'))$$)],
   '{1,1,1,1,1}', 'starts: the queue''s next item; an off-queue Mats load; Napkins picked out of order (and its retry); the other Towels item (same group as next)');
@@ -136,7 +136,7 @@ select ok(not (app.owner_alert_kinds() @> '{off_queue_start}') and not (app.push
           and app.alert_level_default('off_queue_start') is null,
   'off_queue_start is in no kind list and has no default level');
 update public.queue_items set status = 'cancelled' where status in ('queued', 'in_progress');
-select is(pg_temp.run_as('lead', $$select public.start_washer_load(pg_temp.id('machine'), 'e5000000-0000-0000-0000-000000000004', p_wash_group_id => pg_temp.id('gTowel'), p_confirm_running => true)$$), '1',
+select is(pg_temp.run_as('lead', $$select public.start_washer_load(pg_temp.id('machine'), 'e5000000-0000-0000-0000-000000000004', p_wash_group_id => pg_temp.id('gTowel'), p_confirm_running => true, p_off_queue_reason => 'other')$$), '1',
   'a start with nothing queued …');
 select is((select count(*)::int from public.alert_events where kind = 'off_queue_start'), 0, '… and writes no alert either');
 

@@ -35,19 +35,6 @@ async function signOut(page: Page) {
   });
   await page.context().clearCookies();
 }
-async function uiSignOut(page: Page) {
-  await page.goto('/control/more');
-  await page
-    .getByRole('button', { name: /sign out/i })
-    .first()
-    .click();
-  const send = page.getByRole('button', { name: /keep for next time|send now/i });
-  if (await send.count())
-    await send
-      .first()
-      .click()
-      .catch(() => {});
-}
 
 test.describe.serial('pilot auth', () => {
   test('sign-in screenshots 390 and 1024', async ({ page }) => {

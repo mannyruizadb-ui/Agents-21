@@ -5,6 +5,7 @@ import { isSignedInAs } from '../../lib/authUser';
 import { isBrowserStorePersistent, scopedKey, userStore } from '../../lib/scopedStore';
 import { supabase } from '../../lib/supabase';
 import type { Database } from '../../types/database';
+import { isOffQueueReason, type OffQueueReason } from './offQueue';
 import { isRetryable, toRpcError, unwrap } from './rpcError';
 import {
   addPending,
@@ -16,6 +17,7 @@ import {
   readRejected,
   REJECTED_KEY,
   removePending,
+  resendTap,
   type PendingTap,
   type RejectedTap,
   type SendOutcome,
@@ -114,6 +116,8 @@ async function sendTap(tap: PendingTap): Promise<SendOutcome<WasherLoadResult>> 
       ...(tap.washGroupId ? { p_wash_group_id: tap.washGroupId } : {}),
       // WASHER_RUNNING without it: a START on a washer that is still running needs a "yes" first.
       ...(tap.confirmRunning ? { p_confirm_running: true } : {}),
+      // OFF_QUEUE_REASON_REQUIRED without it: a start that is not the queue's next needs a reason.
+      ...(isOffQueueReason(tap.offQueueReason) ? { p_off_queue_reason: tap.offQueueReason } : {}),
     });
     if (res.error) {
       const e = toRpcError(res.error);
@@ -216,6 +220,7 @@ export function useTapSync() {
       washGroupId: string | null,
       clockOffsetMs = 0,
       confirmRunning = false,
+      offQueueReason: OffQueueReason | null = null,
     ): string => {
       const clientId = crypto.randomUUID();
       addPending(
@@ -226,6 +231,7 @@ export function useTapSync() {
           clientId,
           new Date(Date.now() + clockOffsetMs),
           confirmRunning,
+          offQueueReason,
         ),
       );
       refresh(userId);
@@ -250,5 +256,27 @@ export function useTapSync() {
 
   const retryNow = useCallback(() => flushTaps(userId, qc), [userId, qc]);
 
-  return { ...snap, tap, undo, dismiss, retryNow };
+  /**
+   * Re-sends a refused tap as a NEW tap with the missing answer ("Start anyway", or an off-queue
+   * reason), keeping the answers it already had. The new tap is saved before the refused one is
+   * dismissed, so a tap is never lost in between. Returns the new client_id.
+   */
+  const resend = useCallback(
+    (
+      refused: RejectedTap,
+      add: { confirmRunning?: boolean; offQueueReason?: OffQueueReason },
+    ): string => {
+      const clientId = crypto.randomUUID();
+      const store = userStore(userId);
+      if (addPending(store, resendTap(refused, clientId, new Date(), add))) {
+        dismissRejected(store, refused.clientId);
+      }
+      refresh(userId);
+      void flushTaps(userId, qc);
+      return clientId;
+    },
+    [userId, qc],
+  );
+
+  return { ...snap, tap, undo, dismiss, retryNow, resend };
 }

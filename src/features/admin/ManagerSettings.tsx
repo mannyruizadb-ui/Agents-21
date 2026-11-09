@@ -13,6 +13,7 @@ import type { AlertMembership } from './alertRecipients';
 
 import type { Assignment, ShiftOption } from './useManagerSchedule';
 import { groupShifts, groupState } from './shiftGroups';
+import { MoreInfo } from '../../lib/MoreInfo';
 
 export function ManagerSettings({
   userId,
@@ -158,7 +159,7 @@ export function ManagerSettings({
             <legend>
               <strong>{t('people.shiftsLabel')}</strong>
             </legend>
-            <p className="hint">{t('people.shiftsHint')}</p>
+            <MoreInfo>{t('people.shiftsHint')}</MoreInfo>
             {groupShifts(shifts).map((g) => {
               const state = groupState(
                 assignments,

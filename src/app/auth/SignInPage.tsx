@@ -104,13 +104,9 @@ export function SignInPage() {
             autoCorrect="off"
             spellCheck={false}
             required
-            aria-describedby="username-hint"
             value={username}
             onChange={(e) => setUsername(e.target.value)}
           />
-          <p id="username-hint" className="hint">
-            {t('auth.usernameHint')}
-          </p>
         </div>
         <div className="field">
           <label htmlFor="password">{t('auth.passwordLabel')}</label>

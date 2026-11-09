@@ -57,14 +57,14 @@ select ok(pg_temp.val_as('lead', $$select bool_and(since is not null) from publi
 
 -- ══ L1: backdated taps on a washer that is down now ══════════════════════
 select is(array[
-  pg_temp.run_as('lead', $$select public.start_washer_load(pg_temp.id('machine'), gen_random_uuid(), null, pg_temp.id('gMat'), now() - interval '30 seconds')$$),
-  pg_temp.run_as('lead', $$select public.start_washer_load(pg_temp.id('machine'), gen_random_uuid(), null, pg_temp.id('gMat'), now() - interval '59 seconds')$$)],
+  pg_temp.run_as('lead', $$select public.start_washer_load(pg_temp.id('machine'), gen_random_uuid(), null, pg_temp.id('gMat'), now() - interval '30 seconds', p_off_queue_reason => 'other')$$),
+  pg_temp.run_as('lead', $$select public.start_washer_load(pg_temp.id('machine'), gen_random_uuid(), null, pg_temp.id('gMat'), now() - interval '59 seconds', p_off_queue_reason => 'other')$$)],
   '{MACHINE_DOWN,MACHINE_DOWN}', 'down now: a tap less than 60 s before the down event is refused');
 select is(array[
-  pg_temp.run_as('lead', $$select public.start_washer_load(pg_temp.id('machine'), gen_random_uuid(), null, pg_temp.id('gMat'), now() - interval '60 seconds')$$),
-  pg_temp.run_as('lead', $$select public.start_washer_load(pg_temp.id('machine'), gen_random_uuid(), null, pg_temp.id('gMat'), now() - interval '10 minutes')$$)],
+  pg_temp.run_as('lead', $$select public.start_washer_load(pg_temp.id('machine'), gen_random_uuid(), null, pg_temp.id('gMat'), now() - interval '60 seconds', p_off_queue_reason => 'other')$$),
+  pg_temp.run_as('lead', $$select public.start_washer_load(pg_temp.id('machine'), gen_random_uuid(), null, pg_temp.id('gMat'), now() - interval '10 minutes', p_off_queue_reason => 'other')$$)],
   '{1,1}', 'down now: a tap at least 60 s before the down event (an offline tap) is recorded');
-select is(pg_temp.run_as('lead', $$select public.start_washer_load('60000000-0000-0000-0000-0000000000a3', gen_random_uuid(), null, pg_temp.id('gMat'), now() - interval '30 seconds')$$),
+select is(pg_temp.run_as('lead', $$select public.start_washer_load('60000000-0000-0000-0000-0000000000a3', gen_random_uuid(), null, pg_temp.id('gMat'), now() - interval '30 seconds', p_off_queue_reason => 'other')$$),
   '1', 'a washer that is up is unaffected');
 
 -- ══ L5: one machine_down alert per machine per 10 minutes ═══════════════

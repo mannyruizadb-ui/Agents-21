@@ -9,6 +9,7 @@ import {
   readPending,
   readRejected,
   removePending,
+  resendTap,
   type KeyValueStore,
   type PendingTap,
   type SendOutcome,
@@ -173,5 +174,54 @@ describe('newTap confirmRunning', () => {
     const at = new Date('2026-11-06T12:00:00Z');
     expect(newTap('m', null, 'c1', at).confirmRunning).toBeUndefined();
     expect(newTap('m', null, 'c2', at, true).confirmRunning).toBe(true);
+  });
+});
+
+describe('off-queue reasons (owner 2026-11-09)', () => {
+  const at = new Date('2026-11-09T20:00:00Z');
+  it('stores the reason on the tap and keeps it across a reload', () => {
+    const s = memoryStore();
+    addPending(s, newTap('m', 'g2', 'c1', at, false, 'not_ready'));
+    expect(readPending(s)[0]?.offQueueReason).toBe('not_ready');
+    expect(newTap('m', null, 'c2', at).offQueueReason).toBeUndefined();
+  });
+
+  it('keeps a stored tap but drops a reason that is not one of the four codes', () => {
+    const s = memoryStore();
+    s.setItem(
+      PENDING_KEY,
+      JSON.stringify([{ ...newTap('m', 'g', 'c1', at), offQueueReason: 'lazy' }]),
+    );
+    expect(readPending(s)).toHaveLength(1);
+    expect(readPending(s)[0]?.offQueueReason).toBeUndefined();
+  });
+
+  it('re-sends a refused tap as a new tap with both answers', () => {
+    const refused = newTap('m', 'g2', 'old', at, true);
+    const again = resendTap(refused, 'new', at, { offQueueReason: 'urgent' });
+    expect(again).toMatchObject({
+      clientId: 'new',
+      machineId: 'm',
+      washGroupId: 'g2',
+      confirmRunning: true,
+      offQueueReason: 'urgent',
+      attempts: 0,
+    });
+    const running = resendTap(newTap('m', 'g2', 'x', at, false, 'other'), 'y', at, {
+      confirmRunning: true,
+    });
+    expect(running).toMatchObject({ confirmRunning: true, offQueueReason: 'other' });
+  });
+
+  it('keeps a refused OFF_QUEUE_REASON_REQUIRED tap in the rejected list', async () => {
+    const s = memoryStore();
+    addPending(s, newTap('m', 'g2', 'c1', at));
+    const r = await flushPending(s, async () => ({
+      kind: 'rejected',
+      errorCode: 'OFF_QUEUE_REASON_REQUIRED',
+    }));
+    expect(r.rejected.map((x) => x.errorCode)).toEqual(['OFF_QUEUE_REASON_REQUIRED']);
+    expect(readRejected(s)).toHaveLength(1);
+    expect(readPending(s)).toEqual([]);
   });
 });

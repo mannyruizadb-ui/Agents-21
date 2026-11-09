@@ -9,6 +9,8 @@ import { IconIdle, IconOffline, IconReady, IconRunning, IconStart, IconWarning }
 import { QueueBadges } from './QueueBadges';
 import { WashGroupLabel } from './WashGroupLabel';
 import { useLocalizedName } from './localizedName';
+import { needsOffQueueReason, type OffQueueReason } from './offQueue';
+import { OffQueueReasonPicker } from './OffQueueReasonPicker';
 import { errorMessageKey, tapRejectedKey } from './rpcError';
 import { MANAGER_UNDO_WINDOW_MS, UNDO_WINDOW_MS, useTapSync } from './useTapSync';
 import { useMyRoles } from './useMyRoles';
@@ -84,6 +86,11 @@ export function WasherStationPage() {
   const startRef = useRef<HTMLButtonElement>(null);
   // Owner 2026-11-06: START on a washer that is still running asks first (the server insists too).
   const [confirmingRunning, setConfirmingRunning] = useState(false);
+  // Owner 2026-11-09: a hand-picked group that is not the queue's next asks "why?" first (one tap).
+  const [askingReason, setAskingReason] = useState(false);
+  const [chosenReason, setChosenReason] = useState<OffQueueReason | null>(null);
+  // A refused tap (queue changed while it waited) whose reason is being picked.
+  const [reasonFor, setReasonFor] = useState<string | null>(null);
   const session = useRequiredSession();
   const roles = useMyRoles(session.user.id).rolesFor(machine.data?.plant_id);
   const undoWindowMs =
@@ -102,6 +109,15 @@ export function WasherStationPage() {
       ? localized(row.next_wash_group_name, row.next_wash_group_name_i18n)
       : null;
 
+  const offQueue = needsOffQueueReason(
+    override?.id,
+    row?.next_queue_item_id,
+    row?.next_wash_group_id,
+  );
+  const queueNextName = row?.next_queue_item_id
+    ? localized(row.next_wash_group_name, row.next_wash_group_name_i18n)
+    : null;
+
   const locked = lastTap !== null && now - lastTap.at < START_LOCK_MS;
   const undoLeftMs = lastTap ? undoWindowMs - (now - lastTap.at) : 0;
   const lastPending = lastTap ? taps.pending.some((p) => p.clientId === lastTap.clientId) : false;
@@ -115,13 +131,22 @@ export function WasherStationPage() {
   const showUndo =
     lastTap !== null && undoLeftMs > 0 && undoState !== 'done' && (lastPending || !!lastSent);
 
-  function onStart(confirmRunning = false) {
+  /** Order (server order too): the off-queue reason first, then "still running — start anyway?". */
+  function onStart(confirmRunning = false, pickedReason: OffQueueReason | null = null) {
     if (!machineId || !startGroupName || locked) return;
+    const reason = offQueue ? (pickedReason ?? chosenReason) : null;
+    if (offQueue && !reason) {
+      setAskingReason(true);
+      return;
+    }
+    setAskingReason(false);
     if (view?.status === 'running' && !confirmRunning) {
+      setChosenReason(reason);
       setConfirmingRunning(true);
       return;
     }
     setConfirmingRunning(false);
+    setChosenReason(null);
     // Server clock − device clock, so the stored tap time is in server time (see useTapSync.tap).
     const offset = row ? Date.parse(row.server_time) - board.dataUpdatedAt : 0;
     const clientId = taps.tap(
@@ -129,6 +154,7 @@ export function WasherStationPage() {
       override?.id ?? null,
       Number.isFinite(offset) ? offset : 0,
       confirmRunning,
+      reason,
     );
     setLastTap({ clientId, at: now, groupName: startGroupName });
     setUndoState('idle');
@@ -356,19 +382,29 @@ export function WasherStationPage() {
             {t(tapRejectedKey(r.errorCode))}
           </p>
           {r.errorCode === 'WASHER_RUNNING' && (
-            <button
-              type="button"
-              onClick={() => {
-                taps.dismiss(r.clientId);
-                taps.tap(r.machineId, r.washGroupId, 0, true);
-              }}
-            >
+            <button type="button" onClick={() => taps.resend(r, { confirmRunning: true })}>
               {t('station.startAnyway')}
             </button>
           )}
-          <button type="button" onClick={() => taps.dismiss(r.clientId)}>
-            {t('station.dismiss')}
-          </button>
+          {r.errorCode === 'OFF_QUEUE_REASON_REQUIRED' && reasonFor !== r.clientId && (
+            <button type="button" onClick={() => setReasonFor(r.clientId)}>
+              {t('station.pickReason')}
+            </button>
+          )}
+          {reasonFor === r.clientId ? (
+            <OffQueueReasonPicker
+              question={t('station.offQueueQGeneric')}
+              onPick={(reason) => {
+                setReasonFor(null);
+                taps.resend(r, { offQueueReason: reason });
+              }}
+              onCancel={() => setReasonFor(null)}
+            />
+          ) : (
+            <button type="button" onClick={() => taps.dismiss(r.clientId)}>
+              {t('station.dismiss')}
+            </button>
+          )}
         </div>
       ))}
 
@@ -400,12 +436,25 @@ export function WasherStationPage() {
             type="button"
             className="start-button"
             onClick={() => onStart()}
-            disabled={!startGroupName || locked || !machine.data.active || confirmingRunning}
+            disabled={
+              !startGroupName || locked || !machine.data.active || confirmingRunning || askingReason
+            }
             aria-describedby="start-what"
           >
             <IconStart size="1em" />
             <span>{locked ? t('station.startedShort') : t('station.start')}</span>
           </button>
+          {askingReason && startGroupName && (
+            <OffQueueReasonPicker
+              question={
+                queueNextName
+                  ? t('station.offQueueQ', { next: queueNextName, chosen: startGroupName })
+                  : t('station.offQueueQGeneric')
+              }
+              onPick={(reason) => onStart(false, reason)}
+              onCancel={() => setAskingReason(false)}
+            />
+          )}
           {confirmingRunning && (
             <div
               className="confirm-box station-message warn"
@@ -428,10 +477,20 @@ export function WasherStationPage() {
                 {t('station.startAnotherQ')}
               </p>
               <div className="row">
-                <button type="button" className="start-button" onClick={() => onStart(true)}>
+                <button
+                  type="button"
+                  className="start-button"
+                  onClick={() => onStart(true, chosenReason)}
+                >
                   {t('station.startAnyway')}
                 </button>
-                <button type="button" onClick={() => setConfirmingRunning(false)}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setConfirmingRunning(false);
+                    setChosenReason(null);
+                  }}
+                >
                   {t('common.cancel')}
                 </button>
               </div>
@@ -455,7 +514,14 @@ export function WasherStationPage() {
               {t('station.otherGroup')}
             </button>
             {override && (
-              <button type="button" onClick={() => setOverride(null)}>
+              <button
+                type="button"
+                onClick={() => {
+                  setOverride(null);
+                  setAskingReason(false);
+                  setChosenReason(null);
+                }}
+              >
                 {t('station.useQueue')}
               </button>
             )}
@@ -473,6 +539,8 @@ export function WasherStationPage() {
                       aria-pressed={override?.id === g.id}
                       onClick={() => {
                         setOverride(g);
+                        setAskingReason(false);
+                        setChosenReason(null);
                         setPickerOpen(false);
                         startRef.current?.focus();
                       }}
