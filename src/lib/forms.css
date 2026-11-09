@@ -219,13 +219,10 @@
   margin-bottom: var(--sp-md);
 }
 .brand-logo {
-  /* The ADB logo is navy + red on white: it sits on its own white badge on the dark theme. */
+  /* The ADB logo, recoloured for the dark theme, on a transparent background. */
   display: block;
-  width: min(70%, 14rem);
+  width: min(80%, 16rem);
   height: auto;
-  padding: var(--sp-sm);
-  background: #ffffff;
-  border-radius: var(--radius-lg);
 }
 .brand p {
   margin: 0;

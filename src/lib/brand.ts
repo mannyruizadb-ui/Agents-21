@@ -1,4 +1,5 @@
-// The plant logo, referenced from this one place. public/brand/logo.svg is the ADB logo ("The Floor
-// Mat People"), redrawn as vector paths from the owner's image on 2026-11-09. When the designer's
-// original file arrives, drop it in at the same path (or point this at logo.png).
-export const BRAND_LOGO_SRC = '/brand/logo.svg';
+// The plant logo, referenced from this one place. public/brand/logo.png is the owner's ADB logo
+// ("The Floor Mat People") from their own file (2026-11-09): same design, recoloured for the dark app
+// (soft white lettering, red star) on a transparent background. logo-blue.png is the alternative
+// colourway (light-blue star); point this at it to switch.
+export const BRAND_LOGO_SRC = '/brand/logo.png';

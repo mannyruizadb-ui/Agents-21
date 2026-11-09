@@ -85,8 +85,8 @@ export function SignInPage() {
           className="brand-logo"
           src={BRAND_LOGO_SRC}
           alt={t('brand.company')}
-          width="910"
-          height="770"
+          width="1058"
+          height="871"
         />
         <p className="brand-product">{t('app.name')}</p>
       </header>
