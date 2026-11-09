@@ -19,11 +19,14 @@ import {
   useAreas,
   useMachineStatus,
   useQueue,
+  useWashGroups,
   useWashroomBoard,
   type QueueRow,
   type WasherBoardRow,
+  type WashGroupRow,
 } from './washroomData';
 import { nextUnassigned } from '../queue/queueOrder';
+import { boardLoadsLeft, queueLoadsLeft } from '../dirtyWork/dirtyWork';
 import { useTapSync } from './useTapSync';
 import '../../lib/forms.css';
 import './washroom.css';
@@ -34,7 +37,17 @@ import './board.css';
 // and a strip of other machines that are out of service. Real data only; no names, no weights.
 // Live: refetch on mount, focus, online, visibilitychange and every 30 s; Realtime is never relied on.
 
-function Tile({ row, fetchedAt, now }: { row: WasherBoardRow; fetchedAt: number; now: number }) {
+function Tile({
+  row,
+  fetchedAt,
+  now,
+  groups,
+}: {
+  row: WasherBoardRow;
+  fetchedAt: number;
+  now: number;
+  groups: ReadonlyMap<string, WashGroupRow>;
+}) {
   const { t } = useTranslation();
   const names = useLocalNames();
   const qtyText = useQtyText();
@@ -166,7 +179,15 @@ function Tile({ row, fetchedAt, now }: { row: WasherBoardRow; fetchedAt: number;
               washGroupId={row.next_wash_group_id}
             />
             <span className="wb-meta">
-              {qtyText(row.next_loads_remaining, row.next_qty, row.next_unit)}
+              {qtyText(
+                boardLoadsLeft(
+                  row.next_loads_remaining,
+                  row.next_unit,
+                  groups.get(row.next_wash_group_id ?? ''),
+                ),
+                row.next_qty,
+                row.next_unit,
+              )}
             </span>
           </span>
         )}
@@ -214,7 +235,7 @@ function NextInQueue({ items }: { items: QueueRow[] }) {
               colorHex={top.wash_group_color_hex}
               washGroupId={top.wash_group_id}
             />
-            <span className="wb-meta">{qtyText(top.loads_remaining, top.qty, top.unit)}</span>
+            <span className="wb-meta">{qtyText(queueLoadsLeft(top), top.qty, top.unit)}</span>
             {shown.length > 1 && (
               <span className="wb-meta">
                 {t('board.thenMore', { count: shown.length - 1 + more })}
@@ -243,6 +264,9 @@ export function WasherBoardPage() {
   const board = useWashroomBoard(area?.id);
   useLiveRefetch(board.refetch, !!area);
   const queue = useQueue(area?.id);
+  // Factors per group: a NEXT without one says "loads unknown", never "≈ 0" (review item 2).
+  const washGroups = useWashGroups(area?.plant_id);
+  const groupById = new Map((washGroups.data ?? []).map((g) => [g.id, g]));
   useLiveRefetch(queue.refetch, !!area);
   const taps = useTapSync();
   const machines = useMachineStatus(area?.plant_id);
@@ -315,7 +339,13 @@ export function WasherBoardPage() {
       {rows.length > 0 && (
         <ul className="wb-grid">
           {rows.map((row) => (
-            <Tile key={row.machine_id} row={row} fetchedAt={board.dataUpdatedAt} now={now} />
+            <Tile
+              key={row.machine_id}
+              row={row}
+              fetchedAt={board.dataUpdatedAt}
+              now={now}
+              groups={groupById}
+            />
           ))}
         </ul>
       )}

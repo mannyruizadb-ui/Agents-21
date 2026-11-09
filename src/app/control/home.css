@@ -248,3 +248,19 @@
     max-width: 72rem;
   }
 }
+
+/* Dirty work tile (manager Home; same numbers as the owner's card): one short line per category. */
+.home-cats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.15rem var(--sp-md);
+}
+.home-cat {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.3em;
+}
+.home-muted {
+  color: var(--c-text-muted);
+}

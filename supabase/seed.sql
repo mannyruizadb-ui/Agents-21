@@ -450,3 +450,12 @@ select app.apply_mat_basket_groups(p.id)
   from public.plants p
   join public.organizations o on o.id = p.org_id and o.slug = 'americas-dust-busters'
  where p.name = 'Miami';
+
+-- Mats are "Alfombras" in Spanish (owner 2026-11-09, ours and AA Linen's; data migration
+-- 20261109212849_rename_mats_alfombras for the cloud). The "Tapete…" es names above are the catalog as it was;
+-- the SAME function the migration runs turns every mat group/item es name that still starts with "Tapete" into
+-- "Alfombra…" ("Tapetes negros" → "Alfombras negras", "Tapete negro 3×5" → "Alfombra negra 3×5").
+select app.apply_mat_spanish_names(p.id)
+  from public.plants p
+  join public.organizations o on o.id = p.org_id and o.slug = 'americas-dust-busters'
+ where p.name = 'Miami';

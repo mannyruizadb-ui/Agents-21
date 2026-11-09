@@ -218,7 +218,7 @@
     "seeQueue": "Ver toda la cola",
     "approxLoadsLeft_one": "{{amount}} · ≈ falta {{n}} carga",
     "approxLoadsLeft_other": "{{amount}} · ≈ faltan {{n}} cargas",
-    "noLoadFactor": "{{amount}} · sin conversión a cargas todavía"
+    "noLoadFactor": "{{amount}} · cargas sin calcular"
   },
   "station": {
     "pendingCount_one": "{{count}} arranque está esperando para enviarse. Se enviará cuando vuelva la conexión.",
@@ -260,7 +260,7 @@
     "rush": "URGENTE",
     "rewash": "Relavar",
     "pinnedTo": "Lavadora: {{washer}}",
-    "title": "Cola de trabajo",
+    "title": "Cola",
     "areaLabel": "Área",
     "readOnly": "Puedes ver la cola. Solo el dueño puede cambiarla.",
     "listTitle": "En orden",
@@ -299,8 +299,6 @@
     "moveOffLabel": "Pasar esta carga a",
     "moveOff": "Sacar de esta lavadora",
     "managerNotice": "Puedes ver la cola, agregar relavado y sacar cargas de una lavadora fuera de servicio. Solo el dueño cambia el orden.",
-    "summary_one": "{{count}} trabajo · {{loads}} cargas por lavar",
-    "summary_other": "{{count}} trabajos · {{loads}} cargas por lavar",
     "addOpen": "+ Agregar trabajo",
     "filterLabel": "Mostrar",
     "filter": {
@@ -310,7 +308,9 @@
     },
     "inProgress_one": "{{count}} empezada",
     "inProgress_other": "{{count}} empezadas",
-    "fromEstimate": "De estimados"
+    "fromEstimate": "De estimados",
+    "summary_one": "{{count}} trabajo",
+    "summary_other": "{{count}} trabajos"
   },
   "machines": {
     "title": "Fuera de servicio / Arreglada",
@@ -393,7 +393,7 @@
     "open": "+ Agregar relavado"
   },
   "estimates": {
-    "title": "Ropa sucia esperando",
+    "title": "Ropa sucia",
     "intro": "Para cada grupo de lavado, diga cuánto trabajo sucio está esperando. Revise y guárdelos todos juntos.",
     "notAllowed": "Solo el dueño y los gerentes ponen estimados.",
     "summaryTitle": "Esperando ahora",
@@ -421,7 +421,7 @@
     "nothingWaiting": "No hay nada esperando",
     "approxLoads_one": "{{amount}} ≈ {{n}} carga",
     "approxLoads_other": "{{amount}} ≈ {{n}} cargas",
-    "noNumber": "{{amount}} · cargas: sin número",
+    "noNumber": "{{amount}} · cargas sin calcular",
     "nothingWaitingButton": "No hay nada",
     "undoChange": "Deshacer cambio",
     "review_one": "Revisar {{count}} cambio",
@@ -802,12 +802,10 @@
     "tasksOpen_other": "tareas abiertas",
     "myTasksOpen_one": "abierta para ti",
     "myTasksOpen_other": "abiertas para ti",
-    "dirtyWork": "Trabajo sucio esperando",
+    "dirtyWork": "Ropa sucia",
     "loadsWaiting_one": "carga esperando",
     "loadsWaiting_other": "cargas esperando",
     "doneAround": "Listo hacia las {{time}}",
-    "queueItems_one": "trabajo · ≈ {{loads}} cargas",
-    "queueItems_other": "trabajos · ≈ {{loads}} cargas",
     "rush_one": "{{count}} urgente",
     "rush_other": "{{count}} urgentes",
     "bellLabel_one": "Alertas ({{count}} nueva)",
@@ -825,7 +823,11 @@
     "ageMin_other": "Hace {{count}} min",
     "hm": "{{h}}h {{m}}m",
     "m": "{{m}}m",
-    "statusStrip": "Estado"
+    "statusStrip": "Estado",
+    "queueNext_one": "trabajo · sigue: {{name}}",
+    "queueNext_other": "trabajos · sigue: {{name}}",
+    "queueItems_one": "trabajo",
+    "queueItems_other": "trabajos"
   },
   "names": {
     "by": "por {{name}}",
@@ -972,7 +974,13 @@
     "loadsNotStarted_other": "cargas sin empezar",
     "customerItems_one": "{{count}} trabajo en la cola",
     "customerItems_other": "{{count}} trabajos en la cola",
-    "customerQueueHours": "≈ {{time}} de lavado"
+    "customerQueueHours": "≈ {{time}} de lavado",
+    "offQueueLine_one": "{{count}} arranque fuera de la cola hoy · {{reasons}}",
+    "offQueueLine_other": "{{count}} arranques fuera de la cola hoy · {{reasons}}",
+    "loadsStarted_one": "carga empezada",
+    "loadsStarted_other": "cargas empezadas",
+    "rewashIncluded_one": "incluye {{count}} relavado",
+    "rewashIncluded_other": "incluye {{count}} relavados"
   },
   "offQueue": {
     "reason": {
@@ -988,9 +996,32 @@
     "napkins": "Servilletas",
     "tablecloths": "Manteles",
     "sheets": "Sábanas",
-    "mats": "Tapetes",
+    "mats": "Alfombras",
     "towels_aprons": "Toallas y delantales",
     "mops": "Mapos",
     "other": "Otros"
+  },
+  "dirty": {
+    "title": "Ropa sucia por lavar",
+    "tileTitle": "Ropa sucia",
+    "loads_one": "≈ {{n}} carga",
+    "loads_other": "≈ {{n}} cargas",
+    "loadsPlus_one": "≈ {{n}}+ cargas",
+    "loadsPlus_other": "≈ {{n}}+ cargas",
+    "loadsUnknown": "cargas sin calcular",
+    "loadsWord": "cargas",
+    "time_one": "≈ {{time}} en {{count}} lavadora",
+    "time_other": "≈ {{time}} en {{count}} lavadoras",
+    "nothing": "Nada esperando en los estimados.",
+    "notEstimated_one": "Sin estimar: {{count}} grupo",
+    "notEstimated_other": "Sin estimar: {{count}} grupos",
+    "unknownHint_one": "{{count}} grupo no tiene número de cargas para su recipiente: cargas sin calcular, fuera del total.",
+    "unknownHint_other": "{{count}} grupos no tienen número de cargas para su recipiente: cargas sin calcular, fuera del total.",
+    "customerTitle": "Entregas de {{name}} esperando",
+    "customerUnknown": "Cargas sin calcular: algunos grupos todavía no tienen número de cargas por bin.",
+    "dropOffTab": "Entrega de {{name}}",
+    "queueOurs": "Ropa sucia {{loads}}",
+    "queueCustomer": "{{name}} {{loads}}",
+    "queueRewash": "Relavado {{loads}}"
   }
 }

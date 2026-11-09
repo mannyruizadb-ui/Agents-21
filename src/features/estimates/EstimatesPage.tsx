@@ -11,7 +11,10 @@ import { useAreas } from '../washroom/washroomData';
 import { useMyRoles } from '../washroom/useMyRoles';
 import { EstimateRow, type Draft } from './EstimateRow';
 import { useAmountText } from './useAmountText';
-import { parseAmount, summarize, toLoads, type EstimateUnit } from './estimateMath';
+import { parseAmount, toLoads, type EstimateUnit } from './estimateMath';
+import { wholeLoads, type DirtyEstimateInput } from '../dirtyWork/dirtyWork';
+import { CustomerWaiting, DirtyWorkSummary } from '../dirtyWork/DirtyWorkSummary';
+import { useDirtyWork } from '../dirtyWork/useDirtyWork';
 import type { OutboxBatch } from './estimateOutbox';
 import {
   useCurrentEstimates,
@@ -70,11 +73,11 @@ export function EstimatesPage() {
 }
 
 function EstimatesScreen({ userId, plantId }: { userId: string; plantId: string }) {
-  const { t, i18n } = useTranslation();
+  const { t } = useTranslation();
   const now = useNow(15_000);
   const online = useOnline();
   const localized = useLocalizedName();
-  const { amount, hours, fmt } = useAmountText();
+  const { amount, fmt } = useAmountText();
 
   const groups = useEstimateGroups(plantId);
   // "Our work" = our own groups only. Outside customers' groups (AA Linen) live in the customer view:
@@ -85,6 +88,7 @@ function EstimatesScreen({ userId, plantId }: { userId: string; plantId: string 
   useLiveRefetch(current.refetch, !!plantId);
   const capacity = useWasherCapacity(plantId);
   const outbox = useEstimateOutbox(userId);
+  const [params, setParams] = useSearchParams();
 
   const [drafts, setDrafts] = useState<Record<string, Draft>>({});
   const [openId, setOpenId] = useState<string | null>(null);
@@ -111,22 +115,16 @@ function EstimatesScreen({ userId, plantId }: { userId: string; plantId: string 
   });
   const invalid = changes.filter((c) => c.qty === null);
 
-  // Top summary: unsaved changes where made, else the last saved estimate.
-  const summary = summarize(
-    ownList.flatMap((g) => {
-      const c = changes.find((x) => x.group.id === g.id && x.qty !== null);
-      const cycleMinutes = cycleFor(g.wash_formula_id);
-      if (c) return [{ loads: c.loads, cycleMinutes }];
-      const last = current.data?.get(g.id);
-      if (!last) return [];
-      return [{ loads: Number(last.qty) === 0 ? 0 : last.qty_loads, cycleMinutes }];
-    }),
-    capacity.data?.capacity ?? 0,
-  );
+  // Top summary (the shared "Dirty work" card): unsaved changes where made, else the last save.
+  const merged = new Map<string, DirtyEstimateInput>(current.data ?? []);
+  for (const c of changes)
+    if (c.qty !== null) merged.set(c.group.id, { qty: c.qty, unit: c.unit, qty_loads: c.loads });
+  const dirty = useDirtyWork(plantId, { estimates: merged });
   const totalGroups = ownList.length;
   const estimatedGroups = ownList.filter((g) => current.data?.has(g.id)).length;
   const needsCount = totalGroups - estimatedGroups;
-  const [needsOnly, setNeedsOnly] = useState(false);
+  // "?needs=1" (from Home's "Not estimated: N groups ›") opens the Needs estimate filter.
+  const [needsOnly, setNeedsOnly] = useState(() => params.get('needs') === '1');
   // Category chips (owner 2026-11-09): counts = groups with work waiting (unsaved change or last save).
   const categories = useGroupCategories(plantId);
   const categoryOf = categories.data ?? new Map();
@@ -150,20 +148,13 @@ function EstimatesScreen({ userId, plantId }: { userId: string; plantId: string 
   // "Our work" | customer (AA Linen) view, in the URL so Back and a reload keep it.
   const customers = useCustomers(plantId);
   const activeCustomers = (customers.data ?? []).filter((c) => c.active);
-  const [params, setParams] = useSearchParams();
   const view = params.get('view') === 'aa' && activeCustomers.length > 0 ? 'aa' : 'ours';
   const setView = (v: 'ours' | 'aa') =>
     setParams(v === 'aa' ? { view: 'aa' } : {}, { replace: true });
   const onlyCustomer = activeCustomers.length === 1 ? activeCustomers[0] : undefined;
   const aaLabel = onlyCustomer
-    ? localized(onlyCustomer.name, onlyCustomer.name_i18n)
+    ? t('dirty.dropOffTab', { name: localized(onlyCustomer.name, onlyCustomer.name_i18n) })
     : t('estimates.customersTab');
-  const doneAround =
-    summary.hours !== null && summary.loads > 0
-      ? new Intl.DateTimeFormat(i18n.language, { hour: 'numeric', minute: '2-digit' }).format(
-          new Date(now + Math.round(summary.hours * 60) * 60_000),
-        )
-      : null;
 
   function setDraft(groupId: string, d: Draft | null) {
     setMessage(null);
@@ -283,6 +274,10 @@ function EstimatesScreen({ userId, plantId }: { userId: string; plantId: string 
         <>
           {/* Unsaved estimates stay put while the customer form is open. */}
           {messages}
+          {/* What the customer has waiting now (open queue), above the drop-off form. */}
+          <div className="est-aa-waiting">
+            <CustomerWaiting dirty={dirty} headingId="aa-waiting" only={onlyCustomer?.id} />
+          </div>
           <DeliveryEntryForm userId={userId} plantId={plantId} embedded />
         </>
       ) : (
@@ -290,71 +285,55 @@ function EstimatesScreen({ userId, plantId }: { userId: string; plantId: string 
           <div className="est-side">
             <MoreInfo>{t('estimates.intro')}</MoreInfo>
             <section className="est-hero" aria-labelledby="sum-title">
-              <h2 id="sum-title" className="est-hero-label">
-                {t('estimates.summaryTitle')}
-              </h2>
-              <p className="est-hero-big">
-                <span className="mono">≈ {fmt(summary.loads)}</span>{' '}
-                <span className="est-hero-unit">
-                  {t('estimates.loadsWord', { count: pluralize(summary.loads) })}
-                </span>
-              </p>
-              {doneAround && (
-                <p className="est-hero-done">{t('home.doneAround', { time: doneAround })}</p>
-              )}
-              <p className="hint">
-                {summary.hours === null
-                  ? capacity.data && capacity.data.washers === 0
-                    ? t('estimates.noWashers')
-                    : t('estimates.noWashTime')
-                  : t('estimates.totalHours', {
-                      time: hours(summary.hours),
-                      count: capacity.data?.washers ?? 0,
-                    })}
-              </p>
-              {totalGroups > 0 && (
-                <div className="est-progress">
-                  <div
-                    className="est-progress-bar"
-                    role="progressbar"
-                    aria-valuemin={0}
-                    aria-valuemax={totalGroups}
-                    aria-valuenow={estimatedGroups}
-                    aria-label={t('estimates.groupsEstimated', {
-                      done: estimatedGroups,
-                      total: totalGroups,
-                    })}
-                  >
-                    <span style={{ width: `${(estimatedGroups / totalGroups) * 100}%` }} />
-                  </div>
-                  <p>
-                    {t('estimates.groupsEstimated', { done: estimatedGroups, total: totalGroups })}
-                  </p>
-                  {(needsCount > 0 || needsOnly) && (
-                    <button
-                      type="button"
-                      className="secondary est-needs"
-                      aria-pressed={needsOnly}
-                      onClick={() => setNeedsOnly((v) => !v)}
-                    >
-                      {t('estimates.filterNeeds', { count: needsCount })}
-                    </button>
-                  )}
-                </div>
-              )}
-              {summary.unknown > 0 && (
-                <p className="hint">
-                  <IconWarning /> {t('estimates.unknownGroups', { count: summary.unknown })}
-                </p>
-              )}
-              {summary.noTime > 0 && (
-                <p className="hint">
-                  <IconWarning /> {t('estimates.noTimeGroups', { count: summary.noTime })}
-                </p>
-              )}
-              {changes.length > 0 && (
-                <p className="hint">{t('estimates.includesUnsaved', { count: changes.length })}</p>
-              )}
+              <DirtyWorkSummary
+                dirty={dirty}
+                now={now}
+                title={t('dirty.title')}
+                headingId="sum-title"
+                showNotEstimated={false}
+                extra={
+                  <>
+                    {totalGroups > 0 && (
+                      <div className="est-progress">
+                        <div
+                          className="est-progress-bar"
+                          role="progressbar"
+                          aria-valuemin={0}
+                          aria-valuemax={totalGroups}
+                          aria-valuenow={estimatedGroups}
+                          aria-label={t('estimates.groupsEstimated', {
+                            done: estimatedGroups,
+                            total: totalGroups,
+                          })}
+                        >
+                          <span style={{ width: `${(estimatedGroups / totalGroups) * 100}%` }} />
+                        </div>
+                        <p>
+                          {t('estimates.groupsEstimated', {
+                            done: estimatedGroups,
+                            total: totalGroups,
+                          })}
+                        </p>
+                        {(needsCount > 0 || needsOnly) && (
+                          <button
+                            type="button"
+                            className="secondary est-needs"
+                            aria-pressed={needsOnly}
+                            onClick={() => setNeedsOnly((v) => !v)}
+                          >
+                            {t('estimates.filterNeeds', { count: needsCount })}
+                          </button>
+                        )}
+                      </div>
+                    )}
+                    {changes.length > 0 && (
+                      <p className="hint">
+                        {t('estimates.includesUnsaved', { count: changes.length })}
+                      </p>
+                    )}
+                  </>
+                }
+              />
             </section>
             {messages}
           </div>
@@ -401,8 +380,8 @@ function EstimatesScreen({ userId, plantId }: { userId: string; plantId: string 
                             : c.loads !== null
                               ? t('estimates.approxLoads', {
                                   amount: amount(c.qty, c.unit),
-                                  count: pluralize(c.loads),
-                                  n: fmt(c.loads),
+                                  count: pluralize(wholeLoads(c.loads)),
+                                  n: fmt(wholeLoads(c.loads)),
                                 })
                               : t('estimates.noNumber', { amount: amount(c.qty, c.unit) })}
                     </li>

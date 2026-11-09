@@ -1,0 +1,225 @@
+/* "Dirty work out there" (owner 2026-11-09, review §3). Text in text tokens; the one visual is a
+   neutral share bar per category (recessive, single series, number printed beside it). Group colours
+   appear only as small swatches next to the group's name (never colour alone). */
+
+.dirty {
+  container-type: inline-size;
+  display: grid;
+  gap: var(--sp-sm);
+  min-width: 0;
+}
+.dirty p {
+  margin: 0;
+}
+.dirty-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-sm);
+  flex-wrap: wrap;
+}
+.form-page .dirty-head h2 {
+  margin: 0;
+  font-size: var(--fs-h-md);
+  line-height: 1.15;
+}
+.dirty-total {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.2em 0.6em;
+}
+.dirty-total-num {
+  font-size: clamp(2rem, 5vw, 2.75rem);
+  font-weight: 700;
+  line-height: 1.05;
+  color: var(--c-info-text);
+}
+.dirty-total-unit {
+  font-size: var(--fs-h-md);
+  font-weight: 600;
+}
+.dirty-time {
+  color: var(--c-text-muted);
+  font-size: var(--fs-lg);
+}
+.dirty-done {
+  font-size: var(--fs-lg);
+  font-weight: 600;
+}
+.dirty-age {
+  color: var(--c-text-muted);
+  font-size: var(--fs-sm);
+}
+.dirty-warn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3em;
+  color: var(--c-warn);
+  font-weight: 600;
+}
+
+.dirty-cats {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: var(--sp-xs);
+  border-top: 1px solid var(--c-seam);
+}
+.dirty-cat {
+  display: grid;
+  gap: 2px;
+  padding: 0.3rem 0;
+  border-bottom: 1px solid var(--c-seam);
+}
+.dirty-cat-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-areas:
+    'name loads'
+    'amount amount'
+    'bar bar';
+  align-items: center;
+  column-gap: var(--sp-sm);
+  row-gap: 2px;
+  width: 100%;
+  text-align: left;
+}
+@container (min-width: 36rem) {
+  .dirty-cat-row {
+    grid-template-columns: minmax(8rem, 11rem) minmax(7rem, 13rem) minmax(0, 1fr) minmax(6rem, auto);
+    grid-template-areas: 'name amount bar loads';
+  }
+}
+.form-page .dirty-cat-button {
+  display: grid;
+  justify-content: stretch;
+  justify-items: stretch;
+  min-height: 48px;
+  padding: var(--sp-xs) 0;
+  border: 0;
+  background: transparent;
+  color: var(--c-text);
+  font: inherit;
+  grid-template-columns: 1.25rem minmax(0, 1fr) auto;
+  grid-template-areas:
+    'caret name loads'
+    '. amount amount'
+    '. bar bar';
+}
+@container (min-width: 36rem) {
+  .form-page .dirty-cat-button {
+    grid-template-columns: 1.25rem minmax(8rem, 11rem) minmax(7rem, 13rem) minmax(0, 1fr) minmax(
+        6rem,
+        auto
+      );
+    grid-template-areas: 'caret name amount bar loads';
+  }
+}
+.dirty-caret {
+  grid-area: caret;
+  color: var(--c-text-muted);
+}
+.dirty-cat-name {
+  grid-area: name;
+  font-weight: 700;
+}
+.dirty-cat-amount {
+  grid-area: amount;
+  overflow-wrap: anywhere;
+  font-variant-numeric: tabular-nums;
+}
+.dirty-cat-loads {
+  grid-area: loads;
+  font-weight: 700;
+  text-align: right;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+/* One neutral bar per category: its share of the known loads (the number is printed beside it). */
+.dirty-share {
+  grid-area: bar;
+  display: block;
+  height: 8px;
+  border-left: 1px solid var(--c-seam);
+}
+.dirty-share > span {
+  display: block;
+  height: 100%;
+  border-radius: 0 4px 4px 0;
+  background: var(--c-text-muted);
+}
+.dirty-groups {
+  list-style: none;
+  margin: 2px 0 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px var(--sp-md);
+  color: var(--c-text-muted);
+  font-size: var(--fs-sm);
+}
+.dirty-groups li {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.3em;
+}
+.dirty-swatch {
+  display: inline-block;
+  width: 0.75rem;
+  height: 0.75rem;
+  border-radius: 2px;
+  box-shadow: inset 0 0 0 1px var(--c-outline);
+}
+.dirty-group-name {
+  color: var(--c-text);
+}
+.dirty-unknown {
+  color: var(--c-warn);
+}
+.form-page .dirty-needs,
+.form-page .dirty-needs-link {
+  justify-self: start;
+}
+.form-page .dirty-needs-link {
+  padding: 0;
+}
+
+.dirty-cust {
+  display: grid;
+  gap: var(--sp-xs);
+  padding: var(--sp-sm);
+  border: 1px dashed var(--c-outline);
+  border-radius: var(--radius-lg);
+}
+.dirty-cust-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: var(--sp-sm);
+}
+.form-page .dirty-cust-head h3 {
+  margin: 0;
+  font-size: var(--fs-lg);
+}
+.dirty-cust-total {
+  font-weight: 700;
+  font-size: var(--fs-lg);
+}
+.dirty-cust-lines {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 2px;
+}
+.dirty-cust-loads {
+  color: var(--c-text-muted);
+}
+.dirty-cust-groups {
+  color: var(--c-text-muted);
+  font-size: var(--fs-sm);
+}
