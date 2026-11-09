@@ -217,7 +217,7 @@
     "seeQueue": "See the whole queue",
     "approxLoadsLeft_one": "{{amount}} · ≈ {{n}} load left",
     "approxLoadsLeft_other": "{{amount}} · ≈ {{n}} loads left",
-    "noLoadFactor": "{{amount}} · no load conversion set yet"
+    "noLoadFactor": "{{amount}} · loads unknown"
   },
   "station": {
     "pendingCount_one": "{{count}} start is waiting to send. It will send when the connection is back.",
@@ -259,7 +259,7 @@
     "rush": "RUSH",
     "rewash": "Rewash",
     "pinnedTo": "Washer: {{washer}}",
-    "title": "Work queue",
+    "title": "Queue",
     "areaLabel": "Area",
     "readOnly": "You can see the queue. Only the owner can change it.",
     "listTitle": "In order",
@@ -298,8 +298,6 @@
     "moveOffLabel": "Move this load to",
     "moveOff": "Move off this washer",
     "managerNotice": "You can see the queue, add rewash, and move loads off a washer that is down. Only the owner can change the order.",
-    "summary_one": "{{count}} item · {{loads}} loads to wash",
-    "summary_other": "{{count}} items · {{loads}} loads to wash",
     "addOpen": "+ Add work",
     "filterLabel": "Show",
     "filter": {
@@ -309,7 +307,9 @@
     },
     "inProgress_one": "{{count}} started",
     "inProgress_other": "{{count}} started",
-    "fromEstimate": "From estimates"
+    "fromEstimate": "From estimates",
+    "summary_one": "{{count}} item",
+    "summary_other": "{{count}} items"
   },
   "machines": {
     "title": "Machine down / back up",
@@ -392,7 +392,7 @@
     "open": "+ Add rewash"
   },
   "estimates": {
-    "title": "Dirty work waiting",
+    "title": "Dirty work",
     "intro": "For each wash group, say how much dirty work is waiting. Review, then save them all at once.",
     "notAllowed": "Only the owner and managers enter estimates.",
     "summaryTitle": "Waiting now",
@@ -420,7 +420,7 @@
     "nothingWaiting": "Nothing waiting",
     "approxLoads_one": "{{amount}} ≈ {{n}} load",
     "approxLoads_other": "{{amount}} ≈ {{n}} loads",
-    "noNumber": "{{amount}} · loads: no number set",
+    "noNumber": "{{amount}} · loads unknown",
     "nothingWaitingButton": "Nothing waiting",
     "undoChange": "Undo change",
     "review_one": "Review {{count}} change",
@@ -801,12 +801,10 @@
     "tasksOpen_other": "open tasks",
     "myTasksOpen_one": "open for you",
     "myTasksOpen_other": "open for you",
-    "dirtyWork": "Dirty work waiting",
+    "dirtyWork": "Dirty work",
     "loadsWaiting_one": "load waiting",
     "loadsWaiting_other": "loads waiting",
     "doneAround": "Done around {{time}}",
-    "queueItems_one": "item · ≈ {{loads}} loads",
-    "queueItems_other": "items · ≈ {{loads}} loads",
     "rush_one": "{{count}} rush",
     "rush_other": "{{count}} rush",
     "bellLabel_one": "Alerts ({{count}} new)",
@@ -824,7 +822,11 @@
     "ageMin_other": "Updated {{count}} min ago",
     "hm": "{{h}}h {{m}}m",
     "m": "{{m}}m",
-    "statusStrip": "Status"
+    "statusStrip": "Status",
+    "queueNext_one": "item · next: {{name}}",
+    "queueNext_other": "items · next: {{name}}",
+    "queueItems_one": "item",
+    "queueItems_other": "items"
   },
   "names": {
     "by": "by {{name}}",
@@ -969,7 +971,13 @@
     "loadsNotStarted_other": "loads not started",
     "customerItems_one": "{{count}} item in the queue",
     "customerItems_other": "{{count}} items in the queue",
-    "customerQueueHours": "≈ {{time}} of washing"
+    "customerQueueHours": "≈ {{time}} of washing",
+    "offQueueLine_one": "{{count}} start off the queue today · {{reasons}}",
+    "offQueueLine_other": "{{count}} starts off the queue today · {{reasons}}",
+    "loadsStarted_one": "load started",
+    "loadsStarted_other": "loads started",
+    "rewashIncluded_one": "includes {{count}} rewash",
+    "rewashIncluded_other": "includes {{count}} rewash"
   },
   "offQueue": {
     "reason": {
@@ -989,5 +997,28 @@
     "towels_aprons": "Towels & aprons",
     "mops": "Mops",
     "other": "Other"
+  },
+  "dirty": {
+    "title": "Dirty work out there",
+    "tileTitle": "Dirty work",
+    "loads_one": "≈ {{n}} load",
+    "loads_other": "≈ {{n}} loads",
+    "loadsPlus_one": "≈ {{n}}+ loads",
+    "loadsPlus_other": "≈ {{n}}+ loads",
+    "loadsUnknown": "loads unknown",
+    "loadsWord": "loads",
+    "time_one": "≈ {{time}} on {{count}} washer",
+    "time_other": "≈ {{time}} on {{count}} washers",
+    "nothing": "Nothing waiting in the estimates.",
+    "notEstimated_one": "Not estimated: {{count}} group",
+    "notEstimated_other": "Not estimated: {{count}} groups",
+    "unknownHint_one": "{{count}} group has no load number for its container: loads unknown, not in the total.",
+    "unknownHint_other": "{{count}} groups have no load number for their container: loads unknown, not in the total.",
+    "customerTitle": "{{name}} drop-offs waiting",
+    "customerUnknown": "Loads unknown: some groups have no load number per bin yet.",
+    "dropOffTab": "{{name}} drop-off",
+    "queueOurs": "Dirty work {{loads}}",
+    "queueCustomer": "{{name}} {{loads}}",
+    "queueRewash": "Rewash {{loads}}"
   }
 }

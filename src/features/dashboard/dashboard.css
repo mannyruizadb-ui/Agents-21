@@ -17,7 +17,8 @@
   .dash {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
-  .dash-wide {
+  .dash-wide,
+  .dash-hero {
     grid-column: 1 / -1;
   }
 }
@@ -31,12 +32,6 @@
   .dash-wide {
     grid-column: span 2;
   }
-}
-.dash-cust {
-  display: grid;
-  gap: var(--sp-md);
-  min-width: 0;
-  align-content: start;
 }
 
 /* Desktop fit (owner 2026-11-09): on a desktop at least 1280 × 640 the owner's Home fills the screen
@@ -67,20 +62,12 @@
     flex: 1 1 auto;
     min-height: 0;
     margin: 0;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-    /* Rows 1–2 take what the headline cards need (and shrink when the screen is short); the charts
-       row gets the rest, at least 12rem. */
-    grid-template-rows: auto minmax(0, max-content) minmax(12rem, 1fr);
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    /* Dirty work takes two columns and the full height; washers on top of loads today beside it. */
+    grid-template-rows: auto minmax(0, 1fr);
     grid-template-areas:
-      'hero hero wash cust'
-      'hero hero wash offq'
-      'group group loads fin';
-  }
-  .home-page.owner:not(:has(.home-customize)) .dash.no-cust {
-    grid-template-areas:
-      'hero hero wash offq'
-      'hero hero wash offq'
-      'group group loads fin';
+      'hero hero wash'
+      'hero hero loads';
   }
   .home-page.owner:not(:has(.home-customize)) .dash > * {
     min-height: 0;
@@ -89,30 +76,14 @@
     overflow-y: auto;
     overscroll-behavior: contain;
   }
-  .home-page.owner:not(:has(.home-customize)) .dash-cust {
-    max-height: 40vh;
-    overflow-y: auto;
-  }
   .dash-hero {
     grid-area: hero;
   }
   .dash-wash {
     grid-area: wash;
   }
-  .dash-cust {
-    grid-area: cust;
-  }
-  .dash-offq {
-    grid-area: offq;
-  }
-  .dash-group {
-    grid-area: group;
-  }
   .dash-loads {
     grid-area: loads;
-  }
-  .dash-fin {
-    grid-area: fin;
   }
   .dash-card:focus-visible {
     outline: 3px solid var(--c-focus);
@@ -373,4 +344,12 @@
 
 .home-shortcuts-title {
   margin: var(--sp-lg) 0 0;
+}
+
+.dash-offq-line {
+  display: flex;
+  align-items: center;
+  gap: 0.35em;
+  font-weight: 600;
+  color: var(--c-warn);
 }

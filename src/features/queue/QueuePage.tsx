@@ -16,6 +16,9 @@ import { GroupChip } from '../washroom/GroupChip';
 import { useLocalizedName } from '../washroom/localizedName';
 import { appErrorCode, errorMessageKey, unwrap } from '../washroom/rpcError';
 import { useQtyText } from '../washroom/useQtyText';
+import { queueLoadsLeft } from '../dirtyWork/dirtyWork';
+import { useDirtyText } from '../dirtyWork/useDirtyText';
+import { useDirtyWork } from '../dirtyWork/useDirtyWork';
 import {
   pickArea,
   useAreas,
@@ -319,7 +322,7 @@ function QueueItemCard({
       />
       {item.item_name && <p>{localized(item.item_name, item.item_name_i18n)}</p>}
       <p className="q-qty">
-        {qtyText(item.loads_remaining, item.qty, item.unit)}
+        {qtyText(queueLoadsLeft(item), item.qty, item.unit)}
         {item.status === 'in_progress' &&
           ` · ${t('queue.inProgress', { count: item.loads_started })}`}
       </p>
@@ -537,21 +540,35 @@ export function QueuePage() {
   const busy = move.isPending || update.isPending || cancel.isPending;
   const items = queue.data ?? [];
   const places = placeNumbers(items);
-  // Loads still to wash: exact for loads, "≈" when any amount is converted from bins/baskets.
-  const totalLoads = items.reduce((n, i) => n + (i.loads_remaining ?? 0), 0);
-  const approxLoads = items.some((i) => i.unit !== 'load');
+  // Header numbers from the shared dirty-work selector (review §1/§3), so they match Home and
+  // Estimates: our dirty work + each customer's drop-offs + rewash, whole loads, "N+" when unknown.
+  const dirty = useDirtyWork(isWashroom ? area?.plant_id : undefined);
+  const dirtyText = useDirtyText();
+  const customerName = useCustomerNameOf();
+  const d = isWashroom && dirty.data ? dirty.data : null;
+  const summaryParts = [t('queue.summary', { count: items.length })];
+  if (d) {
+    summaryParts.push(
+      t('dirty.queueOurs', { loads: dirtyText.loads(d.ours.loads, d.ours.unknown) }),
+    );
+    for (const c of d.customers)
+      if (c.items > 0)
+        summaryParts.push(
+          t('dirty.queueCustomer', {
+            name: customerName(dirty.customerGroupId.get(c.customerId)) ?? t('customers.generic'),
+            loads: dirtyText.loads(c.loads, c.unknown),
+          }),
+        );
+    if (d.rewash.items > 0)
+      summaryParts.push(
+        t('dirty.queueRewash', { loads: dirtyText.loads(d.rewash.loads, d.rewash.unknown) }),
+      );
+  }
 
   return (
     <main className="form-page q-page">
       <h1>{t('queue.title')}</h1>
-      {items.length > 0 && (
-        <p className="q-summary mono">
-          {t('queue.summary', {
-            count: items.length,
-            loads: `${approxLoads ? '≈ ' : ''}${totalLoads}`,
-          })}
-        </p>
-      )}
+      {items.length > 0 && <p className="q-summary mono">{summaryParts.join(' · ')}</p>}
       {/* Tablet landscape / desktop (owner 2026-11-09): controls on the left, the list on the right. */}
       <div className="q-layout">
         <div className="q-side">

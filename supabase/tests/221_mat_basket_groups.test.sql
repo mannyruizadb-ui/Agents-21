@@ -37,7 +37,8 @@ select is(pg_temp.mat_catalog(false),
 select is((select count(*)::int from public.wash_groups g where g.plant_id = pg_temp.adb() and g.name = 'City & Brito mats'), 0,
   'no group is still called City & Brito mats');
 select is((select array[g.name_i18n ->> 'es', g.color_hex] from public.wash_groups g where g.id = pg_temp.g('Brito mats')),
-  array['Tapetes Brito', '#EF4444'], 'Brito mats: es "Tapetes Brito", red preset (was teal #0F766E)');
+  -- es is "Alfombras Brito" since 20261109212849 (mats are Alfombras); this function set "Tapetes Brito" (audit below).
+  array['Alfombras Brito', '#EF4444'], 'Brito mats: es "Alfombras Brito" (after 20261109212849), red preset (was teal #0F766E)');
 select is((select array_agg(g.name || ':' || f.external_no || ':' || g.category || ':' || g.loads_per_basket::text || ':' || g.loads_per_bin::text
                             || ':' || g.allow_basket_estimates::text || ':' || g.allow_bin_estimates::text
                             || ':' || g.default_estimate_unit::text order by g.name)

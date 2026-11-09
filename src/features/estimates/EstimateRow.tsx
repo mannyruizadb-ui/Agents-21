@@ -16,6 +16,7 @@ import {
   type EstimateUnit,
 } from './estimateMath';
 import type { CurrentEstimate, EstimateGroup } from './estimatesData';
+import { wholeLoads } from '../dirtyWork/dirtyWork';
 
 // One wash group in the estimates list (coordinator 2026-11-04 UX round): a compact row (chip, name,
 // last value or the unsaved change, chevron) with a one-tap "Nothing waiting". Tapping the row opens
@@ -37,11 +38,12 @@ function useValueText() {
   return (qty: number, unit: string, loads: number | null): string => {
     if (qty === 0) return t('estimates.nothingWaiting');
     if (unit === 'load') return amount(qty, 'load');
+    // Whole loads, the same rounding as the Dirty work card (review §1: numbers never disagree).
     return loads !== null
       ? t('estimates.approxLoads', {
           amount: amount(qty, unit),
-          count: pluralCount(loads),
-          n: fmt(loads),
+          count: pluralCount(wholeLoads(loads)),
+          n: fmt(wholeLoads(loads)),
         })
       : t('estimates.noNumber', { amount: amount(qty, unit) });
   };

@@ -16,6 +16,7 @@ import { MANAGER_UNDO_WINDOW_MS, UNDO_WINDOW_MS, useTapSync } from './useTapSync
 import { useMyRoles } from './useMyRoles';
 import { useRequiredSession } from '../../app/auth/sessionContext';
 import { useQtyText } from './useQtyText';
+import { boardLoadsLeft } from '../dirtyWork/dirtyWork';
 import { estimateServerNow, formatCountdown, minutesLeftRoundedUp, washerNow } from './washerTime';
 import { DownBanner } from './DownBanner';
 import { TapAlarmBanner } from './TapAlarmBanner';
@@ -320,7 +321,17 @@ export function WasherStationPage() {
                   washGroupId={row.next_wash_group_id}
                 />
                 <p className="meta">
-                  <span>{qtyText(row.next_loads_remaining, row.next_qty, row.next_unit)}</span>
+                  <span>
+                    {qtyText(
+                      boardLoadsLeft(
+                        row.next_loads_remaining,
+                        row.next_unit,
+                        groups.data?.find((g) => g.id === row.next_wash_group_id),
+                      ),
+                      row.next_qty,
+                      row.next_unit,
+                    )}
+                  </span>
                   <QueueBadges
                     rush={row.next_is_rush}
                     rewash={row.next_is_rewash}

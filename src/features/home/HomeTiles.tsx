@@ -2,13 +2,12 @@ import type { ReactNode } from 'react';
 import { Link } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import { useLocalNames } from '../../lib/seededNames';
-import { hoursMinutes, summarize } from '../estimates/estimateMath';
-import {
-  useCurrentEstimates,
-  useEstimateGroups,
-  useFormulaMinutes,
-  useWasherCapacity,
-} from '../estimates/estimatesData';
+import { useCustomerNameOf } from '../customers/useCustomerLookup';
+import { roundedMinutes } from '../dirtyWork/dirtyWork';
+import { useDirtyText } from '../dirtyWork/useDirtyText';
+import { useDirtyWork } from '../dirtyWork/useDirtyWork';
+import { useLocalizedName } from '../washroom/localizedName';
+import { errorMessageKey } from '../washroom/rpcError';
 import { minutesUntil, nextTruck, localRouteName } from '../loadout/loadOutLogic';
 import { useLoadOutBoard, usePlant } from '../loadout/loadOutData';
 import { useTasks } from '../tasks/tasksData';
@@ -329,59 +328,68 @@ function TasksTile({ c }: { c: Ctx }) {
 
 function DirtyWorkTile({ c }: { c: Ctx }) {
   const { t, i18n } = useTranslation();
-  const groups = useEstimateGroups(c.plantId);
-  const current = useCurrentEstimates(c.plantId);
-  const formulas = useFormulaMinutes(c.plantId);
-  const capacity = useWasherCapacity(c.plantId);
-  const ready = groups.data && current.data;
-  // Our own groups only: customers' goods (AA Linen) are counted from the queue, not estimates.
-  const summary = summarize(
-    (groups.data ?? [])
-      .filter((g) => g.customer_id === null)
-      .flatMap((g) => {
-        const last = current.data?.get(g.id);
-        if (!last) return [];
-        const cycleMinutes = g.wash_formula_id
-          ? (formulas.data?.get(g.wash_formula_id) ?? null)
-          : null;
-        return [{ loads: Number(last.qty) === 0 ? 0 : last.qty_loads, cycleMinutes }];
-      }),
-    capacity.data?.capacity ?? 0,
-  );
+  // The same selector and numbers as the owner's "Dirty work out there" card (review §3).
+  const dirty = useDirtyWork(c.plantId);
+  const text = useDirtyText();
+  const customerName = useCustomerNameOf();
+  const d = dirty.data;
   const doneAt =
-    summary.hours !== null && summary.loads > 0
+    d && dirty.capacityReady && d.time.minutes !== null && d.time.minutes > 0
       ? new Intl.DateTimeFormat(i18n.language, { hour: 'numeric', minute: '2-digit' }).format(
-          new Date(
-            c.now +
-              hoursMinutes(summary.hours).h * 3_600_000 +
-              hoursMinutes(summary.hours).m * 60_000,
-          ),
+          new Date(c.now + roundedMinutes(d.time.minutes) * 60_000),
         )
       : null;
-  const fmt = new Intl.NumberFormat(i18n.language, { maximumFractionDigits: 1 });
+  const timeText = d && dirty.capacityReady ? text.time(d.time) : null;
+  const aa = d && dirty.queueReady ? d.customers.filter((x) => x.items > 0) : [];
   return (
     <Tile
       to="/control/estimates"
       icon={<IconBins size="1.5em" />}
-      title={t('home.dirtyWork')}
-      updatedAt={current.dataUpdatedAt}
-      isFetching={current.isFetching}
-      isError={current.isError}
+      title={t('dirty.tileTitle')}
+      wide
+      updatedAt={dirty.current.dataUpdatedAt}
+      isFetching={dirty.current.isFetching}
+      isError={dirty.current.isError}
       now={c.now}
     >
-      {!ready ? (
+      {dirty.error && !d ? (
+        <span className="home-sub">
+          <IconWarning /> {t(errorMessageKey(dirty.error))}
+        </span>
+      ) : !d ? (
         <Loading />
       ) : (
         <>
-          <span className="home-big mono">≈ {fmt.format(summary.loads)}</span>
-          <span className="home-sub">
-            {t('home.loadsWaiting', { count: Math.ceil(summary.loads) })}
+          <span className="home-big mono">
+            {d.ours.categories.length === 0
+              ? `0 ${t('dirty.loadsWord')}`
+              : text.loads(d.ours.loads, d.ours.unknown)}
           </span>
-          {summary.loads === 0 ? null : doneAt ? (
-            <span className="home-sub">{t('home.doneAround', { time: doneAt })}</span>
-          ) : (
-            <span className="home-sub">
-              <IconWarning /> {t('estimates.noWashTime')}
+          {timeText && <span className="home-sub home-muted">{timeText}</span>}
+          {doneAt && <span className="home-sub">{t('home.doneAround', { time: doneAt })}</span>}
+          {d.ours.categories.length > 0 && (
+            <span className="home-cats">
+              {d.ours.categories.map((cat) => (
+                <span key={cat.category} className="home-cat">
+                  <strong>{t(`categories.${cat.category}`)}</strong>{' '}
+                  <span>{text.amounts(cat.amounts)}</span>{' '}
+                  <span className="home-muted">{text.loads(cat.loads, cat.unknown)}</span>
+                </span>
+              ))}
+            </span>
+          )}
+          {aa.map((x) => (
+            <span key={x.customerId} className="home-sub">
+              {t('dirty.queueCustomer', {
+                name:
+                  customerName(dirty.customerGroupId.get(x.customerId)) ?? t('customers.generic'),
+                loads: text.loads(x.loads, x.unknown),
+              })}
+            </span>
+          ))}
+          {d.notEstimated > 0 && (
+            <span className="home-sub home-muted">
+              {t('dirty.notEstimated', { count: d.notEstimated })}
             </span>
           )}
         </>
@@ -391,12 +399,13 @@ function DirtyWorkTile({ c }: { c: Ctx }) {
 }
 
 function QueueTile({ c }: { c: Ctx }) {
-  const { t, i18n } = useTranslation();
+  const { t } = useTranslation();
+  const localized = useLocalizedName();
   const queue = useQueue(c.washroomId);
   const items = queue.data ?? [];
-  const loads = items.reduce((n, i) => n + (i.loads_remaining ?? 0), 0);
   const rush = items.filter((i) => i.is_rush).length;
-  const fmt = new Intl.NumberFormat(i18n.language, { maximumFractionDigits: 1 });
+  // Board order: the first item is what the washers take next (review: no loads number here).
+  const next = items[0];
   return (
     <Tile
       to="/control/queue"
@@ -414,7 +423,12 @@ function QueueTile({ c }: { c: Ctx }) {
         <>
           <span className="home-big mono">{items.length}</span>
           <span className="home-sub">
-            {t('home.queueItems', { count: items.length, loads: fmt.format(loads) })}
+            {next
+              ? t('home.queueNext', {
+                  count: items.length,
+                  name: localized(next.wash_group_name, next.wash_group_name_i18n),
+                })
+              : t('home.queueItems', { count: items.length })}
           </span>
           {rush > 0 && (
             <span className="status-pill warn">
