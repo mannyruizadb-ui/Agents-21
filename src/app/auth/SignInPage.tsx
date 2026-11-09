@@ -80,12 +80,15 @@ export function SignInPage() {
   return (
     <main className="form-page theme-dark signin-page">
       <header className="brand">
-        {/* The plant logo (one place: src/lib/brand.ts). Decorative: the names below are the text. */}
-        <img className="brand-logo" src={BRAND_LOGO_SRC} alt="" width="360" height="84" />
-        <div>
-          <p className="brand-company">{t('brand.company')}</p>
-          <p className="brand-product">{t('app.name')}</p>
-        </div>
+        {/* The ADB logo (one place: src/lib/brand.ts). It carries the company name, so it is the text. */}
+        <img
+          className="brand-logo"
+          src={BRAND_LOGO_SRC}
+          alt={t('brand.company')}
+          width="910"
+          height="770"
+        />
+        <p className="brand-product">{t('app.name')}</p>
       </header>
       <LanguageSwitch />
       <h1>{t('auth.signInTitle')}</h1>
