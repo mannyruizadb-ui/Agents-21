@@ -16,6 +16,16 @@ describe('home prefs', () => {
     expect(visibleTiles(normalizePrefs(null, 'other'))).toEqual(['washers', 'queue', 'nextTruck']);
   });
 
+  it('keeps the owner to the tiles the dashboard does not already show, and drops old alerts tiles', () => {
+    const p = normalizePrefs(
+      { order: ['washers', 'alerts', 'queue', 'dirtyWork'], hidden: ['alerts'] },
+      'owner',
+    );
+    expect(p.order).toEqual(['queue', 'machinesDown', 'nextTruck', 'tasks']);
+    expect(p.hidden).toEqual([]);
+    expect(normalizePrefs(null, 'manager').order).not.toContain('alerts');
+  });
+
   it('drops unknown and not-allowed tiles and appends missing allowed ones', () => {
     const p = normalizePrefs(
       { order: ['queue', 'bogus', 'tasks', 'queue'], hidden: ['washers', 'alerts', 7] },

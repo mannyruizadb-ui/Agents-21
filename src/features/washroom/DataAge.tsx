@@ -12,6 +12,7 @@ export function DataAge({
   isFetching,
   isError,
   refreshSeconds,
+  quiet = false,
 }: {
   updatedAt: number;
   now: number;
@@ -19,11 +20,17 @@ export function DataAge({
   isError?: boolean;
   /** The query's refetch period (default 30 s): "may be old" after two missed refreshes. */
   refreshSeconds?: number;
+  /**
+   * Show nothing while the data is fresh and loading fine (a card on a page that already has one
+   * freshness line); the warning still shows when this data may be old or failed to refresh.
+   */
+  quiet?: boolean;
 }) {
   const { t } = useTranslation();
   if (!updatedAt) return null;
   const age = ageSeconds(updatedAt, now);
   const band = freshness(age, refreshSeconds);
+  if (quiet && band === 'fresh' && !isError) return null;
   const text =
     age < 60
       ? t('washroom.updatedSeconds', { count: age })

@@ -4,6 +4,7 @@ import type { KeyValueStore } from '../../lib/scopedStore';
 // role, and their own show/hide + order, saved per user per device under
 // `plantboard.<userId>.home.v1` (scoped store). Pure except load/save through the given store.
 
+// No "alerts" tile (declutter 2026-11-09): the bell on Home already shows the same count.
 export const TILE_IDS = [
   'washers',
   'machinesDown',
@@ -11,7 +12,6 @@ export const TILE_IDS = [
   'tasks',
   'dirtyWork',
   'queue',
-  'alerts',
 ] as const;
 export type TileId = (typeof TILE_IDS)[number];
 
@@ -19,9 +19,15 @@ export type HomeRole = 'owner' | 'manager' | 'other';
 
 export const PREFS_KEY = 'home.v1';
 
-/** Tiles a role may open (the server decides what the screens show; this only hides dead ends). */
+/**
+ * Tiles a role may open (the server decides what the screens show; this only hides dead ends).
+ * The owner's Home leads with the dashboard, which already shows the washers and the dirty work, so
+ * those tiles would only repeat it (declutter 2026-11-09): the owner keeps the four the dashboard
+ * doesn't cover.
+ */
 export function allowedTiles(role: HomeRole): TileId[] {
   if (role === 'other') return ['washers', 'queue', 'nextTruck'];
+  if (role === 'owner') return ['machinesDown', 'nextTruck', 'tasks', 'queue'];
   return [...TILE_IDS];
 }
 
@@ -29,9 +35,9 @@ export function allowedTiles(role: HomeRole): TileId[] {
 export function defaultOrder(role: HomeRole): TileId[] {
   switch (role) {
     case 'owner':
-      return ['washers', 'machinesDown', 'queue', 'dirtyWork', 'nextTruck', 'tasks', 'alerts'];
+      return ['machinesDown', 'nextTruck', 'tasks', 'queue'];
     case 'manager':
-      return ['washers', 'machinesDown', 'tasks', 'nextTruck', 'dirtyWork', 'queue', 'alerts'];
+      return ['washers', 'machinesDown', 'tasks', 'nextTruck', 'dirtyWork', 'queue'];
     case 'other':
       return ['washers', 'queue', 'nextTruck'];
   }

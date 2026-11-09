@@ -83,3 +83,32 @@
   margin: 0;
   padding: 0;
 }
+
+/* Tablet and desktop (owner 2026-11-09): groups in a grid, the note and Save beside them. */
+@media (min-width: 768px) {
+  .dl-groups-col {
+    container: dl-groups / inline-size;
+  }
+}
+@container dl-groups (min-width: 36rem) {
+  .dl-groups {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    column-gap: var(--sp-lg);
+  }
+}
+@media (min-width: 1024px) {
+  .form-page.dl-page {
+    max-width: 84rem;
+  }
+  .dl-form {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(16rem, 22rem);
+    gap: var(--sp-lg);
+    align-items: start;
+  }
+  .dl-confirm-col {
+    position: sticky;
+    top: var(--sp-md);
+  }
+}

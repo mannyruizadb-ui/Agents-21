@@ -60,7 +60,6 @@ function Tile({ row, fetchedAt, now }: { row: WasherBoardRow; fetchedAt: number;
               <IconMachineDown /> {t('board.pill.down')}
             </span>
           </span>
-          <span className="wb-down-title head">{t('machines.down')}</span>
           {why && <span className="wb-down-why">{why}</span>}
           {mins !== null && (
             <span className="wb-meta mono">
@@ -114,7 +113,8 @@ function Tile({ row, fetchedAt, now }: { row: WasherBoardRow; fetchedAt: number;
             colorHex={row.wash_group_color_hex}
             washGroupId={row.wash_group_id}
           />
-        ) : (
+        ) : view.status === 'idle' ? null : (
+          // The EMPTY pill already says it for an idle washer; this covers "unknown".
           <span className="wb-empty">{t('washroom.empty')}</span>
         )}
         {row.cycle_id && row.is_rewash && (
@@ -139,8 +139,8 @@ function Tile({ row, fetchedAt, now }: { row: WasherBoardRow; fetchedAt: number;
           </>
         )}
         {view.status === 'ready' && (
+          // The UNLOAD pill names the state; the tile adds only how long it has waited.
           <span className="wb-ready">
-            <span className="head">{t('board.unload')}</span>
             {view.readyMinutes !== null && (
               <span className="mono">
                 {t('washroom.waitingMinutes', { count: view.readyMinutes })}
@@ -170,8 +170,9 @@ function Tile({ row, fetchedAt, now }: { row: WasherBoardRow; fetchedAt: number;
             </span>
           </span>
         )}
-        <span className="wb-open">
-          {t('board.open')} <span aria-hidden="true">›</span>
+        {/* The whole tile is the link; a chevron (not "Open" on every tile) marks it. */}
+        <span className="wb-open" aria-hidden="true">
+          ›
         </span>
       </Link>
     </li>

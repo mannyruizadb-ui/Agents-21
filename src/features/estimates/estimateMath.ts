@@ -10,6 +10,8 @@ export interface GroupFactors {
   allow_bin_estimates: boolean;
   loads_per_basket: number | null;
   loads_per_bin: number | null;
+  /** The group's preferred container (owner setting; mats = 'basket'). Optional for older callers. */
+  default_estimate_unit?: string | null;
 }
 
 /** Containers offered for a group: loads always; basket / bin only where allowed. */
@@ -21,12 +23,15 @@ export function estimateUnits(g: GroupFactors): EstimateUnit[] {
   ];
 }
 
-/** The container a card starts on: the last estimate's unit if still allowed, else the first. */
+/**
+ * The container a card starts on: the last estimate's unit if still allowed, else the group's
+ * preferred container (e.g. mats by the basket, as the drivers offload them), else the first offered.
+ */
 export function defaultUnit(g: GroupFactors, lastUnit: string | null | undefined): EstimateUnit {
-  const units = estimateUnits(g);
-  return (units as string[]).includes(lastUnit ?? '')
-    ? (lastUnit as EstimateUnit)
-    : (units[0] ?? 'load');
+  const units = estimateUnits(g) as string[];
+  if (units.includes(lastUnit ?? '')) return lastUnit as EstimateUnit;
+  if (units.includes(g.default_estimate_unit ?? '')) return g.default_estimate_unit as EstimateUnit;
+  return (units[0] ?? 'load') as EstimateUnit;
 }
 
 /** Loads for an amount; null when the container has no factor. */

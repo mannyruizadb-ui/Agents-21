@@ -1,7 +1,7 @@
 /* Estimates screen (owner/manager phone). Targets ≥ 56 px; status pairs icon + text. */
 .form-page.estimates-page {
   /* room for the sticky save bar above the bottom nav */
-  padding-bottom: calc(var(--nav-h) + 96px);
+  padding-bottom: calc(var(--nav-space) + 96px);
 }
 .est-hero {
   margin: var(--sp-md) 0;
@@ -143,10 +143,10 @@
 }
 .save-bar {
   position: fixed;
-  left: 0;
+  left: var(--side-w);
   right: 0;
-  /* sits on top of the bottom nav (which keeps the safe-area inset) */
-  bottom: calc(var(--nav-h) + env(safe-area-inset-bottom));
+  /* sits on top of the bottom nav (which keeps the safe-area inset); beside the side menu */
+  bottom: calc(var(--nav-space) + env(safe-area-inset-bottom));
   z-index: 5;
   padding: 8px 16px;
   background: var(--c-surface);
@@ -291,4 +291,129 @@
 /* Container names ("Contenedor", "Canasta") need wider buttons than the ¼ ½ ¾ picks. */
 .estimates-page .pick-list.unit-picks {
   grid-template-columns: repeat(auto-fill, minmax(min(100%, 8rem), 1fr));
+}
+
+/* Title row with the "Our work | AA Linen" switch (owner 2026-11-09). Two pressed buttons: the pressed
+   one is filled, bold and underlined, so the choice never relies on color alone. */
+.est-title {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-sm) var(--sp-md);
+  margin-bottom: var(--sp-sm);
+}
+.form-page .est-title h1 {
+  margin: 0;
+}
+.est-views {
+  display: inline-flex;
+  flex-wrap: wrap;
+  border: 2px solid var(--c-outline);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+.form-page .est-views button {
+  border: 0;
+  border-radius: 0;
+  min-height: 48px;
+  padding: 0 var(--sp-md);
+  color: var(--c-text);
+  background: var(--c-surface);
+  font-weight: 600;
+}
+.form-page .est-views button + button {
+  border-left: 2px solid var(--c-outline);
+}
+.form-page .est-views button[aria-pressed='true'] {
+  color: var(--c-text-inverse);
+  background: var(--c-info-text);
+  font-weight: 800;
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+}
+
+/* Category chips (owner 2026-11-09: no long scroll). */
+.cat-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-sm);
+  margin: 0 0 var(--sp-md);
+}
+.form-page .cat-chip {
+  min-height: 48px;
+  padding: 0 var(--sp-md);
+  border-radius: 9999px;
+  border-width: 2px;
+  color: var(--c-text);
+  background: var(--c-surface-high);
+  border-color: var(--c-outline);
+  font-weight: 600;
+}
+.form-page .cat-chip[aria-pressed='true'] {
+  color: var(--c-text-inverse);
+  background: var(--c-info-text);
+  border-color: var(--c-info-text);
+  font-weight: 800;
+}
+.form-page .cat-chip[aria-pressed='true']::before {
+  content: '✓';
+  content: '✓' / '';
+}
+.cat-chip-count {
+  font-weight: 700;
+}
+.form-page .est-needs {
+  margin-top: var(--sp-sm);
+}
+.form-page .est-needs[aria-pressed='true'] {
+  color: var(--c-text-inverse);
+  background: var(--c-warn);
+  border-color: var(--c-warn);
+}
+.form-page .est-needs[aria-pressed='true']::before {
+  content: '✓';
+  content: '✓' / '';
+}
+.est-side .est-hero {
+  margin-top: 0;
+}
+
+/* Tablet and desktop: summary on the left, the groups on the right in a grid (owner 2026-11-09). */
+@media (min-width: 768px) {
+  .form-page .cat-chip,
+  .form-page .est-views button {
+    min-height: var(--target);
+  }
+  .est-main {
+    container: est-main / inline-size;
+  }
+}
+@container est-main (min-width: 36rem) {
+  .estimate-list.compact {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    column-gap: var(--sp-md);
+  }
+  .estimate-list.compact .est-row.open {
+    grid-column: 1 / -1;
+  }
+}
+@media (min-width: 1024px) {
+  .form-page.estimates-page {
+    max-width: 84rem;
+  }
+  .est-layout {
+    display: grid;
+    grid-template-columns: minmax(17rem, 24rem) minmax(0, 1fr);
+    gap: var(--sp-lg);
+    align-items: start;
+  }
+  .est-side {
+    position: sticky;
+    top: var(--sp-md);
+  }
+  .estimates-page .review {
+    margin-bottom: var(--sp-xl);
+  }
 }

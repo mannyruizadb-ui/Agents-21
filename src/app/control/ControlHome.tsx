@@ -14,7 +14,6 @@ import {
   IconBins,
   IconEdit,
   IconGear,
-  IconHome,
   IconList,
   IconMachineDown,
   IconPeople,
@@ -27,7 +26,8 @@ import '../../lib/forms.css';
 import './more.css';
 
 // "More" (bottom-nav tab; owner 2026-11-06, round 2): a grid of EVERY screen the user can open, with
-// big icon tiles, then notifications, language and sign-out. Route: /control/more.
+// big icon tiles, then notifications, language and sign-out. Route: /control/more. Home is not
+// repeated here: it is always in the nav (declutter 2026-11-09).
 
 export function ControlHome() {
   const { t } = useTranslation();
@@ -45,7 +45,6 @@ export function ControlHome() {
   const plant = usePlant(plantId);
   const loadOutPerms = useLoadOutPermissions(session.user.id, plant.data ?? undefined);
   const links: { to: string; label: string; icon: ReactNode; show: boolean }[] = [
-    { to: '/control', label: t('nav.home'), icon: <IconHome />, show: true },
     { to: '/control/washers', label: t('nav.washers'), icon: <IconWasher />, show: true },
     { to: '/control/queue', label: t('nav.queue'), icon: <IconQueue />, show: true },
     { to: '/control/estimates', label: t('nav.estimates'), icon: <IconBins />, show: isStaff },
@@ -93,7 +92,7 @@ export function ControlHome() {
   ];
 
   return (
-    <main className="form-page">
+    <main className="form-page more-page">
       <h1>{t('nav.more')}</h1>
       <ul className="more-grid">
         {links

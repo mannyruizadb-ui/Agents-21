@@ -874,3 +874,38 @@ body:has(.station) {
 .station-message > svg + p:has(+ .reason-box) {
   flex: 1 1 0;
 }
+
+/* Station on a tablet / desktop (owner 2026-11-09): NOW and NEXT side by side, a centred column. */
+.station-panels {
+  display: grid;
+  gap: 12px;
+}
+@media (min-width: 768px) {
+  .station {
+    padding: 24px;
+    gap: 16px;
+  }
+  .station > *,
+  .station > .meta {
+    width: 100%;
+    max-width: 72rem;
+    margin-left: auto;
+    margin-right: auto;
+  }
+  .station-panels {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px;
+  }
+  .station-panels > .station-panel:only-child {
+    grid-column: 1 / -1;
+  }
+  .station-panel {
+    padding: 16px 20px;
+  }
+  .station .start-button {
+    min-height: 160px;
+  }
+  .group-picker button {
+    min-height: 80px;
+  }
+}

@@ -460,12 +460,12 @@
     "loadsWord_one": "load waiting",
     "loadsWord_other": "loads waiting",
     "groupsEstimated": "{{done}} of {{total}} wash groups estimated",
-    "filterLabel": "Show",
-    "filterAll_one": "All ({{count}})",
-    "filterAll_other": "All ({{count}})",
     "filterNeeds_one": "Needs estimate ({{count}})",
     "filterNeeds_other": "Needs estimate ({{count}})",
-    "allEstimated": "Every wash group has an estimate."
+    "allEstimated": "Every wash group has an estimate.",
+    "ourWork": "Our work",
+    "viewLabel": "Show work for",
+    "customersTab": "Customers"
   },
   "signOut": {
     "pending_one": "{{count}} entry or washer start hasn't been sent yet.",
@@ -694,7 +694,8 @@
     "estimates": "Estimates",
     "tasks": "Tasks",
     "more": "More",
-    "home": "Home"
+    "home": "Home",
+    "skipToContent": "Skip to content"
   },
   "alerts": {
     "unavailable": "The alerts list isn't available yet. Alerts still arrive as notifications on this phone (turn them on under More).",
@@ -776,8 +777,6 @@
       "down": "Down"
     },
     "minLeft": "min left",
-    "unload": "Done: unload",
-    "open": "Open",
     "running": "{{n}}/{{total}} running",
     "thenMore_one": "then {{count}} more",
     "thenMore_other": "then {{count}} more",
@@ -809,7 +808,6 @@
     "queueItems_other": "items · ≈ {{loads}} loads",
     "rush_one": "{{count}} rush",
     "rush_other": "{{count}} rush",
-    "alertsUnavailable": "Not available yet",
     "bellLabel_one": "Alerts ({{count}} new)",
     "bellLabel_other": "Alerts ({{count}} new)",
     "customize": "Customize",
@@ -825,8 +823,7 @@
     "ageMin_other": "Updated {{count}} min ago",
     "hm": "{{h}}h {{m}}m",
     "m": "{{m}}m",
-    "alertsNew_one": "new since you last looked",
-    "alertsNew_other": "new since you last looked"
+    "statusStrip": "Status"
   },
   "names": {
     "by": "by {{name}}",
@@ -899,7 +896,6 @@
   },
   "dash": {
     "region": "Owner dashboard",
-    "shortcuts": "Shortcuts",
     "hoursTitle": "Hours of work waiting",
     "ofWashing": "of washing",
     "loadsWaiting_one": "≈ {{n}} load waiting",
@@ -941,12 +937,6 @@
     "noWashersSet": "No washers set up.",
     "customerTitle": "{{name}} waiting",
     "customerNone": "Nothing waiting.",
-    "loadsEstimated_one": "load estimated",
-    "loadsEstimated_other": "loads estimated",
-    "customerHours": "≈ {{time}} of the washing time above",
-    "customerQueue_one": "In the queue: {{count}} item, {{loads}} loads not started",
-    "customerQueue_other": "In the queue: {{count}} items, {{loads}} loads not started",
-    "customerQueueEmpty": "Nothing in the queue.",
     "withoutCount_one": "{{count}} queue item has no load count.",
     "withoutCount_other": "{{count}} queue items have no load count.",
     "loadsTodayTitle": "Loads washed today",
@@ -973,7 +963,12 @@
     "offQueueStarts_one": "start off the queue",
     "offQueueStarts_other": "starts off the queue",
     "offQueueByReason": "Off-queue starts by reason",
-    "offQueueLast": "Last one at {{time}}"
+    "offQueueLast": "Last one at {{time}}",
+    "loadsNotStarted_one": "load not started",
+    "loadsNotStarted_other": "loads not started",
+    "customerItems_one": "{{count}} item in the queue",
+    "customerItems_other": "{{count}} items in the queue",
+    "customerQueueHours": "≈ {{time}} of washing"
   },
   "offQueue": {
     "reason": {
@@ -982,5 +977,16 @@
       "urgent": "Urgent",
       "other": "Other"
     }
+  },
+  "categories": {
+    "label": "Filter by category",
+    "all": "All",
+    "napkins": "Napkins",
+    "tablecloths": "Tablecloths",
+    "sheets": "Sheets",
+    "mats": "Mats",
+    "towels_aprons": "Towels & aprons",
+    "mops": "Mops",
+    "other": "Other"
   }
 }

@@ -47,6 +47,7 @@ select p.org_id, p.id, f.external_no, f.name, f.cycle_minutes
  where p.name = 'Miami';
 
 -- ── Wash groups + item catalog (A2; owner 2026-11-01, 2026-11-02): 33 groups, 73 items ──
+-- Mats: regrouped into 4 basket groups at the end of this file (owner 2026-11-09; app.apply_mat_basket_groups).
 -- The washroom works by WASH GROUP (what may share a washer); finishing counts ITEMS. Every item is in
 -- exactly one group. Spanish names are AI drafts, pending the separate AI review (H1).
 -- Estimates: 'load' by default; container factors and chip colors are set below (owner 2026-11-04).
@@ -402,3 +403,50 @@ select c.org_id, c.plant_id, c.id, v.name, jsonb_build_object('es', v.es), v.col
    as v(name, es, color, sort_order, per_bin, formula_no)
   left join public.wash_formulas f on f.plant_id = c.plant_id and f.external_no = v.formula_no
  where c.name = 'AA Linen';
+
+-- Estimate filter chips (owner 2026-11-09; data migration 20261109182651_add_wash_group_category for the
+-- cloud): every ADB group, ours and AA Linen's, gets its category. Same mapping as the migration.
+with own(name, category) as (values
+  ('Black mats', 'mats'), ('Colored mats', 'mats'), ('Charcoal mats', 'mats'), ('Scraper mats', 'mats'),
+  ('City & Brito mats', 'mats'), ('Presidente logo mats', 'mats'), ('Logo mats', 'mats'),
+  ('Dust & wet mops', 'mops'), ('Microfiber mops', 'mops'),
+  ('Kitchen towels', 'towels_aprons'), ('Microfiber towels', 'towels_aprons'), ('Mechanic towels', 'towels_aprons'),
+  ('White aprons', 'towels_aprons'), ('Black aprons', 'towels_aprons'), ('Coats (white)', 'towels_aprons'),
+  ('White tablecloths', 'tablecloths'), ('Black tablecloths', 'tablecloths'), ('Red & blue tablecloths', 'tablecloths'),
+  ('Old sheets', 'sheets'), ('Regular sheets', 'sheets'), ('New sheets', 'sheets')
+), aa(name, category) as (values
+  ('Kitchen towels', 'towels_aprons'), ('White aprons', 'towels_aprons'), ('Black aprons', 'towels_aprons'),
+  ('Stained hotel towels', 'towels_aprons'), ('Mats', 'mats'),
+  ('White napkins', 'napkins'), ('Colored napkins', 'napkins'), ('Stained white napkins', 'napkins'),
+  ('White tablecloths', 'tablecloths'), ('Colored tablecloths', 'tablecloths'), ('Cotton tablecloths', 'tablecloths'),
+  ('Stained white tablecloths', 'tablecloths')
+), target as (
+  select g.id, coalesce(own.category, 'napkins') as category
+    from public.wash_groups g
+    join public.plants p on p.id = g.plant_id and p.name = 'Miami'
+    join public.organizations o on o.id = p.org_id and o.slug = 'americas-dust-busters'
+    left join own on own.name = g.name
+   where g.customer_id is null and (own.name is not null or g.name like 'Napkins – %')
+  union all
+  select g.id, aa.category
+    from public.wash_groups g
+    join public.customers c on c.id = g.customer_id and c.plant_id = g.plant_id and c.name = 'AA Linen'
+    join public.plants p on p.id = g.plant_id and p.name = 'Miami'
+    join public.organizations o on o.id = p.org_id and o.slug = 'americas-dust-busters'
+    join aa on aa.name = g.name
+)
+update public.wash_groups g
+   set category = t.category
+  from target t
+ where g.id = t.id;
+
+-- Mats by basket (owner 2026-11-09, final; data migration 20261109184351_regroup_mats_by_basket for the
+-- cloud). The groups and items above are the catalog as it was; the SAME function the migration runs turns
+-- it into the 4 basket groups, so a fresh database ends exactly like the cloud (audit rows included):
+-- Black mats (+ Black City mats, Scraper mat 3×5), Colored mats (+ Presidente and other logo mats),
+-- Charcoal mats, Brito mats (was "City & Brito mats"; red Brito only). Scraper mats, Presidente logo mats and
+-- Logo mats are left inactive, with no items.
+select app.apply_mat_basket_groups(p.id)
+  from public.plants p
+  join public.organizations o on o.id = p.org_id and o.slug = 'americas-dust-busters'
+ where p.name = 'Miami';

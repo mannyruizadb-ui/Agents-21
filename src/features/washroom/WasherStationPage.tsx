@@ -248,90 +248,92 @@ export function WasherStationPage() {
         </div>
       )}
 
-      {/* NOW */}
-      <section
-        className={`station-panel station-now${view?.status === 'ready' ? ' station-ready' : ''}`}
-        aria-labelledby="now-title"
-      >
-        <h2 id="now-title">{t('washroom.now')}</h2>
-        {row?.cycle_id ? (
-          <>
-            <WashGroupLabel
-              name={row.wash_group_name}
-              nameI18n={row.wash_group_name_i18n}
-              colorHex={row.wash_group_color_hex}
-              washGroupId={row.wash_group_id}
-            />
-            {row.is_rewash && (
-              <p className="meta">
-                <QueueBadges rewash />
-              </p>
-            )}
-          </>
-        ) : (
-          <p className="status-line">
-            <IconIdle />
-            {t('washroom.empty')}
-          </p>
-        )}
-        {view?.status === 'running' && (
-          <>
-            <p className="status-line">
-              <IconRunning />
-              {t('washroom.status.running')}
-            </p>
-            {view.left !== null && (
-              <p className="countdown">
-                <span aria-hidden="true">{formatCountdown(view.left)}</span>
-                <span className="visually-hidden">
-                  {t('washroom.minutesLeft', { count: minutesLeftRoundedUp(view.left) })}
-                </span>
-              </p>
-            )}
-          </>
-        )}
-        {view?.status === 'ready' && (
-          <p className="status-line">
-            <IconReady />
-            {t('washroom.status.ready')}
-            {view.readyMinutes !== null &&
-              ` · ${t('washroom.waitingMinutes', { count: view.readyMinutes })}`}
-          </p>
-        )}
-        {view?.status === 'unknown' && (
-          <p className="status-line">
-            <IconWarning />
-            {t('washroom.status.unknown')}
-          </p>
-        )}
-      </section>
-
-      {/* NEXT (none while down: the board gives a down washer no NEXT) */}
-      {!isDown && (
-        <section className="station-panel station-next" aria-labelledby="next-title">
-          <h2 id="next-title">{t('washroom.next')}</h2>
-          {row?.next_queue_item_id ? (
+      {/* NOW and NEXT: stacked on a phone, side by side on a tablet (owner 2026-11-09). */}
+      <div className="station-panels">
+        <section
+          className={`station-panel station-now${view?.status === 'ready' ? ' station-ready' : ''}`}
+          aria-labelledby="now-title"
+        >
+          <h2 id="now-title">{t('washroom.now')}</h2>
+          {row?.cycle_id ? (
             <>
               <WashGroupLabel
-                name={row.next_wash_group_name}
-                nameI18n={row.next_wash_group_name_i18n}
-                colorHex={row.next_wash_group_color_hex}
-                washGroupId={row.next_wash_group_id}
+                name={row.wash_group_name}
+                nameI18n={row.wash_group_name_i18n}
+                colorHex={row.wash_group_color_hex}
+                washGroupId={row.wash_group_id}
               />
-              <p className="meta">
-                <span>{qtyText(row.next_loads_remaining, row.next_qty, row.next_unit)}</span>
-                <QueueBadges
-                  rush={row.next_is_rush}
-                  rewash={row.next_is_rewash}
-                  pinnedTo={row.next_is_assigned ? true : null}
-                />
-              </p>
+              {row.is_rewash && (
+                <p className="meta">
+                  <QueueBadges rewash />
+                </p>
+              )}
             </>
           ) : (
-            <p className="status-line">{board.data ? t('washroom.nothingQueued') : '…'}</p>
+            <p className="status-line">
+              <IconIdle />
+              {t('washroom.empty')}
+            </p>
+          )}
+          {view?.status === 'running' && (
+            <>
+              <p className="status-line">
+                <IconRunning />
+                {t('washroom.status.running')}
+              </p>
+              {view.left !== null && (
+                <p className="countdown">
+                  <span aria-hidden="true">{formatCountdown(view.left)}</span>
+                  <span className="visually-hidden">
+                    {t('washroom.minutesLeft', { count: minutesLeftRoundedUp(view.left) })}
+                  </span>
+                </p>
+              )}
+            </>
+          )}
+          {view?.status === 'ready' && (
+            <p className="status-line">
+              <IconReady />
+              {t('washroom.status.ready')}
+              {view.readyMinutes !== null &&
+                ` · ${t('washroom.waitingMinutes', { count: view.readyMinutes })}`}
+            </p>
+          )}
+          {view?.status === 'unknown' && (
+            <p className="status-line">
+              <IconWarning />
+              {t('washroom.status.unknown')}
+            </p>
           )}
         </section>
-      )}
+
+        {/* NEXT (none while down: the board gives a down washer no NEXT) */}
+        {!isDown && (
+          <section className="station-panel station-next" aria-labelledby="next-title">
+            <h2 id="next-title">{t('washroom.next')}</h2>
+            {row?.next_queue_item_id ? (
+              <>
+                <WashGroupLabel
+                  name={row.next_wash_group_name}
+                  nameI18n={row.next_wash_group_name_i18n}
+                  colorHex={row.next_wash_group_color_hex}
+                  washGroupId={row.next_wash_group_id}
+                />
+                <p className="meta">
+                  <span>{qtyText(row.next_loads_remaining, row.next_qty, row.next_unit)}</span>
+                  <QueueBadges
+                    rush={row.next_is_rush}
+                    rewash={row.next_is_rewash}
+                    pinnedTo={row.next_is_assigned ? true : null}
+                  />
+                </p>
+              </>
+            ) : (
+              <p className="status-line">{board.data ? t('washroom.nothingQueued') : '…'}</p>
+            )}
+          </section>
+        )}
+      </div>
 
       {/* Status of the last tap, and taps that are waiting or were refused. */}
       <div role="status" aria-live="polite">

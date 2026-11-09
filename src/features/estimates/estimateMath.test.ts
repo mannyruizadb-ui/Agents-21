@@ -41,6 +41,15 @@ describe('units', () => {
   it('starts on the last unit when still allowed', () => {
     expect(defaultUnit(towels, 'basket')).toBe('basket');
     expect(defaultUnit(linen, 'basket')).toBe('bin');
+    // Mats: both containers allowed, the group prefers the basket (as the drivers offload them).
+    const mats = {
+      ...linen,
+      allow_basket_estimates: true,
+      loads_per_basket: 3.5,
+      default_estimate_unit: 'basket',
+    };
+    expect(defaultUnit(mats, null)).toBe('basket');
+    expect(defaultUnit(mats, 'bin')).toBe('bin');
     expect(defaultUnit(mops, null)).toBe('load');
   });
 });

@@ -6,6 +6,8 @@ import { useRequiredSession } from '../auth/sessionContext';
 import { userStore } from '../../lib/scopedStore';
 import { useLiveRefetch } from '../../lib/useLiveRefetch';
 import { useNow } from '../../lib/useNow';
+import { usePageAge } from '../../lib/usePageAge';
+import { DataAge } from '../../features/washroom/DataAge';
 import { useOwnerPlants } from '../../features/admin/useOwnerPlants';
 import { useMyAlertCount } from '../../features/alerts/alertsData';
 import { HomeTile } from '../../features/home/HomeTiles';
@@ -29,7 +31,8 @@ import '../../lib/forms.css';
 import './home.css';
 
 // Home dashboard (owner 2026-11-06, round 2): live summary tiles, role-aware, each tapping through to
-// its screen. "Customize" (gear) shows/hides and reorders tiles, saved per user per device
+// its screen. The owner's Home is the dashboard plus a compact strip of the tiles it doesn't repeat
+// (declutter 2026-11-09); on a desktop it fits the screen without page scrolling. "Customize" (gear) shows/hides and reorders tiles, saved per user per device
 // (plantboard.<userId>.home.v1). Alerts live behind the bell in the header (badge = last 24 h).
 // The late/unsent tap alarm always shows on top when present (never hideable).
 
@@ -143,11 +146,24 @@ export function HomePage() {
 
   const ctx = { userId, plantId, washroomId: washroom?.id, isOwner, isManager, now };
   const tiles = visibleTiles(prefs);
+  // One freshness line for the page (declutter 2026-11-09); cards and tiles warn only when stale.
+  const age = usePageAge(now);
 
   return (
     <main className={`form-page home-page${isOwner ? ' owner' : ''}`}>
       <div className="home-header">
-        <h1>{t('home.title')}</h1>
+        <div className="home-title">
+          <h1>{t('home.title')}</h1>
+          {age && (
+            <DataAge
+              updatedAt={age.updatedAt}
+              now={now}
+              isFetching={age.isFetching}
+              isError={age.isError}
+              refreshSeconds={age.refreshSeconds}
+            />
+          )}
+        </div>
         <div className="home-header-actions">
           {(isOwner || isManager) && (
             <Link
@@ -190,23 +206,22 @@ export function HomePage() {
       )}
       {!plantId && areas.isPending && <p role="status">{t('common.loading')}</p>}
       {plantId && rolesKnown && (
-        <>
-          {isOwner && (
-            <>
-              <OwnerDashboard plantId={plantId} washroomId={washroom?.id} now={now} />
-              <h2 className="home-shortcuts-title head">{t('dash.shortcuts')}</h2>
-            </>
-          )}
+        <div className="home-body">
           {tiles.length === 0 ? (
-            <p className="notice">{t('home.noTiles')}</p>
+            !isOwner && <p className="notice">{t('home.noTiles')}</p>
           ) : (
-            <ul className="home-grid">
+            // Owner: a compact status strip above the dashboard (only what the dashboard lacks).
+            <ul
+              className={isOwner ? 'home-grid home-strip' : 'home-grid'}
+              aria-label={isOwner ? t('home.statusStrip') : undefined}
+            >
               {tiles.map((id) => (
                 <HomeTile key={id} id={id} ctx={ctx} />
               ))}
             </ul>
           )}
-        </>
+          {isOwner && <OwnerDashboard plantId={plantId} washroomId={washroom?.id} now={now} />}
+        </div>
       )}
     </main>
   );

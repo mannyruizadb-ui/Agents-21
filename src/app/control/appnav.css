@@ -1,15 +1,49 @@
-/* Bottom nav: fixed, dark, ≥ 56 px tabs, icon + word, count badges (never color alone). */
+/* The one nav (AppNav.tsx), laid out by WIDTH (owner 2026-11-09). Phone and tablet portrait: a fixed
+   bottom bar, ≥ 56 px tabs, icon + word, count badges (never color alone). From 1024 px: a fixed
+   left side menu with the logo; the bottom bar is gone. --side-w / --nav-space live in theme.css. */
+.app-main {
+  padding-left: var(--side-w);
+  outline: none;
+}
+.skip-link {
+  position: absolute;
+  left: var(--sp-sm);
+  top: -10rem;
+  z-index: 40;
+  padding: var(--sp-sm) var(--sp-md);
+  background: var(--c-focus);
+  color: var(--c-text-inverse);
+  font-weight: 700;
+  border-radius: var(--radius);
+}
+.skip-link:focus {
+  top: var(--sp-sm);
+}
+
 .app-nav {
   position: fixed;
   left: 0;
   right: 0;
   bottom: 0;
   z-index: 20;
-  display: flex;
-  min-height: var(--nav-h);
   padding-bottom: env(safe-area-inset-bottom);
   background: var(--c-surface-lowest);
   border-top: 1px solid var(--c-seam);
+}
+.nav-brand {
+  display: none;
+}
+.nav-items {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  min-height: var(--nav-h);
+}
+.nav-items > li {
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
 }
 .nav-tab {
   flex: 1 1 0;
@@ -27,12 +61,19 @@
   font-weight: 600;
   border-top: 3px solid transparent;
 }
+.nav-tab:hover {
+  color: var(--c-text);
+}
 .nav-tab.active {
-  /* Not green: green means running/OK only (owner rule). Active = info blue + top bar + bold. */
+  /* Not green: green means running/OK only (owner rule). Active = info blue + bar + bold. */
   color: var(--c-info-text);
   background: var(--c-surface-high);
   border-top-color: var(--c-info-text);
   font-weight: 700;
+}
+.nav-tab:focus-visible {
+  outline: 3px solid var(--c-focus);
+  outline-offset: -3px;
 }
 .nav-icon {
   position: relative;
@@ -67,4 +108,81 @@
   overflow: hidden;
   clip: rect(0 0 0 0);
   white-space: nowrap;
+}
+
+/* Tablet portrait: a taller bar (--nav-h 84 px in theme.css) with bigger words. */
+@media (min-width: 768px) and (max-width: 1023.98px) {
+  .nav-tab {
+    font-size: var(--fs-md);
+  }
+}
+
+/* Side menu: tablet landscape and desktop. */
+@media (min-width: 1024px) {
+  .app-nav {
+    top: 0;
+    right: auto;
+    width: var(--side-w);
+    display: flex;
+    flex-direction: column;
+    padding: 0 0 env(safe-area-inset-bottom);
+    border-top: 0;
+    border-right: 1px solid var(--c-seam);
+    overflow-y: auto;
+  }
+  .nav-brand {
+    display: grid;
+    justify-items: start;
+    gap: var(--sp-xs);
+    padding: var(--sp-md) var(--sp-md) var(--sp-md);
+    border-bottom: 1px solid var(--c-seam);
+  }
+  .nav-brand-logo {
+    display: block;
+    width: 100%;
+    max-width: 11rem;
+    height: auto;
+  }
+  .nav-brand-name {
+    font-family: var(--font-mono);
+    font-weight: 700;
+    font-size: var(--fs-md);
+    letter-spacing: 0.06em;
+    color: var(--c-text-muted);
+  }
+  .nav-items {
+    flex-direction: column;
+    gap: 2px;
+    min-height: 0;
+    padding: var(--sp-sm) 0;
+  }
+  .nav-tab {
+    flex-direction: row;
+    justify-content: flex-start;
+    gap: var(--sp-md);
+    min-height: var(--target);
+    padding: 0 var(--sp-md);
+    font-size: var(--fs-lg);
+    border-top: 0;
+    border-left: 4px solid transparent;
+  }
+  .nav-tab.active {
+    border-left-color: var(--c-info-text);
+  }
+  .nav-label {
+    text-align: left;
+  }
+  /* The count sits at the right end of the row, not over the icon. */
+  .nav-tab {
+    position: relative;
+    padding-right: 3.5rem;
+  }
+  .nav-tab .nav-icon {
+    position: static;
+  }
+  .nav-tab .nav-badge {
+    top: 50%;
+    right: var(--sp-md);
+    transform: translateY(-50%);
+  }
 }

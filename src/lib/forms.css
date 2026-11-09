@@ -5,7 +5,7 @@
   box-sizing: border-box;
   max-width: 40rem;
   margin: 0 auto;
-  padding: var(--sp-md) var(--sp-md) calc(var(--nav-h) + var(--sp-lg));
+  padding: var(--sp-md) var(--sp-md) calc(var(--nav-space) + var(--sp-lg));
   font-family: var(--font-body);
   font-size: var(--fs-md);
   line-height: 1.5;
@@ -311,4 +311,27 @@ body:has(.form-page) {
 }
 .more-info-text p {
   margin: 0 0 var(--sp-xs);
+}
+
+/* ── Tablet and desktop (owner 2026-11-09). Tablet: ≥ 56 px targets everywhere. Desktop: a wider
+   column (screens with lists set their own wider max and use two columns). ── */
+@media (min-width: 768px) and (max-width: 1279.98px) {
+  .form-page {
+    max-width: 46rem;
+    padding-left: var(--sp-lg);
+    padding-right: var(--sp-lg);
+  }
+  .form-page button,
+  .form-page .button-link,
+  .form-page input:not([type='checkbox']),
+  .form-page select {
+    min-height: var(--target);
+  }
+}
+@media (min-width: 1280px) {
+  .form-page {
+    max-width: 52rem;
+    padding-left: var(--sp-lg);
+    padding-right: var(--sp-lg);
+  }
 }

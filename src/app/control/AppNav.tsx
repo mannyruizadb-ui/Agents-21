@@ -2,6 +2,7 @@ import type { ReactNode } from 'react';
 import { NavLink } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import { useRequiredSession } from '../auth/sessionContext';
+import { BRAND_LOGO_SRC } from '../../lib/brand';
 import { useLoadOutBoard } from '../../features/loadout/loadOutData';
 import {
   IconBins,
@@ -15,23 +16,23 @@ import { useMyRoles } from '../../features/washroom/useMyRoles';
 import { pickArea, useAreas, useQueue } from '../../features/washroom/washroomData';
 import './appnav.css';
 
-// Bottom nav (owner 2026-11-06, round 2), per role, with count badges where data exists:
+// The app's one nav (owner 2026-11-06, round 2; frame by screen width 2026-11-09). The item list
+// below is the single source of truth; CSS lays it out as a bottom bar (phone, tablet portrait) or a
+// left side menu with the logo (≥ 1024 px wide). Per role, with count badges where data exists:
 //   owner and others: Home · Washers · Queue · Load-out · More
 //   managers:         Home · Washers · Estimates · Load-out · More
-// Alerts moved to the bell on Home; tasks are a Home tile and a More tile. Every tab shows an icon
-// AND its word; the badge number is part of the link's name.
+// Alerts live behind the bell on Home; tasks are a Home tile and a More tile. Every item shows an
+// icon AND its word; active = info blue + a bar + bold (never color alone); the badge number is part
+// of the link's name.
 
-function Tab({
-  to,
-  icon,
-  label,
-  badge,
-}: {
+interface NavItem {
   to: string;
   icon: ReactNode;
   label: string;
   badge?: number;
-}) {
+}
+
+function Tab({ to, icon, label, badge }: NavItem) {
   return (
     <NavLink
       to={to}
@@ -64,27 +65,40 @@ export function AppNav() {
     (r) => !r.loaded && r.lines.length > 0,
   ).length;
 
+  const items: NavItem[] = [
+    { to: '/control', icon: <IconHome size="26" />, label: t('nav.home') },
+    { to: '/control/washers', icon: <IconWasher size="26" />, label: t('nav.washers') },
+    isManager
+      ? { to: '/control/estimates', icon: <IconBins size="26" />, label: t('nav.estimates') }
+      : {
+          to: '/control/queue',
+          icon: <IconQueue size="26" />,
+          label: t('nav.queue'),
+          badge: queueCount,
+        },
+    {
+      to: '/control/load-out',
+      icon: <IconTruck size="26" />,
+      label: t('nav.loadOut'),
+      badge: loadOutCount,
+    },
+    { to: '/control/more', icon: <IconMenu size="26" />, label: t('nav.more') },
+  ];
+
   return (
     <nav className="app-nav" aria-label={t('nav.label')}>
-      <Tab to="/control" icon={<IconHome size="26" />} label={t('nav.home')} />
-      <Tab to="/control/washers" icon={<IconWasher size="26" />} label={t('nav.washers')} />
-      {isManager ? (
-        <Tab to="/control/estimates" icon={<IconBins size="26" />} label={t('nav.estimates')} />
-      ) : (
-        <Tab
-          to="/control/queue"
-          icon={<IconQueue size="26" />}
-          label={t('nav.queue')}
-          badge={queueCount}
-        />
-      )}
-      <Tab
-        to="/control/load-out"
-        icon={<IconTruck size="26" />}
-        label={t('nav.loadOut')}
-        badge={loadOutCount}
-      />
-      <Tab to="/control/more" icon={<IconMenu size="26" />} label={t('nav.more')} />
+      {/* Side menu only (hidden in the bottom bar): the logo and the app's name. */}
+      <div className="nav-brand">
+        <img className="nav-brand-logo" src={BRAND_LOGO_SRC} alt={t('brand.company')} />
+        <span className="nav-brand-name">{t('app.name')}</span>
+      </div>
+      <ul className="nav-items">
+        {items.map((it) => (
+          <li key={it.to}>
+            <Tab {...it} />
+          </li>
+        ))}
+      </ul>
     </nav>
   );
 }
