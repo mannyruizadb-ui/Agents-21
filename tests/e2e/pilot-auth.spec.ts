@@ -78,25 +78,30 @@ test.describe.serial('pilot auth', () => {
       sql(
         `select coalesce(raw_app_meta_data->>'must_change_password','x')||'/'||coalesce(raw_app_meta_data->>'pw_v','x') from auth.users where email like 'denise@%'`,
       ),
-    ).toBe('true/2');
+    ).toBe('false/2'); // owner 2026-11-10: no forced change
   });
 
-  test('2b denise forced change', async ({ page }) => {
+  test('2b denise keeps the password the owner gave; changing it later never freezes', async ({
+    page,
+  }) => {
+    // Owner 2026-11-10: no forced change on first sign-in.
     await signIn(page, DENISE.user, DENISE.start);
-    await expect(page.getByRole('heading', { name: 'Choose a new password' })).toBeVisible();
+    await page.waitForURL(/\/control/);
+    await expect(page.getByRole('heading', { name: 'Choose a new password' })).toHaveCount(0);
+    expect(
+      sql(
+        `select coalesce(raw_app_meta_data->>'must_change_password','false') from auth.users where email like 'denise@%'`,
+      ),
+    ).toBe('false');
+    // A voluntary change (More → Change my password) signs her straight back in: no stuck page.
+    await page.goto('/control/password');
     await page.getByLabel('Current password').fill(DENISE.start);
     await page.getByLabel('New password', { exact: true }).fill(DENISE.next);
     await page.getByLabel('Type it again').fill(DENISE.next);
     await page.getByRole('button', { name: 'Save password' }).click();
-    await page.waitForURL(/\/control/);
-    await expect(page).not.toHaveURL(/password/);
-    await expect
-      .poll(() =>
-        sql(
-          `select coalesce(raw_app_meta_data->>'must_change_password','false') from auth.users where email like 'denise@%'`,
-        ),
-      )
-      .toBe('false');
+    await expect(page.getByText('Password changed.')).toBeVisible();
+    await page.goto('/control');
+    await expect(page).toHaveURL(/\/control$/);
     await signOut(page);
     await signIn(page, DENISE.user, DENISE.next);
     await page.waitForURL(/\/control/);
