@@ -28,7 +28,8 @@
   width: 1.1em;
   height: 1.1em;
   border-radius: 4px;
-  border: 2px solid currentColor;
+  /* Always outlined (owner 2026-11-10): black and white chips both read on the dark theme. */
+  border: 2px solid var(--c-outline);
 }
 .group-name {
   overflow-wrap: anywhere;

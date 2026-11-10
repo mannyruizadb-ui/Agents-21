@@ -318,3 +318,19 @@
     font-size: var(--fs-h-md);
   }
 }
+
+/* Setup → Items (owner 2026-11-10): preset fabric colours, each with its swatch and a word. */
+.setup-presets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-sm);
+  margin-top: var(--sp-sm);
+}
+.form-page button.setup-preset {
+  min-height: 48px;
+  font-weight: 600;
+}
+.form-page button.setup-preset[aria-pressed='true'] {
+  border-color: var(--c-info-text);
+  border-width: 3px;
+}

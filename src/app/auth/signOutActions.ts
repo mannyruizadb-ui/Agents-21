@@ -2,6 +2,7 @@ import { supabase } from '../../lib/supabase';
 import { flushTaps, pendingTapCount } from '../../features/washroom/useTapSync';
 import { flushEstimates, pendingEstimateCount } from '../../features/estimates/useEstimateOutbox';
 import { flushDeliveries, pendingDeliveryCount } from '../../features/deliveries/useDeliveryOutbox';
+import { flushFinished, pendingFinishedCount } from '../../features/finished/useFinishedOutbox';
 import { removeThisDevicePush } from '../../features/notifications/pushClient';
 import type { PendingSource } from './signOutFlow';
 import { isSharedDevice } from './sharedDevice';
@@ -22,11 +23,12 @@ export function signOutScope(shared: boolean): { scope: 'local' } | undefined {
   return shared ? { scope: 'local' } : undefined;
 }
 
-/** This account's waiting taps, estimates and deliveries. */
+/** This account's waiting taps, estimates, deliveries and finished-goods lines. */
 export function sourcesFor(userId: string): PendingSource[] {
   return [
     { count: () => pendingTapCount(userId), flush: () => flushTaps(userId) },
     { count: () => pendingEstimateCount(userId), flush: () => flushEstimates(userId) },
     { count: () => pendingDeliveryCount(userId), flush: () => flushDeliveries(userId) },
+    { count: () => pendingFinishedCount(userId), flush: () => flushFinished(userId) },
   ];
 }

@@ -6,7 +6,7 @@ import { useRequiredSession } from '../auth/sessionContext';
 import { useOwnerPlants } from '../../features/admin/useOwnerPlants';
 import { NotificationsCard } from '../../features/notifications/NotificationsCard';
 import { useMyRoles } from '../../features/washroom/useMyRoles';
-import { useAreas } from '../../features/washroom/washroomData';
+import { pickArea, useAreas } from '../../features/washroom/washroomData';
 import { useLoadOutPermissions, usePlant } from '../../features/loadout/loadOutData';
 import type { ReactNode } from 'react';
 import {
@@ -19,6 +19,7 @@ import {
   IconMachineDown,
   IconPeople,
   IconQueue,
+  IconReady,
   IconTasks,
   IconWasher,
 } from '../../features/washroom/Icons';
@@ -87,7 +88,14 @@ export function ControlHome() {
       })
     : t('deliveries.title');
 
+  const hasFinishing = !!pickArea(areas.data, 'finishing');
   const daily: Tile[] = [
+    {
+      to: '/control/finished',
+      label: t('finished.title'),
+      icon: <IconReady />,
+      show: isStaff && hasFinishing,
+    },
     // Managers have Estimates in the nav; everyone else has Queue there.
     { to: '/control/estimates', label: t('nav.estimates'), icon: <IconBins />, show: isOwner },
     { to: '/control/queue', label: t('nav.queue'), icon: <IconQueue />, show: isManager },
@@ -131,6 +139,12 @@ export function ControlHome() {
       to: '/control/setup/wash-groups',
       label: t('more.washGroups'),
       icon: <IconWasher />,
+      show: isOwner,
+    },
+    {
+      to: '/control/setup/items',
+      label: t('more.items'),
+      icon: <IconBins />,
       show: isOwner,
     },
     {

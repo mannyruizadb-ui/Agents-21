@@ -126,7 +126,7 @@ select is(pg_temp.run_as('owner', $$select public.start_washer_load('60000000-00
   '1', 'a tap now (after the shift ended: off-shift)');
 select is((select array[shift_instance_id::text, production_date::text] from public.washer_cycles where id = pg_temp.cyc(12)),
   array['91000000-0000-0000-0000-0000000000c1', '2000-01-01'], 'the offline tap lands in the shift and production day of its tap time');
-select is((select array[coalesce(shift_instance_id::text, 'null'), (production_date = app.production_date(now(), 'America/New_York', '12:00'))::text]
+select is((select array[coalesce(shift_instance_id::text, 'null'), (production_date = app.production_date(now(), 'America/New_York', (select p.production_day_start from public.plants p where p.id = pg_temp.id('plantA2'))))::text]
              from public.washer_cycles where id = pg_temp.cyc(13)),
   array['null', 'true'], 'the tap now is off-shift, in the current production day');
 

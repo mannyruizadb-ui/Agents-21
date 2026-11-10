@@ -138,10 +138,16 @@ export function QuickActions({
   userId,
   plantId,
   isManager,
+  canFinish = false,
+  finishOnly = false,
 }: {
   userId: string;
   plantId: string | undefined;
   isManager: boolean;
+  /** Owner or manager, and the plant has a finishing area: "Finished goods" (owner 2026-11-10). */
+  canFinish?: boolean;
+  /** Only the "Finished goods" shortcut (the owner's Home). */
+  finishOnly?: boolean;
 }) {
   const { t } = useTranslation();
   const localized = useLocalizedName();
@@ -151,6 +157,11 @@ export function QuickActions({
   const active = (customers.data ?? []).filter((c) => c.active);
   const only = active.length === 1 ? active[0] : undefined;
   const actions = [
+    canFinish && {
+      to: '/control/finished',
+      icon: <IconReady size="1.6em" />,
+      label: t('finished.title'),
+    },
     isManager && {
       to: '/control/estimates',
       icon: <IconEdit size="1.6em" />,
@@ -169,7 +180,9 @@ export function QuickActions({
       icon: <IconTruck size="1.6em" />,
       label: t('loadOut.entryTitle'),
     },
-  ].filter((a): a is { to: string; icon: ReactElement; label: string } => !!a);
+  ]
+    .filter((a): a is { to: string; icon: ReactElement; label: string } => !!a)
+    .filter((a) => !finishOnly || a.to === '/control/finished');
   if (actions.length === 0) return null;
   return (
     <nav className="mh-actions" aria-label={t('managerHome.shortcuts')}>
