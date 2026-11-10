@@ -1,0 +1,452 @@
+/* Finished goods entry (owner 2026-11-10): the finishing tablet first (1024 wide), phones too (360+).
+   Entry targets ≥ 56 px; the main quick adds 72 px. Colour is never alone: every swatch sits next to the
+   item's name and is always outlined, so white and black both read on the dark theme. */
+
+.form-page.fg-page {
+  max-width: 72rem;
+}
+.fg-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--sp-sm) var(--sp-md);
+  margin-bottom: var(--sp-md);
+}
+.fg-header h1 {
+  margin-bottom: var(--sp-xs);
+}
+.fg-header-text {
+  flex: 1 1 16rem;
+  min-width: 0;
+}
+.fg-shift {
+  margin: 0;
+  font-size: var(--fs-lg);
+  font-weight: 600;
+}
+.fg-off {
+  margin-right: var(--sp-xs);
+}
+.fg-header > button {
+  min-height: var(--target);
+}
+
+/* Swatches */
+.fg-swatch {
+  flex: none;
+  display: inline-block;
+  width: 1.25rem;
+  height: 1.25rem;
+  /* Round, so a white swatch never reads as an empty checkbox. */
+  border-radius: 50%;
+  border: 2px solid var(--c-outline);
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.35);
+}
+.fg-swatch-sm {
+  width: 0.9rem;
+  height: 0.9rem;
+}
+.fg-swatch-lg {
+  width: 2rem;
+  height: 2rem;
+}
+
+/* Outbox */
+.fg-outbox:empty {
+  display: none;
+}
+.fg-waiting {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-sm);
+  margin: var(--sp-sm) 0;
+  padding: var(--sp-sm) var(--sp-md);
+  border: 2px dashed var(--c-warn);
+  border-radius: var(--radius-lg);
+  background: var(--c-warn-container);
+  font-weight: 700;
+}
+.fg-rejected {
+  list-style: none;
+  margin: var(--sp-sm) 0;
+  padding: 0;
+  display: grid;
+  gap: var(--sp-sm);
+}
+.fg-rejected li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--sp-sm);
+}
+
+/* Working on */
+.fg-working ul {
+  list-style: none;
+  margin: var(--sp-md) 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 11rem), 1fr));
+  gap: var(--sp-sm);
+}
+.form-page button.fg-work {
+  width: 100%;
+  min-height: 64px;
+  justify-content: flex-start;
+  text-align: left;
+  color: var(--c-text);
+  background: var(--c-surface-high);
+  border-color: var(--c-outline);
+  font-size: var(--fs-md);
+}
+.form-page button.fg-work[aria-pressed='true'] {
+  background: var(--c-info-container);
+  border-color: var(--c-info-text);
+  border-width: 3px;
+  border-bottom-width: 5px;
+}
+.form-page button.fg-work[aria-pressed='true'] .fg-work-name::before {
+  content: '✓ ';
+  content: '✓ ' / '';
+}
+.fg-work-name {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.fg-work-total {
+  flex: none;
+  font-weight: 700;
+}
+.form-page button.fg-work-add {
+  justify-content: center;
+  border-style: dashed;
+}
+
+/* Picker */
+.fg-picker-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-sm);
+}
+.fg-picker-head h2 {
+  margin: 0;
+}
+.fg-picker .cat-chips {
+  margin-top: var(--sp-md);
+}
+.fg-pick-grid {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 12rem), 1fr));
+  gap: var(--sp-sm);
+}
+.form-page button.fg-pick {
+  width: 100%;
+  min-height: 72px;
+  justify-content: flex-start;
+  text-align: left;
+  color: var(--c-text);
+  background: var(--c-surface-high);
+  border-color: var(--c-outline);
+  font-size: var(--fs-lg);
+  flex-wrap: wrap;
+}
+.fg-pick-name {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.fg-pick-pinned {
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  color: var(--c-text-muted);
+}
+
+/* Selected item */
+.fg-columns {
+  display: grid;
+  gap: var(--sp-md);
+  margin-top: var(--sp-md);
+}
+@media (min-width: 900px) {
+  .fg-columns {
+    grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+    align-items: start;
+  }
+}
+.fg-panel-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--sp-sm) var(--sp-md);
+}
+.form-page .fg-item-name {
+  flex: 1 1 12rem;
+  margin: 0;
+  font-size: var(--fs-h-xl);
+  overflow-wrap: anywhere;
+}
+.fg-item-total {
+  margin: 0;
+  display: flex;
+  align-items: baseline;
+  gap: var(--sp-sm);
+}
+.fg-item-total-label {
+  font-weight: 600;
+  color: var(--c-text-muted);
+}
+.fg-item-total-n {
+  font-size: var(--fs-timer-lg);
+  font-weight: 800;
+}
+.fg-quick {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 8rem), 1fr));
+  gap: var(--sp-sm);
+  margin-top: var(--sp-md);
+}
+.form-page button.fg-add {
+  min-height: 72px;
+  font-size: var(--fs-lg);
+  font-weight: 800;
+}
+.form-page button.fg-add.secondary {
+  font-weight: 700;
+}
+.fg-count {
+  margin-top: var(--sp-md);
+}
+.fg-count-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-sm);
+}
+.form-page .fg-count-row input {
+  flex: 1 1 8rem;
+  width: auto;
+  min-height: 72px;
+  font-size: var(--fs-h-md);
+  font-family: var(--font-mono);
+}
+.fg-count-row button {
+  flex: 0 1 auto;
+  min-height: 72px;
+}
+.fg-count .hint,
+.fg-count .error {
+  margin: var(--sp-xs) 0 0;
+  font-size: var(--fs-lg);
+  font-weight: 600;
+}
+.fg-warn {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-xs);
+  margin: var(--sp-xs) 0 0;
+  color: var(--c-warn);
+  font-weight: 600;
+}
+.fg-panel-foot {
+  margin-top: var(--sp-md);
+  display: flex;
+  justify-content: flex-end;
+}
+
+/* Confirm */
+.form-page .fg-confirm {
+  border: 3px solid var(--c-warn);
+  background: var(--c-warn-container);
+}
+.fg-confirm h2 {
+  margin-top: 0;
+  display: flex;
+  align-items: center;
+  gap: var(--sp-sm);
+}
+.fg-confirm p {
+  font-size: var(--fs-lg);
+}
+.fg-confirm .actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-sm);
+}
+.fg-confirm .actions button {
+  flex: 1 1 10rem;
+  min-height: var(--target);
+}
+
+/* Saved notice + Undo */
+.fg-toast-region:empty {
+  display: none;
+}
+.fg-toast {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-sm) var(--sp-md);
+  margin: var(--sp-md) 0 0;
+  padding: var(--sp-md);
+  border: 3px solid var(--c-ok);
+  border-radius: var(--radius-lg);
+  background: var(--c-ok-container);
+}
+.fg-toast.waiting {
+  border-color: var(--c-warn);
+  border-style: dashed;
+  background: var(--c-warn-container);
+}
+.fg-toast.error {
+  border-color: var(--c-danger);
+  background: var(--c-danger-container);
+}
+.fg-toast.undone,
+.fg-toast.sending {
+  border-color: var(--c-outline);
+  background: var(--c-surface-high);
+}
+.fg-toast-text {
+  flex: 1 1 14rem;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: var(--sp-sm);
+  font-size: var(--fs-h-md);
+  font-weight: 800;
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+}
+.fg-toast-sub {
+  flex-basis: 100%;
+  order: 3;
+  margin: 0;
+  font-weight: 600;
+}
+.fg-undo-wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-sm);
+}
+.form-page button.fg-undo {
+  min-height: var(--target);
+  min-width: 7rem;
+  font-size: var(--fs-lg);
+}
+.fg-undo-left {
+  color: var(--c-text-muted);
+}
+
+/* Item log */
+.fg-log h2 {
+  margin-top: 0;
+}
+.fg-log-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: var(--sp-xs);
+}
+.form-page button.fg-line-btn {
+  width: 100%;
+  min-height: var(--target);
+  justify-content: flex-start;
+  flex-wrap: wrap;
+  text-align: left;
+  color: var(--c-text);
+  background: var(--c-surface-lowest);
+  border-color: var(--c-seam);
+  border-bottom-width: 2px;
+  font-weight: 600;
+}
+.fg-line.pending .fg-line-btn {
+  border-style: dashed;
+  border-color: var(--c-warn);
+}
+.fg-line-time {
+  min-width: 5.5rem;
+  color: var(--c-text-muted);
+}
+.fg-line-amount {
+  flex: 1 1 auto;
+  font-size: var(--fs-lg);
+}
+.fg-line-pending {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-xs);
+  color: var(--c-warn);
+  font-size: var(--fs-sm);
+}
+.fg-line-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-sm);
+  padding: var(--sp-sm) 0 var(--sp-md);
+}
+.fg-line-actions p {
+  flex-basis: 100%;
+  margin: 0;
+  font-weight: 600;
+}
+.fg-line-actions button {
+  flex: 1 1 8rem;
+  min-height: var(--target);
+}
+
+/* End-of-shift review */
+.fg-review h2 {
+  margin-top: 0;
+}
+.fg-review-total {
+  font-size: var(--fs-lg);
+  font-weight: 700;
+}
+.fg-review-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 20rem), 1fr));
+  gap: var(--sp-sm);
+}
+.fg-review-row {
+  padding: var(--sp-sm) var(--sp-md);
+  border: 1px solid var(--c-seam);
+  border-radius: var(--radius-lg);
+  background: var(--c-surface-lowest);
+}
+.fg-review-name {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-sm);
+  margin: 0;
+  font-size: var(--fs-lg);
+}
+.fg-review-amount {
+  margin: var(--sp-xs) 0;
+  font-size: var(--fs-h-md);
+  font-weight: 800;
+}
+.fg-review-facts {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--sp-xs) var(--sp-md);
+  margin: 0;
+}
+.fg-review-facts dt {
+  font-size: var(--fs-sm);
+  color: var(--c-text-muted);
+}
+.fg-review-facts dd {
+  margin: 0;
+  font-weight: 700;
+}

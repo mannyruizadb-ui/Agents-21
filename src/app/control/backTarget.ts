@@ -22,6 +22,7 @@ export function backTarget(pathname: string): string | null {
   if (TABS.has(path)) return '/control';
   if (path.startsWith('/control/load-out/')) return '/control/load-out';
   if (path === '/control/machines') return '/control/washers';
-  if (path === '/control/alerts' || path === '/control/tasks') return '/control';
+  if (path === '/control/alerts' || path === '/control/tasks' || path === '/control/finished')
+    return '/control';
   return '/control/more';
 }

@@ -97,10 +97,19 @@ select is((select count(*)::int from pg_temp.adb_groups()
 select is((select array_agg(name order by name) from pg_temp.adb_groups() where loads_per_basket is null and loads_per_bin is null),
   array['Black aprons','Coats (white)','Dust & wet mops','Mechanic towels','Microfiber mops','Microfiber towels','White aprons'],
   'every other group: no factor (null, never guessed)');
-select is((select array[count(*), count(distinct color_hex), count(*) filter (where color_hex = '#64748B')]::int[] from pg_temp.adb_groups()),
-  array[33, 33, 0], '33 groups, 33 distinct preset colors, none left at the default');
-select is((select array[count(*), count(distinct color_hex), count(*) filter (where color_hex = '#64748B')]::int[] from pg_temp.adb_all_groups()),
-  array[45, 45, 0], 'with AA Linen''s 12 groups (2026-11-07): 45 groups, 45 distinct preset colors (AA chips never look like ours)');
+-- Owner 2026-11-10 (fabric colours, 20261110141438): white / sheet groups are #FFFFFF, black groups #000000 and
+-- Colored mats red, so those share colours on purpose (the name always carries the meaning). Every OTHER group
+-- keeps a colour of its own.
+select is((select array[count(*), count(*) filter (where color_hex = '#64748B'),
+                        count(*) filter (where app.fabric_group_color(name) is not null and upper(color_hex) <> app.fabric_group_color(name)),
+                        count(*) filter (where app.fabric_group_color(name) is null),
+                        count(distinct color_hex) filter (where app.fabric_group_color(name) is null)]::int[] from pg_temp.adb_groups()),
+  array[33, 0, 0, 17, 17], '33 groups, none left at the default; white / black / Colored mats groups at their fabric colour; the other 17 each distinct');
+select is((select array[count(*), count(*) filter (where color_hex = '#64748B'),
+                        count(*) filter (where app.fabric_group_color(name) is not null and upper(color_hex) <> app.fabric_group_color(name)),
+                        count(*) filter (where app.fabric_group_color(name) is null),
+                        count(distinct color_hex) filter (where app.fabric_group_color(name) is null)]::int[] from pg_temp.adb_all_groups()),
+  array[45, 0, 0, 23, 23], 'with AA Linen''s 12 groups (2026-11-07): 45 groups; groups without a fabric colour (23) each have their own colour');
 
 -- Chip contrast: every color is ≥ 3:1 against the white card or the TV's dark card (#0B0F14);
 -- colors whose name has no black/white/navy/bone/sheet meaning are ≥ 3:1 against both.

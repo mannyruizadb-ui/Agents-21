@@ -447,14 +447,14 @@ isOneToOne: false
                   ]
                 },"item_types": {
                   Row: {
-                    "active": boolean,"category": "mat"|"linen"|"apparel"|"towel"|"mop"|"other","color_hex": string,"count_mode": "unit"|"pack","created_at": string,"id": string,"name": string,"name_i18n": NonNullable<Json>,"org_id": string,"pack_size": number | null,"pieces_per_load": number | null,"pieces_per_load_source": string | null,"plant_id": string,"sort_order": number,"updated_at": string,"wash_group_id": string | null,"washed": boolean
+                    "active": boolean,"bin_size": number | null,"category": "mat"|"linen"|"apparel"|"towel"|"mop"|"other","color_hex": string,"count_mode": "unit"|"pack","created_at": string,"id": string,"name": string,"name_i18n": NonNullable<Json>,"org_id": string,"pack_size": number | null,"pieces_per_load": number | null,"pieces_per_load_source": string | null,"plant_id": string,"sort_order": number,"stock_qty": number | null,"updated_at": string,"wash_group_id": string | null,"washed": boolean
                   }
                   ComputedFields: never
                   Insert: {
-                    "active"?: boolean,"category": "mat"|"linen"|"apparel"|"towel"|"mop"|"other","color_hex"?: string,"count_mode"?: "unit"|"pack","created_at"?: string,"id"?: string,"name": string,"name_i18n"?: NonNullable<Json>,"org_id": string,"pack_size"?: number | null,"pieces_per_load"?: number | null,"pieces_per_load_source"?: string | null,"plant_id": string,"sort_order"?: number,"updated_at"?: string,"wash_group_id"?: string | null,"washed"?: boolean
+                    "active"?: boolean,"bin_size"?: number | null,"category": "mat"|"linen"|"apparel"|"towel"|"mop"|"other","color_hex"?: string,"count_mode"?: "unit"|"pack","created_at"?: string,"id"?: string,"name": string,"name_i18n"?: NonNullable<Json>,"org_id": string,"pack_size"?: number | null,"pieces_per_load"?: number | null,"pieces_per_load_source"?: string | null,"plant_id": string,"sort_order"?: number,"stock_qty"?: number | null,"updated_at"?: string,"wash_group_id"?: string | null,"washed"?: boolean
                   }
                   Update: {
-                    "active"?: boolean,"category"?: "mat"|"linen"|"apparel"|"towel"|"mop"|"other","color_hex"?: string,"count_mode"?: "unit"|"pack","created_at"?: string,"id"?: string,"name"?: string,"name_i18n"?: NonNullable<Json>,"org_id"?: string,"pack_size"?: number | null,"pieces_per_load"?: number | null,"pieces_per_load_source"?: string | null,"plant_id"?: string,"sort_order"?: number,"updated_at"?: string,"wash_group_id"?: string | null,"washed"?: boolean
+                    "active"?: boolean,"bin_size"?: number | null,"category"?: "mat"|"linen"|"apparel"|"towel"|"mop"|"other","color_hex"?: string,"count_mode"?: "unit"|"pack","created_at"?: string,"id"?: string,"name"?: string,"name_i18n"?: NonNullable<Json>,"org_id"?: string,"pack_size"?: number | null,"pieces_per_load"?: number | null,"pieces_per_load_source"?: string | null,"plant_id"?: string,"sort_order"?: number,"stock_qty"?: number | null,"updated_at"?: string,"wash_group_id"?: string | null,"washed"?: boolean
                   }
                   Relationships: [
                     {
@@ -1586,6 +1586,9 @@ isOneToOne: false
 { Args: { "p_area_id"?: string,"p_limit"?: number,"p_plant_id": string,"p_production_date"?: string }; Returns: {
               "area_id": string,"entered_by_name": string,"entry_id": string,"item_name": string,"item_name_i18n": Json,"item_type_id": string,"loose_pieces": number,"note": string,"occurred_at": string,"pack_size_used": number,"packs": number,"pieces": number,"production_date": string,"shift_instance_id": string,"void_reason": string,"voided_at": string,"voided_by_name": string,"wash_group_id": string
             }[]
+                           },
+"get_finished_goods_shift":
+{ Args: { "p_area_id": string }; Returns: Json
                            },
 "get_load_out_board":
 { Args: { "p_load_date"?: string,"p_plant_id": string }; Returns: Json

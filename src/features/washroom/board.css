@@ -81,6 +81,11 @@
   padding: 0.35rem 0.6rem;
   border: 1px solid var(--c-seam);
   border-left: 6px solid;
+  /* The colour stripe is framed by light lines on both sides, so #000000 and #FFFFFF stay visible on
+     the dark theme (owner 2026-11-10). */
+  box-shadow:
+    -1px 0 0 var(--c-outline),
+    inset 1px 0 0 var(--c-outline);
   border-radius: var(--radius);
   background: var(--c-surface-lowest);
   font-size: var(--fs-lg);

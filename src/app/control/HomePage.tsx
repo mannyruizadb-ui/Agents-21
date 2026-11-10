@@ -122,6 +122,7 @@ export function HomePage() {
   const ownerPlants = useOwnerPlants(userId);
   const areas = useAreas();
   const washroom = pickArea(areas.data, 'washroom');
+  const hasFinishing = !!pickArea(areas.data, 'finishing');
   const plantId = washroom?.plant_id ?? areas.data?.[0]?.plant_id;
   const myRoles = useMyRoles(userId);
   const roles = myRoles.rolesFor(plantId);
@@ -210,8 +211,17 @@ export function HomePage() {
         // Owner 2026-11-10: managers and leads see washers 1–6 first, then shortcuts, then rows.
         <>
           <WasherStrip washroomId={washroom?.id} now={now} />
-          <QuickActions userId={userId} plantId={plantId} isManager={isManager} />
+          <QuickActions
+            userId={userId}
+            plantId={plantId}
+            isManager={isManager}
+            canFinish={isManager && hasFinishing}
+          />
         </>
+      )}
+      {plantId && rolesKnown && isOwner && hasFinishing && (
+        // Owner 2026-11-10: the owner gets the "Finished goods" shortcut too (only that one).
+        <QuickActions userId={userId} plantId={plantId} isManager={false} canFinish finishOnly />
       )}
       {plantId && rolesKnown && (
         <div className="home-body">

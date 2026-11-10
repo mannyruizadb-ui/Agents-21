@@ -113,9 +113,13 @@ select is((select es from (select r.label_i18n ->> 'es' es from public.machine_d
 select is((select count(*)::int from public.wash_groups g join public.customers c on c.id = g.customer_id and c.plant_id = g.plant_id
              join public.plants p on p.id = g.plant_id and p.name = 'Miami' where c.name = 'AA Linen' and g.active), 12,
   'ADB (seed / data migration): AA Linen has 12 active groups');
-select is((select count(distinct g.color_hex)::int from public.wash_groups g join public.plants p on p.id = g.plant_id and p.name = 'Miami'),
-  (select count(*)::int from public.wash_groups g join public.plants p on p.id = g.plant_id and p.name = 'Miami'),
-  'ADB: every group (ours and AA''s) has its own color');
+-- Owner 2026-11-10 (fabric colours): white / black groups share #FFFFFF / #000000 on purpose; every group
+-- without a fabric colour (ours and AA's) still has its own.
+select is((select count(distinct g.color_hex)::int from public.wash_groups g join public.plants p on p.id = g.plant_id and p.name = 'Miami'
+            where app.fabric_group_color(g.name) is null),
+  (select count(*)::int from public.wash_groups g join public.plants p on p.id = g.plant_id and p.name = 'Miami'
+    where app.fabric_group_color(g.name) is null),
+  'ADB: every group without a fabric colour (ours and AA''s) has its own color');
 
 select * from finish();
 rollback;

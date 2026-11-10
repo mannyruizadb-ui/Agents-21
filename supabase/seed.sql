@@ -468,3 +468,18 @@ select app.apply_machine_spanish_names(p.id)
   from public.plants p
   join public.organizations o on o.id = p.org_id and o.slug = 'americas-dust-busters'
  where p.name = 'Miami';
+
+-- Sheet bins of 500 (owner 2026-11-10; migration 20261110141433_add_item_bin_size_and_stock for the cloud):
+-- the SAME function sets bin_size = 500 on "Sheet – new" and "Sheet – regular" ("Sheet – old" stays null).
+select app.apply_sheet_bin_sizes(p.id)
+  from public.plants p
+  join public.organizations o on o.id = p.org_id and o.slug = 'americas-dust-busters'
+ where p.name = 'Miami';
+
+-- Fabric colours (owner 2026-11-10; data migration 20261110141438_set_fabric_colors for the cloud): the SAME
+-- function colours napkin / tablecloth / sheet items by fabric and the white / black wash groups (ours and
+-- AA Linen's) #FFFFFF / #000000, Colored mats red #DC2626. The colours above are the catalog as it was.
+select app.apply_fabric_colors(p.id)
+  from public.plants p
+  join public.organizations o on o.id = p.org_id and o.slug = 'americas-dust-busters'
+ where p.name = 'Miami';

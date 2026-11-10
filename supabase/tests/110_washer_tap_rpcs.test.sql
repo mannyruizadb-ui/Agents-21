@@ -61,7 +61,7 @@ select is((select array[wash_group_id::text, wash_formula_id::text, load_factor_
   'cycle: group, the group''s formula, machine load factor, entered_by = the station account, no staff');
 select ok((select shift_instance_id is not distinct from app.shift_instance_at(pg_temp.id('wash'), started_at)
              and production_date = coalesce((select si.production_date from public.shift_instances si where si.id = w.shift_instance_id),
-                                            app.production_date(started_at, 'America/New_York', '12:00'))
+                                            app.production_date(started_at, 'America/New_York', (select p.production_day_start from public.plants p where p.id = w.plant_id)))
              from public.washer_cycles w where id = pg_temp.cyc(101)),
   'shift = the area''s clock instance (or off-shift); production_date stored');
 select is(pg_temp.val_as('lead', $$select (public.start_washer_load(pg_temp.id('machine'), pg_temp.cid(102), p_confirm_running => true)).queue_status$$),

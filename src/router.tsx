@@ -49,6 +49,14 @@ export const router = createBrowserRouter([
         }),
       },
       {
+        // Finished goods (E1; owner 2026-11-10): the finishing shift manager logs output as it is
+        // finished; owner and managers.
+        path: 'finished',
+        lazy: async () => ({
+          Component: (await import('./features/finished/FinishedGoodsPage')).FinishedGoodsPage,
+        }),
+      },
+      {
         // Tasks (owner 2026-11-06): owner sends; managers see and finish their own.
         path: 'tasks',
         lazy: async () => ({ Component: (await import('./features/tasks/TasksPage')).TasksPage }),
@@ -91,6 +99,13 @@ export const router = createBrowserRouter([
         path: 'setup/wash-groups',
         lazy: async () => ({
           Component: (await import('./features/setup/SetupWashGroupsPage')).SetupWashGroupsPage,
+        }),
+      },
+      {
+        // Setup → Items (owner 2026-11-10): pack and bin sizes, stock owned, colour; owner only.
+        path: 'setup/items',
+        lazy: async () => ({
+          Component: (await import('./features/setup/SetupItemsPage')).SetupItemsPage,
         }),
       },
       {

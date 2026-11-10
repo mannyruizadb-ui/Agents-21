@@ -49,7 +49,8 @@ select is((select array_agg(g.name || ':' || f.external_no || ':' || g.category 
   'the 4 baskets: formula 1, category mats, 3.5 loads per basket and 4 per bin, both containers allowed, estimated by the basket');
 select is((select array_agg(g.color_hex order by g.name) from public.wash_groups g
             where g.plant_id = pg_temp.adb() and g.customer_id is null and g.category = 'mats' and g.active),
-  array['#1F1F1F', '#EF4444', '#52525B', '#B45309'], 'the 4 baskets have their own colour presets (black, red, charcoal, brown)');
+  array['#000000', '#EF4444', '#52525B', '#DC2626'],
+  'the 4 baskets'' colours: Black #000000 and Colored red #DC2626 since the fabric colours (owner 2026-11-10), Brito #EF4444, Charcoal');
 select is((select count(*)::int from public.wash_groups g where g.plant_id = pg_temp.adb() and g.color_hex = '#EF4444'), 1,
   'no other group of the plant (ours or AA Linen''s) uses Brito''s red');
 select is((select g.active::text || ':' || g.category from public.wash_groups g
