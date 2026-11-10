@@ -124,6 +124,7 @@ function Tile({
             name={row.wash_group_name}
             nameI18n={row.wash_group_name_i18n}
             colorHex={row.wash_group_color_hex}
+            colorHex2={row.wash_group_color_hex_2}
             washGroupId={row.wash_group_id}
           />
         ) : view.status === 'idle' ? null : (
@@ -178,6 +179,7 @@ function Tile({
               name={row.next_wash_group_name}
               nameI18n={row.next_wash_group_name_i18n}
               colorHex={row.next_wash_group_color_hex}
+              colorHex2={row.next_wash_group_color_hex_2}
               washGroupId={row.next_wash_group_id}
             />
             <span className="wb-meta">
@@ -235,6 +237,7 @@ function NextInQueue({ items }: { items: QueueRow[] }) {
               name={top.wash_group_name}
               nameI18n={top.wash_group_name_i18n}
               colorHex={top.wash_group_color_hex}
+              colorHex2={top.wash_group_color_hex_2}
               washGroupId={top.wash_group_id}
             />
             <span className="wb-meta">{qtyText(queueLoadsLeft(top), top.qty, top.unit)}</span>

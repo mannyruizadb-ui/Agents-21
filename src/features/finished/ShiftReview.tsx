@@ -5,19 +5,23 @@ import { IconWarning } from '../washroom/Icons';
 import { useItemName } from './useItemName';
 
 /**
- * End-of-shift review: every item with this shift's total ("73 packs + 40 = 7,340"), the stock owned,
- * the number of lines, first → last time and a pace in pieces per hour. Per item per shift, NEVER per
+ * End-of-shift review: every item with this shift's total ("73 packs + 40 = 7,340"), the stock owned
+ * (OWNER ONLY, owner 2026-11-10: `stock` is null for anyone else and the column is not shown), the
+ * number of lines, first → last time and a pace in pieces per hour. Per item per shift, NEVER per
  * person: no names anywhere.
  */
 export function ShiftReview({
   lines,
   items,
+  stock,
   hidden,
   hasShift,
   timeFmt,
 }: {
   lines: readonly LogLine[];
   items: readonly FinishItem[];
+  /** item id → stock owned, from get_item_stock; null = not the owner (no stock column). */
+  stock: ReadonlyMap<string, number> | null;
   hidden: boolean;
   hasShift: boolean;
   timeFmt: Intl.DateTimeFormat;
@@ -56,6 +60,7 @@ export function ShiftReview({
             {rows.map((r) => {
               const item = byId.get(r.itemTypeId);
               const a = amountKey(r.packs, r.loose, r.pieces);
+              const owned = stock?.get(r.itemTypeId) ?? null;
               return (
                 <li key={r.itemTypeId} className="fg-review-row">
                   <p className="fg-review-name">
@@ -71,14 +76,14 @@ export function ShiftReview({
                     })}
                   </p>
                   <dl className="fg-review-facts">
-                    <div>
-                      <dt>{t('finished.owned')}</dt>
-                      <dd className="mono">
-                        {item?.stock_qty != null
-                          ? num.format(item.stock_qty)
-                          : t('finished.ownedUnknown')}
-                      </dd>
-                    </div>
+                    {stock && (
+                      <div>
+                        <dt>{t('finished.owned')}</dt>
+                        <dd className="mono">
+                          {owned !== null ? num.format(owned) : t('finished.ownedUnknown')}
+                        </dd>
+                      </div>
+                    )}
                     <div>
                       <dt>{t('finished.lines')}</dt>
                       <dd className="mono">{num.format(r.lines)}</dd>
@@ -101,7 +106,7 @@ export function ShiftReview({
                       </dd>
                     </div>
                   </dl>
-                  {item?.stock_qty != null && r.pieces > item.stock_qty && (
+                  {owned !== null && r.pieces > owned && (
                     <p className="fg-warn">
                       <IconWarning /> {t('finished.overStock')}
                     </p>

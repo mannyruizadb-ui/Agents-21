@@ -18,18 +18,20 @@ select is(array[(select is_nullable from information_schema.columns where table_
                 (select data_type from information_schema.columns where table_schema = 'public' and table_name = 'item_types' and column_name = 'stock_qty')],
   '{YES,integer,YES,integer}', 'bin_size and stock_qty: nullable integers (null = no bin quick-add / unknown stock)');
 
-select is(pg_temp.writes($$update public.item_types set bin_size = coalesce(bin_size, 0) + 1 where id = pg_temp.id('napkin')$$),
-  '{1,NOT_AUTHORIZED,0,0,0,0,0,42501}', 'bin_size: owner only (manager NOT_AUTHORIZED; lead/viewer/display/other tenant match no row; anon denied)');
-select is(pg_temp.writes($$update public.item_types set stock_qty = coalesce(stock_qty, 0) + 10 where id = pg_temp.id('napkin')$$),
-  '{1,NOT_AUTHORIZED,0,0,0,0,0,42501}', 'stock_qty: owner only');
+-- Owner 2026-11-10 (20261110153114): item edits are owner-only (RLS), so a manager's UPDATE matches no row;
+-- stock_qty is not selectable by clients, so writes set a constant (no read of the old value).
+select is(pg_temp.writes($$update public.item_types set bin_size = 1 where id = pg_temp.id('napkin')$$),
+  '{1,0,0,0,0,0,0,42501}', 'bin_size: owner only (manager/lead/viewer/display/other tenant match no row; anon denied)');
+select is(pg_temp.writes($$update public.item_types set stock_qty = 10 where id = pg_temp.id('napkin')$$),
+  '{1,0,0,0,0,0,0,42501}', 'stock_qty: owner only');
 select is((select row(bin_size, stock_qty)::text from public.item_types where id = pg_temp.id('napkin')), '(1,10)',
   'only the owner''s edits landed');
 select is(pg_temp.run_as('owner', $$update public.item_types set bin_size = null, stock_qty = null where id = pg_temp.id('napkin')$$), '1',
   'owner can clear both back to null');
-select is(pg_temp.run_as('manager', $$update public.item_types set pack_size = 100, sort_order = 5 where id = pg_temp.id('napkin')$$), '1',
-  'a manager still edits the other item fields (PRD §4.7 item_types U = owner, manager; unchanged)');
-select is(pg_temp.run_as('manager', $$update public.item_types set pack_size = 100, bin_size = null where id = pg_temp.id('napkin')$$), '1',
-  'a manager''s edit that leaves bin_size as it is passes');
+select is(pg_temp.run_as('manager', $$update public.item_types set pack_size = 100, sort_order = 5 where id = pg_temp.id('napkin')$$), '0',
+  'a manager can no longer edit any item field (owner 2026-11-10: item edits owner-only)');
+select is(pg_temp.run_as('owner', $$update public.item_types set pack_size = 100, bin_size = null where id = pg_temp.id('napkin')$$), '1',
+  'the owner edits pack size and bin size together');
 
 select is(array[
   pg_temp.run_as('owner', $$update public.item_types set name = 'Napkin', name_i18n = '{"es":"Servilleta"}', color_hex = '#FFFFFF', pack_size = 100,
@@ -40,7 +42,7 @@ select is(array[
 select is(pg_temp.run_as('owner', $$update public.item_types set bin_size = 5 where id = pg_temp.id('itemB')$$), '0',
   'cross-tenant: org A''s owner cannot touch plant B''s item');
 
--- Inserts: setting either column is owner-only too.
+-- Inserts: owner-only (any column).
 select is(array[
   pg_temp.run_as('manager', $$insert into public.item_types (org_id, plant_id, wash_group_id, name, category, count_mode, pack_size, bin_size)
                               values (pg_temp.id('orgA'), pg_temp.id('plantA'), pg_temp.id('gNapkin'), 'Mgr sheet', 'linen', 'pack', 10, 500)$$),
@@ -50,7 +52,7 @@ select is(array[
                               values (pg_temp.id('orgA'), pg_temp.id('plantA'), pg_temp.id('gNapkin'), 'Mgr sheet', 'linen', 'pack', 10)$$),
   pg_temp.run_as('owner', $$insert into public.item_types (org_id, plant_id, wash_group_id, name, category, count_mode, pack_size, bin_size, stock_qty)
                             values (pg_temp.id('orgA'), pg_temp.id('plantA'), pg_temp.id('gNapkin'), 'Owner sheet', 'linen', 'pack', 10, 500, 3000)$$)],
-  '{NOT_AUTHORIZED,NOT_AUTHORIZED,1,1}', 'insert: a manager cannot set bin_size / stock_qty (without them it still works); the owner can');
+  '{NOT_AUTHORIZED,NOT_AUTHORIZED,42501,1}', 'insert: a manager cannot add an item at all (bin/stock guard first, else RLS 42501); the owner can');
 
 -- CHECK ranges.
 select is(array[

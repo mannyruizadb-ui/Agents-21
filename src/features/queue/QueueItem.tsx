@@ -166,6 +166,7 @@ export function QueueItem({
               name={item.wash_group_name}
               nameI18n={item.wash_group_name_i18n}
               colorHex={item.wash_group_color_hex}
+              colorHex2={item.wash_group_color_hex_2}
             />
             <span className="q-qty">{qtyText(queueLoadsLeft(item), item.qty, item.unit)}</span>
           </span>

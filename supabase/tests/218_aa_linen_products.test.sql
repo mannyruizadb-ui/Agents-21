@@ -114,12 +114,15 @@ select is((select count(*)::int from public.wash_groups g join public.customers 
              join public.plants p on p.id = g.plant_id and p.name = 'Miami' where c.name = 'AA Linen' and g.active), 12,
   'ADB (seed / data migration): AA Linen has 12 active groups');
 -- Owner 2026-11-10 (fabric colours): white / black groups share #FFFFFF / #000000 on purpose; every group
--- without a fabric colour (ours and AA's) still has its own.
-select is((select count(distinct g.color_hex)::int from public.wash_groups g join public.plants p on p.id = g.plant_id and p.name = 'Miami'
+-- without a fabric colour (ours and AA's) still has its own colour pair (color_hex, color_hex_2), except the
+-- owner's 2026-11-10 shares: Napkins – Navy Blue / Navy Blue w/ Stripe (#1E3A8A) and red + blue for our Red &
+-- blue tablecloths and AA's Colored napkins / Colored tablecloths (3 groups, 1 pair) → 3 fewer pairs.
+select is((select count(distinct (upper(g.color_hex), coalesce(upper(g.color_hex_2), '')))::int
+             from public.wash_groups g join public.plants p on p.id = g.plant_id and p.name = 'Miami'
             where app.fabric_group_color(g.name) is null),
-  (select count(*)::int from public.wash_groups g join public.plants p on p.id = g.plant_id and p.name = 'Miami'
+  (select count(*)::int - 3 from public.wash_groups g join public.plants p on p.id = g.plant_id and p.name = 'Miami'
     where app.fabric_group_color(g.name) is null),
-  'ADB: every group without a fabric colour (ours and AA''s) has its own color');
+  'ADB: every group without a fabric colour (ours and AA''s) has its own colour pair, except the owner''s intentional shares');
 
 select * from finish();
 rollback;

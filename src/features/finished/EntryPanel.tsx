@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import {
   amountKey,
   binAmount,
-  hasVariableBin,
+  isSheetsDoneItem,
   isPackItem,
   looseAmount,
   packsAmount,
@@ -18,24 +18,25 @@ import { IconWarning } from '../washroom/Icons';
 
 // The selected item: big name + colour + this shift's total, then the quick adds. Every tap ADDS a line
 // (owner 2026-11-10: there is no "edit the total"). Pack items: +1 pack, +5 packs, Packs…, Leftover…;
-// items with a bin size: +1 bin; Sheet – old (variable bins): Bin done…; unit items: one number.
+// items with a bin size: +1 bin (+ Leftover…); Sheet – old (one fixed bin they keep adding to, owner
+// 2026-11-10): only Sheets done…, one count of pieces; unit items: one number.
 
-type Mode = 'packs' | 'loose' | 'binDone' | 'unit';
+type Mode = 'packs' | 'loose' | 'sheetsDone' | 'unit';
 
 export function EntryPanel({
   item,
   total,
   busy,
-  binDoneDefault,
+  sheetsDoneDefault,
   onAdd,
   onUnpin,
 }: {
   item: FinishItem;
   total: number;
   busy: boolean;
-  /** "Bin done…" pre-fill: the last count used for this item on this device. */
-  binDoneDefault: number | null;
-  onAdd: (amount: Amount, opts?: { binDone?: number }) => void;
+  /** "Sheets done…" pre-fill: the last count used for this item on this device. */
+  sheetsDoneDefault: number | null;
+  onAdd: (amount: Amount, opts?: { sheetsDone?: number }) => void;
   onUnpin: () => void;
 }) {
   const { t, i18n } = useTranslation();
@@ -48,7 +49,8 @@ export function EntryPanel({
   // The page keys this panel by item id, so the mode starts fresh for each item.
 
   const packSize = item.pack_size ?? 0;
-  const binned = !!bin || hasVariableBin(item);
+  const sheetsDone = isSheetsDoneItem(item);
+  const binned = !!bin || sheetsDone;
   return (
     <section className="card fg-panel" aria-labelledby="fg-item-title">
       <div className="fg-panel-head">
@@ -88,17 +90,18 @@ export function EntryPanel({
             </button>
           </>
         )}
-        {hasVariableBin(item) && (
+        {sheetsDone && (
           <button
             type="button"
             className="fg-add secondary"
-            aria-expanded={mode === 'binDone'}
-            onClick={() => setMode(mode === 'binDone' ? null : 'binDone')}
+            aria-expanded={mode === 'sheetsDone'}
+            onClick={() => setMode(mode === 'sheetsDone' ? null : 'sheetsDone')}
           >
-            {t('finished.binDone')}
+            {t('finished.sheetsDone')}
           </button>
         )}
-        {pack && (
+        {/* Old sheets are all one count: no "Leftover…" for them (owner 2026-11-10). */}
+        {pack && !sheetsDone && (
           <>
             {!binned && (
               <button
@@ -127,9 +130,9 @@ export function EntryPanel({
           item={item}
           mode={mode}
           busy={busy}
-          initial={mode === 'binDone' ? binDoneDefault : null}
+          initial={mode === 'sheetsDone' ? sheetsDoneDefault : null}
           onAdd={(amount, n) => {
-            onAdd(amount, mode === 'binDone' ? { binDone: n } : undefined);
+            onAdd(amount, mode === 'sheetsDone' ? { sheetsDone: n } : undefined);
             if (pack) setMode(null);
           }}
           onCancel={pack ? () => setMode(null) : null}
@@ -180,8 +183,8 @@ function CountForm({
       ? t('finished.packsLabel', { n: num.format(item.pack_size ?? 0) })
       : mode === 'loose'
         ? t('finished.leftoverLabel')
-        : mode === 'binDone'
-          ? t('finished.binDoneLabel')
+        : mode === 'sheetsDone'
+          ? t('finished.sheetsDoneLabel')
           : t('finished.unitLabel');
 
   function submit(e: FormEvent) {
@@ -192,7 +195,7 @@ function CountForm({
     }
     setError(false);
     onAdd(amount, n);
-    setText(mode === 'binDone' ? String(n) : '');
+    setText(mode === 'sheetsDone' ? String(n) : '');
   }
 
   return (
@@ -234,8 +237,8 @@ function CountForm({
                 pieces: num.format(preview.values.pieces),
                 count: preview.values.count,
               })
-            : mode === 'binDone'
-              ? t('finished.binDoneHint')
+            : mode === 'sheetsDone'
+              ? t('finished.sheetsDoneHint')
               : ' '}
       </p>
       {looseWarn && (

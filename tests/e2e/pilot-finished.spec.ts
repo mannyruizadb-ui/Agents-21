@@ -83,6 +83,41 @@ test('owner adds +1 bin of Sheet – regular, sees the total and Undo', async ({
   await page.screenshot({ path: `${SHOTS}/finished-review-390.png`, fullPage: true });
 });
 
+const OLD_COUNT = `select count(*) from public.finished_goods_entries f join public.item_types i on i.id = f.item_type_id where i.name = 'Sheet – old' and f.voided_at is null`;
+
+// Owner 2026-11-10: old sheets go into ONE fixed bin they keep adding to: "Sheets done…" (a count of
+// pieces, pre-filled with the last count on this device), no packs, no "Leftover…".
+test('owner adds old sheets with Sheets done…', async ({ page }) => {
+  const current = sql(
+    `select count(*) from public.areas a where a.kind = 'finishing' and app.shift_instance_at(a.id, now()) is not null`,
+  );
+  test.skip(current !== '1', 'the local finishing area has no current shift instance');
+  const before = Number(sql(OLD_COUNT));
+
+  await ownerSignIn(page);
+  await page.goto('/control/finished');
+  await page.getByRole('button', { name: 'Sheets', exact: true }).click();
+  await page.getByRole('button', { name: /^Sheet – old/ }).click();
+  await expect(page.getByRole('heading', { name: 'Sheet – old', exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Leftover…' })).toHaveCount(0);
+  await expect(page.getByRole('button', { name: /^\+1 pack/ })).toHaveCount(0);
+
+  await page.getByRole('button', { name: 'Sheets done…' }).click();
+  await page.getByLabel('How many old sheets did you finish?').fill('500');
+  await page.getByRole('button', { name: 'Add', exact: true }).click();
+  await expect(page.locator('.fg-toast')).toContainText('+500 Sheet – old');
+  await expect.poll(() => Number(sql(OLD_COUNT))).toBe(before + 1);
+
+  // The next time, the count is pre-filled with the last one used on this device.
+  await page.getByRole('button', { name: 'Sheets done…' }).click();
+  await expect(page.getByLabel('How many old sheets did you finish?')).toHaveValue('500');
+  await page.getByRole('button', { name: 'Cancel', exact: true }).click();
+
+  // Leave local data as it was.
+  await page.getByRole('button', { name: 'Undo', exact: true }).click();
+  await expect.poll(() => Number(sql(OLD_COUNT))).toBe(before);
+});
+
 test('owner sets a stock count in Setup → Items', async ({ page }) => {
   await ownerSignIn(page);
   await page.goto('/control/setup/items');

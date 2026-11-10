@@ -20,6 +20,8 @@ export type EstimateGroup = Pick<
   | 'default_estimate_unit'
   | 'wash_formula_id'
   | 'customer_id'
+  /** A mixed group's second colour (owner 2026-11-10); null = one colour. */
+  | 'color_hex_2'
 >;
 
 export interface CurrentEstimate {
@@ -55,7 +57,7 @@ export function useEstimateGroups(plantId: string | undefined) {
         await supabase
           .from('wash_groups')
           .select(
-            'id, name, name_i18n, color_hex, sort_order, allow_basket_estimates, allow_bin_estimates, loads_per_basket, loads_per_bin, default_estimate_unit, wash_formula_id, customer_id',
+            'id, name, name_i18n, color_hex, color_hex_2, sort_order, allow_basket_estimates, allow_bin_estimates, loads_per_basket, loads_per_bin, default_estimate_unit, wash_formula_id, customer_id',
           )
           .eq('plant_id', plantId ?? '')
           .eq('active', true)

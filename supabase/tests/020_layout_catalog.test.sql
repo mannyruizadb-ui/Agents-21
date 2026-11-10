@@ -28,7 +28,7 @@ select is(pg_temp.writes($$insert into public.wash_groups (org_id, plant_id, nam
   '{1,42501,42501,42501,42501,42501,42501,42501}', 'wash_groups C: owner only (owner 2026-11-09)');
 select is(pg_temp.writes($$insert into public.item_types (org_id, plant_id, wash_group_id, name, category)
   values (pg_temp.id('orgA'), pg_temp.id('plantA'), pg_temp.id('gMat'), 'I-' || substr(md5(random()::text), 1, 8), 'other')$$),
-  '{1,1,42501,42501,42501,42501,42501,42501}', 'item_types C');
+  '{1,42501,42501,42501,42501,42501,42501,42501}', 'item_types C: owner only (owner 2026-11-10)');
 select is(pg_temp.writes($$insert into public.wash_formulas (org_id, plant_id, external_no)
   values (pg_temp.id('orgA'), pg_temp.id('plantA'), substr(md5(random()::text), 1, 8))$$),
   '{1,42501,42501,42501,42501,42501,42501,42501}', 'wash_formulas C: owner only (owner 2026-11-09)');
@@ -38,7 +38,7 @@ select is(pg_temp.writes($$update public.areas set sort_order = 1 where plant_id
 select is(pg_temp.writes($$update public.stations set active = true where plant_id = pg_temp.id('plantA')$$), '{3,3,0,0,0,0,0,42501}', 'stations U');
 select is(pg_temp.writes($$update public.machines set active = true where plant_id = pg_temp.id('plantA')$$), '{2,0,0,0,0,0,0,42501}', 'machines U: owner only (owner 2026-11-05)');
 select is(pg_temp.writes($$update public.wash_groups set sort_order = 1 where plant_id = pg_temp.id('plantA')$$), '{4,0,0,0,0,0,0,42501}', 'wash_groups U: owner only (owner 2026-11-09)');
-select is(pg_temp.writes($$update public.item_types set sort_order = 1 where plant_id = pg_temp.id('plantA')$$), '{5,5,0,0,0,0,0,42501}', 'item_types U');
+select is(pg_temp.writes($$update public.item_types set sort_order = 1 where plant_id = pg_temp.id('plantA')$$), '{4,0,0,0,0,0,0,42501}', 'item_types U: owner only (owner 2026-11-10; 3 fixture items + the owner''s insert above)');
 select is(pg_temp.writes($$delete from public.wash_groups where plant_id = pg_temp.id('plantA')$$), '{0,0,0,0,0,0,0,42501}',
   'wash_groups: no DELETE policy for any role (deactivate instead)');
 select is(pg_temp.run_as('ownerB', $$update public.wash_groups set name = 'x' where id = pg_temp.id('gMat')$$), '0',
@@ -110,11 +110,11 @@ select throws_ok($$insert into public.item_types (org_id, plant_id, wash_group_i
   'translation values are 1–60 characters');
 
 -- Audit (A2: every change audited with before/after).
-select is(pg_temp.run_as('manager', $$update public.item_types set pack_size = 50 where id = pg_temp.id('napkin')$$), '1', 'manager edits pack size');
+select is(pg_temp.run_as('owner', $$update public.item_types set pack_size = 50 where id = pg_temp.id('napkin')$$), '1', 'owner edits pack size (item edits owner-only since 2026-11-10)');
 select is((select array[actor_user_id::text, before ->> 'pack_size', after ->> 'pack_size'] from public.audit_log
             where entity = 'item_types' and entity_id = pg_temp.id('napkin') and action = 'item_types.update'
               and after ->> 'pack_size' = '50'),
-  array[pg_temp.id('manager')::text, '100', '50'], 'item_types change audited with before/after');
+  array[pg_temp.id('owner')::text, '100', '50'], 'item_types change audited with before/after');
 update public.item_types set pack_size = 100 where id = pg_temp.id('napkin');
 select is(pg_temp.run_as('owner', $$update public.wash_groups set loads_per_basket = 0.75 where id = pg_temp.id('gTowel')$$), '1', 'owner edits loads per basket (owner-only since 2026-11-05)');
 select is((select array[actor_user_id::text, before ->> 'loads_per_basket', after ->> 'loads_per_basket'] from public.audit_log

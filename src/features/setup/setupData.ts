@@ -33,6 +33,8 @@ export type SetupWashGroup = Pick<
   | 'sort_order'
   | 'active'
   | 'customer_id'
+  /** A mixed group's second colour (owner 2026-11-10); null = one colour. */
+  | 'color_hex_2'
 >;
 
 export type SetupFormula = Pick<
@@ -73,7 +75,7 @@ export function useSetupWashGroups(plantId: string | undefined) {
         await supabase
           .from('wash_groups')
           .select(
-            'id, name, name_i18n, color_hex, category, wash_formula_id, loads_per_basket, loads_per_bin, allow_basket_estimates, allow_bin_estimates, default_estimate_unit, sort_order, active, customer_id',
+            'id, name, name_i18n, color_hex, color_hex_2, category, wash_formula_id, loads_per_basket, loads_per_bin, allow_basket_estimates, allow_bin_estimates, default_estimate_unit, sort_order, active, customer_id',
           )
           .eq('plant_id', plantId ?? '')
           .order('sort_order')

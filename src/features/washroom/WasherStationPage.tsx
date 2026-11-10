@@ -282,6 +282,7 @@ export function WasherStationPage() {
                 name={row.wash_group_name}
                 nameI18n={row.wash_group_name_i18n}
                 colorHex={row.wash_group_color_hex}
+                colorHex2={row.wash_group_color_hex_2}
                 washGroupId={row.wash_group_id}
               />
               {row.is_rewash && (
@@ -338,6 +339,7 @@ export function WasherStationPage() {
                   name={row.next_wash_group_name}
                   nameI18n={row.next_wash_group_name_i18n}
                   colorHex={row.next_wash_group_color_hex}
+                  colorHex2={row.next_wash_group_color_hex_2}
                   washGroupId={row.next_wash_group_id}
                 />
                 <p className="meta">
@@ -598,6 +600,7 @@ export function WasherStationPage() {
                         name={g.name}
                         nameI18n={g.name_i18n}
                         colorHex={g.color_hex}
+                        colorHex2={g.color_hex_2}
                         washGroupId={g.id}
                       />
                     </button>

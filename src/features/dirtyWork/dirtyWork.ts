@@ -36,6 +36,8 @@ export interface DirtyGroupInput {
   name: string;
   name_i18n: unknown;
   color_hex: string | null;
+  /** A mixed group's second colour (owner 2026-11-10). */
+  color_hex_2?: string | null;
   wash_formula_id: string | null;
   customer_id: string | null;
   loads_per_basket?: number | null;
@@ -79,6 +81,8 @@ export interface GroupLine {
   name: string;
   nameI18n: unknown;
   color: string | null;
+  /** A mixed group's second colour; null = one colour. */
+  color2: string | null;
   /** Amounts as entered (one per unit). */
   amounts: UnitAmount[];
   /** Whole ≈ loads; null = loads unknown (no factor). */
@@ -225,6 +229,7 @@ function toSection(lines: readonly (GroupLine & { category: Category; unknownCou
       name: l.name,
       nameI18n: l.nameI18n,
       color: l.color,
+      color2: l.color2,
       amounts: l.amounts,
       loads: l.loads,
       partlyUnknown: l.partlyUnknown,
@@ -282,6 +287,7 @@ export function dirtyWork(input: DirtyWorkInput): DirtyWork {
       name: g.name,
       nameI18n: g.name_i18n,
       color: g.color_hex,
+      color2: g.color_hex_2 ?? null,
       amounts: washedSome ? [{ unit: 'load', qty: loads }] : [{ unit: e.unit, qty }],
       loads,
       partlyUnknown: false,
@@ -325,6 +331,7 @@ export function dirtyWork(input: DirtyWorkInput): DirtyWork {
         name: g?.name ?? '',
         nameI18n: g?.name_i18n ?? null,
         color: g?.color_hex ?? null,
+        color2: g?.color_hex_2 ?? null,
         amounts: [],
         loads: null,
         partlyUnknown: false,

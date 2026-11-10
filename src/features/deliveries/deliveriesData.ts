@@ -13,7 +13,7 @@ export type CustomerRow = Pick<
 
 export type CustomerGroup = Pick<
   Database['public']['Tables']['wash_groups']['Row'],
-  'id' | 'name' | 'name_i18n' | 'color_hex' | 'loads_per_bin' | 'sort_order'
+  'id' | 'name' | 'name_i18n' | 'color_hex' | 'color_hex_2' | 'loads_per_bin' | 'sort_order'
 >;
 
 export type DeliveryHistoryRow =
@@ -55,7 +55,7 @@ export function useCustomerWashGroups(plantId: string | undefined, customerId: s
       unwrap(
         await supabase
           .from('wash_groups')
-          .select('id, name, name_i18n, color_hex, loads_per_bin, sort_order')
+          .select('id, name, name_i18n, color_hex, color_hex_2, loads_per_bin, sort_order')
           .eq('plant_id', plantId ?? '')
           .eq('customer_id', customerId ?? '')
           .eq('active', true)

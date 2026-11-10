@@ -5,6 +5,7 @@ import { supabase } from '../../lib/supabase';
 import { useRequiredSession } from '../../app/auth/sessionContext';
 import { useOwnerPlants, type OwnerPlant } from '../admin/useOwnerPlants';
 import { safeColor, useLocalizedName } from '../washroom/localizedName';
+import { secondColor, swatchBackground } from '../washroom/groupColor';
 import { IconWarning } from '../washroom/Icons';
 import { MoreInfo } from '../../lib/MoreInfo';
 import { useCustomers } from '../deliveries/deliveriesData';
@@ -46,7 +47,8 @@ import './setup.css';
 
 // Setup → Wash groups (owner 2026-11-09, review item 8: "the root cause of the missing numbers").
 // Our groups | each customer's (AA Linen), category chips (the estimates' CategoryChips), grouped
-// by category. Each group: names per language, colour, category, formula (with its minutes), loads
+// by category. Each group: names per language, colour (+ an optional second colour for a mixed group,
+// owner 2026-11-10), category, formula (with its minutes), loads
 // per basket and per bin, which containers estimates may use, the default unit, active. A visible
 // "missing factor" warning where a blank factor makes loads unknown (customer groups: bins).
 // Direct table writes through RLS + column grants + guards (owner only for customer groups and load
@@ -59,6 +61,8 @@ interface Draft {
   name: string;
   names: Record<string, string>;
   color: string;
+  /** The second colour of a mixed group; null = one colour. */
+  color2: string | null;
   category: Category;
   formulaId: string;
   perBasket: string;
@@ -73,6 +77,7 @@ function draftOf(g: SetupWashGroup | null, langs: string[], customer: boolean): 
     name: g?.name ?? '',
     names: fromNameI18n(g?.name_i18n, langs),
     color: safeColor(g?.color_hex),
+    color2: secondColor(g?.color_hex_2),
     category: narrowCategory(g?.category),
     formulaId: g?.wash_formula_id ?? '',
     perBasket: numText(g?.loads_per_basket),
@@ -98,6 +103,7 @@ type Row = Pick<
   | 'allow_basket_estimates'
   | 'allow_bin_estimates'
   | 'default_estimate_unit'
+  | 'color_hex_2'
 > & { name_i18n: Record<string, string> };
 
 /** Draft → row, or a message key. Mirrors the DB CHECKs; the DB stays the final validator. */
@@ -107,6 +113,7 @@ function readDraft(d: Draft, langs: string[]): Row | string {
   const map = toNameI18n(d.names, langs);
   if (!map) return 'setup.errors.name';
   if (!/^#[0-9A-Fa-f]{6}$/.test(d.color)) return 'setup.errors.invalid';
+  if (d.color2 !== null && !/^#[0-9A-Fa-f]{6}$/.test(d.color2)) return 'setup.errors.invalid';
   const perBasket = parseLoadsPer(d.perBasket);
   const perBin = parseLoadsPer(d.perBin);
   if (perBasket === 'invalid' || perBin === 'invalid') return 'setup.errors.loadsPer';
@@ -114,6 +121,7 @@ function readDraft(d: Draft, langs: string[]): Row | string {
     name,
     name_i18n: map,
     color_hex: d.color.toUpperCase(),
+    color_hex_2: d.color2 ? d.color2.toUpperCase() : null,
     category: d.category,
     wash_formula_id: d.formulaId || null,
     loads_per_basket: perBasket,
@@ -174,6 +182,43 @@ function GroupFields({
             {draft.color.toUpperCase()}
           </span>
         </span>
+      </div>
+      <div className="field">
+        <span className="check">
+          <label>
+            <input
+              type="checkbox"
+              checked={draft.color2 !== null}
+              aria-describedby={`${idBase}-color2-hint`}
+              onChange={(e) => set({ color2: e.target.checked ? '#FFFFFF' : null })}
+            />
+            {t('setup.groups.twoColors')}
+          </label>
+        </span>
+        {draft.color2 !== null && (
+          <>
+            <label htmlFor={`${idBase}-color2`}>{t('setup.groups.color2')}</label>
+            <span className="setup-color">
+              <input
+                id={`${idBase}-color2`}
+                type="color"
+                value={draft.color2}
+                onChange={(e) => set({ color2: e.target.value })}
+              />
+              <span className="mono" aria-hidden="true">
+                {draft.color2.toUpperCase()}
+              </span>
+              <span
+                className="setup-swatch setup-swatch-preview"
+                aria-hidden="true"
+                style={{ background: swatchBackground(draft.color, draft.color2) }}
+              />
+            </span>
+          </>
+        )}
+        <p className="hint" id={`${idBase}-color2-hint`}>
+          {t('setup.groups.color2Hint')}
+        </p>
       </div>
       <div className="field">
         <label htmlFor={`${idBase}-cat`}>{t('setup.groups.category')}</label>
@@ -336,6 +381,8 @@ function GroupEditor({
     }
     if (row.color_hex.toUpperCase() !== group.color_hex.toUpperCase())
       patch.color_hex = row.color_hex;
+    if ((row.color_hex_2 ?? null) !== (secondColor(group.color_hex_2)?.toUpperCase() ?? null))
+      patch.color_hex_2 = row.color_hex_2;
     if (row.category !== group.category) patch.category = row.category;
     if (row.wash_formula_id !== group.wash_formula_id) patch.wash_formula_id = row.wash_formula_id;
     if (row.loads_per_basket !== group.loads_per_basket)
@@ -506,7 +553,9 @@ function GroupRow({
             <span
               className="setup-swatch"
               aria-hidden="true"
-              style={{ background: safeColor(group.color_hex) }}
+              style={{
+                background: swatchBackground(group.color_hex, group.color_hex_2, 'vertical'),
+              }}
             />
             {shown}
           </span>

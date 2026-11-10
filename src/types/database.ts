@@ -1167,14 +1167,14 @@ isOneToOne: false
                   ]
                 },"wash_groups": {
                   Row: {
-                    "active": boolean,"allow_basket_estimates": boolean,"allow_bin_estimates": boolean,"baskets_per_load": number | null,"category": string,"color_hex": string,"created_at": string,"customer_id": string | null,"default_estimate_unit": "load"|"basket"|"bin"|"piece"|"pack","id": string,"loads_per_basket": number | null,"loads_per_bin": number | null,"name": string,"name_i18n": NonNullable<Json>,"org_id": string,"plant_id": string,"ships_next_morning": boolean,"sort_order": number,"updated_at": string,"wash_formula_id": string | null
+                    "active": boolean,"allow_basket_estimates": boolean,"allow_bin_estimates": boolean,"baskets_per_load": number | null,"category": string,"color_hex": string,"color_hex_2": string | null,"created_at": string,"customer_id": string | null,"default_estimate_unit": "load"|"basket"|"bin"|"piece"|"pack","id": string,"loads_per_basket": number | null,"loads_per_bin": number | null,"name": string,"name_i18n": NonNullable<Json>,"org_id": string,"plant_id": string,"ships_next_morning": boolean,"sort_order": number,"updated_at": string,"wash_formula_id": string | null
                   }
                   ComputedFields: never
                   Insert: {
-                    "active"?: boolean,"allow_basket_estimates"?: boolean,"allow_bin_estimates"?: boolean,"baskets_per_load"?: number | null,"category"?: string,"color_hex"?: string,"created_at"?: string,"customer_id"?: string | null,"default_estimate_unit"?: "load"|"basket"|"bin"|"piece"|"pack","id"?: string,"loads_per_basket"?: number | null,"loads_per_bin"?: number | null,"name": string,"name_i18n"?: NonNullable<Json>,"org_id": string,"plant_id": string,"ships_next_morning"?: boolean,"sort_order"?: number,"updated_at"?: string,"wash_formula_id"?: string | null
+                    "active"?: boolean,"allow_basket_estimates"?: boolean,"allow_bin_estimates"?: boolean,"baskets_per_load"?: number | null,"category"?: string,"color_hex"?: string,"color_hex_2"?: string | null,"created_at"?: string,"customer_id"?: string | null,"default_estimate_unit"?: "load"|"basket"|"bin"|"piece"|"pack","id"?: string,"loads_per_basket"?: number | null,"loads_per_bin"?: number | null,"name": string,"name_i18n"?: NonNullable<Json>,"org_id": string,"plant_id": string,"ships_next_morning"?: boolean,"sort_order"?: number,"updated_at"?: string,"wash_formula_id"?: string | null
                   }
                   Update: {
-                    "active"?: boolean,"allow_basket_estimates"?: boolean,"allow_bin_estimates"?: boolean,"baskets_per_load"?: number | null,"category"?: string,"color_hex"?: string,"created_at"?: string,"customer_id"?: string | null,"default_estimate_unit"?: "load"|"basket"|"bin"|"piece"|"pack","id"?: string,"loads_per_basket"?: number | null,"loads_per_bin"?: number | null,"name"?: string,"name_i18n"?: NonNullable<Json>,"org_id"?: string,"plant_id"?: string,"ships_next_morning"?: boolean,"sort_order"?: number,"updated_at"?: string,"wash_formula_id"?: string | null
+                    "active"?: boolean,"allow_basket_estimates"?: boolean,"allow_bin_estimates"?: boolean,"baskets_per_load"?: number | null,"category"?: string,"color_hex"?: string,"color_hex_2"?: string | null,"created_at"?: string,"customer_id"?: string | null,"default_estimate_unit"?: "load"|"basket"|"bin"|"piece"|"pack","id"?: string,"loads_per_basket"?: number | null,"loads_per_bin"?: number | null,"name"?: string,"name_i18n"?: NonNullable<Json>,"org_id"?: string,"plant_id"?: string,"ships_next_morning"?: boolean,"sort_order"?: number,"updated_at"?: string,"wash_formula_id"?: string | null
                   }
                   Relationships: [
                     {
@@ -1392,7 +1392,7 @@ isOneToOne: false
                   ]
                 },"queue_board": {
                   Row: {
-                    "approximate": boolean | null,"area_id": string,"assigned_machine_id": string | null,"assigned_machine_name": string | null,"created_at": string,"id": string,"is_rewash": boolean,"is_rush": boolean,"item_color_hex": string | null,"item_name": string | null,"item_name_i18n": Json | null,"item_type_id": string | null,"loads_needed": number | null,"loads_remaining": number | null,"loads_started": number,"note": string | null,"org_id": string,"plant_id": string,"position": number,"qty": number,"qty_loads": number | null,"started_at": string | null,"status": "queued"|"in_progress"|"done"|"cancelled","unit": "load"|"basket"|"bin"|"piece"|"pack","version": number,"wash_group_color_hex": string,"wash_group_id": string,"wash_group_name": string,"wash_group_name_i18n": NonNullable<Json>
+                    "approximate": boolean | null,"area_id": string,"assigned_machine_id": string | null,"assigned_machine_name": string | null,"created_at": string,"id": string,"is_rewash": boolean,"is_rush": boolean,"item_color_hex": string | null,"item_name": string | null,"item_name_i18n": Json | null,"item_type_id": string | null,"loads_needed": number | null,"loads_remaining": number | null,"loads_started": number,"note": string | null,"org_id": string,"plant_id": string,"position": number,"qty": number,"qty_loads": number | null,"started_at": string | null,"status": "queued"|"in_progress"|"done"|"cancelled","unit": "load"|"basket"|"bin"|"piece"|"pack","version": number,"wash_group_color_hex": string,"wash_group_color_hex_2": string | null,"wash_group_id": string,"wash_group_name": string,"wash_group_name_i18n": NonNullable<Json>
                   }
                   ComputedFields: never
                   Relationships: [
@@ -1574,6 +1574,9 @@ isOneToOne: false
         isOneToOne: true
         isSetofReturn: false
       } },
+"finished_goods_over_stock":
+{ Args: { "p_item_type_id": string,"p_total_after": number }; Returns: boolean
+                           },
 "get_customer_deliveries":
 { Args: { "p_customer_id"?: string,"p_plant_id": string,"p_since"?: string }; Returns: {
               "customer_id": string,"customer_name": string,"customer_name_i18n": Json,"delivered_at": string,"delivery_id": string,"entered_by_name": string,"lines": Json,"note": string,"void_reason": string,"voided": boolean,"voided_at": string
@@ -1589,6 +1592,11 @@ isOneToOne: false
                            },
 "get_finished_goods_shift":
 { Args: { "p_area_id": string }; Returns: Json
+                           },
+"get_item_stock":
+{ Args: { "p_plant_id": string }; Returns: {
+              "item_type_id": string,"stock_qty": number
+            }[]
                            },
 "get_load_out_board":
 { Args: { "p_load_date"?: string,"p_plant_id": string }; Returns: Json
@@ -1628,7 +1636,7 @@ isOneToOne: false
                            },
 "get_queue":
 { Args: { "p_area_id": string }; Returns: {
-              "approximate": boolean,"area_id": string,"assigned_machine_id": string,"assigned_machine_name": string,"created_at": string,"created_by_name": string,"from_estimate": boolean,"id": string,"is_rewash": boolean,"is_rush": boolean,"item_color_hex": string,"item_name": string,"item_name_i18n": Json,"item_type_id": string,"loads_needed": number,"loads_remaining": number,"loads_started": number,"note": string,"org_id": string,"plant_id": string,"position": number,"qty": number,"qty_loads": number,"started_at": string,"status": "queued"|"in_progress"|"done"|"cancelled","unit": "load"|"basket"|"bin"|"piece"|"pack","version": number,"wash_group_color_hex": string,"wash_group_id": string,"wash_group_name": string,"wash_group_name_i18n": Json
+              "approximate": boolean,"area_id": string,"assigned_machine_id": string,"assigned_machine_name": string,"created_at": string,"created_by_name": string,"from_estimate": boolean,"id": string,"is_rewash": boolean,"is_rush": boolean,"item_color_hex": string,"item_name": string,"item_name_i18n": Json,"item_type_id": string,"loads_needed": number,"loads_remaining": number,"loads_started": number,"note": string,"org_id": string,"plant_id": string,"position": number,"qty": number,"qty_loads": number,"started_at": string,"status": "queued"|"in_progress"|"done"|"cancelled","unit": "load"|"basket"|"bin"|"piece"|"pack","version": number,"wash_group_color_hex": string,"wash_group_color_hex_2": string,"wash_group_id": string,"wash_group_name": string,"wash_group_name_i18n": Json
             }[]
                            },
 "get_shift_report":
@@ -1649,12 +1657,12 @@ isOneToOne: false
       } },
 "get_wash_group_pace":
 { Args: { "p_plant_id": string,"p_production_date"?: string }; Returns: {
-              "backlog_loads_approx": number,"color_hex": string,"estimate_age_minutes": number,"estimate_entered_at": string,"estimate_freshness": string,"estimate_loads": number,"estimate_qty": number,"estimate_unit": "load"|"basket"|"bin"|"piece"|"pack","last_load_at": string,"loads_run": number,"production_date": string,"queue_items_without_load_count": number,"queue_loads_remaining": number,"queue_open_items": number,"rewash_loads": number,"server_time": string,"ships_next_morning": boolean,"sort_order": number,"standard_loads": number,"standard_loads_since_estimate": number,"wash_group_id": string,"wash_group_name": string,"wash_group_name_i18n": Json
+              "backlog_loads_approx": number,"color_hex": string,"color_hex_2": string,"estimate_age_minutes": number,"estimate_entered_at": string,"estimate_freshness": string,"estimate_loads": number,"estimate_qty": number,"estimate_unit": "load"|"basket"|"bin"|"piece"|"pack","last_load_at": string,"loads_run": number,"production_date": string,"queue_items_without_load_count": number,"queue_loads_remaining": number,"queue_open_items": number,"rewash_loads": number,"server_time": string,"ships_next_morning": boolean,"sort_order": number,"standard_loads": number,"standard_loads_since_estimate": number,"wash_group_id": string,"wash_group_name": string,"wash_group_name_i18n": Json
             }[]
                            },
 "get_washroom_board":
 { Args: { "p_area_id": string }; Returns: {
-              "cycle_id": string,"cycle_minutes": number,"down_reason": string,"down_reason_code": string,"down_reason_label_i18n": Json,"down_since": string,"expected_end_at": string,"formula_external_no": string,"formula_name": string,"is_down": boolean,"is_rewash": boolean,"load_factor": number,"machine_id": string,"machine_name": string,"minutes_ready": number,"minutes_since_start": number,"next_is_assigned": boolean,"next_is_rewash": boolean,"next_is_rush": boolean,"next_item_name": string,"next_item_name_i18n": Json,"next_item_type_id": string,"next_loads_remaining": number,"next_qty": number,"next_queue_item_id": string,"next_unit": "load"|"basket"|"bin"|"piece"|"pack","next_version": number,"next_wash_group_color_hex": string,"next_wash_group_id": string,"next_wash_group_name": string,"next_wash_group_name_i18n": Json,"queue_item_id": string,"server_time": string,"started_at": string,"status": string,"wash_formula_id": string,"wash_group_color_hex": string,"wash_group_id": string,"wash_group_name": string,"wash_group_name_i18n": Json
+              "cycle_id": string,"cycle_minutes": number,"down_reason": string,"down_reason_code": string,"down_reason_label_i18n": Json,"down_since": string,"expected_end_at": string,"formula_external_no": string,"formula_name": string,"is_down": boolean,"is_rewash": boolean,"load_factor": number,"machine_id": string,"machine_name": string,"minutes_ready": number,"minutes_since_start": number,"next_is_assigned": boolean,"next_is_rewash": boolean,"next_is_rush": boolean,"next_item_name": string,"next_item_name_i18n": Json,"next_item_type_id": string,"next_loads_remaining": number,"next_qty": number,"next_queue_item_id": string,"next_unit": "load"|"basket"|"bin"|"piece"|"pack","next_version": number,"next_wash_group_color_hex": string,"next_wash_group_color_hex_2": string,"next_wash_group_id": string,"next_wash_group_name": string,"next_wash_group_name_i18n": Json,"queue_item_id": string,"server_time": string,"started_at": string,"status": string,"wash_formula_id": string,"wash_group_color_hex": string,"wash_group_color_hex_2": string,"wash_group_id": string,"wash_group_name": string,"wash_group_name_i18n": Json
             }[]
                            },
 "mark_push_alert_delivered":

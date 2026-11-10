@@ -29,8 +29,9 @@ export function useFinishedShift(areaId: string | undefined) {
   });
 }
 
+// Never stock_qty: stock owned is owner only (column SELECT revoked; read via get_item_stock).
 const ITEM_COLUMNS =
-  'id, name, name_i18n, category, count_mode, pack_size, bin_size, stock_qty, color_hex, sort_order, active, washed';
+  'id, name, name_i18n, category, count_mode, pack_size, bin_size, color_hex, sort_order, active, washed';
 
 /** Every item of the plant (the screen picks finishing's; Setup → Items shows all). */
 export function usePlantItems(plantId: string | undefined) {
