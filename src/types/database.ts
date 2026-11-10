@@ -887,6 +887,26 @@ isOneToOne: false
       referencedColumns: ["id","org_id"]
     }
                   ]
+                },"shared_devices": {
+                  Row: {
+                    "created_at": string,"created_by": string,"id": string,"label": string,"last_used_at": string | null,"org_id": string,"plant_id": string,"revoked_at": string | null,"revoked_by": string | null,"token_hash": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "created_at"?: string,"created_by": string,"id"?: string,"label": string,"last_used_at"?: string | null,"org_id": string,"plant_id": string,"revoked_at"?: string | null,"revoked_by"?: string | null,"token_hash": string
+                  }
+                  Update: {
+                    "created_at"?: string,"created_by"?: string,"id"?: string,"label"?: string,"last_used_at"?: string | null,"org_id"?: string,"plant_id"?: string,"revoked_at"?: string | null,"revoked_by"?: string | null,"token_hash"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "shared_devices_plant_id_org_id_fkey"
+      columns: ["plant_id","org_id"]
+isOneToOne: false
+      referencedRelation: "plants"
+      referencedColumns: ["id","org_id"]
+    }
+                  ]
                 },"shift_crew_hours": {
                   Row: {
                     "area_id": string,"crew_count": number,"entered_at": string,"entered_by": string,"id": string,"labor_hours": number,"org_id": string,"plant_id": string,"shift_instance_id": string,"staff_id": string | null
@@ -1682,6 +1702,11 @@ isOneToOne: false
         isOneToOne: true
         isSetofReturn: false
       } },
+"register_shared_device":
+{ Args: { "p_label": string,"p_plant_id": string }; Returns: {
+              "id": string,"token": string
+            }[]
+                           },
 "remove_push_subscription":
 { Args: { "p_endpoint": string }; Returns: boolean
                            },
@@ -1729,6 +1754,9 @@ isOneToOne: false
         isOneToOne: true
         isSetofReturn: false
       } },
+"revoke_shared_device":
+{ Args: { "p_id": string }; Returns: boolean
+                           },
 "save_push_subscription":
 { Args: { "p_auth": string,"p_endpoint": string,"p_p256dh": string,"p_plant_id": string,"p_user_agent"?: string }; Returns: undefined
                            },
@@ -1884,6 +1912,14 @@ isOneToOne: false
         isOneToOne: true
         isSetofReturn: false
       } },
+"shared_device_login":
+{ Args: { "p_member_id": string,"p_token": string }; Returns: string
+                           },
+"shared_device_people":
+{ Args: { "p_token": string }; Returns: {
+              "display_name": string,"member_id": string
+            }[]
+                           },
 "sign_in_account_state":
 { Args: { "p_login": string }; Returns: {
               "legacy_password": boolean

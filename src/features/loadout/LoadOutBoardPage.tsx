@@ -81,7 +81,7 @@ function RouteMats({ lines, idx }: { lines: BoardLine[]; idx: MatIdx }) {
 }
 
 function useQtyLabel() {
-  const { t } = useTranslation();
+  const { i18n } = useTranslation();
   const localized = useLocalizedName();
   return (
     line: Pick<
@@ -92,11 +92,9 @@ function useQtyLabel() {
     },
   ) => {
     const name = line.special_text ?? localized(line.item_name ?? '', line.item_name_i18n);
-    const qty = line.special_text
-      ? new Intl.NumberFormat().format(line.qty)
-      : line.count_mode === 'pack'
-        ? t('loadOut.packsOf', { count: line.qty, size: line.pack_size ?? '?' })
-        : t('loadOut.pieces', { count: line.qty });
+    // Owner 2026-11-10: just the number ("Sheets 500"). Every load-out number is pieces, as typed
+    // from the invoice; the crew knows the pack sizes.
+    const qty = new Intl.NumberFormat(i18n.language).format(line.qty);
     return { name, qty };
   };
 }

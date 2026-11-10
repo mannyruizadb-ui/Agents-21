@@ -40,3 +40,24 @@
 .signin-page p {
   font-size: 1.125rem;
 }
+
+/* Shared plant iPad (2026-11-10): big name buttons, two columns when there is room. */
+.signin-page .device-people {
+  list-style: none;
+  padding: 0;
+  /* Inline margins stay auto: the dark theme centres each direct child in its column. */
+  margin: var(--sp-md) auto;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 220px), 1fr));
+  gap: var(--sp-sm);
+}
+.signin-page .device-people button {
+  width: 100%;
+  min-height: 72px;
+  font-size: 1.5rem;
+}
+.signin-page .device-other {
+  display: block;
+  width: 100%;
+  margin: var(--sp-md) auto 0;
+}

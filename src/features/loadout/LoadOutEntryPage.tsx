@@ -148,7 +148,8 @@ function QtyCell({
 }: {
   id: string;
   label: string;
-  unit: string;
+  /** Owner 2026-11-10: no unit text. Every load-out number is pieces ("Sheets 500"); the crew knows the packs. */
+  unit?: string;
   value: number;
   state: CellState | undefined;
   onChange: (text: string, immediate: boolean) => void;
@@ -421,10 +422,6 @@ function RouteCard({
     rows.filter((r) => qtyOf(r) > 0).length + specialNames.filter((s) => specialQty(s) > 0).length;
   const matTotal = routeMatTotals(mats, qtyOf).total;
   const empty = filled === 0 && matTotal === 0;
-  const unitOf = (item: LoadItem) =>
-    item.count_mode === 'pack'
-      ? t('loadOut.unitPacks', { size: item.pack_size ?? '?' })
-      : t('loadOut.unitPieces');
   const headId = `lo-route-${route.id}`;
 
   return (
@@ -451,7 +448,6 @@ function RouteCard({
             key={g.item.id}
             id={`c-${route.id}-${g.item.id}`}
             label={localized(g.item.name, g.item.name_i18n)}
-            unit={unitOf(g.item)}
             value={serverQty(g.item.id)}
             state={cells[cellKey(route.id, g.item.id, null)]}
             onChange={(text, now) => onChange(g.item.id, null, text, now)}
@@ -475,7 +471,6 @@ function RouteCard({
                 key={item.id}
                 id={`c-${route.id}-${item.id}`}
                 label={t('loadOut.size', { size })}
-                unit={unitOf(item)}
                 value={serverQty(item.id)}
                 state={cells[cellKey(route.id, item.id, null)]}
                 onChange={(text, now) => onChange(item.id, null, text, now)}

@@ -19,6 +19,10 @@
 //      lockout store down → 503 INTERNAL (fail closed); GoTrue broken → 502 INTERNAL. Unknown logins get
 //      the same answers as real ones.
 //
+// Shared plant iPad (owner 2026-11-10): {device_token} → 200 {people: [{id, name}]} (empty for an unknown
+// or revoked device); {device_token, member_id, password} → the login of that listed person is looked up
+// (service role, live device only, never an owner) and then steps 3–5 run exactly as above.
+//
 // Nothing here logs; index.ts logs only status codes (never usernames, passwords, tokens or bodies).
 import { toLoginEmail } from '../_shared/loginId.ts';
 import { checkPassword, type PasswordCheckDeps } from '../_shared/passwordCheck.ts';
@@ -39,6 +43,15 @@ const MAX_LOGIN_CHARS = 254;
 export interface SignInDeps extends PasswordCheckDeps {
   /** Re-store a pre-pepper password peppered (admin update by user id). Throws on failure. */
   upgradePassword(userId: string, peppered: string, mustChange: boolean): Promise<void>;
+  /** Shared plant iPad: the people a live device lists (none for an unknown or revoked device). Throws on a store error. */
+  devicePeople(token: string): Promise<DevicePerson[]>;
+  /** Shared plant iPad: the login of a person the live device lists right now, else null. Throws on a store error. */
+  deviceLogin(token: string, memberId: string): Promise<string | null>;
+}
+
+export interface DevicePerson {
+  member_id: string;
+  display_name: string;
 }
 
 export type Code = 'VALIDATION_FAILED' | 'LOCKED' | 'WRONG' | 'RATE_LIMITED' | 'INTERNAL';
@@ -72,8 +85,8 @@ export interface Credentials {
   password: string;
 }
 
-/** Parses the raw body. Values are never echoed in errors. */
-export function parseBody(raw: string): Credentials | null {
+/** The raw body as a plain JSON object with exactly `keys`, else null. */
+function jsonObject(raw: string, keys: readonly string[]): Record<string, unknown> | null {
   if (new TextEncoder().encode(raw).length > MAX_BODY_BYTES) return null;
   let body: unknown;
   try {
@@ -82,16 +95,55 @@ export function parseBody(raw: string): Credentials | null {
     return null;
   }
   if (body === null || typeof body !== 'object' || Array.isArray(body)) return null;
-  const keys = Object.keys(body);
-  if (keys.length !== 2 || !keys.includes('username') || !keys.includes('password')) return null;
-  const { username, password } = body as { username: unknown; password: unknown };
-  if (typeof username !== 'string' || typeof password !== 'string') return null;
+  const have = Object.keys(body);
+  if (have.length !== keys.length || !keys.every((k) => have.includes(k))) return null;
+  return body as Record<string, unknown>;
+}
+
+function validPassword(password: unknown): password is string {
+  if (typeof password !== 'string') return false;
+  const pwBytes = new TextEncoder().encode(password).length;
+  return pwBytes > 0 && pwBytes <= MAX_PASSWORD_BYTES;
+}
+
+/** Parses the raw body. Values are never echoed in errors. */
+export function parseBody(raw: string): Credentials | null {
+  const body = jsonObject(raw, ['username', 'password']);
+  if (body === null) return null;
+  const { username, password } = body;
+  if (typeof username !== 'string' || !validPassword(password)) return null;
   const typed = username.trim().toLowerCase();
   if (typed.length === 0 || typed.length > MAX_LOGIN_CHARS) return null;
-  const pwBytes = new TextEncoder().encode(password).length;
-  if (pwBytes === 0 || pwBytes > MAX_PASSWORD_BYTES) return null;
   const email = toLoginEmail(username);
   return { login: email ?? typed, email, password };
+}
+
+const DEVICE_TOKEN = /^[0-9a-f]{64}$/;
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
+
+/**
+ * Shared plant iPad (owner 2026-11-10) bodies:
+ *   {device_token}                         → the names this device lists;
+ *   {device_token, member_id, password}    → sign in as that listed person.
+ */
+export type DeviceRequest =
+  | { kind: 'people'; token: string }
+  | { kind: 'sign_in'; token: string; memberId: string; password: string };
+
+export function parseDeviceBody(raw: string): DeviceRequest | null {
+  const list = jsonObject(raw, ['device_token']);
+  if (list !== null) {
+    return typeof list.device_token === 'string' && DEVICE_TOKEN.test(list.device_token)
+      ? { kind: 'people', token: list.device_token }
+      : null;
+  }
+  const b = jsonObject(raw, ['device_token', 'member_id', 'password']);
+  if (b === null) return null;
+  const { device_token: token, member_id: memberId, password } = b;
+  if (typeof token !== 'string' || !DEVICE_TOKEN.test(token)) return null;
+  if (typeof memberId !== 'string' || !UUID.test(memberId.toLowerCase())) return null;
+  if (!validPassword(password)) return null;
+  return { kind: 'sign_in', token, memberId: memberId.toLowerCase(), password };
 }
 
 const SESSION_KEYS = [
@@ -120,8 +172,42 @@ function userId(session: Record<string, unknown>): string | null {
 
 export async function signIn(raw: string, ip: string | null, deps: SignInDeps): Promise<Outcome> {
   const creds = parseBody(raw);
-  if (creds === null) return fail(400, 'VALIDATION_FAILED');
+  if (creds !== null) return await passwordSignIn(creds, ip, deps);
+  const device = parseDeviceBody(raw);
+  if (device === null) return fail(400, 'VALIDATION_FAILED');
 
+  if (device.kind === 'people') {
+    // Unknown and revoked devices get the same empty list as a device with nobody on it.
+    let people: DevicePerson[];
+    try {
+      people = await deps.devicePeople(device.token);
+    } catch {
+      return fail(503, 'INTERNAL');
+    }
+    return {
+      status: 200,
+      body: { people: people.map((p) => ({ id: p.member_id, name: p.display_name })) },
+    };
+  }
+
+  let login: string | null;
+  try {
+    login = await deps.deviceLogin(device.token, device.memberId);
+  } catch {
+    return fail(503, 'INTERNAL');
+  }
+  // Not a listed person on a live device: the same answer as a wrong password (nothing to count; the
+  // caller has no login to guess at).
+  if (login === null) return fail(401, 'WRONG');
+  // From here on it is exactly the normal sign-in for that login: same lockout key, same pepper.
+  return await passwordSignIn({ login, email: login, password: device.password }, ip, deps);
+}
+
+async function passwordSignIn(
+  creds: Credentials,
+  ip: string | null,
+  deps: SignInDeps,
+): Promise<Outcome> {
   const result = await checkPassword(deps, creds.login, creds.email, creds.password, ip);
   switch (result.kind) {
     case 'locked':

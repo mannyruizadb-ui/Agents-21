@@ -76,15 +76,15 @@ export function matSections<G extends MatGroupLike, I extends MatItemLike>(
 }
 
 /**
- * Pieces for a quantity of a mat item: the quantity itself for unit items; packs × pack size for a
- * pack item (null when its pack size is unknown: never a guess).
+ * Pieces for a quantity of a mat item. Owner 2026-11-10: every load-out quantity is typed in pieces
+ * (from the invoice), pack items included, so it is the quantity itself. Kept as one function so the
+ * rule lives in one place.
  */
 export function matPieces(
-  item: Pick<MatItemLike, 'count_mode' | 'pack_size'>,
+  _item: Pick<MatItemLike, 'count_mode' | 'pack_size'>,
   qty: number,
 ): number | null {
-  if (item.count_mode !== 'pack') return qty;
-  return item.pack_size && item.pack_size > 0 ? qty * item.pack_size : null;
+  return qty;
 }
 
 export interface SizeTotal {

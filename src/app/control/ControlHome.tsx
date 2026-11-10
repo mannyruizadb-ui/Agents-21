@@ -145,6 +145,13 @@ export function ControlHome() {
       icon: <IconMachineDown />,
       show: isOwner,
     },
+    // Shared plant iPad (owner 2026-11-10): names + 6-digit password on that device only.
+    {
+      to: '/control/setup/plant-ipad',
+      label: t('sharedDevice.setupTitle'),
+      icon: <IconPeople />,
+      show: isOwner,
+    },
   ];
 
   return (

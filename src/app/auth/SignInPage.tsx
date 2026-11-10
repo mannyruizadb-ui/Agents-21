@@ -7,6 +7,8 @@ import { callSignIn } from './signInApi';
 import { BRAND_LOGO_SRC } from '../../lib/brand';
 import { LanguageSwitch } from './LanguageSwitch';
 import { readSignInPrefs, saveSignInPrefs, usesNumberPad } from './signInPrefs';
+import { readSharedDevice, rememberWho, setWaiting, writeLastActive } from './sharedDevice';
+import { SharedSignIn } from './SharedSignIn';
 import '../../lib/forms.css';
 import './signin.css';
 
@@ -29,11 +31,14 @@ export function SignInPage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const [prefs] = useState(readSignInPrefs);
-  const [username, setUsername] = useState(prefs.lastUsername);
+  const [username, setUsername] = useState(() => (readSharedDevice() ? '' : prefs.lastUsername));
   const [letters, setLetters] = useState(prefs.letters);
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [status, setStatus] = useState<Status>({ kind: 'idle' });
+  // Shared plant iPad (2026-11-10): names first; "Sign in another way" shows the normal form.
+  const [device] = useState(readSharedDevice);
+  const [otherWay, setOtherWay] = useState(false);
 
   async function onSubmit(event: FormEvent) {
     event.preventDefault();
@@ -45,6 +50,11 @@ export function SignInPage() {
     setStatus({ kind: 'signing-in' });
     const result = await callSignIn(username.trim(), password);
     if (result.kind === 'ok') {
+      if (device) {
+        writeLastActive(Date.now()); // fresh start for the idle sign-out
+        rememberWho(username.trim());
+        setWaiting(username.trim(), 0);
+      }
       const { error } = await supabase.auth.setSession({
         access_token: result.accessToken,
         refresh_token: result.refreshToken,
@@ -53,7 +63,8 @@ export function SignInPage() {
         setStatus({ kind: 'failed' });
         return;
       }
-      saveSignInPrefs({ lastUsername: username.trim(), letters });
+      // The shared iPad never remembers a username (the next person would see it).
+      if (!device) saveSignInPrefs({ lastUsername: username.trim(), letters });
       void navigate('/control', { replace: true });
       return;
     }
@@ -74,8 +85,8 @@ export function SignInPage() {
   const numberPad = usesNumberPad(username, letters);
   useEffect(() => {
     // A remembered username: go straight to the password.
-    if (prefs.lastUsername) document.getElementById('password')?.focus();
-  }, [prefs.lastUsername]);
+    if (prefs.lastUsername && !device) document.getElementById('password')?.focus();
+  }, [prefs.lastUsername, device]);
 
   return (
     <main className="form-page theme-dark signin-page">
@@ -91,72 +102,87 @@ export function SignInPage() {
         <p className="brand-product">{t('app.name')}</p>
       </header>
       <LanguageSwitch />
-      <h1>{t('auth.signInTitle')}</h1>
-      <form onSubmit={onSubmit} noValidate>
-        <div className="field">
-          <label htmlFor="username">{t('auth.usernameLabel')}</label>
-          <input
-            id="username"
-            name="username"
-            type="text"
-            autoComplete="username"
-            autoCapitalize="none"
-            autoCorrect="off"
-            spellCheck={false}
-            required
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
-          />
-        </div>
-        <div className="field">
-          <label htmlFor="password">{t('auth.passwordLabel')}</label>
-          <input
-            id="password"
-            name="password"
-            type={showPassword ? 'text' : 'password'}
-            autoComplete="current-password"
-            inputMode={numberPad ? 'numeric' : 'text'}
-            {...(numberPad ? { pattern: '[0-9]*' } : {})}
-            required
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-          />
-        </div>
-        <div className="field check">
-          <label>
-            <input
-              type="checkbox"
-              checked={showPassword}
-              onChange={(e) => setShowPassword(e.target.checked)}
-            />
-            {t('auth.showPassword')}
-          </label>
-        </div>
-        {!username.includes('@') && (
-          <button
-            type="button"
-            className="secondary signin-keyboard"
-            aria-pressed={letters}
-            onClick={() => {
-              setLetters((l) => !l);
-              document.getElementById('password')?.focus();
-            }}
-          >
-            {letters ? t('auth.useNumbers') : t('auth.useLetters')}
-          </button>
-        )}
-        <button type="submit" className="signin-submit" disabled={status.kind === 'signing-in'}>
-          {status.kind === 'signing-in' ? t('auth.signingIn') : t('auth.signIn')}
-        </button>
-      </form>
-      <p role="status" aria-live="polite" className="error">
-        {message !== null && (
-          <span aria-hidden="true" className="error-icon">
-            ⚠
-          </span>
-        )}
-        {message}
-      </p>
+      {device && !otherWay ? (
+        <SharedSignIn device={device} onOtherWay={() => setOtherWay(true)} />
+      ) : (
+        <>
+          <h1>{t('auth.signInTitle')}</h1>
+          <form onSubmit={onSubmit} noValidate>
+            <div className="field">
+              <label htmlFor="username">{t('auth.usernameLabel')}</label>
+              <input
+                id="username"
+                name="username"
+                type="text"
+                autoComplete="username"
+                autoCapitalize="none"
+                autoCorrect="off"
+                spellCheck={false}
+                required
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+              />
+            </div>
+            <div className="field">
+              <label htmlFor="password">{t('auth.passwordLabel')}</label>
+              <input
+                id="password"
+                name="password"
+                type={showPassword ? 'text' : 'password'}
+                autoComplete="current-password"
+                inputMode={numberPad ? 'numeric' : 'text'}
+                {...(numberPad ? { pattern: '[0-9]*' } : {})}
+                required
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+              />
+            </div>
+            <div className="field check">
+              <label>
+                <input
+                  type="checkbox"
+                  checked={showPassword}
+                  onChange={(e) => setShowPassword(e.target.checked)}
+                />
+                {t('auth.showPassword')}
+              </label>
+            </div>
+            {!username.includes('@') && (
+              <button
+                type="button"
+                className="secondary signin-keyboard"
+                aria-pressed={letters}
+                onClick={() => {
+                  setLetters((l) => !l);
+                  document.getElementById('password')?.focus();
+                }}
+              >
+                {letters ? t('auth.useNumbers') : t('auth.useLetters')}
+              </button>
+            )}
+            <button type="submit" className="signin-submit" disabled={status.kind === 'signing-in'}>
+              {status.kind === 'signing-in' ? t('auth.signingIn') : t('auth.signIn')}
+            </button>
+          </form>
+          <p role="status" aria-live="polite" className="error">
+            {message !== null && (
+              <span aria-hidden="true" className="error-icon">
+                ⚠
+              </span>
+            )}
+            {message}
+          </p>
+          {device && (
+            <button
+              type="button"
+              className="secondary device-other"
+              onClick={() => setOtherWay(false)}
+            >
+              {t('sharedDevice.backToNames')}
+            </button>
+          )}
+        </>
+      )}
     </main>
   );
 }

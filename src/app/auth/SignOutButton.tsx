@@ -1,31 +1,16 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { supabase } from '../../lib/supabase';
-import { flushTaps, pendingTapCount } from '../../features/washroom/useTapSync';
-import { flushEstimates, pendingEstimateCount } from '../../features/estimates/useEstimateOutbox';
-import { flushDeliveries, pendingDeliveryCount } from '../../features/deliveries/useDeliveryOutbox';
-import { removeThisDevicePush } from '../../features/notifications/pushClient';
-import { pendingTotal, signOutWith, type PendingSource, type SignOutChoice } from './signOutFlow';
+import { pendingTotal, signOutWith, type SignOutChoice } from './signOutFlow';
+import { signOutDevice, sourcesFor } from './signOutActions';
+import { isSharedDevice } from './sharedDevice';
 
 // Guarded sign-out (security review 2026-11-04, H1). With nothing pending it signs out at once.
 // With taps, estimates or deliveries waiting in this account's storage it asks: "Send now" (send, then sign out)
 // or "Keep for next time" (sign out, leave them for this account). `canSend` is false while the
 // account must change its password: the server refuses every write until then.
-// Every sign-out first removes this device's push subscription, so the next person on the phone
-// doesn't get the last person's machine-down alerts.
-
-async function signOutDevice(): Promise<void> {
-  await removeThisDevicePush();
-  await supabase.auth.signOut();
-}
-
-function sourcesFor(userId: string): PendingSource[] {
-  return [
-    { count: () => pendingTapCount(userId), flush: () => flushTaps(userId) },
-    { count: () => pendingEstimateCount(userId), flush: () => flushEstimates(userId) },
-    { count: () => pendingDeliveryCount(userId), flush: () => flushDeliveries(userId) },
-  ];
-}
+// Every sign-out first removes this device's push subscription (signOutActions.ts).
+// On the shared plant iPad (2026-11-10) the button says "Switch person".
 
 export function SignOutButton({ canSend = true }: { canSend?: boolean }) {
   const { t } = useTranslation();
@@ -61,7 +46,7 @@ export function SignOutButton({ canSend = true }: { canSend?: boolean }) {
   if (!asking) {
     return (
       <button type="button" className="secondary" onClick={() => void onSignOut()}>
-        {t('auth.signOut')}
+        {isSharedDevice() ? t('auth.switchPerson') : t('auth.signOut')}
       </button>
     );
   }
