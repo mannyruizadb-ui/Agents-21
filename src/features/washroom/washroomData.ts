@@ -23,6 +23,8 @@ export interface WasherBoardRow {
   wash_group_name: string | null;
   wash_group_name_i18n: I18nJson | null;
   wash_group_color_hex: string | null;
+  /** A mixed group's second colour (owner 2026-11-10); null/absent = one colour. */
+  wash_group_color_hex_2: string | null;
   is_rewash: boolean | null;
   wash_formula_id: string | null;
   formula_external_no: string | null;
@@ -39,6 +41,7 @@ export interface WasherBoardRow {
   next_wash_group_name: string | null;
   next_wash_group_name_i18n: I18nJson | null;
   next_wash_group_color_hex: string | null;
+  next_wash_group_color_hex_2: string | null;
   next_item_type_id: string | null;
   next_item_name: string | null;
   next_item_name_i18n: I18nJson | null;
@@ -73,6 +76,8 @@ export interface WashGroupRow {
   name: string;
   name_i18n: I18nJson;
   color_hex: string;
+  /** A mixed group's second colour (owner 2026-11-10); null = one colour. */
+  color_hex_2: string | null;
   allow_basket_estimates: boolean;
   allow_bin_estimates: boolean;
   loads_per_basket: number | null;
@@ -153,7 +158,7 @@ export function useWashGroups(plantId: string | undefined) {
         await supabase
           .from('wash_groups')
           .select(
-            'id, plant_id, name, name_i18n, color_hex, allow_basket_estimates, allow_bin_estimates, loads_per_basket, loads_per_bin, wash_formula_id',
+            'id, plant_id, name, name_i18n, color_hex, color_hex_2, allow_basket_estimates, allow_bin_estimates, loads_per_basket, loads_per_bin, wash_formula_id',
           )
           .eq('plant_id', plantId ?? '')
           .eq('active', true)

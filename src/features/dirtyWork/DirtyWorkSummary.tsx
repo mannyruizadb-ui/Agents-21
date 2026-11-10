@@ -7,7 +7,8 @@ import { useCustomerNameOf } from '../customers/useCustomerLookup';
 import { estimateAges } from '../dashboard/dashboardLogic';
 import { DataAge } from '../washroom/DataAge';
 import { IconReady, IconWarning } from '../washroom/Icons';
-import { safeColor, useLocalizedName } from '../washroom/localizedName';
+import { useLocalizedName } from '../washroom/localizedName';
+import { swatchBackground } from '../washroom/groupColor';
 import { errorMessageKey } from '../washroom/rpcError';
 import type { I18nJson } from '../washroom/washroomData';
 import { roundedMinutes, type CategoryLine, type GroupLine } from './dirtyWork';
@@ -36,7 +37,7 @@ function GroupDetail({ groups }: { groups: readonly GroupLine[] }) {
         <li key={g.id}>
           <span
             className="dirty-swatch"
-            style={{ backgroundColor: safeColor(g.color) }}
+            style={{ background: swatchBackground(g.color, g.color2) }}
             aria-hidden="true"
           />
           <span className="dirty-group-name">{localized(g.name, g.nameI18n as I18nJson)}</span>{' '}

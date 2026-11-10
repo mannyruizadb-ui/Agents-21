@@ -134,7 +134,8 @@ select is((select count(*)::int from public.queue_board where plant_id = pg_temp
 select is(pg_temp.run_as('display', $$select 1 from public.queue_board where is_rewash$$, true), '1',
   'the washroom display sees which loads are rewash');
 select is((select array_agg(attname::text order by attnum) from pg_attribute where attrelid = 'public.queue_board'::regclass and attnum > 25),
-  array['is_rewash', 'loads_started', 'loads_needed', 'loads_remaining'], 'queue_board: is_rewash, then the M2 progress columns, appended');
+  array['is_rewash', 'loads_started', 'loads_needed', 'loads_remaining', 'wash_group_color_hex_2'],
+  'queue_board: is_rewash, then the M2 progress columns, then the second group colour (2026-11-10), appended');
 
 -- L2: completing or cancelling an item leaves its washer assignment as history.
 select is(array[pg_temp.as_service($$update public.queue_items set status = 'in_progress' where id = 'e0000000-0000-0000-0000-0000000000a1'$$),

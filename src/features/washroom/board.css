@@ -93,6 +93,15 @@
   line-height: 1.25;
   overflow-wrap: anywhere;
 }
+/* A mixed group's two colours (owner 2026-11-10): the stripe is split top half / bottom half, painted
+   under the transparent left border; the same outline lines frame it. */
+.wb-chip.wb-chip-split {
+  border-left-color: transparent;
+  background:
+    linear-gradient(to bottom, var(--wg-c1) 0 50%, var(--wg-c2) 50% 100%) left top / 6px 100%
+      no-repeat border-box,
+    var(--c-surface-lowest);
+}
 
 /* Tiles */
 .form-page .wb-grid {

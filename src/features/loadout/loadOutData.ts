@@ -248,6 +248,8 @@ export interface MatGroup {
   name: string;
   name_i18n: Json;
   color_hex: string;
+  /** A mixed group's second colour (owner 2026-11-10); null = one colour. */
+  color_hex_2: string | null;
   sort_order: number;
 }
 
@@ -266,11 +268,11 @@ export function useMatCatalog(plantId: string | undefined) {
     enabled: !!plantId,
     staleTime: 5 * 60_000,
     queryFn: async (): Promise<{ groups: MatGroup[]; items: MatItem[] }> => {
-      const groups =
+      const groups: MatGroup[] =
         unwrap(
           await supabase
             .from('wash_groups')
-            .select('id, name, name_i18n, color_hex, sort_order')
+            .select('id, name, name_i18n, color_hex, color_hex_2, sort_order')
             .eq('plant_id', plantId ?? '')
             .eq('category', 'mats')
             .eq('active', true)

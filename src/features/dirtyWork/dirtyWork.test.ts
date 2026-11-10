@@ -192,6 +192,18 @@ describe('dirtyWork: our categories', () => {
     ]);
   });
 
+  it('carries a mixed group second colour to its line (two-colour swatch)', () => {
+    const groups = [group('mixed', { color_hex_2: '#FFFFFF' }), group('plain')];
+    const estimates = new Map([
+      ['mixed', est(1, 'load', 1)],
+      ['plain', est(1, 'load', 1)],
+    ]);
+    const r = dirtyWork(input({ groups, estimates, categoryOf: cats }));
+    const lines = r.ours.categories.flatMap((c) => c.groups);
+    expect(lines.find((g) => g.id === 'mixed')?.color2).toBe('#FFFFFF');
+    expect(lines.find((g) => g.id === 'plain')?.color2).toBeNull();
+  });
+
   it('adds same-unit amounts exactly (quarters)', () => {
     const groups = [group('white-nap'), group('black-nap')];
     const estimates = new Map([

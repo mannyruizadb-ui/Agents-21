@@ -9,6 +9,7 @@ import { unwrap } from '../washroom/rpcError';
 import { ItemSwatch } from '../finished/ItemSwatch';
 import { useItemName } from '../finished/useItemName';
 import { finishedKeys } from '../finished/finishedData';
+import { saveItemStock, stockKeys, useItemStock } from '../finished/stockData';
 import { setupErrorKey } from './setupErrors';
 import { numText } from './setupForm';
 import { itemPatch, PRESET_COLORS, type ItemDraft, type ItemNumbers } from './setupItemsForm';
@@ -21,7 +22,9 @@ import '../finished/finished.css';
 // item: pack size, bin size (the finishing screen's "+1 bin"), stock owned (the "more than we own"
 // check), fabric colour (colour input + presets), pieces per load (+ counted / derived) and active.
 // Direct table writes through RLS + column grants; bin size and stock are owner-only in the DB
-// (app.guard_item_owner_fields). No deletes: deactivate. Errors through setupErrorKey().
+// (app.guard_item_owner_fields). Stock owned is OWNER ONLY to read too (owner 2026-11-10): it is never
+// selected from item_types (column SELECT revoked) but read through get_item_stock and saved through
+// saveItemStock. Item edits are owner only. No deletes: deactivate. Errors through setupErrorKey().
 
 const CATS = ['linen', 'towel', 'apparel', 'mat', 'mop', 'other'] as const;
 
@@ -33,22 +36,36 @@ interface SetupItem extends ItemNumbers {
   sort_order: number;
 }
 
+type SetupItemRow = Omit<SetupItem, 'stock_qty'>;
+
 function useSetupItems(plantId: string | undefined) {
-  return useQuery({
+  const rows = useQuery({
     queryKey: ['setup-items', plantId ?? ''],
     enabled: !!plantId,
-    queryFn: async (): Promise<SetupItem[]> =>
+    queryFn: async (): Promise<SetupItemRow[]> =>
       unwrap(
         await supabase
           .from('item_types')
           .select(
-            'id, name, name_i18n, category, sort_order, count_mode, pack_size, bin_size, stock_qty, pieces_per_load, pieces_per_load_source, color_hex, active',
+            'id, name, name_i18n, category, sort_order, count_mode, pack_size, bin_size, pieces_per_load, pieces_per_load_source, color_hex, active',
           )
           .eq('plant_id', plantId ?? '')
           .order('sort_order')
           .order('name'),
       ) ?? [],
   });
+  // The page is owner only, so the stock read is always allowed here.
+  const stock = useItemStock(plantId, true);
+  const data: SetupItem[] | undefined = rows.data?.map((r) => ({
+    ...r,
+    stock_qty: stock.data?.get(r.id) ?? null,
+  }));
+  return {
+    data,
+    isPending: rows.isPending || stock.isPending,
+    isError: rows.isError || stock.isError,
+    error: rows.error ?? stock.error,
+  };
 }
 
 function draftOf(i: SetupItem): ItemDraft {
@@ -82,8 +99,12 @@ function ItemEditor({
 
   const save = useMutation({
     mutationFn: async (patch: Partial<ItemNumbers>) => {
-      const { error } = await supabase.from('item_types').update(patch).eq('id', item.id);
-      if (error) throw error;
+      const { stock_qty: stock, ...rest } = patch;
+      if (Object.keys(rest).length > 0) {
+        const { error } = await supabase.from('item_types').update(rest).eq('id', item.id);
+        if (error) throw error;
+      }
+      if (stock !== undefined) await saveItemStock(item.id, stock);
     },
     onSuccess: () => {
       onClose();
@@ -92,6 +113,7 @@ function ItemEditor({
     onError: (e) => onStatus(false, t(setupErrorKey(e))),
     onSettled: () => {
       void qc.invalidateQueries({ queryKey: ['setup-items'] });
+      void qc.invalidateQueries({ queryKey: stockKeys.all });
       void qc.invalidateQueries({ queryKey: finishedKeys.all });
     },
   });

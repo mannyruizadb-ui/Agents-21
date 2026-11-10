@@ -19,12 +19,12 @@ import {
   isDoubleTap,
   isFinishingItem,
   itemTotal,
-  loadBinCount,
+  loadSheetsCount,
   loadWorking,
   normalizeWorking,
   previewPieces,
   removeWorking,
-  saveBinCount,
+  saveSheetsCount,
   saveWorking,
   type Amount,
   type BigWarning,
@@ -33,6 +33,7 @@ import {
   type WorkingPrefs,
 } from './finishedLogic';
 import { useFinishedOutbox, type VoidReason } from './useFinishedOutbox';
+import { checkOverStock, useItemStock } from './stockData';
 import { EntryPanel } from './EntryPanel';
 import { ItemLog } from './ItemLog';
 import { ItemPicker } from './ItemPicker';
@@ -78,7 +79,14 @@ export function FinishedGoodsPage() {
       </main>
     );
   }
-  return <FinishedScreen userId={session.user.id} plantId={plantId} areaId={area.id} />;
+  return (
+    <FinishedScreen
+      userId={session.user.id}
+      plantId={plantId}
+      areaId={area.id}
+      isOwner={myRoles.has('owner')}
+    />
+  );
 }
 
 interface Toast {
@@ -95,17 +103,20 @@ interface Confirm {
   pieces: number;
   double: boolean;
   big: BigWarning[];
-  binDone?: number;
+  sheetsDone?: number;
 }
 
 function FinishedScreen({
   userId,
   plantId,
   areaId,
+  isOwner,
 }: {
   userId: string;
   plantId: string;
   areaId: string;
+  /** Stock owned is owner only (owner 2026-11-10): only the owner's review shows it. */
+  isOwner: boolean;
 }) {
   const { t, i18n } = useTranslation();
   const nameOf = useItemName();
@@ -115,6 +126,7 @@ function FinishedScreen({
   const plant = usePlant(plantId);
   const tz = plant.data?.timezone ?? 'America/New_York';
   const items = usePlantItems(plantId);
+  const stock = useItemStock(plantId, isOwner);
   const shift = useFinishedShift(areaId);
   useLiveRefetch(shift.refetch);
   const outbox = useFinishedOutbox(userId);
@@ -158,13 +170,13 @@ function FinishedScreen({
     toast !== null &&
     (toast.state === 'error' || toast.state === 'sending' || now - toast.at < UNDO_MS);
 
-  async function save(item: FinishItem, amount: Amount, binDone?: number) {
+  async function save(item: FinishItem, amount: Amount, sheetsDone?: number) {
     const pieces = previewPieces(amount);
     const before = itemTotal(lines, item.id);
     // client_id generated BEFORE the first attempt (frontend rules): a retry can never double it.
     const clientId = crypto.randomUUID();
     lastAdd.current = { itemId: item.id, pieces, at: Date.now() };
-    if (binDone !== undefined) saveBinCount(store, item.id, binDone);
+    if (sheetsDone !== undefined) saveSheetsCount(store, item.id, sheetsDone);
     const text = t('finished.toast', {
       pieces: num.format(pieces),
       name: nameOf(item),
@@ -205,16 +217,25 @@ function FinishedScreen({
     }
   }
 
-  function requestAdd(item: FinishItem, amount: Amount, opts?: { binDone?: number }) {
+  async function requestAdd(item: FinishItem, amount: Amount, opts?: { sheetsDone?: number }) {
     const pieces = previewPieces(amount);
-    if (pieces <= 0) return;
+    if (pieces <= 0 || busy) return;
     const double = isDoubleTap(lastAdd.current, item.id, pieces, Date.now());
-    const big = bigNumberWarnings(pieces, itemTotal(lines, item.id), item.stock_qty);
+    // The server answers "more than you own?" without revealing the number; offline or on any
+    // failure the answer is null and the stock check is skipped (never blocks saving).
+    setBusy(true);
+    let overStock: boolean | null;
+    try {
+      overStock = await checkOverStock(item.id, itemTotal(lines, item.id) + pieces);
+    } finally {
+      setBusy(false);
+    }
+    const big = bigNumberWarnings(pieces, overStock);
     if (double || big.length > 0) {
-      setConfirm({ item, amount, pieces, double, big, binDone: opts?.binDone });
+      setConfirm({ item, amount, pieces, double, big, sheetsDone: opts?.sheetsDone });
       return;
     }
-    void save(item, amount, opts?.binDone);
+    void save(item, amount, opts?.sheetsDone);
   }
 
   async function undo() {
@@ -307,6 +328,7 @@ function FinishedScreen({
         <ShiftReview
           lines={lines}
           items={items.data ?? []}
+          stock={isOwner ? (stock.data ?? new Map<string, number>()) : null}
           hidden={data?.entries_hidden ?? false}
           hasShift={!!data?.shift}
           timeFmt={timeFmt}
@@ -386,13 +408,7 @@ function FinishedScreen({
                 )}
                 {confirm.big.map((w) =>
                   w.kind === 'stock' ? (
-                    <p key="stock">
-                      {t('finished.confirmStock', {
-                        after: num.format(w.after),
-                        name: nameOf(confirm.item),
-                        stock: num.format(w.stock),
-                      })}
-                    </p>
+                    <p key="stock">{t('finished.confirmStock', { item: nameOf(confirm.item) })}</p>
                   ) : (
                     <p key="single">
                       {t('finished.confirmSingle', {
@@ -411,7 +427,7 @@ function FinishedScreen({
                   onClick={() => {
                     const c = confirm;
                     setConfirm(null);
-                    void save(c.item, c.amount, c.binDone);
+                    void save(c.item, c.amount, c.sheetsDone);
                   }}
                 >
                   {confirm.double && confirm.big.length === 0
@@ -467,8 +483,8 @@ function FinishedScreen({
                 item={selected}
                 total={itemTotal(lines, selected.id)}
                 busy={busy}
-                binDoneDefault={loadBinCount(store, selected.id)}
-                onAdd={(amount, opts) => requestAdd(selected, amount, opts)}
+                sheetsDoneDefault={loadSheetsCount(store, selected.id)}
+                onAdd={(amount, opts) => void requestAdd(selected, amount, opts)}
                 onUnpin={() => setWorking(removeWorking(prefs, selected.id))}
               />
               {data?.entries_hidden ? (

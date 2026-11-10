@@ -7,7 +7,7 @@ import { useRequiredSession } from '../../app/auth/sessionContext';
 import { supabase } from '../../lib/supabase';
 import { useMediaQuery } from '../../lib/useMediaQuery';
 import { useNow } from '../../lib/useNow';
-import { safeColor } from '../washroom/localizedName';
+import { swatchBackground } from '../washroom/groupColor';
 import { useLocalizedName } from '../washroom/localizedName';
 import { errorMessageKey, unwrap } from '../washroom/rpcError';
 import { useAreas } from '../washroom/washroomData';
@@ -322,6 +322,7 @@ function MatsSection({
             key={s.group.id}
             title={localized(s.group.name, s.group.name_i18n)}
             color={s.group.color_hex}
+            color2={s.group.color_hex_2 ?? null}
             total={groupTotal}
           >
             {s.items.map(({ item, size }) => (
@@ -349,11 +350,13 @@ function MatsSection({
 function MatGroupBlock({
   title,
   color,
+  color2,
   total,
   children,
 }: {
   title: string;
   color: string;
+  color2: string | null;
   total: number;
   children: ReactNode;
 }) {
@@ -373,7 +376,7 @@ function MatGroupBlock({
       <summary>
         <span
           className="lo-swatch"
-          style={{ backgroundColor: safeColor(color) }}
+          style={{ background: swatchBackground(color, color2) }}
           aria-hidden="true"
         />
         <span className="lo-mat-group-name">{title}</span>

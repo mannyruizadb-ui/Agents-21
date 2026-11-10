@@ -103,13 +103,13 @@ select is((select array_agg(name order by name) from pg_temp.adb_groups() where 
 select is((select array[count(*), count(*) filter (where color_hex = '#64748B'),
                         count(*) filter (where app.fabric_group_color(name) is not null and upper(color_hex) <> app.fabric_group_color(name)),
                         count(*) filter (where app.fabric_group_color(name) is null),
-                        count(distinct color_hex) filter (where app.fabric_group_color(name) is null)]::int[] from pg_temp.adb_groups()),
-  array[33, 0, 0, 17, 17], '33 groups, none left at the default; white / black / Colored mats groups at their fabric colour; the other 17 each distinct');
+                        count(distinct (upper(color_hex), coalesce(upper(color_hex_2), ''))) filter (where app.fabric_group_color(name) is null)]::int[] from pg_temp.adb_groups()),
+  array[33, 0, 0, 17, 16], '33 groups, none left at the default; white / black / Colored mats groups at their fabric colour; the other 17 each distinct (colour pair), except Napkins – Navy Blue and Navy Blue w/ Stripe, both #1E3A8A (owner 2026-11-10)');
 select is((select array[count(*), count(*) filter (where color_hex = '#64748B'),
                         count(*) filter (where app.fabric_group_color(name) is not null and upper(color_hex) <> app.fabric_group_color(name)),
                         count(*) filter (where app.fabric_group_color(name) is null),
-                        count(distinct color_hex) filter (where app.fabric_group_color(name) is null)]::int[] from pg_temp.adb_all_groups()),
-  array[45, 0, 0, 23, 23], 'with AA Linen''s 12 groups (2026-11-07): 45 groups; groups without a fabric colour (23) each have their own colour');
+                        count(distinct (upper(color_hex), coalesce(upper(color_hex_2), ''))) filter (where app.fabric_group_color(name) is null)]::int[] from pg_temp.adb_all_groups()),
+  array[45, 0, 0, 23, 20], 'with AA Linen''s 12 groups (2026-11-07): 45 groups; groups without a fabric colour (23) each have their own colour pair, except the owner''s 2026-11-10 shares (Navy Blue / Navy Blue w/ Stripe; red + blue for our Red & blue tablecloths and AA''s Colored napkins / tablecloths)');
 
 -- Chip contrast: every color is ≥ 3:1 against the white card or the TV's dark card (#0B0F14);
 -- colors whose name has no black/white/navy/bone/sheet meaning are ≥ 3:1 against both.

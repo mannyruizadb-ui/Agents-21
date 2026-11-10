@@ -6,6 +6,7 @@ import { usePlant, useLoadOutPermissions } from '../loadout/loadOutData';
 import { useCustomers } from '../deliveries/deliveriesData';
 import { useLocalizedName } from '../washroom/localizedName';
 import { useReasonLabeler } from '../washroom/downReasons';
+import { WashGroupLabel } from '../washroom/WashGroupLabel';
 import {
   IconCustomer,
   IconEdit,
@@ -28,7 +29,6 @@ import { useWashroomBoard } from '../washroom/washroomData';
 export function WasherStrip({ washroomId, now }: { washroomId: string | undefined; now: number }) {
   const { t } = useTranslation();
   const names = useLocalNames();
-  const localized = useLocalizedName();
   const labeler = useReasonLabeler();
   const board = useWashroomBoard(washroomId);
   const rows = board.data ?? [];
@@ -120,7 +120,12 @@ export function WasherStrip({ washroomId, now }: { washroomId: string | undefine
                   {why && <span className="mh-washer-sub">{why}</span>}
                   {!down && row.cycle_id && row.wash_group_name && (
                     <span className="mh-washer-sub">
-                      {localized(row.wash_group_name, row.wash_group_name_i18n)}
+                      <WashGroupLabel
+                        name={row.wash_group_name}
+                        nameI18n={row.wash_group_name_i18n}
+                        colorHex={row.wash_group_color_hex}
+                        colorHex2={row.wash_group_color_hex_2}
+                      />
                     </span>
                   )}
                 </Link>

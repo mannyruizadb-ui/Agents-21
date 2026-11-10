@@ -7,11 +7,11 @@ import {
   bigNumberWarnings,
   buildReview,
   finishGroupOf,
-  hasVariableBin,
   isDoubleTap,
   isFinishingItem,
+  isSheetsDoneItem,
   itemTotal,
-  loadBinCount,
+  loadSheetsCount,
   loadWorking,
   looseAmount,
   MAX_WORKING,
@@ -21,7 +21,7 @@ import {
   parseCount,
   previewPieces,
   removeWorking,
-  saveBinCount,
+  saveSheetsCount,
   saveWorking,
   SINGLE_ENTRY_CONFIRM,
   type FinishItem,
@@ -36,7 +36,6 @@ const item = (over: Partial<FinishItem> = {}): FinishItem => ({
   count_mode: 'pack',
   pack_size: 10,
   bin_size: 500,
-  stock_qty: null,
   color_hex: '#FFFFFF',
   sort_order: 1,
   active: true,
@@ -75,10 +74,20 @@ describe('which items finishing counts', () => {
     expect(finishGroupOf(item({ name: 'Chef coat', category: 'apparel' }))).toBe('apparel');
     expect(finishGroupOf(item({ name: 'Pillowcase' }))).toBe('other');
   });
-  it('Bin done… only for sheets with packs and no fixed bin', () => {
-    expect(hasVariableBin(item({ name: 'Sheet – old', bin_size: null }))).toBe(true);
-    expect(hasVariableBin(item())).toBe(false);
-    expect(hasVariableBin(item({ name: 'Napkin – Red', bin_size: null }))).toBe(false);
+  it('Sheets done… only for sheets with packs and no bin size (Sheet – old)', () => {
+    expect(isSheetsDoneItem(item({ name: 'Sheet – old', bin_size: null }))).toBe(true);
+    expect(isSheetsDoneItem(item())).toBe(false);
+    expect(isSheetsDoneItem(item({ name: 'Napkin – Red', bin_size: null }))).toBe(false);
+    expect(
+      isSheetsDoneItem(
+        item({ name: 'Sheet – old', bin_size: null, count_mode: 'unit', pack_size: null }),
+      ),
+    ).toBe(false);
+  });
+  it('a Sheets done count goes in as loose pieces (one count, no packs)', () => {
+    const old = item({ name: 'Sheet – old', bin_size: null });
+    expect(looseAmount(old, 500)).toEqual({ packs: 0, loose: 500, packSize: 10 });
+    expect(previewPieces(looseAmount(old, 500))).toBe(500);
   });
 });
 
@@ -130,17 +139,17 @@ describe('double-tap guard', () => {
 });
 
 describe('big-number check', () => {
-  it('over the stock owned after the add', () => {
-    expect(bigNumberWarnings(2000, 10_000, 10_000)).toEqual([
-      { kind: 'stock', after: 12_000, stock: 10_000 },
-    ]);
-    expect(bigNumberWarnings(500, 9_500, 10_000)).toEqual([]);
-    expect(bigNumberWarnings(500, 99_000, null)).toEqual([]);
+  it('over the stock owned: from the server answer, never a number on the client', () => {
+    expect(bigNumberWarnings(2000, true)).toEqual([{ kind: 'stock' }]);
+    expect(bigNumberWarnings(500, false)).toEqual([]);
   });
-  it('a single entry over 5,000', () => {
-    expect(bigNumberWarnings(SINGLE_ENTRY_CONFIRM, 0, null)).toEqual([]);
-    expect(bigNumberWarnings(6000, 0, null)).toEqual([{ kind: 'single', pieces: 6000 }]);
-    expect(bigNumberWarnings(6000, 0, 1000).map((w) => w.kind)).toEqual(['stock', 'single']);
+  it('stock unknown (offline, failed): the stock check is skipped, saving is not blocked', () => {
+    expect(bigNumberWarnings(500, null)).toEqual([]);
+  });
+  it('a single entry over 5,000 is checked on the client, even offline', () => {
+    expect(bigNumberWarnings(SINGLE_ENTRY_CONFIRM, null)).toEqual([]);
+    expect(bigNumberWarnings(6000, null)).toEqual([{ kind: 'single', pieces: 6000 }]);
+    expect(bigNumberWarnings(6000, true).map((w) => w.kind)).toEqual(['stock', 'single']);
   });
 });
 
@@ -201,11 +210,11 @@ describe('working-on list (per user per device)', () => {
     saveWorking(store, { items: ['a', 'b'], selected: 'b' });
     expect(loadWorking(store)).toEqual({ items: ['a', 'b'], selected: 'b' });
   });
-  it('remembers the last bin count per item', () => {
+  it('remembers the last old-sheets count per item', () => {
     const store = memoryStore();
-    expect(loadBinCount(store, 'old')).toBeNull();
-    saveBinCount(store, 'old', 640);
-    saveBinCount(store, 'other', 10);
-    expect(loadBinCount(store, 'old')).toBe(640);
+    expect(loadSheetsCount(store, 'old')).toBeNull();
+    saveSheetsCount(store, 'old', 500);
+    saveSheetsCount(store, 'other', 10);
+    expect(loadSheetsCount(store, 'old')).toBe(500);
   });
 });

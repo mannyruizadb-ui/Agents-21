@@ -483,3 +483,11 @@ select app.apply_fabric_colors(p.id)
   from public.plants p
   join public.organizations o on o.id = p.org_id and o.slug = 'americas-dust-busters'
  where p.name = 'Miami';
+
+-- Two-colour wash groups (owner 2026-11-10; data migration 20261110153115_add_wash_group_second_color for the
+-- cloud): the SAME function sets color_hex / color_hex_2 on the mixed napkin and tablecloth groups (ours and
+-- AA Linen's) and the single-colour Navy Blue w/ Stripe and Pink napkin groups.
+select app.apply_wash_group_colors(p.id)
+  from public.plants p
+  join public.organizations o on o.id = p.org_id and o.slug = 'americas-dust-busters'
+ where p.name = 'Miami';

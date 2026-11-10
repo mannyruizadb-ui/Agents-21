@@ -15,7 +15,6 @@ export interface FinishItem {
   count_mode: 'pack' | 'unit';
   pack_size: number | null;
   bin_size: number | null;
-  stock_qty: number | null;
   color_hex: string;
   sort_order: number;
   active: boolean;
@@ -135,21 +134,19 @@ export function isDoubleTap(
 /** A single entry above this many pieces asks for confirmation. */
 export const SINGLE_ENTRY_CONFIRM = 5_000;
 
-export type BigWarning =
-  { kind: 'stock'; after: number; stock: number } | { kind: 'single'; pieces: number };
+export type BigWarning = { kind: 'stock' } | { kind: 'single'; pieces: number };
 
 /**
  * Confirmations needed before saving: this shift's total after the add would exceed the stock the plant
- * owns (when known), and/or the single entry is more than 5,000 pieces. Empty = save straight away.
+ * owns, and/or the single entry is more than 5,000 pieces. Empty = save straight away.
+ *
+ * Stock owned is owner-only (owner 2026-11-10): the client never sees the number. `overStock` is the
+ * answer of the finished_goods_over_stock RPC; null = unknown (offline, failed, no stock set), and the
+ * stock check is then skipped, never blocking the save. The 5,000 check is always client-side.
  */
-export function bigNumberWarnings(
-  pieces: number,
-  shiftTotalBefore: number,
-  stockQty: number | null,
-): BigWarning[] {
+export function bigNumberWarnings(pieces: number, overStock: boolean | null): BigWarning[] {
   const out: BigWarning[] = [];
-  const after = shiftTotalBefore + pieces;
-  if (stockQty !== null && after > stockQty) out.push({ kind: 'stock', after, stock: stockQty });
+  if (overStock === true) out.push({ kind: 'stock' });
   if (pieces > SINGLE_ENTRY_CONFIRM) out.push({ kind: 'single', pieces });
   return out;
 }
@@ -293,27 +290,32 @@ export function saveWorking(store: KeyValueStore, p: WorkingPrefs): void {
   writeJson(store, WORKING_KEY, { items: p.items, selected: p.selected });
 }
 
-// ── "Bin done…" count (Sheet – old) ───────────────────────────────────────
-// A small isolated piece (the owner may change how old-sheet bins are counted): the count of the last
-// bin entered for an item on this device pre-fills the next one.
+// ── "Sheets done…" count (Sheet – old) ────────────────────────────────────
+// Owner 2026-11-10: old sheets go into ONE fixed bin they keep adding to, so there is no "bin done";
+// the manager types how many old sheets were finished (usually ~500). The last count used for the item
+// on this device pre-fills the next one. (The storage key keeps its old name so a device keeps its
+// last count.)
 
-export const BIN_COUNT_KEY = 'finished.binCount.v1';
+export const SHEETS_COUNT_KEY = 'finished.binCount.v1';
 
-export function loadBinCount(store: KeyValueStore, itemId: string): number | null {
-  const o = readJson(store, BIN_COUNT_KEY);
+export function loadSheetsCount(store: KeyValueStore, itemId: string): number | null {
+  const o = readJson(store, SHEETS_COUNT_KEY);
   if (!o || typeof o !== 'object') return null;
   const v = (o as Record<string, unknown>)[itemId];
   return typeof v === 'number' && Number.isInteger(v) && v > 0 ? v : null;
 }
 
-export function saveBinCount(store: KeyValueStore, itemId: string, count: number): void {
-  const o = readJson(store, BIN_COUNT_KEY);
+export function saveSheetsCount(store: KeyValueStore, itemId: string, count: number): void {
+  const o = readJson(store, SHEETS_COUNT_KEY);
   const map = o && typeof o === 'object' ? { ...(o as Record<string, unknown>) } : {};
   map[itemId] = count;
-  writeJson(store, BIN_COUNT_KEY, map);
+  writeJson(store, SHEETS_COUNT_KEY, map);
 }
 
-/** "Bin done…" applies to pack items with no fixed bin size (Sheet – old: variable bins). */
-export function hasVariableBin(i: FinishItem): boolean {
+/**
+ * "Sheets done…" (one count of pieces, no packs, no "Leftover…") applies to sheet pack items with no
+ * bin size: Sheet – old.
+ */
+export function isSheetsDoneItem(i: FinishItem): boolean {
   return i.bin_size === null && finishGroupOf(i) === 'sheets' && isPackItem(i);
 }

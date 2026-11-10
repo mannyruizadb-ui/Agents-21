@@ -437,7 +437,12 @@ function GroupBins({
     <li className={current > 0 ? 'dl-group has-bins' : 'dl-group'}>
       <div className="dl-group-label">
         <label htmlFor={id}>
-          <WashGroupLabel name={group.name} nameI18n={group.name_i18n} colorHex={group.color_hex} />
+          <WashGroupLabel
+            name={group.name}
+            nameI18n={group.name_i18n}
+            colorHex={group.color_hex}
+            colorHex2={group.color_hex_2}
+          />
         </label>
         <span id={`${id}-hint`} className={bins === null ? 'error' : 'hint'}>
           {bins === null

@@ -131,6 +131,7 @@ export function EstimateRow({
               name={group.name}
               nameI18n={group.name_i18n}
               colorHex={group.color_hex}
+              colorHex2={group.color_hex_2}
               washGroupId={group.id}
             />
             <span className="est-row-value">
