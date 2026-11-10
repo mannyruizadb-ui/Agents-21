@@ -38,19 +38,24 @@ export function classifySignInResponse(status: number, body: unknown): SignInRes
   return { kind: 'failed' };
 }
 
-export async function callSignIn(username: string, password: string): Promise<SignInResult> {
+/** POSTs `body` to the sign-in function; returns the HTTP status and the JSON body (null on a network error). */
+export async function invokeSignIn(
+  body: Record<string, unknown>,
+): Promise<{ status: number; body: unknown } | null> {
   try {
-    const { data, error } = await supabase.functions.invoke<unknown>('sign-in', {
-      body: { username, password },
-    });
-    if (!error) return classifySignInResponse(200, data);
+    const { data, error } = await supabase.functions.invoke<unknown>('sign-in', { body });
+    if (!error) return { status: 200, body: data };
     if (error instanceof FunctionsHttpError) {
       const res = error.context as Response;
-      const body: unknown = await res.json().catch(() => null);
-      return classifySignInResponse(res.status, body);
+      return { status: res.status, body: await res.json().catch(() => null) };
     }
-    return { kind: 'failed' };
+    return null;
   } catch {
-    return { kind: 'failed' };
+    return null;
   }
+}
+
+export async function callSignIn(username: string, password: string): Promise<SignInResult> {
+  const r = await invokeSignIn({ username, password });
+  return r === null ? { kind: 'failed' } : classifySignInResponse(r.status, r.body);
 }

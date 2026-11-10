@@ -2,7 +2,9 @@
 // password pepper (owner-approved 2026-11-07, security review H1).
 //
 // Public (verify_jwt = false: the caller is not signed in yet), browser-called from the site's own
-// origins only (CORS allow-list, as manage-users). One POST: {username, password}. The decision logic is
+// origins only (CORS allow-list, as manage-users). One POST: {username, password}; or, from the shared
+// plant iPad (2026-11-10), {device_token} for the list of names and {device_token, member_id, password}
+// to sign in as one of them (logic.ts parseDeviceBody). The decision logic is
 // in logic.ts and ../_shared/passwordCheck.ts; this file wires in:
 //   * the lockout RPCs (sign_in_begin / sign_in_failed / sign_in_succeeded) and sign_in_account_state
 //     with the SERVICE ROLE (they are granted to nobody else),
@@ -30,6 +32,7 @@ import { corsHeaders, parseAllowedOrigins } from '../_shared/cors.ts';
 import { pepperPassword, PASSWORD_VERSION, requirePepper } from '../_shared/pepper.ts';
 import {
   clientIp,
+  type DevicePerson,
   type FailResult,
   type GateResult,
   headerDiagnostic,
@@ -71,7 +74,7 @@ function deps(pepper: string): SignInDeps {
   const rpc = async (fn: string, args: Record<string, unknown>) => {
     const { data, error } = await service.rpc(fn, args);
     if (error) {
-      console.error('sign-in: lockout store error', fn, error.code);
+      console.error('sign-in: store error', fn, error.code);
       throw new Error('lockout store');
     }
     return data;
@@ -98,6 +101,15 @@ function deps(pepper: string): SignInDeps {
         },
       });
       if (error) throw new Error('upgrade');
+    },
+    // Shared plant iPad (2026-11-10): service-role-only lookups keyed by the device token.
+    devicePeople: async (token) => {
+      const data = await rpc('shared_device_people', { p_token: token });
+      return Array.isArray(data) ? (data as DevicePerson[]) : [];
+    },
+    deviceLogin: async (token, memberId) => {
+      const data = await rpc('shared_device_login', { p_token: token, p_member_id: memberId });
+      return typeof data === 'string' && data.length > 0 ? data : null;
     },
     passwordGrant: async (email, password) => {
       const res = await fetch(`${url}/auth/v1/token?grant_type=password`, {

@@ -76,9 +76,9 @@ describe('matPieces', () => {
   it('unit items count as pieces', () => {
     expect(matPieces({ count_mode: 'unit', pack_size: null }, 7)).toBe(7);
   });
-  it('pack items multiply by the pack size, or null without one', () => {
-    expect(matPieces({ count_mode: 'pack', pack_size: 5 }, 3)).toBe(15);
-    expect(matPieces({ count_mode: 'pack', pack_size: null }, 3)).toBeNull();
+  it('pack items are typed in pieces too (owner 2026-11-10): never multiplied', () => {
+    expect(matPieces({ count_mode: 'pack', pack_size: 5 }, 30)).toBe(30);
+    expect(matPieces({ count_mode: 'pack', pack_size: null }, 3)).toBe(3);
   });
 });
 

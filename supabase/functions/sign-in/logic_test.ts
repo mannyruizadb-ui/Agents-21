@@ -7,6 +7,7 @@ import {
   type GrantResult,
   headerDiagnostic,
   parseBody,
+  parseDeviceBody,
   pickSession,
   signIn,
   type SignInDeps,
@@ -14,6 +15,8 @@ import {
 
 const PEPPER = 'test-pepper-0123456789abcdef0123456789';
 const DENISE = 'denise@accounts.adbheadquarters.com';
+const DEVICE = 'ab'.repeat(32);
+const DENISE_MEMBER = '0b9d3c4e-1111-4222-8333-944455556666';
 
 const SESSION = {
   access_token: 'at',
@@ -48,7 +51,7 @@ function fake(
     grant?: (email: string, pw: string) => GrantResult | Promise<GrantResult>;
     gate?: GateResult;
     fail?: FailResult;
-    storeThrows?: 'begin' | 'failed' | 'succeeded' | 'legacy';
+    storeThrows?: 'begin' | 'failed' | 'succeeded' | 'legacy' | 'device';
   } = {},
 ) {
   const calls: Calls = { begin: [], failed: [], succeeded: [], grant: [], legacy: [], upgrade: [] };
@@ -103,6 +106,17 @@ function fake(
       return Promise.resolve(login === DENISE && opts.legacy === true);
     },
     legacyUpgrade: opts.legacyUpgrade ?? true,
+    // One live shared device (DEVICE) listing Denise (DENISE_MEMBER).
+    devicePeople(token) {
+      if (opts.storeThrows === 'device') return Promise.reject(new Error('db'));
+      return Promise.resolve(
+        token === DEVICE ? [{ member_id: DENISE_MEMBER, display_name: 'Denise' }] : [],
+      );
+    },
+    deviceLogin(token, memberId) {
+      if (opts.storeThrows === 'device') return Promise.reject(new Error('db'));
+      return Promise.resolve(token === DEVICE && memberId === DENISE_MEMBER ? DENISE : null);
+    },
     upgradePassword(userId, peppered, mustChange) {
       calls.upgrade.push([userId, peppered, mustChange]);
       if (opts.upgradeThrows) return Promise.reject(new Error('admin'));
@@ -457,5 +471,124 @@ Deno.test(
     });
     const out = await signIn(body('denise', 'old dashboard pw 1'), null, deps);
     assertEquals([out.status, out.body.code], [502, 'INTERNAL']);
+  },
+);
+
+// ------------------------------------------------------------------------------------------------
+// Shared plant iPad (owner 2026-11-10)
+
+const deviceBody = (o: Record<string, unknown>) => JSON.stringify(o);
+
+Deno.test('parseDeviceBody: the two device shapes; anything else is refused', () => {
+  assertEquals(parseDeviceBody(deviceBody({ device_token: DEVICE })), {
+    kind: 'people',
+    token: DEVICE,
+  });
+  assertEquals(
+    parseDeviceBody(
+      deviceBody({
+        device_token: DEVICE,
+        member_id: DENISE_MEMBER.toUpperCase(),
+        password: '483920',
+      }),
+    ),
+    { kind: 'sign_in', token: DEVICE, memberId: DENISE_MEMBER, password: '483920' },
+  );
+  for (const o of [
+    { device_token: 'short' },
+    { device_token: DEVICE.toUpperCase() },
+    { device_token: DEVICE, member_id: 'not-a-uuid', password: '1' },
+    { device_token: DEVICE, member_id: DENISE_MEMBER, password: '' },
+    { device_token: DEVICE, member_id: DENISE_MEMBER, password: 'x'.repeat(73) },
+    { device_token: DEVICE, member_id: DENISE_MEMBER },
+    { device_token: DEVICE, member_id: DENISE_MEMBER, password: '1', extra: 1 },
+    { device_token: DEVICE, username: 'denise', password: '1' },
+  ]) {
+    assertEquals(parseDeviceBody(deviceBody(o)), null, JSON.stringify(o).slice(0, 60));
+  }
+});
+
+Deno.test(
+  'device people: a live device gets its names; any other token gets an empty list',
+  async () => {
+    const { deps } = fake();
+    const live = await signIn(deviceBody({ device_token: DEVICE }), null, deps);
+    assertEquals(live, { status: 200, body: { people: [{ id: DENISE_MEMBER, name: 'Denise' }] } });
+    const other = await signIn(deviceBody({ device_token: 'cd'.repeat(32) }), null, deps);
+    assertEquals(other, { status: 200, body: { people: [] } });
+  },
+);
+
+Deno.test('device people: a store error fails closed (503)', async () => {
+  const { deps } = fake({ storeThrows: 'device' });
+  const r = await signIn(deviceBody({ device_token: DEVICE }), null, deps);
+  assertEquals(r.status, 503);
+});
+
+Deno.test(
+  'device sign-in: a listed person with the right password signs in through the same lockout',
+  async () => {
+    const { deps, calls } = fake();
+    const r = await signIn(
+      deviceBody({ device_token: DEVICE, member_id: DENISE_MEMBER, password: '483920' }),
+      '203.0.113.9',
+      deps,
+    );
+    assertEquals(r.status, 200);
+    assertEquals(r.body.access_token, 'at');
+    // Same lockout key as typing "denise" on any phone, and only the peppered password reaches GoTrue.
+    assertEquals(calls.begin, [[DENISE, '203.0.113.9']]);
+    assertEquals(calls.grant, [[DENISE, await pepperPassword(PEPPER, DENISE, '483920')]]);
+  },
+);
+
+Deno.test('device sign-in: wrong passwords count against the same login and lock it', async () => {
+  const { deps, calls } = fake();
+  const send = (pw: string) =>
+    signIn(
+      deviceBody({ device_token: DEVICE, member_id: DENISE_MEMBER, password: pw }),
+      null,
+      deps,
+    );
+  for (let i = 0; i < 4; i++) assertEquals((await send('000000')).status, 401);
+  assertEquals((await send('000000')).body.code, 'LOCKED');
+  // Locked even with the right password, and the normal username sign-in is locked too.
+  assertEquals((await send('483920')).body.code, 'LOCKED');
+  assertEquals((await signIn(body('denise', '483920'), null, deps)).body.code, 'LOCKED');
+  assertEquals(calls.failed.length, 5);
+});
+
+Deno.test(
+  'device sign-in: an unknown device or an unlisted person is WRONG and never reaches GoTrue',
+  async () => {
+    const { deps, calls } = fake();
+    for (const o of [
+      { device_token: 'cd'.repeat(32), member_id: DENISE_MEMBER, password: '483920' },
+      {
+        device_token: DEVICE,
+        member_id: '00000000-0000-4000-8000-000000000000',
+        password: '483920',
+      },
+    ]) {
+      const r = await signIn(deviceBody(o), null, deps);
+      assertEquals(r.status, 401);
+      assertEquals(r.body.code, 'WRONG');
+    }
+    assertEquals(calls.begin.length, 0);
+    assertEquals(calls.grant.length, 0);
+  },
+);
+
+Deno.test(
+  'device sign-in: a store error fails closed (503) before any password check',
+  async () => {
+    const { deps, calls } = fake({ storeThrows: 'device' });
+    const r = await signIn(
+      deviceBody({ device_token: DEVICE, member_id: DENISE_MEMBER, password: '483920' }),
+      null,
+      deps,
+    );
+    assertEquals(r.status, 503);
+    assertEquals(calls.grant.length, 0);
   },
 );

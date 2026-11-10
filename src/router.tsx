@@ -107,6 +107,13 @@ export const router = createBrowserRouter([
         }),
       },
       {
+        // Shared plant iPad (owner 2026-11-10). Owner only (RLS + RPC checks).
+        path: 'setup/plant-ipad',
+        lazy: async () => ({
+          Component: (await import('./features/setup/SetupPlantIpadPage')).SetupPlantIpadPage,
+        }),
+      },
+      {
         path: 'setup/reasons',
         lazy: async () => ({
           Component: (await import('./features/setup/SetupReasonsPage')).SetupReasonsPage,
