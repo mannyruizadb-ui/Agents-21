@@ -1288,7 +1288,7 @@ isOneToOne: false
           Views: {
             "current_soil_estimates": {
                   Row: {
-                    "age_minutes": number | null,"entered_at": string,"estimate_id": string,"freshness": string | null,"has_conversion": boolean | null,"org_id": string,"plant_id": string,"qty": number,"qty_loads": number | null,"unit": "load"|"basket"|"bin"|"piece"|"pack","wash_group_id": string,"wash_group_name": string,"wash_group_name_i18n": NonNullable<Json>
+                    "age_minutes": number | null,"entered_at": string,"estimate_id": string,"freshness": string | null,"has_conversion": boolean | null,"loads_left": number | null,"org_id": string,"plant_id": string,"qty": number,"qty_loads": number | null,"unit": "load"|"basket"|"bin"|"piece"|"pack","wash_group_id": string,"wash_group_name": string,"wash_group_name_i18n": NonNullable<Json>
                   }
                   ComputedFields: never
                   Relationships: [

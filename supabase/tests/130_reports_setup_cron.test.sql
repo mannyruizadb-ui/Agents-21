@@ -3,6 +3,10 @@
 -- Matrix arrays: [owner, manager, lead, viewer, display, display-without-device, owner of B, anon].
 begin;
 \ir _fixtures.psql
+-- These report-arithmetic tests were written for the 12:00 production day (owner 2026-11-01). The day-start
+-- rule itself (10:00 since owner 2026-11-10) is tested in 032; pin plant A to 12:00 and re-date its fixture instances.
+update public.plants set production_day_start = '12:00' where id = pg_temp.id('plantA');
+update public.shift_instances set production_date = app.production_date(starts_at, 'America/New_York', '12:00') where plant_id = pg_temp.id('plantA');
 select plan(46);
 
 -- ── Data (service role): production day Monday 2026-11-02 ────────────────
@@ -95,7 +99,7 @@ select is(pg_temp.val_as('owner', $$select array_agg(wash_group_name || ':' || s
 select is(pg_temp.val_as('owner', $$select wash_group_name from public.get_wash_group_pace(pg_temp.id('plantA'), '2026-11-02') limit 1$$),
   'Mats', 'next-morning groups come first');
 select is(pg_temp.val_as('owner', $$select row(standard_loads_since_estimate, backlog_loads_approx)::text from public.get_wash_group_pace(pg_temp.id('plantA'), '2026-11-02') where wash_group_name = 'Napkins'$$),
-  '(3.00,2.00)', 'backlog ≈ estimate − first-wash standard loads since it (rewash and voided loads excluded)');
+  '(1,4.00)', 'backlog ≈ estimate − first-wash STARTS since it, each start = 1 load (owner 2026-11-10; the 3-load cycle counts 1; rewash and voided starts excluded)');
 select ok(pg_temp.val_as('owner', $$select count(*) from public.get_wash_group_pace(pg_temp.id('plantA'))$$)::int = 3, 'default: the current production day');
 
 -- ══ Revoked direct writes (ADR 001) ══════════════════════════════════════

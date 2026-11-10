@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { RequireAuth } from '../auth/RequireAuth';
 import { AppNav } from './AppNav';
 import { BackBar } from './BackBar';
+import { OutboxRunner } from './OutboxRunner';
 import { UpdateBanner } from './UpdateBanner';
 import './appnav.css';
 
@@ -21,6 +22,7 @@ export function ControlRoute() {
       <AppNav />
       <div id="app-content" className="app-main" tabIndex={-1}>
         <UpdateBanner />
+        <OutboxRunner />
         <BackBar />
         <Outlet />
       </div>

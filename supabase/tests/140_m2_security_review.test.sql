@@ -3,6 +3,9 @@
 -- display access from revoked or device-less display accounts, the L2 reopen rule, cron schema ACLs.
 begin;
 \ir _fixtures.psql
+-- The entry-PIN RPCs are service_role only since 20261110104605 (asserted in 229_audit_fixes_2026_11_10).
+-- This file still exercises their kept-for-history logic as signed-in roles: grant inside this rolled-back transaction.
+grant execute on function public.start_staff_session(uuid, text) to authenticated;
 select plan(13);
 
 -- ── Data (service role) ───────────────────────────────────────────────────

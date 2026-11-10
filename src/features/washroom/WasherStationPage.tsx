@@ -100,7 +100,12 @@ export function WasherStationPage() {
   // A refused tap (queue changed while it waited) whose reason is being picked.
   const [reasonFor, setReasonFor] = useState<string | null>(null);
   const session = useRequiredSession();
-  const roles = useMyRoles(session.user.id).rolesFor(machine.data?.plant_id);
+  const myRoles = useMyRoles(session.user.id);
+  const roles = myRoles.rolesFor(machine.data?.plant_id);
+  // Audit 2026-11-10: only owner, manager or lead may start a load (the server refuses anyone else).
+  // Read-only only once the roles are known, so an offline lead whose roles can't load still taps.
+  const readOnly =
+    myRoles.isSuccess && !roles.has('owner') && !roles.has('manager') && !roles.has('lead');
   const undoWindowMs =
     roles.has('owner') || roles.has('manager') ? MANAGER_UNDO_WINDOW_MS : UNDO_WINDOW_MS;
 
@@ -159,12 +164,10 @@ export function WasherStationPage() {
     }
     setConfirmingRunning(false);
     setChosenReason(null);
-    // Server clock − device clock, so the stored tap time is in server time (see useTapSync.tap).
-    const offset = row ? Date.parse(row.server_time) - board.dataUpdatedAt : 0;
     const clientId = taps.tap(
       machineId,
       override?.id ?? null,
-      Number.isFinite(offset) ? offset : 0,
+      clockOffsetMs(),
       confirmRunning,
       reason,
     );
@@ -173,6 +176,12 @@ export function WasherStationPage() {
     setUndoError(null);
     setOverride(null);
     setPickerOpen(false);
+  }
+
+  /** Server clock − device clock, so a stored tap time is in server time (see useTapSync.tap). */
+  function clockOffsetMs(): number {
+    const offset = row ? Date.parse(row.server_time) - board.dataUpdatedAt : 0;
+    return Number.isFinite(offset) ? offset : 0;
   }
 
   async function onUndo() {
@@ -411,7 +420,10 @@ export function WasherStationPage() {
             {t(tapRejectedKey(r.errorCode))}
           </p>
           {r.errorCode === 'WASHER_RUNNING' && (
-            <button type="button" onClick={() => taps.resend(r, { confirmRunning: true })}>
+            <button
+              type="button"
+              onClick={() => taps.resend(r, { confirmRunning: true }, clockOffsetMs())}
+            >
               {t('station.startAnyway')}
             </button>
           )}
@@ -425,7 +437,7 @@ export function WasherStationPage() {
               question={t('station.offQueueQGeneric')}
               onPick={(reason) => {
                 setReasonFor(null);
-                taps.resend(r, { offQueueReason: reason });
+                taps.resend(r, { offQueueReason: reason }, clockOffsetMs());
               }}
               onCancel={() => setReasonFor(null)}
             />
@@ -457,8 +469,16 @@ export function WasherStationPage() {
         </div>
       )}
 
-      {/* START, hidden while the washer is down (the server refuses with MACHINE_DOWN anyway). */}
-      {!isDown && (
+      {!isDown && readOnly && (
+        <p className="station-message">
+          <IconIdle />
+          {t('station.readOnly')}
+        </p>
+      )}
+
+      {/* START, hidden while the washer is down (the server refuses with MACHINE_DOWN anyway) and
+          for anyone who may not start loads. */}
+      {!isDown && !readOnly && (
         <>
           <button
             ref={startRef}

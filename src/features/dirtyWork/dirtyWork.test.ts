@@ -549,3 +549,42 @@ describe('roundedTime', () => {
     expect(roundedMinutes(83)).toBe(85);
   });
 });
+
+describe('dirtyWork: loads left (owner 2026-11-10, one rule)', () => {
+  const base = (estimates: Map<string, DirtyEstimateInput>) =>
+    dirtyWork({
+      groups: [
+        {
+          id: 'g1',
+          name: 'Black mats',
+          name_i18n: null,
+          color_hex: null,
+          wash_formula_id: null,
+          customer_id: null,
+          loads_per_basket: 0.5,
+        },
+      ],
+      estimates,
+      categoryOf: new Map([['g1', 'mats']]),
+      cycleMinutesOf: () => 45,
+      washers: { count: 6, capacity: 6 },
+    });
+  it('uses the database loads_left: estimate minus starts since it was entered', () => {
+    const w = base(new Map([['g1', { qty: 12, unit: 'basket', qty_loads: 6, loads_left: 2 }]]));
+    expect(w.ours.loads).toBe(2);
+    expect(w.ours.categories[0]?.amounts).toEqual([{ unit: 'load', qty: 2 }]);
+  });
+  it('keeps the typed amount while nothing has been washed', () => {
+    const w = base(new Map([['g1', { qty: 12, unit: 'basket', qty_loads: 6, loads_left: 6 }]]));
+    expect(w.ours.categories[0]?.amounts).toEqual([{ unit: 'basket', qty: 12 }]);
+  });
+  it('a group washed out is not waiting any more', () => {
+    const w = base(new Map([['g1', { qty: 12, unit: 'basket', qty_loads: 6, loads_left: 0 }]]));
+    expect(w.ours.categories).toEqual([]);
+    expect(w.estimated).toBe(1);
+  });
+  it('without loads_left (typed, not saved) it is the estimate itself', () => {
+    const w = base(new Map([['g1', { qty: 12, unit: 'basket', qty_loads: 6 }]]));
+    expect(w.ours.loads).toBe(6);
+  });
+});

@@ -280,6 +280,12 @@ export interface DeliveryFlushReport {
   remaining: PendingDelivery[];
 }
 
+/** The recent-list time of a saved delivery: its entry time if readable, else now. */
+export function savedAtFor(enteredAt: string, nowMs: number): string {
+  const t = Date.parse(enteredAt);
+  return new Date(Number.isNaN(t) ? nowMs : t).toISOString();
+}
+
 /**
  * Sends every waiting delivery, oldest first. Storage is updated after every step, so nothing is lost
  * or sent twice (client_id makes a resend harmless anyway). A saved delivery with a delivery id goes
@@ -313,7 +319,9 @@ export async function flushDeliveries(
             customerId: d.customerId,
             lines: d.lines,
             queueItemIds: r.queueItemIds,
-            savedAt: new Date(nowMs).toISOString(),
+            // When it was entered, not when it finally sent: an offline 23:50 drop-off sent at
+            // 00:10 stays under the day it was made ("today's drop-offs").
+            savedAt: savedAtFor(d.enteredAt, nowMs),
           },
           nowMs,
         );

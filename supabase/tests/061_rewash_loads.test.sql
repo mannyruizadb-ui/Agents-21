@@ -5,6 +5,10 @@
 -- Matrix arrays: [owner, manager, lead, viewer, display, display-without-device, owner of B, anon].
 begin;
 \ir _fixtures.psql
+-- These report-arithmetic tests were written for the 12:00 production day (owner 2026-11-01). The day-start
+-- rule itself (10:00 since owner 2026-11-10) is tested in 032; pin plant A to 12:00 and re-date its fixture instances.
+update public.plants set production_day_start = '12:00' where id = pg_temp.id('plantA');
+update public.shift_instances set production_date = app.production_date(starts_at, 'America/New_York', '12:00') where plant_id = pg_temp.id('plantA');
 select plan(16);
 
 -- Washer 6 (factor 1.19) next to fixture Washer 1 (1.00).

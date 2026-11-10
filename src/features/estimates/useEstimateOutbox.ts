@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useSyncExternalStore } from 'react';
+import { useCallback, useMemo, useSyncExternalStore } from 'react';
 import { useQueryClient, type QueryClient } from '@tanstack/react-query';
 import { isSignedInAs } from '../../lib/authUser';
 import { scopedKey, userStore } from '../../lib/scopedStore';
@@ -6,6 +6,7 @@ import { supabase } from '../../lib/supabase';
 import { appErrorCode, isRetryable } from '../washroom/rpcError';
 import {
   addBatch,
+  batchSavedCount,
   dismissRejectedEstimate,
   flushOutbox,
   OUTBOX_KEY,
@@ -22,8 +23,8 @@ import {
 // signed-in account's own storage (plantboard.<userId>.…), a flush reads only that account's batches
 // and runs only while that account is signed in. One flusher per account per tab.
 // 2026-11-07: no entry PIN; the signed-in account is the attribution (record_soil_estimate).
-
-const RETRY_EVERY_MS = 15_000;
+// Retries (mount, `online`, every 15 s) run app-wide in OutboxRunner (src/app/control), not here, so
+// estimates saved offline send whichever screen is open.
 
 function apiFor(userId: string): OutboxApi {
   return {
@@ -106,6 +107,12 @@ export function flushEstimates(userId: string, qc?: QueryClient): Promise<number
   return s.flushing;
 }
 
+/** Resolves once no flush is running for this account (one started meanwhile is waited for too). */
+async function waitForFlush(userId: string): Promise<void> {
+  const s = state(userId);
+  while (s.flushing) await s.flushing;
+}
+
 /** How many estimates this account has waiting (for the guarded sign-out). */
 export function pendingEstimateCount(userId: string): number {
   return readOutbox(userStore(userId)).reduce((n, b) => n + b.entries.length, 0);
@@ -134,25 +141,20 @@ export function useEstimateOutbox(userId: string) {
   );
   const getSnapshot = useCallback(() => state(userId).snapshot, [userId]);
   const snap = useSyncExternalStore(subscribe, getSnapshot);
-  const hasPending = snap.pending.length > 0;
-
-  useEffect(() => {
-    const run = () => void flushEstimates(userId, qc);
-    if (readOutbox(userStore(userId)).length > 0) run();
-    window.addEventListener('online', run);
-    const id = hasPending ? window.setInterval(run, RETRY_EVERY_MS) : undefined;
-    return () => {
-      window.removeEventListener('online', run);
-      if (id !== undefined) window.clearInterval(id);
-    };
-  }, [userId, qc, hasPending]);
 
   /** Saves a batch to the device, then sends it. */
   const submit = useCallback(
     async (batch: OutboxBatch): Promise<{ stored: boolean; saved: number }> => {
-      const stored = addBatch(userStore(userId), batch);
+      const store = userStore(userId);
+      const stored = addBatch(store, batch);
       refresh(userId);
-      const saved = await flushEstimates(userId, qc);
+      // An older flush may be on the wire (started before this batch was stored): its count is not
+      // this batch's. Wait for it, run a fresh one, then count THIS batch's entries that left.
+      await waitForFlush(userId);
+      await flushEstimates(userId, qc);
+      const saved = stored
+        ? batchSavedCount(batch, readOutbox(store), readRejectedEstimates(store))
+        : 0;
       return { stored, saved };
     },
     [userId, qc],

@@ -30,6 +30,8 @@ export interface CurrentEstimate {
   has_conversion: boolean | null;
   entered_at: string;
   freshness: string | null;
+  /** Whole loads still dirty: the estimate minus washer starts since it was entered (owner 2026-11-10). */
+  loads_left: number | null;
 }
 
 export const estimateKeys = {
@@ -93,7 +95,9 @@ export function useCurrentEstimates(plantId: string | undefined) {
         unwrap(
           await supabase
             .from('current_soil_estimates')
-            .select('wash_group_id, qty, unit, qty_loads, has_conversion, entered_at, freshness')
+            .select(
+              'wash_group_id, qty, unit, qty_loads, has_conversion, entered_at, freshness, loads_left',
+            )
             .eq('plant_id', plantId ?? ''),
         ) ?? [];
       return new Map(rows.map((r) => [r.wash_group_id, r]));

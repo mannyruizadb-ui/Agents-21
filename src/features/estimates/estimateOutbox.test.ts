@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { memoryStore, scopedStore } from '../../lib/scopedStore';
 import {
   addBatch,
+  batchSavedCount,
   dismissRejectedEstimate,
   flushOutbox,
   ENTRY_MAX_AGE_MS,
@@ -160,5 +161,22 @@ describe('estimate outbox', () => {
       },
     });
     expect(seen).toEqual([enteredAt]);
+  });
+});
+
+describe('batchSavedCount (audit 2026-11-10: "Saved N" is about THIS batch)', () => {
+  const mine = batch();
+  it('counts every entry once none is waiting or refused', () => {
+    expect(batchSavedCount(mine, [], [])).toBe(3);
+  });
+  it('reports 0 when an older flush saved other entries but this batch is still waiting', () => {
+    expect(batchSavedCount(mine, [mine], [])).toBe(0);
+  });
+  it('does not count entries still waiting or refused', () => {
+    const waiting = { ...mine, entries: mine.entries.filter((e) => e.clientId === 'e3') };
+    const refused = mine.entries
+      .filter((e) => e.clientId === 'e1')
+      .map((e) => ({ ...e, errorCode: 'VALIDATION_FAILED' }));
+    expect(batchSavedCount(mine, [waiting], refused)).toBe(1);
   });
 });

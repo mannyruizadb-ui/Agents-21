@@ -72,6 +72,13 @@ export function deliveryLines(
  * entry keeps its real time). A fresh entry lets the server use its own clock, so a phone clock that
  * runs ahead can never make the server refuse it.
  */
+/** The current time on the server's clock (device time + offset; no offset known → device time). */
+export function serverNowIso(deviceNowMs: number, offsetMs: number | undefined): string {
+  return new Date(
+    deviceNowMs + (offsetMs !== undefined && Number.isFinite(offsetMs) ? offsetMs : 0),
+  ).toISOString();
+}
+
 export function enteredAtParam(enteredAt: string | undefined, nowMs: number): string | undefined {
   if (!enteredAt) return undefined;
   const t = Date.parse(enteredAt);

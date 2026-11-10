@@ -27,3 +27,8 @@
 - Per-machine NOW/NEXT: no schema now; later additive queue_items.machine_id FK (machine_id, area_id) + device->machine scope; decide in D1/D2 v1.6 first.
 - G3 suggested pieces_per_load is derivable only for single-item wash groups; multi-item groups need a counted value or a group calibration ratio.
 - "PIN once per shift" for washer taps contradicts A8 staff_pin_reuse_minutes (default 0); needs owner + security-reviewer before build.
+- 2026-11-10 DB data-flow audit: estimate sync must count only taps BEFORE entered_at (offline outbox ≤ 6 h double-counts); flagged.
+- Dirty-work numbers: Home/Estimates use raw current estimate, queue row uses ceil(est)−taps, pace uses est−Σstd loads since; needs one rule (ADR).
+- Whole-load rounding: DB ceil(to_loads) vs UI wholeLoads (round to cents first) disagree for 3-decimal factors (0.667×3=2.001 → DB 3, UI 2).
+- Production day = instance start date rule puts finishing Day 10:00–16:00 into the previous day; owner "today" (default production_date(now)) drops it after noon.
+- Load-out board default date (before noon today, else tomorrow) + client minutesUntil verified consistent; noon flip hides an unloaded route's lateness.

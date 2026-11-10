@@ -5,6 +5,7 @@ import {
   fillAmount,
   hoursMinutes,
   parseAmount,
+  rowWashHours,
   setPart,
   stepFull,
   splitAmount,
@@ -115,5 +116,18 @@ describe('summarize', () => {
   it('has no hours without working washers, and 0 when nothing is waiting', () => {
     expect(summarize([{ loads: 3, cycleMinutes: 26 }], 0).hours).toBeNull();
     expect(summarize([{ loads: 0, cycleMinutes: 26 }], 0).hours).toBe(0);
+  });
+});
+
+describe('rowWashHours (audit 2026-11-10)', () => {
+  it('uses the whole loads the row shows, not the fraction', () => {
+    // 2.3 loads is shown as 3 loads: 3 × 40 min = 2 h, not 2.3 × 40 min.
+    expect(rowWashHours(2.3, 40)).toBe(2);
+    expect(rowWashHours(2, 30)).toBe(1);
+    expect(rowWashHours(0, 30)).toBe(0);
+  });
+  it('is null when the loads or the cycle time are unknown', () => {
+    expect(rowWashHours(null, 30)).toBeNull();
+    expect(rowWashHours(2, null)).toBeNull();
   });
 });

@@ -3,6 +3,8 @@
 // a missing factor gives null, never a guess (CLAUDE.md measurement model). The DB's app.to_loads is
 // authoritative; this is the live preview on the card.
 
+import { wholeLoads } from '../dirtyWork/dirtyWork';
+
 export type EstimateUnit = 'load' | 'basket' | 'bin';
 
 export interface GroupFactors {
@@ -42,6 +44,17 @@ export function toLoads(qty: number, unit: EstimateUnit, g: GroupFactors): numbe
 }
 
 /** Hours of washing on ONE washer: loads × the group's formula cycle minutes; null without either. */
+/**
+ * Wash hours for an estimate row: from the WHOLE loads the row shows (≈ 2.3 loads is shown as 3), so
+ * the hours match the label (audit 2026-11-10). null when either side is unknown.
+ */
+export function rowWashHours(
+  loads: number | null,
+  cycleMinutes: number | null | undefined,
+): number | null {
+  return washHours(loads === null ? null : wholeLoads(loads), cycleMinutes);
+}
+
 export function washHours(
   loads: number | null,
   cycleMinutes: number | null | undefined,

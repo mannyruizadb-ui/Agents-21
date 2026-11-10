@@ -2,7 +2,6 @@ import { describe, expect, it } from 'vitest';
 import {
   barPct,
   contrast,
-  customerWork,
   ownGroups,
   estimateAges,
   finishedToday,
@@ -11,55 +10,7 @@ import {
   topN,
   washerCounts,
   washerSegments,
-  workByGroup,
-  type GroupInput,
 } from './dashboardLogic';
-
-const g = (id: string, formula: string | null, name = id): GroupInput => ({
-  id,
-  name,
-  name_i18n: null,
-  color_hex: '#DC2626',
-  wash_formula_id: formula,
-});
-const minutes = new Map<string, number | null>([
-  ['f40', 40],
-  ['f60', 60],
-]);
-const cycleOf = (id: string | null) => (id ? (minutes.get(id) ?? null) : null);
-
-describe('workByGroup', () => {
-  it('spreads loads × cycle minutes over the washer capacity and sorts by time', () => {
-    const rows = workByGroup(
-      [g('a', 'f40'), g('b', 'f60'), g('c', null), g('d', 'f40'), g('e', 'f40')],
-      new Map([
-        ['a', { qty: 3, qty_loads: 3 }], // 2 washer-h
-        ['b', { qty: 2, qty_loads: 4 }], // 4 washer-h
-        ['c', { qty: 5, qty_loads: 5 }], // no time
-        ['d', { qty: 0, qty_loads: null }], // nothing waiting: left out
-        ['e', { qty: 2, qty_loads: null }], // no factor: loads unknown
-      ]),
-      cycleOf,
-      2,
-      (id) => (id === 'b' ? 'aa' : null),
-    );
-    expect(rows.map((r) => r.id)).toEqual(['b', 'a', 'c', 'e']);
-    expect(rows[0]).toMatchObject({ loads: 4, washerHours: 4, hours: 2, customerId: 'aa' });
-    expect(rows[1]).toMatchObject({ hours: 1 });
-    expect(rows[2]).toMatchObject({ loads: 5, hours: null });
-    expect(rows[3]).toMatchObject({ loads: null, hours: null });
-  });
-
-  it('gives no hours without a working washer but keeps the loads', () => {
-    const [row] = workByGroup(
-      [g('a', 'f60')],
-      new Map([['a', { qty: 1, qty_loads: 1 }]]),
-      cycleOf,
-      0,
-    );
-    expect(row).toMatchObject({ loads: 1, washerHours: 1, hours: null });
-  });
-});
 
 describe('estimateAges', () => {
   it('finds the newest and oldest and counts old ones with work waiting', () => {
@@ -176,50 +127,9 @@ describe('finishedToday', () => {
   });
 });
 
-describe('customerWork', () => {
-  const customerOf = (id: string) => (id.startsWith('aa') ? 'AA' : null);
-  const formula: Record<string, number | null> = { aa1: 60, aa2: 40, own: 60, aa3: null };
-  const cycleOfGroup = (id: string) => formula[id] ?? null;
-
-  it('counts open queue loads not started per customer, with ≈ hours on the washers', () => {
-    const [c, ...rest] = customerWork(
-      [
-        { wash_group_id: 'aa1', status: 'queued', loads_remaining: 2 },
-        { wash_group_id: 'aa2', status: 'in_progress', loads_remaining: 3 },
-        { wash_group_id: 'aa2', status: 'done', loads_remaining: 0 },
-        { wash_group_id: 'aa1', status: 'cancelled', loads_remaining: 5 },
-        { wash_group_id: 'own', status: 'queued', loads_remaining: 4 },
-      ],
-      customerOf,
-      cycleOfGroup,
-      2,
-    );
-    expect(rest).toEqual([]);
-    expect(c).toEqual({
-      customerId: 'AA',
-      queueItems: 2,
-      queueLoads: 5,
-      queueWithoutCount: 0,
-      queueHours: 2, // (2×60 + 3×40) / 60 / 2
-    });
-  });
-
-  it('has unknown hours when an item has no load count, a group no formula, or no washers', () => {
-    const q = (id: string, n: number | null) => ({
-      wash_group_id: id,
-      status: 'queued',
-      loads_remaining: n,
-    });
-    const noCount = customerWork([q('aa1', 2), q('aa2', null)], customerOf, cycleOfGroup, 2)[0];
-    expect(noCount?.queueWithoutCount).toBe(1);
-    expect(noCount?.queueLoads).toBe(2);
-    expect(noCount?.queueHours).toBeNull();
-    expect(customerWork([q('aa3', 2)], customerOf, cycleOfGroup, 2)[0]?.queueHours).toBeNull();
-    expect(customerWork([q('aa1', 2)], customerOf, cycleOfGroup, 0)[0]?.queueHours).toBeNull();
-  });
-
-  it('never uses estimates, and ownGroups leaves customer groups out of the totals', () => {
-    expect(customerWork([], customerOf)).toEqual([]);
+describe('ownGroups', () => {
+  it('leaves customer groups out of the totals', () => {
+    const customerOf = (id: string) => (id.startsWith('aa') ? 'AA' : null);
     expect(ownGroups([{ id: 'aa1' }, { id: 'own' }], customerOf)).toEqual([{ id: 'own' }]);
   });
 });

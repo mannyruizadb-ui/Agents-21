@@ -13,7 +13,7 @@ import {
   splitAmount,
   stepFull,
   toLoads,
-  washHours,
+  rowWashHours,
   type EstimateUnit,
 } from './estimateMath';
 import type { CurrentEstimate, EstimateGroup } from './estimatesData';
@@ -81,7 +81,7 @@ export function EstimateRow({
   const typed = draft !== null && draft.text.trim() !== '';
   const qty = typed ? parseAmount(draft.text) : null;
   const loads = qty === null ? null : toLoads(qty, unit, group);
-  const hrs = washHours(loads, cycleMinutes);
+  const hrs = rowWashHours(loads, cycleMinutes);
   const idBase = `est-${group.id}`;
   const fill = splitAmount(qty ?? 0);
   const changed = typed;

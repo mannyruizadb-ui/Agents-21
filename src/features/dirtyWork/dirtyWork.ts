@@ -47,6 +47,13 @@ export interface DirtyEstimateInput {
   unit: string;
   /** app.to_loads(qty) from the database; null = the container has no factor. */
   qty_loads: number | null;
+  /**
+   * Owner 2026-11-10, ONE rule everywhere: whole loads still dirty = the estimate's whole loads minus
+   * washer starts of the group since the estimate was entered (each start = 1 load), from the
+   * database (current_soil_estimates.loads_left). null = no factor. Absent (an estimate typed on
+   * this screen, not saved yet) = the estimate itself.
+   */
+  loads_left?: number | null;
 }
 
 /** An open queue row (get_queue), only the columns used here. */
@@ -258,18 +265,24 @@ export function dirtyWork(input: DirtyWorkInput): DirtyWork {
     estimated += 1;
     const qty = Number(e.qty);
     if (!(qty > 0)) continue;
-    const loads =
+    const estimateLoads =
       e.unit === 'load'
         ? wholeLoads(qty)
         : e.qty_loads === null || e.qty_loads === undefined
           ? null
           : wholeLoads(Number(e.qty_loads));
+    const loads = e.loads_left === undefined ? estimateLoads : e.loads_left;
+    // All washed since the estimate: nothing waiting for this group.
+    if (loads === 0) continue;
+    // Some washed already: the amount as typed no longer describes what's left, so the line says
+    // the loads left instead ("2 loads", not "7½ baskets").
+    const washedSome = loads !== null && estimateLoads !== null && loads < estimateLoads;
     ourLines.push({
       id: g.id,
       name: g.name,
       nameI18n: g.name_i18n,
       color: g.color_hex,
-      amounts: [{ unit: e.unit, qty }],
+      amounts: washedSome ? [{ unit: 'load', qty: loads }] : [{ unit: e.unit, qty }],
       loads,
       partlyUnknown: false,
       cycleMinutes: cycleOf(g),
