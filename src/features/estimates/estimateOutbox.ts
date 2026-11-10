@@ -122,6 +122,21 @@ export function dismissRejectedEstimate(store: KeyValueStore, clientId: string):
 }
 
 /** Saves a batch (before any attempt). False = the device refused to store it. */
+/**
+ * How many of `batch`'s entries reached the server: not still waiting on the device and not refused.
+ * Pure (the caller reads the lists after its own flush), so an older flush's count is never reported.
+ */
+export function batchSavedCount(
+  batch: OutboxBatch,
+  pending: readonly OutboxBatch[],
+  rejected: readonly RejectedEstimate[],
+): number {
+  const left = new Set<string>();
+  for (const b of pending) for (const e of b.entries) left.add(e.clientId);
+  for (const r of rejected) left.add(r.clientId);
+  return batch.entries.filter((e) => !left.has(e.clientId)).length;
+}
+
 export function addBatch(store: KeyValueStore, batch: OutboxBatch): boolean {
   const list = readOutbox(store).filter((b) => b.batchId !== batch.batchId);
   return write(store, OUTBOX_KEY, [...list, batch]);

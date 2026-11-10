@@ -3,6 +3,9 @@
 -- RPCs deny. With the flag false or absent, behavior is unchanged.
 begin;
 \ir _fixtures.psql
+-- The entry-PIN RPCs are service_role only since 20261110104605 (asserted in 229_audit_fixes_2026_11_10).
+-- This file still exercises their kept-for-history logic as signed-in roles: grant inside this rolled-back transaction.
+grant execute on function public.set_staff_pin(uuid, text) to authenticated;
 select plan(26);
 
 insert into public.finished_goods_entries (org_id, plant_id, area_id, item_type_id, loose_pieces, occurred_at, entered_by, client_id) values

@@ -57,6 +57,15 @@ describe('delivery outbox', () => {
     ]);
   });
 
+  it('files a delivery sent late under the time it was entered (23:50 entry, sent 00:10)', async () => {
+    const store = memoryStore();
+    const entered = Date.parse('2026-11-10T04:50:00Z'); // 23:50 in Miami
+    const sent = Date.parse('2026-11-10T05:10:00Z'); // 00:10 the next plant day
+    addPendingDelivery(store, delivery({ enteredAt: iso(entered), createdAt: iso(entered) }));
+    await flushDeliveries(store, api(), sent);
+    expect(readRecentDeliveries(store, sent)[0]?.savedAt).toBe(iso(entered));
+  });
+
   it('keeps the delivery when offline', async () => {
     const store = memoryStore();
     addPendingDelivery(store, delivery());

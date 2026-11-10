@@ -27,6 +27,7 @@ import { TapAlarmBanner } from '../../features/washroom/TapAlarmBanner';
 import { useMyRoles } from '../../features/washroom/useMyRoles';
 import { pickArea, useAreas } from '../../features/washroom/washroomData';
 import { OwnerDashboard } from '../../features/dashboard/OwnerDashboard';
+import { QuickActions, WasherStrip } from '../../features/home/ManagerHome';
 import '../../lib/forms.css';
 import './home.css';
 
@@ -205,6 +206,13 @@ export function HomePage() {
         />
       )}
       {!plantId && areas.isPending && <p role="status">{t('common.loading')}</p>}
+      {plantId && rolesKnown && !isOwner && (
+        // Owner 2026-11-10: managers and leads see washers 1–6 first, then shortcuts, then rows.
+        <>
+          <WasherStrip washroomId={washroom?.id} now={now} />
+          <QuickActions userId={userId} plantId={plantId} isManager={isManager} />
+        </>
+      )}
       {plantId && rolesKnown && (
         <div className="home-body">
           {tiles.length === 0 ? (
@@ -212,7 +220,7 @@ export function HomePage() {
           ) : (
             // Owner: a compact status strip above the dashboard (only what the dashboard lacks).
             <ul
-              className={isOwner ? 'home-grid home-strip' : 'home-grid'}
+              className={isOwner ? 'home-grid home-strip' : 'home-grid home-rows'}
               aria-label={isOwner ? t('home.statusStrip') : undefined}
             >
               {tiles.map((id) => (

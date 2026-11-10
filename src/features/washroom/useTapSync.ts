@@ -148,6 +148,8 @@ export function flushTaps(userId: string, qc?: QueryClient): Promise<void> {
       if (qc && (r.sent.length > 0 || r.rejected.length > 0)) {
         void qc.invalidateQueries({ queryKey: ['washroom-board'] });
         void qc.invalidateQueries({ queryKey: ['queue'] });
+        // A start changes "loads left" (current_soil_estimates.loads_left, owner 2026-11-10).
+        void qc.invalidateQueries({ queryKey: ['soil'] });
       }
     } finally {
       s.flushing = null;
@@ -181,6 +183,8 @@ export async function undoTap(userId: string, clientId: string, qc?: QueryClient
   if (qc) {
     void qc.invalidateQueries({ queryKey: ['washroom-board'] });
     void qc.invalidateQueries({ queryKey: ['queue'] });
+    // A start changes "loads left" (current_soil_estimates.loads_left, owner 2026-11-10).
+    void qc.invalidateQueries({ queryKey: ['soil'] });
   }
 }
 
@@ -259,16 +263,20 @@ export function useTapSync() {
   /**
    * Re-sends a refused tap as a NEW tap with the missing answer ("Start anyway", or an off-queue
    * reason), keeping the answers it already had. The new tap is saved before the refused one is
-   * dismissed, so a tap is never lost in between. Returns the new client_id.
+   * dismissed, so a tap is never lost in between. It keeps the refused tap's time while the server
+   * still accepts it (tapQueue.resendTime), else now; `clockOffsetMs` as in tap(). Returns the new
+   * client_id.
    */
   const resend = useCallback(
     (
       refused: RejectedTap,
       add: { confirmRunning?: boolean; offQueueReason?: OffQueueReason },
+      clockOffsetMs = 0,
     ): string => {
       const clientId = crypto.randomUUID();
       const store = userStore(userId);
-      if (addPending(store, resendTap(refused, clientId, new Date(), add))) {
+      const now = new Date(Date.now() + clockOffsetMs);
+      if (addPending(store, resendTap(refused, clientId, now, add))) {
         dismissRejected(store, refused.clientId);
       }
       refresh(userId);

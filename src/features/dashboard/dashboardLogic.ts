@@ -2,75 +2,8 @@
 // Pure module. Only real data: estimates (≈, owner factors), washer status, washer taps and finished
 // goods. Never weights, never per-person rows or totals, never invented targets.
 
-import { round2, washHours } from '../estimates/estimateMath';
+import { round2 } from '../estimates/estimateMath';
 import { isOffQueueReason, OFF_QUEUE_REASONS, type OffQueueReason } from '../washroom/offQueue';
-
-/** One wash group's dirty work waiting, from its current estimate. */
-export interface GroupWork {
-  id: string;
-  name: string;
-  nameI18n: unknown;
-  color: string | null;
-  /** ≈ loads; null = the estimate's container has no factor (left out, said on screen). */
-  loads: number | null;
-  /** ≈ hours on the working washers (loads × cycle min ÷ 60 ÷ capacity); null = no formula time
-   *  or no working washer. */
-  hours: number | null;
-  /** Loads × cycle minutes ÷ 60, one washer. Kept to rank groups when no washer is working. */
-  washerHours: number | null;
-  /** Outside customer's group (AA Linen). */
-  customerId: string | null;
-}
-
-export interface GroupInput {
-  id: string;
-  name: string;
-  name_i18n: unknown;
-  color_hex: string | null;
-  wash_formula_id: string | null;
-}
-
-export interface EstimateInput {
-  qty: number;
-  qty_loads: number | null;
-}
-
-/**
- * Work waiting per group with an estimate above 0, sorted by hours (then loads, then name). Same
- * rule as the estimates screen: an estimate of 0 is 0 loads even without a factor.
- */
-export function workByGroup(
-  groups: readonly GroupInput[],
-  estimates: ReadonlyMap<string, EstimateInput>,
-  cycleMinutesOf: (formulaId: string | null) => number | null | undefined,
-  capacity: number,
-  customerOf: (groupId: string) => string | null = () => null,
-): GroupWork[] {
-  const rows: GroupWork[] = [];
-  for (const g of groups) {
-    const e = estimates.get(g.id);
-    if (!e) continue;
-    const loads = Number(e.qty) === 0 ? 0 : e.qty_loads === null ? null : Number(e.qty_loads);
-    if (loads === 0) continue;
-    const washerHours = washHours(loads, cycleMinutesOf(g.wash_formula_id));
-    rows.push({
-      id: g.id,
-      name: g.name,
-      nameI18n: g.name_i18n,
-      color: g.color_hex,
-      loads: loads === null ? null : round2(loads),
-      washerHours,
-      hours: washerHours !== null && capacity > 0 ? washerHours / capacity : null,
-      customerId: customerOf(g.id),
-    });
-  }
-  return rows.sort(
-    (a, b) =>
-      (b.washerHours ?? -1) - (a.washerHours ?? -1) ||
-      (b.loads ?? -1) - (a.loads ?? -1) ||
-      a.name.localeCompare(b.name),
-  );
-}
 
 /** Newest and oldest entry times (ms) of the current estimates; null when there are none. */
 export function estimateAges(
@@ -214,73 +147,6 @@ export function finishedToday(rows: readonly FinishedInput[]): FinishedToday {
     (a, b) => b.pieces - a.pieces || a.name.localeCompare(b.name),
   );
   return { pieces: items.reduce((s, i) => s + i.pieces, 0), entries, voided, items };
-}
-
-/** One open queue row (get_queue). */
-export interface QueueInput {
-  wash_group_id: string;
-  status: string;
-  loads_remaining: number | null;
-}
-
-export interface CustomerWork {
-  customerId: string;
-  /** Open queue items of the customer's groups. */
-  queueItems: number;
-  /** Loads not started yet on those items (items without a load count are counted apart). */
-  queueLoads: number;
-  queueWithoutCount: number;
-  /**
-   * ≈ hours to wash those loads on the working washers (loads × formula minutes ÷ 60 ÷ capacity);
-   * null when a group has no formula time, there is no capacity, or an item has no load count.
-   */
-  queueHours: number | null;
-}
-
-/**
- * Work waiting per outside customer (AA Linen), from the open queue ONLY (meta 2026-11-09): the
- * customer's goods arrive by delivery straight into the queue, so their estimates would double
- * count. Customer groups are also left out of the estimate totals (see ownGroups).
- */
-export function customerWork(
-  queue: readonly QueueInput[],
-  customerOf: (groupId: string) => string | null,
-  cycleMinutesOfGroup: (groupId: string) => number | null | undefined = () => null,
-  capacity = 0,
-): CustomerWork[] {
-  const by = new Map<string, CustomerWork & { washerHours: number | null }>();
-  for (const q of queue) {
-    if (q.status === 'done' || q.status === 'cancelled') continue;
-    const id = customerOf(q.wash_group_id);
-    if (!id) continue;
-    let c = by.get(id);
-    if (!c) {
-      c = {
-        customerId: id,
-        queueItems: 0,
-        queueLoads: 0,
-        queueWithoutCount: 0,
-        queueHours: null,
-        washerHours: 0,
-      };
-      by.set(id, c);
-    }
-    c.queueItems += 1;
-    if (q.loads_remaining === null || q.loads_remaining === undefined) {
-      c.queueWithoutCount += 1;
-      c.washerHours = null;
-      continue;
-    }
-    const loads = Number(q.loads_remaining);
-    c.queueLoads = round2(c.queueLoads + loads);
-    if (c.washerHours === null || loads === 0) continue;
-    const h = washHours(loads, cycleMinutesOfGroup(q.wash_group_id));
-    c.washerHours = h === null ? null : c.washerHours + h;
-  }
-  return [...by.values()].map(({ washerHours, ...c }) => ({
-    ...c,
-    queueHours: washerHours !== null && capacity > 0 ? washerHours / capacity : null,
-  }));
 }
 
 /** Our own wash groups only (no outside customer): what the estimate totals and charts count. */

@@ -256,6 +256,7 @@
     "stillRunningUntil": "{{washer}} sigue trabajando hasta las {{time}}.",
     "stillRunning": "{{washer}} sigue trabajando.",
     "startAnotherQ": "¿Empezar otra carga de todos modos? Solo si de verdad metiste una carga nueva.",
+    "readOnly": "Solo lectura: para empezar cargas se necesita una cuenta de dueño, gerente o líder.",
     "startAnyway": "Empezar de todos modos",
     "rejectRunning": "La lavadora todavía estaba trabajando, así que no se contó. Toca «Empezar de todos modos» solo si de verdad metiste una carga nueva.",
     "offQueueQ": "{{next}} es lo próximo en la cola. ¿Por qué empezar {{chosen}}?",
@@ -1201,5 +1202,14 @@
     "remove": "Quitar {{label}}",
     "waiting_one": "{{name}}: {{count}} registro sin enviar en este iPad. Entra para enviarlo.",
     "waiting_other": "{{name}}: {{count}} registros sin enviar en este iPad. Entra para enviarlos."
+  },
+  "managerHome": {
+    "allWashers": "Todas las lavadoras",
+    "minLeft_one": "falta {{count}} min",
+    "minLeft_other": "faltan {{count}} min",
+    "enterEstimates": "Anotar estimados",
+    "dropOff": "Entrega de cliente",
+    "dropOffFor": "Entrega de {{name}}",
+    "shortcuts": "Atajos"
   }
 }

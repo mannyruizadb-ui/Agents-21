@@ -5,7 +5,10 @@
 -- Matrix arrays: [owner, manager, lead, viewer, display, display-without-device, owner of B, anon].
 begin;
 \ir _fixtures.psql
-select plan(42);
+-- The entry-PIN RPCs are service_role only since 20261110104605 (asserted in 229_audit_fixes_2026_11_10).
+-- This file still exercises their kept-for-history logic as signed-in roles: grant inside this rolled-back transaction.
+grant execute on function public.start_staff_session(uuid, text) to authenticated;
+select plan(43);
 
 -- Entry staff: Ana (home shift finishing Evening), Ben (no home shift), Cy (inactive later), Zed (plant B).
 insert into public.entry_staff (id, org_id, plant_id, display_name, home_shift_id, pin_hash) values
@@ -91,19 +94,20 @@ select is((select count(*)::int from public.staff_sessions where plant_id = pg_t
 
 -- ══ record_finished_goods (E1) ════════════════════════════════════════════
 select is(pg_temp.writes($$select public.record_finished_goods(pg_temp.id('mat'), 0, 5, gen_random_uuid(), pg_temp.ana(), p_occurred_at => pg_temp.ny('2026-11-03 11:30'))$$),
-  '{1,1,NOT_AUTHORIZED,NOT_AUTHORIZED,NOT_AUTHORIZED,NOT_AUTHORIZED,NOT_AUTHORIZED,42501}',
-  'record_finished_goods: owner/manager with a staff session only (a lead or viewer cannot write finished goods)');
-select is(pg_temp.val_as('manager', $$select row(r.packs, r.pack_size_used, r.loose_pieces, r.pieces, r.warning, r.duplicate)::text
+  '{1,NOT_AUTHORIZED,NOT_AUTHORIZED,NOT_AUTHORIZED,NOT_AUTHORIZED,NOT_AUTHORIZED,NOT_AUTHORIZED,42501}',
+  'record_finished_goods: owner/manager only (a lead or viewer cannot write finished goods); back-dated into a past shift (2026-11-03) only the owner (audit 2026-11-10)');
+-- Back-dated entries (a past shift) are owner-only since 2026-11-10; the manager window is in 229_audit_fixes_2026_11_10.
+select is(pg_temp.val_as('owner', $$select row(r.packs, r.pack_size_used, r.loose_pieces, r.pieces, r.warning, r.duplicate)::text
                                        from public.record_finished_goods(pg_temp.id('napkin'), 7, 34, pg_temp.cid(10), pg_temp.ana(), p_occurred_at => pg_temp.ny('2026-11-03 11:30')) r$$),
   '(7,100,34,734,,f)', 'pack item: 7 × 100 + 34 = 734 pieces (generated); no warning');
-select is(pg_temp.val_as('manager', $$select row(r.pack_size_used, r.pieces, r.warning)::text
+select is(pg_temp.val_as('owner', $$select row(r.pack_size_used, r.pieces, r.warning)::text
                                        from public.record_finished_goods(pg_temp.id('napkin'), 2, 60, gen_random_uuid(), pg_temp.ana(), 50, p_occurred_at => pg_temp.ny('2026-11-03 11:30')) r$$),
   '(50,160,LOOSE_EXCEEDS_PACK)', 'per-entry pack size override 50; warning when loose ≥ pack size');
 select is(pg_temp.val_as('manager', $$select (public.record_finished_goods(pg_temp.id('napkin'), 7, 34, pg_temp.cid(10), null)).duplicate$$),
   'true', 'idempotent retry (no session needed for an entry already saved)');
 select is((select count(*)::int from public.finished_goods_entries where client_id = pg_temp.cid(10)), 1, 'one row');
 select is((select array[area_id::text, coalesce(staff_id::text, 'none'), entered_by::text, source::text] from public.finished_goods_entries where client_id = pg_temp.cid(10)),
-  array[pg_temp.id('fin')::text, 'none', pg_temp.id('manager')::text, 'manual'],
+  array[pg_temp.id('fin')::text, 'none', pg_temp.id('owner')::text, 'manual'],
   'area defaults to the plant''s finishing area; no staff; entered_by = the account');
 select is(array[
   pg_temp.run_as('manager', $$select public.record_finished_goods(pg_temp.id('mat'), 1, 0, gen_random_uuid(), pg_temp.ana())$$),
@@ -130,15 +134,15 @@ select is(pg_temp.run_as('manager', $$select public.record_finished_goods(pg_tem
 
 -- Shift attribution (2026-11-07): the area's shift at occurred_at, not the (ignored) PIN person's home shift
 -- (Ana's home shift is finishing Evening; it no longer matters).
-select is(pg_temp.val_as('manager', $$select (public.record_finished_goods(pg_temp.id('mat'), 0, 2, gen_random_uuid(), pg_temp.ana(), p_shift_choice => 'my', p_occurred_at => pg_temp.ny('2026-11-03 01:00'))).shift_instance_id$$),
+select is(pg_temp.val_as('owner', $$select (public.record_finished_goods(pg_temp.id('mat'), 0, 2, gen_random_uuid(), pg_temp.ana(), p_shift_choice => 'my', p_occurred_at => pg_temp.ny('2026-11-03 01:00'))).shift_instance_id$$),
   pg_temp.si(pg_temp.id('fin'), 'Night', '2026-11-03')::text, '"My shift" at 01:00: the finishing shift running at 01:00 (Night), not Ana''s Evening');
-select is(pg_temp.val_as('manager', $$select (public.record_finished_goods(pg_temp.id('mat'), 0, 2, gen_random_uuid(), pg_temp.ana(), p_shift_choice => 'next', p_occurred_at => pg_temp.ny('2026-11-03 01:00'))).shift_instance_id$$),
+select is(pg_temp.val_as('owner', $$select (public.record_finished_goods(pg_temp.id('mat'), 0, 2, gen_random_uuid(), pg_temp.ana(), p_shift_choice => 'next', p_occurred_at => pg_temp.ny('2026-11-03 01:00'))).shift_instance_id$$),
   pg_temp.si(pg_temp.id('fin'), 'Day', '2026-11-03')::text, '"Next shift": the finishing instance after that one');
 select set_config('test.s6', pg_temp.sess('manager', 'b0000000-0000-0000-0000-0000000000a2', '1470')::text, true);
-select is(pg_temp.val_as('manager', $$select (public.record_finished_goods(pg_temp.id('mat'), 0, 2, gen_random_uuid(), current_setting('test.s6')::uuid, p_occurred_at => pg_temp.ny('2026-11-03 11:30'))).shift_instance_id$$),
+select is(pg_temp.val_as('owner', $$select (public.record_finished_goods(pg_temp.id('mat'), 0, 2, gen_random_uuid(), current_setting('test.s6')::uuid, p_occurred_at => pg_temp.ny('2026-11-03 11:30'))).shift_instance_id$$),
   pg_temp.si(pg_temp.id('fin'), 'Day', '2026-11-03')::text, 'no home shift: the area''s clock-based shift');
 select set_config('test.s7', pg_temp.sess('manager', 'b0000000-0000-0000-0000-0000000000a2', '1470')::text, true);
-select is(pg_temp.val_as('manager', $$select row(r.shift_instance_id, r.production_date)::text from public.record_finished_goods(pg_temp.id('mat'), 0, 2, gen_random_uuid(), current_setting('test.s7')::uuid, p_occurred_at => pg_temp.ny('2026-11-01 13:00')) r$$),
+select is(pg_temp.val_as('owner', $$select row(r.shift_instance_id, r.production_date)::text from public.record_finished_goods(pg_temp.id('mat'), 0, 2, gen_random_uuid(), current_setting('test.s7')::uuid, p_occurred_at => pg_temp.ny('2026-11-01 13:00')) r$$),
   '(,2026-11-01)', 'off-shift (Sunday, no shift): no instance; production_date stored (security carry-forward)');
 
 -- No oracle.
@@ -159,13 +163,15 @@ select is(array[pg_temp.run_as('lead', $$select public.void_finished_goods(curre
                 pg_temp.run_as('ownerB', $$select public.void_finished_goods(gen_random_uuid(), 'typo')$$),
                 pg_temp.run_as('anon', $$select public.void_finished_goods(gen_random_uuid(), 'typo')$$)],
   '{NOT_AUTHORIZED,NOT_AUTHORIZED,NOT_AUTHORIZED,NOT_AUTHORIZED,NOT_AUTHORIZED,42501}', 'void: lead, viewer, display, other tenant (foreign or missing id) denied');
-select is(pg_temp.run_as('manager', $$select public.void_finished_goods(current_setting('test.f10')::uuid, '  ')$$),
+select is(pg_temp.run_as('owner', $$select public.void_finished_goods(current_setting('test.f10')::uuid, '  ')$$),
   'VALIDATION_FAILED', 'a reason is required');
-select is(pg_temp.val_as('manager', $$select row(r.void_reason, r.duplicate, r.pieces)::text from public.void_finished_goods(current_setting('test.f10')::uuid, 'counted twice') r$$),
-  '("counted twice",f,734)', 'manager voids with a reason');
+select is(pg_temp.run_as('manager', $$select public.void_finished_goods(current_setting('test.f10')::uuid, 'counted twice')$$),
+  'NOT_AUTHORIZED', 'a manager cannot void an entry of a past shift (owner-only since 2026-11-10)');
+select is(pg_temp.val_as('owner', $$select row(r.void_reason, r.duplicate, r.pieces)::text from public.void_finished_goods(current_setting('test.f10')::uuid, 'counted twice') r$$),
+  '("counted twice",f,734)', 'the owner voids with a reason');
 select is(pg_temp.val_as('owner', $$select (public.void_finished_goods(current_setting('test.f10')::uuid, 'again')).duplicate$$),
   'true', 'voiding again is idempotent');
-select is((select array[(voided_by = pg_temp.id('manager'))::text, void_reason] from public.finished_goods_entries where client_id = pg_temp.cid(10)),
+select is((select array[(voided_by = pg_temp.id('owner'))::text, void_reason] from public.finished_goods_entries where client_id = pg_temp.cid(10)),
   array['true', 'counted twice'], 'the first void stands');
 select is((select coalesce(sum(pieces), 0)::int from public.finished_by_shift where item_type_id = pg_temp.id('napkin')), 160,
   'voided entries leave the totals (734 voided, 160 left)');

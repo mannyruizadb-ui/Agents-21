@@ -4,7 +4,7 @@ import { unwrap } from '../washroom/rpcError';
 import type { FinishedInput, OffQueueInput, PaceInput } from './dashboardLogic';
 
 // Owner-only reads for the Home dashboard (owner 2026-11-09). Both RPCs check the owner role first
-// and default to the CURRENT production day (plants.production_day_start, 12:00 → 12:00 plant-local),
+// and default to the CURRENT production day (plants.production_day_start, 10:00 → 10:00 plant-local since 2026-11-10),
 // so the client never computes the date. Entered-by names are never selected or shown.
 
 export const DASHBOARD_REFETCH_MS = 60_000;

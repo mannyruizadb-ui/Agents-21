@@ -67,6 +67,7 @@ export function CancelDelivery({
     onSettled: () => {
       void qc.invalidateQueries({ queryKey: ['queue'] });
       void qc.invalidateQueries({ queryKey: ['customer-deliveries'] });
+      void qc.invalidateQueries({ queryKey: ['washroom-board'] });
     },
   });
 

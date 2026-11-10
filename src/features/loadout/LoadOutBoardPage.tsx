@@ -39,7 +39,8 @@ import './loadout.css';
 
 type MatIdx = ReadonlyMap<string, { item: MatItem; size: string | null; groupId: string }>;
 
-/** A set of lines' mats by size, from the mat catalog (pieces; pack items × pack size). */
+/** A set of lines' mats by size, from the mat catalog. Load-out quantities are pieces as entered,
+ * never multiplied by a pack size. */
 function linesMatTotals(
   lines: readonly { item_type_id: string | null; qty: number }[],
   idx: MatIdx,

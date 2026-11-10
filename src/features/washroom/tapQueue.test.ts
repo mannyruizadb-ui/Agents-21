@@ -10,6 +10,8 @@ import {
   readRejected,
   removePending,
   resendTap,
+  resendTime,
+  RESEND_MAX_AGE_MS,
   type KeyValueStore,
   type PendingTap,
   type SendOutcome,
@@ -223,5 +225,31 @@ describe('off-queue reasons (owner 2026-11-09)', () => {
     expect(r.rejected.map((x) => x.errorCode)).toEqual(['OFF_QUEUE_REASON_REQUIRED']);
     expect(readRejected(s)).toHaveLength(1);
     expect(readPending(s)).toEqual([]);
+  });
+});
+
+describe('resend keeps the tap time (audit 2026-11-10)', () => {
+  const tapped = new Date('2026-11-10T14:00:00Z');
+  const later = (ms: number) => new Date(tapped.getTime() + ms);
+
+  it("keeps the refused tap's own time while the server still accepts it", () => {
+    const refused = newTap('m', 'g', 'old', tapped);
+    const again = resendTap(refused, 'new', later(5 * 60_000), { confirmRunning: true });
+    expect(again.tappedAt).toBe(tapped.toISOString());
+    expect(resendTime(tapped.toISOString(), later(RESEND_MAX_AGE_MS)).toISOString()).toBe(
+      tapped.toISOString(),
+    );
+  });
+
+  it('falls back to now (server-corrected) once the tap is older than the window', () => {
+    const now = later(RESEND_MAX_AGE_MS + 1);
+    const again = resendTap(newTap('m', 'g', 'old', tapped), 'new', now, { confirmRunning: true });
+    expect(again.tappedAt).toBe(now.toISOString());
+  });
+
+  it('falls back to now for an unreadable or future tap time', () => {
+    const now = later(0);
+    expect(resendTime('not a date', now)).toBe(now);
+    expect(resendTime(later(60_000).toISOString(), now)).toBe(now);
   });
 });

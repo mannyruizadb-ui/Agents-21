@@ -135,6 +135,7 @@ export function invalidateSetup(qc: QueryClient): void {
     'wash-formulas',
     'wash-group-categories',
     'wash-group-pace',
+    'washer-capacity',
     'customer-groups',
     'customer-wash-groups',
     'machine-names',

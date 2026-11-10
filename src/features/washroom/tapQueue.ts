@@ -121,10 +121,26 @@ export function newTap(
 }
 
 /**
+ * A re-sent tap keeps the refused tap's own time (when the washer was really loaded) while the server
+ * still accepts it: start_washer_load refuses a p_tapped_at older than 30 min, so past 29 min (or an
+ * unreadable / future time) it falls back to `now` (server-clock corrected by the caller).
+ */
+export const RESEND_MAX_AGE_MS = 29 * 60_000;
+
+/** The time a re-sent tap carries: the original tap time if still inside the window, else now. */
+export function resendTime(originalIso: string, now: Date): Date {
+  const original = Date.parse(originalIso);
+  const age = now.getTime() - original;
+  return Number.isFinite(original) && age >= 0 && age <= RESEND_MAX_AGE_MS
+    ? new Date(original)
+    : now;
+}
+
+/**
  * A NEW tap that re-sends a refused one with the missing answer added (WASHER_RUNNING → "Start
- * anyway"; OFF_QUEUE_REASON_REQUIRED → a reason). Keeps the machine, the chosen group and every
- * answer already given, so the retry cannot fail on the other question again. New client_id: the
- * refused one was never recorded.
+ * anyway"; OFF_QUEUE_REASON_REQUIRED → a reason). Keeps the machine, the chosen group, the tap time
+ * (see resendTime) and every answer already given, so the retry cannot fail on the other question
+ * again. New client_id: the refused one was never recorded. `now` = server-corrected current time.
  */
 export function resendTap(
   refused: PendingTap,
@@ -136,7 +152,7 @@ export function resendTap(
     refused.machineId,
     refused.washGroupId,
     clientId,
-    now,
+    resendTime(refused.tappedAt, now),
     add.confirmRunning ?? refused.confirmRunning ?? false,
     add.offQueueReason ?? refused.offQueueReason ?? null,
   );

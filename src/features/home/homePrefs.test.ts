@@ -13,7 +13,9 @@ import {
 describe('home prefs', () => {
   it('defaults by role', () => {
     expect(visibleTiles(normalizePrefs(null, 'owner'))).toEqual(defaultOrder('owner'));
-    expect(visibleTiles(normalizePrefs(null, 'other'))).toEqual(['washers', 'queue', 'nextTruck']);
+    expect(visibleTiles(normalizePrefs(null, 'other'))).toEqual(['queue', 'nextTruck']);
+    // Managers and leads have washers 1–6 across the top instead of a washers tile (2026-11-10).
+    expect(normalizePrefs(null, 'manager').order).not.toContain('washers');
   });
 
   it('keeps the owner to the tiles the dashboard does not already show, and drops old alerts tiles', () => {
@@ -28,21 +30,24 @@ describe('home prefs', () => {
 
   it('drops unknown and not-allowed tiles and appends missing allowed ones', () => {
     const p = normalizePrefs(
-      { order: ['queue', 'bogus', 'tasks', 'queue'], hidden: ['washers', 'alerts', 7] },
+      {
+        order: ['nextTruck', 'bogus', 'tasks', 'nextTruck'],
+        hidden: ['washers', 'queue', 'alerts', 7],
+      },
       'other',
     );
-    expect(p.order).toEqual(['queue', 'washers', 'nextTruck']);
-    expect(p.hidden).toEqual(['washers']);
+    expect(p.order).toEqual(['nextTruck', 'queue']);
+    expect(p.hidden).toEqual(['queue']);
   });
 
   it('toggles and moves', () => {
     let p = normalizePrefs(null, 'other');
     p = toggleTile(p, 'queue');
-    expect(visibleTiles(p)).toEqual(['washers', 'nextTruck']);
+    expect(visibleTiles(p)).toEqual(['nextTruck']);
     p = toggleTile(p, 'queue');
     p = moveTile(p, 'nextTruck', -1);
-    expect(p.order).toEqual(['washers', 'nextTruck', 'queue']);
-    expect(moveTile(p, 'washers', -1)).toBe(p);
+    expect(p.order).toEqual(['nextTruck', 'queue']);
+    expect(moveTile(p, 'nextTruck', -1)).toBe(p);
     expect(moveTile(p, 'queue', 1)).toBe(p);
   });
 

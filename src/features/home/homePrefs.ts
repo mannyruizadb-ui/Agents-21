@@ -26,9 +26,11 @@ export const PREFS_KEY = 'home.v1';
  * doesn't cover.
  */
 export function allowedTiles(role: HomeRole): TileId[] {
-  if (role === 'other') return ['washers', 'queue', 'nextTruck'];
+  // Owner 2026-11-10: managers and leads have washers 1–6 across the top of Home (ManagerHome), so the
+  // washers summary tile would only repeat it.
+  if (role === 'other') return ['queue', 'nextTruck'];
   if (role === 'owner') return ['machinesDown', 'nextTruck', 'tasks', 'queue'];
-  return [...TILE_IDS];
+  return TILE_IDS.filter((id) => id !== 'washers');
 }
 
 /** The default order per role (all allowed tiles shown). */
@@ -37,9 +39,9 @@ export function defaultOrder(role: HomeRole): TileId[] {
     case 'owner':
       return ['machinesDown', 'nextTruck', 'tasks', 'queue'];
     case 'manager':
-      return ['washers', 'machinesDown', 'tasks', 'nextTruck', 'dirtyWork', 'queue'];
+      return ['dirtyWork', 'queue', 'nextTruck', 'tasks', 'machinesDown'];
     case 'other':
-      return ['washers', 'queue', 'nextTruck'];
+      return ['queue', 'nextTruck'];
   }
 }
 

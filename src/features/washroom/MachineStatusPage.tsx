@@ -93,6 +93,9 @@ export function MachineStatusPage() {
       void qc.invalidateQueries({ queryKey: ['machine-status'] });
       void qc.invalidateQueries({ queryKey: ['washroom-board'] });
       void qc.invalidateQueries({ queryKey: ['queue'] });
+      // A washer going down or back up changes the plant's capacity and the per-group pace.
+      void qc.invalidateQueries({ queryKey: ['washer-capacity'] });
+      void qc.invalidateQueries({ queryKey: ['wash-group-pace'] });
     },
   });
 

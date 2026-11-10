@@ -10,6 +10,7 @@ import {
   addBins,
   isPlantToday,
   plantDayStartIso,
+  serverNowIso,
 } from './deliveryMath';
 
 describe('bins in quarters', () => {
@@ -135,5 +136,17 @@ describe('plant day (America/New_York)', () => {
   it('handles the DST day (2026-11-01, 25 hours long)', () => {
     const late = Date.parse('2026-11-01T23:00:00Z'); // 18:00 EST
     expect(plantDayStartIso(late, TZ)).toBe('2026-11-01T04:00:00.000Z'); // EDT midnight
+  });
+});
+
+describe('serverNowIso (audit 2026-11-10)', () => {
+  const device = Date.parse('2026-11-10T04:50:00Z');
+  it('adds the server-clock offset to the device time', () => {
+    expect(serverNowIso(device, 90_000)).toBe('2026-11-10T04:51:30.000Z');
+    expect(serverNowIso(device, -60_000)).toBe('2026-11-10T04:49:00.000Z');
+  });
+  it('uses the device time when no offset is known', () => {
+    expect(serverNowIso(device, undefined)).toBe('2026-11-10T04:50:00.000Z');
+    expect(serverNowIso(device, Number.NaN)).toBe('2026-11-10T04:50:00.000Z');
   });
 });

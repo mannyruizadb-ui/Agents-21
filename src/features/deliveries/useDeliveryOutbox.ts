@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useSyncExternalStore } from 'react';
+import { useCallback, useMemo, useSyncExternalStore } from 'react';
 import { useQueryClient, type QueryClient } from '@tanstack/react-query';
 import { isSignedInAs } from '../../lib/authUser';
 import { scopedKey, userStore } from '../../lib/scopedStore';
@@ -26,9 +26,8 @@ import {
 // Sends customer deliveries through the device outbox (deliveryOutbox.ts), in the signed-in
 // account's own storage (security H1), only while that account is signed in. 2026-11-07: no entry
 // PIN; the signed-in account is the attribution. Saved deliveries are remembered (recent list) so
-// they can be cancelled from this phone.
-
-const RETRY_EVERY_MS = 15_000;
+// they can be cancelled from this phone. Retries (mount, `online`, every 15 s) run app-wide in
+// OutboxRunner (src/app/control), not here, so drop-offs saved offline send whichever screen is open.
 
 function apiFor(userId: string): DeliveryApi {
   return {
@@ -110,6 +109,7 @@ export function flushDeliveries(userId: string, qc?: QueryClient): Promise<numbe
       if (qc && r.saved.length > 0) {
         void qc.invalidateQueries({ queryKey: ['queue'] });
         void qc.invalidateQueries({ queryKey: ['customer-deliveries'] });
+        void qc.invalidateQueries({ queryKey: ['washroom-board'] });
       }
       return r.saved.length;
     } finally {
@@ -148,23 +148,15 @@ export function useDeliveryOutbox(userId: string) {
   );
   const getSnapshot = useCallback(() => state(userId).snapshot, [userId]);
   const snap = useSyncExternalStore(subscribe, getSnapshot);
-  const hasPending = snap.pending.length > 0;
-  useEffect(() => {
-    const run = () => void flushDeliveries(userId, qc);
-    if (readPendingDeliveries(userStore(userId)).length > 0) run();
-    window.addEventListener('online', run);
-    const id = hasPending ? window.setInterval(run, RETRY_EVERY_MS) : undefined;
-    return () => {
-      window.removeEventListener('online', run);
-      if (id !== undefined) window.clearInterval(id);
-    };
-  }, [userId, qc, hasPending]);
-
   /** Stores the delivery on the device, then sends it. */
   const submit = useCallback(
     async (d: PendingDelivery): Promise<{ stored: boolean; saved: boolean }> => {
       const stored = addPendingDelivery(userStore(userId), d);
       refresh(userId);
+      // A flush already on the wire may have read the list before this delivery was stored: wait
+      // for it, then run a fresh one, so the answer is about THIS delivery.
+      const s = state(userId);
+      while (s.flushing) await s.flushing;
       await flushDeliveries(userId, qc);
       const still = readPendingDeliveries(userStore(userId)).some((x) => x.clientId === d.clientId);
       const refused = readRejectedDeliveries(userStore(userId)).some(

@@ -17,6 +17,7 @@ import {
 } from './deliveryMath';
 import type { PendingDelivery, RecentDelivery } from './deliveryOutbox';
 import { groupMapFromLines } from './deliveryVoid';
+import { serverNowIso } from './deliveryMath';
 import { CancelDelivery } from './CancelDelivery';
 import { useCustomers, useCustomerWashGroups, type CustomerGroup } from './deliveriesData';
 import { useDeliveryOutbox } from './useDeliveryOutbox';
@@ -28,7 +29,7 @@ import { MoreInfo } from '../../lib/MoreInfo';
 import { chipCounts, chipsFor, effectiveChip, inChip } from '../estimates/categories';
 import { useChip } from '../estimates/useChip';
 import { CategoryChips } from '../estimates/CategoryChips';
-import { useGroupCategories } from '../estimates/estimatesData';
+import { useGroupCategories, useWasherCapacity } from '../estimates/estimatesData';
 
 // Record an outside customer's delivery (owner 2026-11-06 B; first: AA Linen). Owner or manager:
 // pick the customer (the only active one is preselected), bins per wash group (steppers −½ / +½ / +1
@@ -73,6 +74,8 @@ export function DeliveryEntryForm({
   const customer = active.find((c) => c.id === customerId);
   const groups = useCustomerWashGroups(plantId, customerId);
   const outbox = useDeliveryOutbox(userId);
+  // Server clock − device clock (the same reading the estimates use), for the drop-off's time.
+  const capacity = useWasherCapacity(plantId);
 
   const [texts, setTexts] = useState<Record<string, string>>({});
   const [note, setNote] = useState('');
@@ -120,7 +123,8 @@ export function DeliveryEntryForm({
     setBusy(true);
     setMessage(null);
     try {
-      const at = new Date().toISOString();
+      // Server-corrected (like the estimates), so a phone with a wrong clock files it on the right day.
+      const at = serverNowIso(Date.now(), capacity.data?.serverOffsetMs);
       const delivery: PendingDelivery = {
         clientId: crypto.randomUUID(), // made once, before the first attempt
         plantId,

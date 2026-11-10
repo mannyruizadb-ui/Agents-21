@@ -255,6 +255,7 @@
     "stillRunningUntil": "{{washer}} is still running until {{time}}.",
     "stillRunning": "{{washer}} is still running.",
     "startAnotherQ": "Start another load anyway? Only if a new load really went in.",
+    "readOnly": "View only: starting loads needs an owner, manager or lead account.",
     "startAnyway": "Start anyway",
     "rejectRunning": "The washer was still running, so it wasn't counted. Tap Start anyway only if a new load really went in.",
     "offQueueQ": "{{next}} is next in the queue. Why start {{chosen}}?",
@@ -1198,5 +1199,14 @@
     "remove": "Remove {{label}}",
     "waiting_one": "{{name}}: {{count}} entry still waiting to send on this iPad. Sign in to send it.",
     "waiting_other": "{{name}}: {{count}} entries still waiting to send on this iPad. Sign in to send them."
+  },
+  "managerHome": {
+    "allWashers": "All washers",
+    "minLeft_one": "{{count}} min left",
+    "minLeft_other": "{{count}} min left",
+    "enterEstimates": "Enter estimates",
+    "dropOff": "Customer drop-off",
+    "dropOffFor": "{{name}} drop-off",
+    "shortcuts": "Shortcuts"
   }
 }

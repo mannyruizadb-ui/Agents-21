@@ -264,3 +264,180 @@
 .home-muted {
   color: var(--c-text-muted);
 }
+
+/* ── Manager / lead Home (owner 2026-11-10): full width, then a list ─────────────────────────── */
+.mh-section {
+  margin: var(--sp-md) 0;
+}
+.mh-section-head {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: var(--sp-xs, 0.25rem) var(--sp-md);
+}
+.form-page .mh-section-head h2 {
+  margin: 0;
+}
+.mh-count {
+  color: var(--c-text-muted);
+}
+.form-page .mh-more {
+  margin-left: auto;
+  font-weight: 700;
+}
+/* Washers 1–6: one row of six on a tablet or desktop, three across on a phone. */
+.mh-washers {
+  list-style: none;
+  margin: var(--sp-sm) 0 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--sp-sm);
+}
+@media (min-width: 700px) {
+  .mh-washers {
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+  }
+}
+.mh-washer {
+  border: 2px solid var(--c-seam);
+  border-radius: var(--radius-lg);
+  background-color: var(--c-surface);
+  min-width: 0;
+}
+.mh-washer.running {
+  border-color: var(--c-ok);
+}
+.mh-washer.ready {
+  border-color: var(--c-warn);
+}
+.mh-washer.down {
+  border-color: var(--c-danger);
+  border-style: dashed;
+  background-color: var(--c-danger-container);
+}
+.form-page .mh-washer-link {
+  display: grid;
+  align-content: start;
+  gap: 0.2rem;
+  height: 100%;
+  min-height: 6.5rem;
+  padding: var(--sp-sm);
+  color: var(--c-text);
+  text-decoration: none;
+}
+.form-page .mh-washer-link:focus-visible {
+  outline: 3px solid var(--c-focus);
+  outline-offset: 2px;
+  border-radius: var(--radius-lg);
+}
+.mh-washer-name {
+  font-size: var(--fs-lg);
+  line-height: 1.1;
+  overflow-wrap: anywhere;
+}
+.mh-washer-state {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3em;
+  font-weight: 700;
+  font-size: var(--fs-sm);
+}
+.mh-washer.running .mh-washer-state {
+  color: var(--c-ok);
+}
+.mh-washer.ready .mh-washer-state {
+  color: var(--c-warn-text, var(--c-warn));
+}
+.mh-washer.down .mh-washer-state {
+  color: var(--c-danger-text, var(--c-danger));
+}
+.mh-washer-time {
+  display: grid;
+  line-height: 1.05;
+}
+.mh-washer-big {
+  font-size: var(--fs-h-lg);
+  font-weight: 700;
+}
+.mh-washer-unit {
+  font-size: var(--fs-sm);
+}
+.mh-washer.ready .mh-washer-big {
+  font-size: var(--fs-md);
+}
+.mh-washer-sub {
+  font-size: var(--fs-sm);
+  color: var(--c-text-muted);
+  overflow-wrap: anywhere;
+}
+/* Shortcuts: big buttons straight into the entry screens, side by side when there is room. */
+.mh-actions {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 14rem), 1fr));
+  gap: var(--sp-sm);
+  margin: var(--sp-md) 0;
+}
+.form-page .mh-action {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--sp-sm);
+  min-height: 4.5rem;
+  padding: var(--sp-sm) var(--sp-md);
+  border-radius: var(--radius-lg);
+  background: var(--c-info-container);
+  border: 2px solid var(--c-info);
+  color: var(--c-text);
+  font-size: var(--fs-lg);
+  font-weight: 700;
+  text-decoration: none;
+  text-align: center;
+}
+.form-page .mh-action:focus-visible {
+  outline: 3px solid var(--c-focus);
+  outline-offset: 2px;
+}
+/* The rest of Home as full-width rows: title on the left, the numbers next to it, chevron at the end. */
+.home-grid.home-rows {
+  grid-template-columns: 1fr;
+}
+.home-rows .home-tile.wide {
+  grid-column: auto;
+}
+@media (min-width: 700px) {
+  .form-page .home-rows .home-tile-link {
+    grid-template-columns: minmax(9rem, 12rem) 1fr auto;
+    align-items: center;
+    align-content: center;
+    column-gap: var(--sp-lg);
+    min-height: 4rem;
+  }
+  .home-rows .home-tile-head {
+    grid-column: 1;
+  }
+  .home-rows .home-tile-head .home-tile-chevron {
+    display: none;
+  }
+  .home-rows .home-tile-body {
+    grid-column: 2;
+    grid-row: 1;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0.2rem var(--sp-md);
+  }
+  .home-rows .home-age {
+    grid-column: 2;
+  }
+  .home-rows .home-tile-link::after {
+    content: '›';
+    grid-column: 3;
+    grid-row: 1;
+    color: var(--c-text-muted);
+    font-size: 1.4rem;
+  }
+  .home-rows .home-big {
+    font-size: var(--fs-h-lg);
+  }
+}

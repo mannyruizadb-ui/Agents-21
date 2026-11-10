@@ -4,6 +4,9 @@
 -- 20261104163718_set_wash_group_factors_and_colors.sql).
 begin;
 \ir _fixtures.psql
+-- The entry-PIN RPCs are service_role only since 20261110104605 (asserted in 229_audit_fixes_2026_11_10).
+-- This file still exercises their kept-for-history logic as signed-in roles: grant inside this rolled-back transaction.
+grant execute on function public.start_staff_session(uuid, text) to authenticated;
 select plan(28);
 
 -- ══ Schema and CHECKs ════════════════════════════════════════════════════
