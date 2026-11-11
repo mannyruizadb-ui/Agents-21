@@ -254,59 +254,62 @@ Deno.test({
       );
     });
 
-    await t.step('sign in with the temp password → must_change_password is set', async () => {
+    // Owner 2026-11-10: the password the owner gives is the one the person keeps (no forced change).
+    await t.step('sign in with the first password → no forced change', async () => {
       const { client, session, error } = await signIn(newName, tempPassword);
       assertEquals(error, null);
-      assertEquals(session?.user.app_metadata.must_change_password, true);
-      // M2: the database refuses the flagged token too, not just the UI.
+      assertEquals(session?.user.app_metadata.must_change_password, false);
       const { data: plants } = await client.from('plants').select('id');
-      assertEquals(plants?.length ?? 0, 0, 'flagged token reads no plants');
+      assertEquals(plants?.length, 1, 'the new account reads its plant right away');
       const { data: profile } = await client.from('profiles').select('full_name');
       assertEquals(profile?.[0]?.full_name, 'Ana Prueba', 'own profile still readable');
     });
 
-    await t.step('change_own_password: rejects short and same; then clears the flag', async () => {
-      const { client, session: maybeSession } = await signIn(newName, tempPassword);
-      assert(maybeSession);
-      const session = maybeSession;
-      const wrong = await call(session.access_token, {
-        action: 'change_own_password',
-        current_password: 'not-the-temp-password',
-        new_password: 'my new password 1',
-      });
-      assertEquals([wrong.status, wrong.body.reason], [400, 'wrong_current_password']);
-      const short = await call(session.access_token, {
-        action: 'change_own_password',
-        current_password: tempPassword,
-        new_password: 'short',
-      });
-      assertEquals([short.status, short.body.reason], [400, 'password_too_short']);
-      const same = await call(session.access_token, {
-        action: 'change_own_password',
-        current_password: tempPassword,
-        new_password: tempPassword,
-      });
-      assertEquals([same.status, same.body.reason], [400, 'same_password']);
-      const ok = await call(session.access_token, {
-        action: 'change_own_password',
-        current_password: tempPassword,
-        new_password: 'my new password 1',
-      });
-      assertEquals(ok.status, 200, JSON.stringify(ok.body));
-      const { data: refreshed } = await client.auth.refreshSession();
-      assertEquals(refreshed.session?.user.app_metadata.must_change_password, false);
-      const { data: plants } = await client.from('plants').select('id');
-      assertEquals(plants?.length, 1, 'after the change the lead reads its plant again');
-      assertEquals(
-        refreshed.session?.user.app_metadata.provider,
-        'email',
-        'app_metadata merged, not replaced',
-      );
-      const again = await signIn(newName, 'my new password 1');
-      assertEquals(again.error, null);
-      assertEquals(again.session?.user.app_metadata.must_change_password, false);
-      assert((await signIn(newName, tempPassword)).error, 'temp password no longer works');
-    });
+    await t.step(
+      'change_own_password: rejects wrong, short and same; then changes it',
+      async () => {
+        const { client, session: maybeSession } = await signIn(newName, tempPassword);
+        assert(maybeSession);
+        const session = maybeSession;
+        const wrong = await call(session.access_token, {
+          action: 'change_own_password',
+          current_password: 'not-the-temp-password',
+          new_password: 'my new password 1',
+        });
+        assertEquals([wrong.status, wrong.body.reason], [400, 'wrong_current_password']);
+        const short = await call(session.access_token, {
+          action: 'change_own_password',
+          current_password: tempPassword,
+          new_password: 'short',
+        });
+        assertEquals([short.status, short.body.reason], [400, 'password_too_short']);
+        const same = await call(session.access_token, {
+          action: 'change_own_password',
+          current_password: tempPassword,
+          new_password: tempPassword,
+        });
+        assertEquals([same.status, same.body.reason], [400, 'same_password']);
+        const ok = await call(session.access_token, {
+          action: 'change_own_password',
+          current_password: tempPassword,
+          new_password: 'my new password 1',
+        });
+        assertEquals(ok.status, 200, JSON.stringify(ok.body));
+        const { data: refreshed } = await client.auth.refreshSession();
+        assertEquals(refreshed.session?.user.app_metadata.must_change_password, false);
+        const { data: plants } = await client.from('plants').select('id');
+        assertEquals(plants?.length, 1, 'after the change the lead reads its plant again');
+        assertEquals(
+          refreshed.session?.user.app_metadata.provider,
+          'email',
+          'app_metadata merged, not replaced',
+        );
+        const again = await signIn(newName, 'my new password 1');
+        assertEquals(again.error, null);
+        assertEquals(again.session?.user.app_metadata.must_change_password, false);
+        assert((await signIn(newName, tempPassword)).error, 'temp password no longer works');
+      },
+    );
 
     await t.step('M1: a manager cannot change their own login email', async () => {
       const { data: before } = await service.auth.admin.getUserById(manager.user.id);
@@ -378,7 +381,7 @@ Deno.test({
       assertEquals(unknownPlant.body, unknown.body);
     });
 
-    await t.step('reset_password → new temp password works and sets the flag again', async () => {
+    await t.step('reset_password → the new password works, no forced change', async () => {
       const r = await call(owner.access_token, {
         action: 'reset_password',
         plant_id: plant.id,
@@ -388,7 +391,7 @@ Deno.test({
       resetPassword = r.body.temp_password;
       const { session, error } = await signIn(newName, resetPassword);
       assertEquals(error, null);
-      assertEquals(session?.user.app_metadata.must_change_password, true);
+      assertEquals(session?.user.app_metadata.must_change_password, false);
       assert((await signIn(newName, 'my new password 1')).error, 'old password no longer works');
     });
 

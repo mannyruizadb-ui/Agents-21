@@ -7,6 +7,7 @@ import { readSignInPrefs } from './signInPrefs';
 import { supabase } from '../../lib/supabase';
 import { passwordProblem, passwordProblemKey } from '../../lib/passwordRules';
 import { callManageUsers } from '../../features/admin/manageUsers';
+import { callSignIn } from './signInApi';
 import '../../lib/forms.css';
 import './signin.css';
 
@@ -42,13 +43,27 @@ export function ChangePasswordPage({ voluntary = false }: { voluntary?: boolean 
     setSaved(false);
     setSaving(true);
     try {
+      // The login, read while the current session is still valid.
+      const login = (await supabase.auth.getSession()).data.session?.user.email ?? null;
       await callManageUsers({
         action: 'change_own_password',
         current_password: current,
         new_password: password,
       });
-      // New token without the flag; RequireAuth re-renders from onAuthStateChange.
-      await supabase.auth.refreshSession();
+      // Owner 2026-11-10 ("the page gets stuck"): changing a password ends every session of the
+      // account on the server, so the old session can't be refreshed. Sign in again with the new
+      // password and hand that session to the app; if that fails, sign out cleanly so the sign-in
+      // screen shows (never a page stuck on "Saving…").
+      const fresh = login ? await callSignIn(login, password) : null;
+      if (fresh?.kind === 'ok') {
+        const { error } = await supabase.auth.setSession({
+          access_token: fresh.accessToken,
+          refresh_token: fresh.refreshToken,
+        });
+        if (error) await supabase.auth.signOut({ scope: 'local' });
+      } else {
+        await supabase.auth.signOut({ scope: 'local' });
+      }
       if (voluntary) {
         setCurrent('');
         setPassword('');

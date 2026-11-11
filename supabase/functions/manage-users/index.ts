@@ -405,7 +405,8 @@ async function handle(req: Request): Promise<{ status: number; body: unknown }> 
         email,
         password: await pepperPassword(pepper, email, tempPassword),
         email_confirm: true,
-        app_metadata: { must_change_password: true, pw_v: PASSWORD_VERSION },
+        // Owner 2026-11-10: the password the owner gives is the one the person keeps (no forced change).
+        app_metadata: { must_change_password: false, pw_v: PASSWORD_VERSION },
       });
       if (createError || !created.user) {
         if (createError?.code === 'email_exists') {
@@ -471,14 +472,15 @@ async function handle(req: Request): Promise<{ status: number; body: unknown }> 
       }
       const { error } = await service.auth.admin.updateUserById(input.user_id, {
         password: await pepperPassword(pepper, targetEmail, tempPassword),
-        app_metadata: { must_change_password: true, pw_v: PASSWORD_VERSION },
+        // Owner 2026-11-10: the password the owner gives is the one the person keeps (no forced change).
+        app_metadata: { must_change_password: false, pw_v: PASSWORD_VERSION },
       });
       if (error) {
         console.error('manage-users: reset_password failed', error.code ?? error.status);
         throw new HttpError(500, 'INTERNAL', 'Could not reset the password.');
       }
       await audit(service, callerId, plant, 'users.reset_password', input.user_id, {
-        must_change_password: true,
+        must_change_password: false,
       });
       return {
         status: 200,
